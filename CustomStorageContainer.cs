@@ -15,8 +15,8 @@ namespace JacksonPerks
     public static class CustomStorageContainer
     {
         public const string CONTAINER_ID = "custom_storage_box";
-        public static string CONTAINER_NAME => LangHelper.T("蛙哥妙妙箱", "Frog Wonder Box");
-        public static string CONTAINER_DESC => LangHelper.T("蛙哥传奇当铺的镇店之宝，占用2×2空间，内部52×10大容量储物箱，什么都能放（包括箱子和机器）。", "The treasure of Frog's legendary pawnshop. 2x2 footprint, 52x10 internal storage. Can hold anything (including crates and machines).");
+        public static string CONTAINER_NAME => LangHelper.T("蛙哥妙妙箱", "Wage Wonder Box");
+        public static string CONTAINER_DESC => LangHelper.T("蛙哥传奇当铺的镇店之宝，占用2×2空间，内部52×10大容量储物箱，什么都能放（包括箱子和机器）。", "The treasure of Wage's legendary pawnshop. 2x2 footprint, 52x10 internal storage. Can hold anything (including crates and machines).");
         public const string CUSTOM_ATLAS = "custom_atlas";
         public const string CUSTOM_SPRITE_NAME = "custom_storage_box_sprite";
 
