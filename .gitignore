@@ -1,0 +1,8 @@
+# 编译产物
+bin/
+obj/
+*.user
+
+# 旧备份文件（Git 接管后冗余，不入库）
+*.bak*
+*.bak_before_*
