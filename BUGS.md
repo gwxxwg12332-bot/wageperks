@@ -11,10 +11,18 @@
 
 ### BUG-001 打开储藏箱卡顿卡死
 - 优先级：🔴 高
-- 状态：待排查
+- 状态：排查中（09-11 拆包一轮：未发现死循环代码，排除 6 类嫌疑，剩 2 个待实测方向）
 - 现象：打开容器/储藏箱时游戏直接卡顿卡死
 - 触发：打开容器、储藏箱时
 - 初步猜想：容器 UI 渲染/物品遍历循环、保存加载钩子无限迭代，打开容器触发大量状态计算（**待拆包确认**）
+- 拆包进展（09-11）：
+  - ✅ 已排除：SetContentWindow Postfix×2（虚空珠/容器升级——仅在物品创建/读档时触发，打开时不触发）
+  - ✅ 已排除：GetValue / GetDisplayName Postfix（轻量字符串替换，无递归）
+  - ✅ 已排除：GetCurrentValue Postfix→TryApplyTradeMarkup（非交易 CurrentUITradeMode==0 时快速返回；AddFeature 系列均防重复无递归）
+  - ✅ 已排除：LoadFromAtlas Prefix×3（虚空珠/骰子/自定义贴图——字符串比较+缓存 sprite，轻量）
+  - ⚠️ 待实测①：大容器渲染——升级过的容器（SetShape 扩容）/虚空珠 200 格/蛙哥妙妙箱 520 格打开时 ValidateBackground 重建网格 + mod 叠加开销
+  - ⚠️ 待实测②：读档后 180 帧 OnUpdateRestore 全库递归遍历（RestoreAllBeadsInPlayerInventories）期间打开容器叠加卡顿
+  - 需复现信息确认：卡的是哪个箱子（蛙哥/虚空珠/普通储藏箱）？卡死瞬间 Latest.log 有无异常刷屏？
 - 根因：（待填）
 - 修复版本：（待填）
 
