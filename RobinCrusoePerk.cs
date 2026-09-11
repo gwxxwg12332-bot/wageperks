@@ -1536,7 +1536,7 @@ internal static class RobinCrusoePerk
                     builder.AddLine(LangHelper.T("◆ 升级：拖 metal_ingot 到机器/模板 +1%/次（性能/效率/质量）", "◆ Upgrade: drag metal_ingot to machine/template +1%/each (Perf/Eff/Quality)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
-            else if (item.IsTag("CONTAINER_TAG") && !item.IsTag("VOID_BEAD_TAG") && !item.IsTag("CUSTOM_STORAGE_TAG"))
+            else if (item.IsTag("CONTAINER_TAG") && !item.IsTag("VOID_BEAD_TAG") && !item.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(item))
             {
                 int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
                 if (stage >= ContainerUpgradeV2.MAX_STAGE)
@@ -1714,7 +1714,7 @@ internal static class RobinCrusoePerk
             if (!IsActive() || __instance == null || targetItem == null) return true;
             // 拖动中 MayTarget 会被反复调用：匹配即放行（hover 可拖），升级/消耗留给松手时的 Target/MayHaveValidInventorySlot
             if ((IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
-                || (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG")))
+                || (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(targetItem)))
             { __result = true; return false; }
         }
         catch { }
@@ -1732,7 +1732,7 @@ internal static class RobinCrusoePerk
             if (!IsDragRelease()) return true;
             if (IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
             { if (TryUpgradeMachine(__instance, targetItem)) return false; }
-            else if (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG"))
+            else if (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(targetItem))
             { if (TryUpgradeContainer(__instance, targetItem)) return false; }
         }
         catch { }
@@ -1745,7 +1745,7 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive() || __instance == null || item == null) return true;
             if (!IsJunk(item)) return true;
-            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || __instance.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || __instance.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance)) return true;
             if (!IsDragRelease()) return true;
             if (TryUpgradeContainer(item, __instance)) { __result = false; return false; }
         }
@@ -1841,6 +1841,7 @@ internal static class RobinCrusoePerk
             try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
+            try { Core.LogMsg("[容器v2] " + GetId(container) + " 升段 stage=" + (stage + 1) + " w=" + w + "->" + targetW + " origW=" + origW); } catch { }
             return true;
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 容器升级异常: " + ex.Message); return false; }
@@ -1959,7 +1960,7 @@ internal static class RobinCrusoePerk
                             restored++;
                             continue;
                         }
-                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG")) continue;
+                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item)) continue;
                         // 容器v2：按段位恢复（含老档 wageUpgradeCap>0 → 满级迁移）；未升级老档保持现状
                         if (ContainerUpgradeV2.RestoreCrusoeShape(item)) { _rcRestoredContainers.Add(item.Pointer); restored++; }
                     }
@@ -1981,7 +1982,7 @@ internal static class RobinCrusoePerk
                 if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
                 return;
             }
-            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG")) return;
+            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance)) return;
             if (!ContainerUpgradeV2.HasTag(__instance, "wb_stage") && GetTagIntSafe(__instance, "wageUpgradeCap") <= 0) return; // 未升级老档不恢复
             if (!_rcRestoredContainers.Add(__instance.Pointer)) return; // 已恢复过：跳过防双加
             ContainerUpgradeV2.RestoreCrusoeShape(__instance);
@@ -2062,7 +2063,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive() || __0 == null || __1 == null) return;
-            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG")) return;
+            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__1)) return;
             if (ContainerUpgradeV2.HasTag(__1, "wb_stage")) return; // 容器v2：已有段位（读档/已减半）→ 不重复减半
             ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)", __1);
             try { __1.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 容量行显示门控（拆包 2.5.32）
@@ -2095,7 +2096,7 @@ internal static class RobinCrusoePerk
             {
                 try
                 {
-                    if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) continue;
+                    if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item)) continue;
                     if (!item.IsTag("CONTAINER_TAG") && !IsMachine(item)) continue;
                     if (ContainerUpgradeV2.HasTag(item, "wb_stage")) continue; // 容器v2：已按段位管理，不重复减半
                     var grid = GetContainerGrid(item);

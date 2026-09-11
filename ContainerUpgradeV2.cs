@@ -110,6 +110,23 @@ public static class ContainerUpgradeV2
         catch { return false; }
     }
 
+    // ===================== 虚空珠储物袋排除 =====================
+    // 虚空珠储物袋（void_bead_storage）EnableTag 的是 backpack/BACKPACK_TAG/CONTAINER_TAG，
+    // VOID_BEAD_TAG 在每颗珠子上、储物袋没有 → 鲁滨逊容器系统会误劫持（存档实锤 wb_stage=1/progress=5 写在储物袋上，
+    // SetShape 又被虚空珠 600 帧恢复轮询覆盖 → 升级"无变化"）。按 identifier 精确排除。
+    public static bool IsVoidBeadStorage(GameItem item)
+    {
+        try
+        {
+            if (item == null) return false;
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            if (id == "void_bead_storage") return true;
+            if (item.IsTag("BACKPACK_TAG")) return true; // 双保险：背包类容器
+            return false;
+        }
+        catch { return false; }
+    }
+
     // ===================== 物品判定 =====================
     public static bool IsNuts(GameItem item)
     {
