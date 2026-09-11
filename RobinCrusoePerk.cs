@@ -30,8 +30,7 @@ internal static class RobinCrusoePerk
     internal const string EATEN_TAG = "WAGES_EATEN";      // 食用过标记（吃了一口就标，卖出-80%）
     internal const string CAL_LEFT_TAG = "WAGES_CAL_LEFT"; // 食物剩余卡路里（吃一口扣一口，不整份消失）
 
-    internal const string WATER_Q_TAG = "WAGES_WATER_Q";   // 水品质 0优质 1普通 2脏；-1无
-
+    
     internal const int DAILY_CAL = 2200;            // 1 单位 = 1 天需求（v4.2 拆包实锤）
     internal const int UNIT_CAL = 2200;             // 1 单位卡路里
     internal const int NORMAL_MAX_UNIT = 5;         // 常态上限（5 单位）
@@ -1050,35 +1049,6 @@ internal static class RobinCrusoePerk
         return cal;
     }
 
-    // ===== 水品质 =====
-    internal static int GetWaterQuality(GameItem item)
-    {
-        if (item == null) return 1;
-        try
-        {
-            if (item.IsTag(WATER_Q_TAG))
-            {
-                var ts = item.GetTagReadonly(WATER_Q_TAG);
-                if (ts != null) return Math.Max(0, Math.Min(2, ts.GetInt()));
-            }
-        }
-        catch { }
-        try { if (GetId(item).Contains("premium")) return 0; } catch { }
-        return 1;
-    }
-    internal static void SetWaterQuality(GameItem item, int value)
-    {
-        if (item == null) return;
-        try
-        {
-            if (value < 0) { item.DisableTag(WATER_Q_TAG, true); return; }
-            if (!item.IsTag(WATER_Q_TAG)) item.EnableTag(WATER_Q_TAG, true);
-            System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(value); };
-            var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
-            item.ModifyTag(WATER_Q_TAG, il2cppAct, false);
-        }
-        catch { }
-    }
     internal static int GetWaterMl(GameItem item)
     {
         if (item == null) return 0;
@@ -1172,7 +1142,6 @@ internal static class RobinCrusoePerk
                 GameItem spawn = item;
                 try { GameItem cl = item.CloneLinked(); if (cl != null) spawn = cl; } catch { }
                 try { WaterHelper.AddWater(spawn, 0, -1, false, 0, 1, true); } catch { }
-                SetWaterQuality(spawn, 0);
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
@@ -1428,7 +1397,6 @@ internal static class RobinCrusoePerk
     // 喝水（v5.7 百分比制 + ml 自洽）：一口 200ml = 口渴总量 2000ml 的 10%；空瓶保留不消失；脏水→患病（健康-40 在 TryInfect 内）
     private static void DrinkSip(GameItem item)
     {
-        int wq = GetWaterQuality(item);
         int ml = GetWaterMl(item);
         if (ml <= 0) {  return; }
         int sip = Math.Min(SIP_ML, ml);
@@ -1441,7 +1409,7 @@ internal static class RobinCrusoePerk
         try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
         try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
         bool pure = isStartWater || (pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity >= 9900);
-        bool dirty = !isStartWater && ((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity <= 9100) || wq == 2);
+        bool dirty = !isStartWater && ((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity <= 9100)); // 09-11 用户确认：只按原版真实水质判定
         int gain = pure ? 20 : (dirty ? 5 : 10); // 优质×2 / 脏×0.5 / 普通×1
         SetThirstPct(Math.Min(100, GetThirstPct() + gain)); // 200ml = 2000ml 总量 10%（ml 显示自洽）
         SetClean(Math.Min(100, GetClean() + 5));          // 用水=喝+洗：清洁度 +5%（用户拍板"用水恢复"）
@@ -1563,9 +1531,11 @@ internal static class RobinCrusoePerk
             }
             else if (IsDrink(item))
             {
-                int wq = GetWaterQuality(item);
-                string[] wnames = { LangHelper.T("优质", "Pure"), LangHelper.T("普通", "Plain"), LangHelper.T("脏", "Dirty") };
-                builder.AddLine(LangHelper.T("水质：", "Water quality: ") + wnames[Math.Min(2, Math.Max(0, wq))] + LangHelper.T("（剩余 ", " (left ") + GetWaterMl(item) + LangHelper.T(" ml）", " ml)"),
+                int purity = -1; int pIdx = -1;
+                try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
+                try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
+                string wname = ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity >= 9900)) ? LangHelper.T("优质", "Pure") : (((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity <= 9100)) ? LangHelper.T("脏", "Dirty") : LangHelper.T("普通", "Plain"));
+                builder.AddLine(LangHelper.T("水质：", "Water quality: ") + wname + LangHelper.T("（剩余 ", " (left ") + GetWaterMl(item) + LangHelper.T(" ml）", " ml)"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
             else if (IsMachine(item) || item.IsTag("MODULE_TAG"))

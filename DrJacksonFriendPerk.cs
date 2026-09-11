@@ -286,14 +286,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             PlayerStore instance = PlayerStore.Instance;
             if (instance == null) {  return; }
 
-            // 博士卖：1 大机器 + 1 大储存 + 1 神经模组（AddDirectSellingItemToTable 已验证能显示）
-            List<string> goods = new List<string> { "machine_bay_ext", "storage_bay_large", "bottled_water", "large_bottled_water", "processed_meat", "raw_meat", "cat_bar", "bandage_item" };
-            // 09-11 用户确认：博士不带神经模组（全局）；鲁滨逊开局也恢复大箱子+大机器箱子，只保留"大瓶水换食品"
-            if (RobinCrusoePerk.IsActive())
-            {
-                goods.Remove("large_bottled_water");    // 博士改卖基础水（用户 09-09：不要大瓶水）
-                goods.AddRange(new[] { "processed_juice", "cup_noodle", "processed_cheese", "li_eat_snackbar", "processed_milk", "morsel", "small_morsel", "beis_icecream", "hemostatic_bandage_item", "topical_bandage_item", "phagimycin_pill", "med_bottle_blue", "med_bottle_red", "salve", "blood_bag" });
-            }
+            // 博士只卖：1 大机器 + 1 大储存（09-11 用户确认：只留这两样，不带食品/水/药品/神经模组，任何开局一致）
+            List<string> goods = new List<string> { "machine_bay_ext", "storage_bay_large" };
             int added = 0;
             foreach (string itemId in goods)
             {
@@ -309,16 +303,6 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                     GameItem sellItem = MerchantHelper.AddItemToCounter(item, 0, false);
                     if (sellItem != null)
                     {
-                        // 水瓶灌满纯水 + 优质水质（原版蓝图裸创建是空瓶，必须走 WaterHelper 灌水）
-                        if (itemId == "bottled_water" || itemId == "large_bottled_water")
-                        {
-                            try
-                            {
-                                WaterHelper.AddWater(sellItem, 0, -1, false, 0, 1, true);
-                                try { RobinCrusoePerk.SetWaterQuality(sellItem, 0); } catch { }
-                            }
-                            catch (Exception ex) { Core.LogMsg("[博士之友] " + itemId + " 灌水失败: " + ex.Message); }
-                        }
                         added++;
                         // 验证：确认赃物热度已清除（GetTagReadonly返回null说明已清除）
                         try {
