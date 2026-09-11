@@ -1881,7 +1881,6 @@ internal static class RobinCrusoePerk
         {
             _rcRestoredContainers.Clear(); // 读档：清容器恢复防重集合（新会话重新恢复）
             PerkStatePersistence.ResetCache(); // 读档切档：清 runID 缓存，防 key 前缀串用导致状态节点全回默认（用户反馈 09-10）
-            try { PlayerPrefs.DeleteKey("RC.Odin.Done." + DeterministicSchedule.GetRunKey()); } catch { } // 奥丁：读档后允许重新调度（用户反馈 09-10 读档后消失）
             // 恢复保存点生存状态（SaveGame 快照）——"退出本天未保存重新进"当天扣减（拾荒-7等）应随读档回滚
             try
             {
@@ -2346,31 +2345,6 @@ internal static class RobinCrusoePerk
         return null;
     }
 
-    // ===== 奥丁（革命商人）：第2天到店，与原生版本一致（拆包 2.3.13）=====
-    // 用原生完整版 CreateWanted4（wanted4）：内部 b__4_1 自动发名片 card_rev + 电话簿解锁（Normal 版缺名片链）
-    // 独立于 GenerateClient，前3天无随机客户拦截不误伤（拆包第4项实锤）
-    private static void ScheduleOdin()
-    {
-        try
-        {
-            int day = DeterministicSchedule.CurrentDay;
-            if (day < 2) return; // 第2天及以后补调度（读档后奥丁可能丢失，key 防重保证只补一次）
-            string key = "RC.Odin.Done." + DeterministicSchedule.GetRunKey();
-            if (PlayerPrefs.GetInt(key, 0) != 0) return; // 防读档重复
-            PlayerPrefs.SetInt(key, 1);
-            var scm = GetStoreClientManager();
-            if (scm == null) return;
-            var odin = Il2Cpp.StoreClientListWanted.CreateWanted4(); // 原生完整版：自动发名片+解锁电话簿
-            if (odin == null) {  return; }
-            scm.AddClient(odin);
-        }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] ScheduleOdin 异常: " + ex.Message); }
-    }
-    // 取消奥丁电话冷却（cooldownDuration 5→0，拆包 [L1] StorePhoneClient@0x30）
-    public static void PostfixCreateRevMerchant(Il2Cpp.StorePhoneClient __result)
-    {
-        try { if (__result != null) __result.cooldownDuration = 0; } catch { }
-    }
 
     // ===== 租金显示同步为100天制（拆包 [L1]：日历/开始日/店内日历都读 dayUntilRent+rentValue）=====
     private static void SyncRentDisplay()
@@ -2476,7 +2450,6 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive()) return;
             _pickSkipToday = 0;
-            ScheduleOdin(); // 奥丁：第2天直接到店（拆包 2.3.13 扩展）
             SyncRentDisplay(); // 租金显示同步为100天制（拆包：日历读 dayUntilRent+rentValue）
 
             // ===== v5.9 节点池抽取（nodeKey 变化 → 先爆发 RollBurst 再抽池；正面节点无爆发）=====

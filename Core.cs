@@ -28917,10 +28917,6 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientManager), "HandleNormalClient",
                 postfix: nameof(RobinCrusoePerk.PostfixHandleNormalClient),
                 patchHost: typeof(RobinCrusoePerk));
-            // 奥丁：取消电话冷却（cooldownDuration 5→0，拆包 2.3.13 扩展）
-            ManualPatcher.TryPatch(typeof(Il2Cpp.PhoneClientList), "CreateRevMerchant",
-                postfix: nameof(RobinCrusoePerk.PostfixCreateRevMerchant),
-                patchHost: typeof(RobinCrusoePerk));
             // 日历租金显示：100天制文案强制显示（拆包：temporaryRent==0 原生隐藏）
             ManualPatcher.TryPatch(typeof(Il2Cpp.AdvCalendarUIManager), "OnCalendarButtonClicked",
                 postfix: nameof(RobinCrusoePerk.PostfixOnCalendarButtonClicked),
