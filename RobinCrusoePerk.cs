@@ -1247,16 +1247,8 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (!IsActive() || newItem == null)
-            {
-                int st1 = -1, st2 = -1;
-                try { var ps0 = Il2Cpp.PlayerStore.Instance; if (ps0 != null) st1 = (int)ps0.startType; } catch { }
-                try { var ng0 = Il2Cpp.NewGameData.Instance; if (ng0 != null) st2 = (int)ng0.startType; } catch { }
-                Core.LogMsg("[喝水诊断] 双击 return IsActive=" + (newItem != null && IsActive()) + " PlayerStore.startType=" + st1 + " NewGameData.startType=" + st2 + " START_TYPE=" + START_TYPE);
-                return;
-            }
-            if (Patches.CurrentUITradeMode != 0) { Core.LogMsg("[喝水诊断] 双击 return tradeMode=" + Patches.CurrentUITradeMode + " id=" + GetId(newItem)); return; }
-            Core.LogMsg("[喝水诊断] 双击放行 id=" + GetId(newItem) + " isDrink=" + IsDrink(newItem) + " isFood=" + IsFood(newItem) + " isAlc=" + IsAlc(newItem));
+            if (!IsActive() || newItem == null) return;
+            if (Patches.CurrentUITradeMode != 0) return;
             // v5.7 双击位置不限（背包/柜台/存储容器均可吃喝，用户反馈"背包吃不了"修复）；仅交易模式拦截
             // 博士夜晚商店（afterhourInventory）的货没买不能吃/喝/用药（用户反馈"博士晚上的食品没买就能食用"）
             if (IsInDoctorNightInventory(newItem)) {  return; }
@@ -1385,7 +1377,6 @@ internal static class RobinCrusoePerk
     private static void DrinkSip(GameItem item)
     {
         int ml = GetWaterMl(item);
-        Core.LogMsg("[喝水诊断] DrinkSip 进入 ml=" + ml + " id=" + GetId(item));
         if (ml <= 0) {  return; }
         int sip = Math.Min(SIP_ML, ml);
         bool isStartWater = false;
