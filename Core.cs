@@ -7037,6 +7037,7 @@ public class Core : MelonMod
 
 
         try { Diagnostics.OnGUI(); } catch { }
+        try { DestinyDice.DiceOnGUI(); } catch { }
 
 
 
@@ -27830,69 +27831,10 @@ public class Core : MelonMod
 
 
                 prefix: nameof(DestinyDice.PrefixTarget),
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                patchHost: typeof(DestinyDice));
+            // v2 激活制：双击骰子掷骰（Prefix DoubleClickAction 拦截原生分发）
+            ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMouseDoubleClickHandler), "DoubleClickAction",
+                prefix: nameof(DestinyDice.PrefixDoubleClickAction),
                 patchHost: typeof(DestinyDice));
 
 

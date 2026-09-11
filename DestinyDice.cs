@@ -39,6 +39,10 @@ namespace JacksonPerks
         public const int DICE_TRIGGER_VALUE = 400;
 
         public const string DICE_TRIGGER_TAG = "destinyDiceTriggers"; // 每400价值触发1个事件
+        public const string DICE_THRESHOLD_TAG = "destinyDiceThreshold"; // 当前摇骰门槛（初始400，每次掷骰+400）
+        public const string DICE_LAST_COST_TAG = "destinyDiceLastCost"; // 最近一次掷骰消耗的门槛（卸载返还50%）
+        public const string DICE_PENDING_EVENT_TAG = "destinyDicePendingEventId"; // 已排队事件id（string，卸载用）
+        public const int DICE_BASE_THRESHOLD = 400;
 
 
 
@@ -289,9 +293,8 @@ namespace JacksonPerks
                 SetTagInt(item, DICE_VALUE_TAG, 0);
 
                 SetTagInt(item, DICE_TRIGGER_TAG, 0);
-
-
-
+                SetTagInt(item, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD);
+                SetTagInt(item, DICE_LAST_COST_TAG, 0);
                 // 名称和描述（计数显示在名称/描述上，吸收后实时更新）
 
                 item.SetName(LangHelper.T("命运骰子（累计0价值 / 触发0事件）", "Dice of Fate (value 0 / triggers 0)"));
@@ -452,34 +455,8 @@ namespace JacksonPerks
 
 
 
-                // 检查是否触发事件（每满400触发1个，可能触发多个）
-
-                int triggerCount = newValue / DICE_TRIGGER_VALUE;
-
-                int remainingValue = newValue % DICE_TRIGGER_VALUE;
-
-
-
-                if (triggerCount > 0)
-
-                {
-
-                    for (int i = 0; i < triggerCount; i++)
-
-                    {
-
-                        TriggerRandomEvent(dice);
-
-                    }
-
-
-                }
-
-
-
-                // 更新累计价值
-
-                SetTagInt(dice, DICE_VALUE_TAG, remainingValue);
+                // v2 激活制（09-12）：吸收只累加价值，双击掷骰才触发事件
+                SetTagInt(dice, DICE_VALUE_TAG, newValue);
 
 
 
@@ -515,7 +492,166 @@ namespace JacksonPerks
 
 
 
-        // ===== 触发随机事件（暂时用日志占位，后续接入游戏原生事件） =====
+        // ===== v2 激活制（09-12 用户拍板）：吸收只累计价值，双击掷骰触发1个事件，门槛随掷骰上涨、打烊回落 =====
+    private static GameItem _activeDice = null;   // 最近操作的骰子（双击/吸收时更新），OnGUI 卸载按钮目标
+    private static bool _unloadConfirm = false;   // 卸载确认框模态
+
+    // 双击掷骰：value >= threshold 才可摇；摇后 value-=threshold、threshold+=400、triggers+1、LastCost=本次门槛
+    public static void RollDice(GameItem dice)
+    {
+        try
+        {
+            if (dice == null || !IsDice(dice)) return;
+            int value = GetTagInt(dice, DICE_VALUE_TAG);
+            int threshold = GetTagInt(dice, DICE_THRESHOLD_TAG);
+            if (threshold < DICE_BASE_THRESHOLD) threshold = DICE_BASE_THRESHOLD;
+            if (value < threshold)
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("价值不足，还需 " + (threshold - value) + " 才能掷骰", "Need " + (threshold - value) + " more value to roll"), "orange"); } catch { }
+                return;
+            }
+            value -= threshold;
+            SetTagInt(dice, DICE_VALUE_TAG, value);
+            SetTagInt(dice, DICE_THRESHOLD_TAG, threshold + DICE_BASE_THRESHOLD);
+            SetTagInt(dice, DICE_LAST_COST_TAG, threshold);
+            int trig = GetTagInt(dice, DICE_TRIGGER_TAG);
+            SetTagInt(dice, DICE_TRIGGER_TAG, trig + 1);
+            string evtId = TriggerRandomEvent(dice); // 触发1个事件（明天来），返回事件id
+            if (!string.IsNullOrEmpty(evtId))
+            {
+                SetTagString(dice, DICE_PENDING_EVENT_TAG, evtId);
+                string zh = evtId;
+                try { if (EventZhName.TryGetValue(evtId, out zh)) { } } catch { }
+                try { StoreUIManager.Instance.Notify(LangHelper.T("掷骰成功！明日事件：" + zh, "Rolled! Tomorrow: " + evtId), "green"); } catch { }
+            }
+            _activeDice = dice;
+            UpdateDicePanelTitle(dice, value);
+        }
+        catch { }
+    }
+
+    // 卸载已排队事件：RemoveAllEvent + 返还最近一次 LastCost × 50%（加回 value）
+    public static void UnloadEvent(GameItem dice)
+    {
+        try
+        {
+            if (dice == null || !IsDice(dice)) return;
+            string evtId = GetTagString(dice, DICE_PENDING_EVENT_TAG);
+            if (string.IsNullOrEmpty(evtId)) return;
+            try
+            {
+                var evtMgr = (StoreStation.instance != null) ? StoreStation.instance.storeEventManager : null;
+                if (evtMgr != null) evtMgr.RemoveAllEvent(evtId); // 原生 API：清未来队列+触发日，已激活则停掉
+            }
+            catch { }
+            int lastCost = GetTagInt(dice, DICE_LAST_COST_TAG);
+            if (lastCost > 0)
+            {
+                int refund = lastCost / 2;
+                int value = GetTagInt(dice, DICE_VALUE_TAG);
+                SetTagInt(dice, DICE_VALUE_TAG, value + refund);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("已卸载事件，返还 " + refund + " 价值", "Event unloaded, +" + refund + " value"), "green"); } catch { }
+            }
+            SetTagInt(dice, DICE_LAST_COST_TAG, 0);
+            SetTagString(dice, DICE_PENDING_EVENT_TAG, "");
+            _unloadConfirm = false;
+            UpdateDicePanelTitle(dice, GetTagInt(dice, DICE_VALUE_TAG));
+        }
+        catch { }
+    }
+
+    // 双击拦截：物品是骰子 → 掷骰并拦掉原生分发（查看/食用/选中）
+    public static bool PrefixDoubleClickAction(GameItem newItem, UnityEngine.Vector2 mousePosition)
+    {
+        try
+        {
+            if (newItem != null && IsDice(newItem))
+            {
+                RollDice(newItem);
+                return false;
+            }
+        }
+        catch { }
+        return true;
+    }
+
+    // OnGUI 卸载按钮（Core.OnGUI 调用）：右下角，有排队事件才显示；点击弹确认框
+    public static void DiceOnGUI()
+    {
+        try
+        {
+            GameItem dice = _activeDice;
+            if (dice == null) return;
+            string evtId = GetTagString(dice, DICE_PENDING_EVENT_TAG);
+            if (string.IsNullOrEmpty(evtId)) return;
+            float w = 170f, h = 30f;
+            float x = UnityEngine.Screen.width - w - 16f;
+            float y = UnityEngine.Screen.height - h - 16f;
+            if (!_unloadConfirm)
+            {
+                if (UnityEngine.GUI.Button(new UnityEngine.Rect(x, y, w, h), LangHelper.T("卸载事件（返还50%）", "Unload Event (50% refund)")))
+                {
+                    _unloadConfirm = true;
+                }
+            }
+            else
+            {
+                UnityEngine.GUI.Label(new UnityEngine.Rect(x, y - 24f, w, 22f), LangHelper.T("确认卸载明日事件？", "Unload tomorrow's event?"));
+                if (UnityEngine.GUI.Button(new UnityEngine.Rect(x, y, 80f, h), LangHelper.T("确认", "Yes"))) { UnloadEvent(dice); }
+                if (UnityEngine.GUI.Button(new UnityEngine.Rect(x + 90f, y, 80f, h), LangHelper.T("取消", "No"))) { _unloadConfirm = false; }
+            }
+        }
+        catch { }
+    }
+
+    // 每日打烊门槛回落：threshold>400 → -400（直到400为止）；value 永不受影响
+    public static void RecedeDiceThreshold()
+    {
+        try
+        {
+            var emporium = EmporiumEntry.Instance;
+            if (emporium == null) return;
+            var invs = new GameInventory[] { emporium.backInvinvElement, emporium.backInvinvElementCounter, emporium.showcaseElement, emporium.invElement };
+            foreach (var inv in invs)
+            {
+                if (inv == null) continue;
+                foreach (var it in inv.childItems)
+                {
+                    if (it == null || !IsDice(it)) continue;
+                    int tt = GetTagInt(it, DICE_THRESHOLD_TAG);
+                    if (tt > DICE_BASE_THRESHOLD) SetTagInt(it, DICE_THRESHOLD_TAG, tt - DICE_BASE_THRESHOLD);
+                }
+            }
+        }
+        catch { }
+    }
+
+    // string 版 tag 读写（PENDING_EVENT 用）
+    public static string GetTagString(GameItem item, string tag)
+    {
+        try
+        {
+            if (item == null || !item.IsTag(tag)) return "";
+            var ts = item.GetTagReadonly(tag);
+            return (ts != null) ? ts.GetString() : "";
+        }
+        catch { return ""; }
+    }
+
+    public static void SetTagString(GameItem item, string tag, string value)
+    {
+        try
+        {
+            if (item == null) return;
+            if (!item.IsTag(tag)) item.EnableTag(tag, true);
+            System.Action<TagState> sysAct = delegate (TagState state) { state.SetString(value); };
+            var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
+            item.ModifyTag(tag, il2cppAct, false);
+        }
+        catch { }
+    }
+
+    // ===== 触发随机事件（暂时用日志占位，后续接入游戏原生事件） =====
 
         private static void UpdateDicePanelTitle(GameItem dice, int value)
 
@@ -528,10 +664,14 @@ namespace JacksonPerks
                 if (dice == null) return;
 
                 int trig = GetTagInt(dice, DICE_TRIGGER_TAG);
-
+                int threshold = GetTagInt(dice, DICE_THRESHOLD_TAG);
+                if (threshold < DICE_BASE_THRESHOLD) threshold = DICE_BASE_THRESHOLD;
+                string pendingEvt = GetTagString(dice, DICE_PENDING_EVENT_TAG);
+                string evtZh = "";
+                if (pendingEvt != "") { try { if (!EventZhName.TryGetValue(pendingEvt, out evtZh)) evtZh = pendingEvt; } catch { evtZh = pendingEvt; } }
                 // 非容器：计数显示在物品名称上（悬停/列表可见）
-
-                dice.SetName(LangHelper.T("命运骰子（累计" + value + "价值 / 触发" + trig + "事件）", "Dice of Fate (value " + value + " / triggers " + trig + ")"));
+                dice.SetName(LangHelper.T("命运骰子（价值" + value + " / 门槛" + threshold + " / 触发" + trig + "）", "Dice of Fate (value " + value + " / cost " + threshold + " / triggers " + trig + ")"));
+                if (evtZh != "") { try { dice.shortDescription = LangHelper.T("明日事件：" + evtZh + "。拖物品累积价值，双击掷骰。", "Tomorrow: " + evtZh + ". Drag to absorb, double-click to roll."); } catch { } }
 
                 // 同步状态强制刷新名称显示（WineAppraisalMaster拆出的新锚点）
 
@@ -1495,8 +1635,10 @@ namespace JacksonPerks
             catch (Exception ex) { Core.LogMsg("[Wage's Perks] OnDayStart注入异常: " + ex.Message); }
 
             try { ModdedEventLinks(); }
-
             catch (Exception ex2) { Core.LogMsg("[Wage's Perks] 事件联动异常: " + ex2.Message); }
+            // v2 激活制：每日打烊门槛回落一档（threshold>400 → -400，直到400）；value 不受影响
+            try { RecedeDiceThreshold(); }
+            catch (Exception ex3) { Core.LogMsg("[命运骰子] 门槛回落异常: " + ex3.Message); }
 
         }
 
@@ -2344,8 +2486,7 @@ namespace JacksonPerks
 
 
 
-        public static void TriggerRandomEvent(GameItem dice)
-
+        public static string TriggerRandomEvent(GameItem dice)
         {
 
             try
@@ -2361,7 +2502,7 @@ namespace JacksonPerks
                 {
 
 
-                    return;
+                    return null;
 
                 }
 
@@ -2372,7 +2513,7 @@ namespace JacksonPerks
                 {
 
 
-                    return;
+                    return null;
 
                 }
 
@@ -2420,13 +2561,13 @@ namespace JacksonPerks
 
                 }
 
-                if (bp == null) { Core.LogMsg("[命运骰子] 事件蓝图全为空"); return; }
+                if (bp == null) { Core.LogMsg("[命运骰子] 事件蓝图全为空"); return null; }
 
 
 
                 StoreEvent evt = bp.storeEventFunc.Invoke();
 
-                if (evt == null) { Core.LogMsg("[命运骰子] 事件实例化失败"); return; }
+                if (evt == null) { Core.LogMsg("[命运骰子] 事件实例化失败"); return null; }
 
 
 
@@ -2452,13 +2593,12 @@ namespace JacksonPerks
                     int trig = GetTagInt(dice, DICE_TRIGGER_TAG);
 
                     SetTagInt(dice, DICE_TRIGGER_TAG, trig + 1);
-
                     int cur = GetTagInt(dice, DICE_VALUE_TAG);
 
                     UpdateDicePanelTitle(dice, cur);
 
                 }
-
+                return evt.identifier;
             }
 
             catch (Exception ex)
@@ -2467,11 +2607,10 @@ namespace JacksonPerks
 
                 Core.LogMsg("[命运骰子] 触发事件异常: " + ex.Message);
 
+            
+                return null;
             }
-
-        }
-
-
+                    }
 
         // ===== 工具：读写物品int标签 =====
 
@@ -2827,32 +2966,14 @@ namespace JacksonPerks
 
 
 
-                // 触发事件（每满400触发1个，可能触发多个）
-
-                int triggerCount = newValue / DICE_TRIGGER_VALUE;
-
-                int remainingValue = newValue % DICE_TRIGGER_VALUE;
-
-                if (triggerCount > 0)
-
-                {
-
-                    for (int i = 0; i < triggerCount; i++) TriggerRandomEvent(dice);
-
-
-                }
-
-
-
-                // 更新累计价值
-
-                SetTagInt(dice, DICE_VALUE_TAG, remainingValue);
+                // v2 激活制（09-12）：吸收只累加价值，双击掷骰才触发事件
+                SetTagInt(dice, DICE_VALUE_TAG, newValue);
 
 
 
                 // 更新计数面板标题
 
-                UpdateDicePanelTitle(dice, remainingValue);
+                UpdateDicePanelTitle(dice, newValue);
 
 
 
