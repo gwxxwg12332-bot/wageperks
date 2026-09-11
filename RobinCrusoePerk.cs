@@ -1814,6 +1814,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (ContainerUpgradeV2.ConsumedThisFrame(container.Pointer)) return true; // 同帧已消耗：防双计数（MayHaveValidInventorySlot+Target 双挂点）
             var grid = GetContainerGrid(container);
             if (grid == null) { Core.LogMsg("[空间站鲁滨逊] 容器升级失败：取不到内部库存 " + GetId(container)); return false; }
             int w = 0, h = 0;

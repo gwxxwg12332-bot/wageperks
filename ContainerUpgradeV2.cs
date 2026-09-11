@@ -93,6 +93,23 @@ public static class ContainerUpgradeV2
         try { grid.Validate(); } catch { }
     }
 
+    // ===================== 同帧防重 =====================
+    // 松手时 MayHaveValidInventorySlot 与 Target 两个挂点都会触发升级链（旧版"一次扣N个"被数量不足挡掉，
+    // 逐颗版暴露双计数）。同一容器同一帧只处理一次，第二次调用视为"已消耗"直接拦截。
+    private static readonly Dictionary<IntPtr, int> _lastUpgradeFrame = new Dictionary<IntPtr, int>();
+    public static bool ConsumedThisFrame(IntPtr ptr)
+    {
+        try
+        {
+            int frame = UnityEngine.Time.frameCount;
+            int last = 0;
+            if (_lastUpgradeFrame.TryGetValue(ptr, out last) && last == frame) return true;
+            _lastUpgradeFrame[ptr] = frame;
+            return false;
+        }
+        catch { return false; }
+    }
+
     // ===================== 物品判定 =====================
     public static bool IsNuts(GameItem item)
     {
@@ -117,6 +134,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (nuts == null || box == null) return false;
+            if (ConsumedThisFrame(box.Pointer)) return true; // 同帧已消耗：防双计数
             int stage = GetTagIntSafe(box, "wb_stage");
             if (stage >= MAX_STAGE) return false; // 满级：nuts 正常放入（不再消耗）
             ConsumeOne(nuts); // 逐颗消耗：每拖 1 颗立即扣 1
