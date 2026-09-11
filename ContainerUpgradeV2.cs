@@ -127,7 +127,6 @@ public static class ContainerUpgradeV2
         {
             if (string.IsNullOrEmpty(id)) return false;
             string low = id.ToLowerInvariant();
-            if (low.StartsWith("backpack")) return false; // 背包类永不升级
             return BUILDING_CONTAINER_IDS.Contains(low);
         }
         catch { return false; }
@@ -140,7 +139,7 @@ public static class ContainerUpgradeV2
             if (item == null) return false;
             if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) return false;
             if (IsVoidBeadStorage(item)) return false;
-            if (item.IsTag("CONTAINER_TAG")) return true;
+            if (item.IsTag("CONTAINER_TAG")) return true; // 普通腰包/背包（原版 CONTAINER_TAG）在此命中
             return IsBuildingContainerId(item.identifier ?? "");
         }
         catch { return false; }
@@ -157,7 +156,9 @@ public static class ContainerUpgradeV2
             if (item == null) return false;
             string id = (item.identifier ?? "").ToLowerInvariant();
             if (id == "void_bead_storage") return true;
-            if (item.IsTag("BACKPACK_TAG")) return true; // 双保险：背包类容器
+            // 注意：不能用 IsTag("BACKPACK_TAG") 排除——"BACKPACK_TAG" 是原版背包 tag，
+            // 普通腰包/背包也有（存档实锤 wb_stage=1 写在普通腰包上，用户要升级腰包）。
+            // 虚空珠储物袋 EnableTag(BACKPACK_TAG 常量="VOID_BEAD_TAG")，已被 VOID_BEAD_TAG 判定覆盖。
             return false;
         }
         catch { return false; }
