@@ -16,7 +16,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("博士之友", "Doctor Friend");
     internal override string Description => LangHelper.T("杰克逊博士，这位神秘的黑市商人，向来只与他信任的人交易。传说中，能成为博士之友的当铺老板，每周二便会收到博士的秘密拜访。选择此特性：博士每周到访一次，从他那里购买物品享受友情价 -5%。", "Doctor Jackson, a mysterious black-market merchant, only trades with those he trusts. Legend says the pawnbroker who becomes the Doctor's friend receives a secret visit every Tuesday. Choose this perk: the Doctor visits once a week, and everything you buy from him gets a 5% friend discount.");
-    internal override int Cost => 5;
+    internal override int Cost => 2;
     internal override int Type => 0;
 
     private const int VISIT_INTERVAL_DAYS = 7; // 一周来一次
@@ -179,11 +179,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             else
             { }
 
-            // 1. 必加神经模组
-            if (!client.clientBuyingIdList.Contains("system_capped_neural_core"))
-                client.clientBuyingIdList.Add("system_capped_neural_core");
-
-            // 2. 一次卖 3 个大机器 + 3 个大储存（各加3次，不做Contains去重）
+            // 09-11 用户确认：博士不带神经模组（此方法为预留/死代码，同步清理）
+            // 1. 一次卖 3 个大机器 + 3 个大储存（各加3次，不做Contains去重）
             for (int i = 0; i < 3; i++)
                 client.clientBuyingIdList.Add("machine_bay_ext");
             for (int i = 0; i < 3; i++)
@@ -281,7 +278,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     // ============================================================
     internal static void AddJacksonGoodsToCounter(StoreClient client)
     {
-        if (!RobinCrusoePerk.IsActive()) return;   // 仅鲁滨逊补货（09-10 用户确认：博士之友也不补）
+        if (!IsActive()) return;   // 博士之友激活即补货（09-11 用户确认：任何开局都补，不再限定鲁滨逊）
         try
         {
             // 每次博士补货事件都尝试上货（参考 ModuleWorkbench：Early 每次重新评估，防堆叠靠 CounterHasOnFront）
@@ -290,13 +287,10 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             if (instance == null) {  return; }
 
             // 博士卖：1 大机器 + 1 大储存 + 1 神经模组（AddDirectSellingItemToTable 已验证能显示）
-            List<string> goods = new List<string> { "machine_bay_ext", "storage_bay_large", "system_capped_neural_core", "bottled_water", "large_bottled_water", "processed_meat", "raw_meat", "cat_bar", "bandage_item" };
-            // RobinCrusoe class (user decision 09-09): doctor night shop drops big box/neural core/large machine bay, use official food+meds instead
+            List<string> goods = new List<string> { "machine_bay_ext", "storage_bay_large", "bottled_water", "large_bottled_water", "processed_meat", "raw_meat", "cat_bar", "bandage_item" };
+            // 09-11 用户确认：博士不带神经模组（全局）；鲁滨逊开局也恢复大箱子+大机器箱子，只保留"大瓶水换食品"
             if (RobinCrusoePerk.IsActive())
             {
-                goods.Remove("machine_bay_ext");        // 大机器区（未开放）
-                goods.Remove("storage_bay_large");      // 大储存箱
-                goods.Remove("system_capped_neural_core"); // 神经模组
                 goods.Remove("large_bottled_water");    // 博士改卖基础水（用户 09-09：不要大瓶水）
                 goods.AddRange(new[] { "processed_juice", "cup_noodle", "processed_cheese", "li_eat_snackbar", "processed_milk", "morsel", "small_morsel", "beis_icecream", "hemostatic_bandage_item", "topical_bandage_item", "phagimycin_pill", "med_bottle_blue", "med_bottle_red", "salve", "blood_bag" });
             }
@@ -347,30 +341,12 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
 
     // ============================================================
     // 补丁3: 玩家进入博士商店（Emporium）时，添加神经模组到博士的库存
-    // 防重复添加标记
-    private static bool _neuralCoreAdded = false;
+    // 09-11 神经模组逻辑全局禁用，防重标记字段已删除
 
     // ============================================================
     // 补丁3a: OnArriveStore方法的Postfix，玩家进入商店时重置标记
     // ============================================================
 //     [HarmonyPatch(typeof(EmporiumEntry), "OnArriveStore")]
-    public static class EmporiumEntryArrivePatch
-    {
-        static void Postfix(EmporiumEntry __instance)
-        {
-            if (!IsActive()) return;
-
-            try
-            {
-                _neuralCoreAdded = false;
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[博士之友] OnArriveStore Postfix失败: " + ex.Message);
-            }
-        }
-    }
-
     // ============================================================
     // 补丁3c: ShowAfterhourInv方法的Postfix，显示夜间库存时添加
     // ============================================================
@@ -379,18 +355,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     {
         internal static void Prefix(EmporiumEntry __instance)
         {
-            if (!IsActive()) return;
-            if (RobinCrusoePerk.IsActive()) return; // Robin: doctor night inventory no neural core
-            if (_neuralCoreAdded) return;
-
-            try
-            {
-                AddNeuralCoreToDoctorInv(__instance);
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[博士之友] ShowAfterhourInv Postfix失败: " + ex.Message);
-            }
+            // 09-11 用户确认：博士不带神经模组（全局禁用，含夜晚商店）
+            return;
         }
     }
 
@@ -422,7 +388,6 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                         bool result = (bool)acceptMethod.Invoke(afterhourInv, new object[] { neuralCore });
                         if (result)
                         {
-                            _neuralCoreAdded = true;
                         }
                     }
                     else
@@ -431,7 +396,6 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                         if (addMethod != null)
                         {
                             addMethod.Invoke(afterhourInv, new object[] { neuralCore });
-                            _neuralCoreAdded = true;
                         }
                     }
                 }
@@ -599,54 +563,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     {
         internal static void Postfix(object __result)
         {
-            try
-            {
-                // 只在该特性激活时往夜晚商店加神经模组（Bug：没点特性也会出现）
-                if (!DrJacksonFriendPerk.IsActive()) return;
-                if (RobinCrusoePerk.IsActive()) return; // Robin: random merchant shops no neural core
-                if (__result == null) return;
-                
-                // 用反射调用Add方法，避免类型不匹配
-                var addMethod = __result.GetType().GetMethod("Add");
-                var countProp = __result.GetType().GetProperty("Count");
-                var itemProp = __result.GetType().GetProperty("Item");
-                
-                if (addMethod == null || countProp == null || itemProp == null) return;
-                
-                // 检查是否已经有神经模组
-                int count = (int)countProp.GetValue(__result);
-                bool hasNeuralCore = false;
-                for (int j = 0; j < count; j++)
-                {
-                    object item = itemProp.GetValue(__result, new object[] { j });
-                    if (item != null)
-                    {
-                        var idProp = item.GetType().GetProperty("identifier");
-                        if (idProp != null)
-                        {
-                            string id = (string)idProp.GetValue(item);
-                            if (id == "system_capped_neural_core")
-                            {
-                                hasNeuralCore = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (!hasNeuralCore)
-                {
-                    GameItem neuralCore = DirectoryMaster.Item("system_capped_neural_core", true);
-                    if (neuralCore != null)
-                    {
-                        addMethod.Invoke(__result, new object[] { neuralCore });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[博士之友] GetFoundryShop Patch失败: " + ex.Message);
-            }
+            // 09-11 用户确认：博士不带神经模组（全局禁用，含熔炉商店）
+            return;
         }
     }
 
@@ -658,54 +576,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     {
         internal static void Postfix(object __result)
         {
-            try
-            {
-                // 只在该特性激活时往夜晚商店加神经模组（Bug：没点特性也会出现）
-                if (!DrJacksonFriendPerk.IsActive()) return;
-                if (RobinCrusoePerk.IsActive()) return; // Robin: random merchant shops no neural core
-                if (__result == null) return;
-                
-                // 用反射调用Add方法，避免类型不匹配
-                var addMethod = __result.GetType().GetMethod("Add");
-                var countProp = __result.GetType().GetProperty("Count");
-                var itemProp = __result.GetType().GetProperty("Item");
-                
-                if (addMethod == null || countProp == null || itemProp == null) return;
-                
-                // 检查是否已经有神经模组
-                int count = (int)countProp.GetValue(__result);
-                bool hasNeuralCore = false;
-                for (int j = 0; j < count; j++)
-                {
-                    object item = itemProp.GetValue(__result, new object[] { j });
-                    if (item != null)
-                    {
-                        var idProp = item.GetType().GetProperty("identifier");
-                        if (idProp != null)
-                        {
-                            string id = (string)idProp.GetValue(item);
-                            if (id == "system_capped_neural_core")
-                            {
-                                hasNeuralCore = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (!hasNeuralCore)
-                {
-                    GameItem neuralCore = DirectoryMaster.Item("system_capped_neural_core", true);
-                    if (neuralCore != null)
-                    {
-                        addMethod.Invoke(__result, new object[] { neuralCore });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[博士之友] GetEnergyFarmShop Patch失败: " + ex.Message);
-            }
+            // 09-11 用户确认：博士不带神经模组（全局禁用，含能量农场商店）
+            return;
         }
     }
 
