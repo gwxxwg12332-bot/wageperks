@@ -1052,7 +1052,7 @@ internal static class RobinCrusoePerk
     internal static int GetWaterMl(GameItem item)
     {
         if (item == null) return 0;
-        try { return Math.Max(0, WaterHelper.GetCurrentCapacityML(item)); } catch { }
+        // 优先读 LIQUID_CONTAINER_CURRENT tag（09-11 日志实锤：ModifyTag 扣 tag 成功但 GetCurrentCapacityML 读内层液体注册表恒 2000 不同步；原版喝水/UI 都以 tag 为权威）
         try
         {
             if (item.IsTag("LIQUID_CONTAINER_CURRENT"))
@@ -1065,6 +1065,7 @@ internal static class RobinCrusoePerk
             }
         }
         catch { }
+        try { return Math.Max(0, WaterHelper.GetCurrentCapacityML(item)); } catch { }
         return BOTTLE_ML;
     }
 
@@ -1141,7 +1142,6 @@ internal static class RobinCrusoePerk
                 GameItem spawn = item;
                 try { GameItem cl = item.CloneLinked(); if (cl != null) spawn = cl; } catch { }
                 try { WaterHelper.AddWater(spawn, 0, -1, false, 0, 1, true); } catch { }
-                try { Core.LogMsg("[开局水诊断] purity=" + Il2Cpp.WaterHelper.GetWaterPurity(spawn) + " tier判定=" + (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9900 ? "优质" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9600 ? "较好" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9200 ? "普通" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 8800 ? "浑浊" : "脏水"))))); } catch { }
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
@@ -1392,7 +1392,8 @@ internal static class RobinCrusoePerk
         if (inf > 0) TryInfect(inf / 100.0);
         string wname = new[] { LangHelper.T("优质", "Pure"), LangHelper.T("较好", "Good"), LangHelper.T("普通", "Plain"), LangHelper.T("浑浊", "Cloudy"), LangHelper.T("脏水", "Dirty") }[tier];
         try { StoreUIManager.Instance.Notify(LangHelper.T("饮水 +" + gain + "% 口渴（" + wname + "）", "Drinking +" + gain + "% Thirst (" + wname + ")"), "white"); } catch { }
-        try { WaterHelper.Remove(item, sip); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
+        // 09-11 日志定案：Remove 参数单位=µl（Remove(200000) 实测扣 200ml 无超量保护）；sip*1000 = 正确扣量
+        try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
         RefreshStatusPanel(); // 实时刷新常驻面板
     }
 
@@ -1486,7 +1487,7 @@ internal static class RobinCrusoePerk
                 if (sip > 0)
                 {
                     try { GCI.currentThirst = cur + sip; } catch { }
-                    try { Il2Cpp.WaterHelper.Remove(item, sip); } catch { }
+                    try { Il2Cpp.WaterHelper.Remove(item, sip * 1000); } catch { } // 09-11 定案：µl 单位
                 }
             }
             catch { }
