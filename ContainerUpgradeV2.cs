@@ -10,12 +10,12 @@ namespace JacksonPerks;
 // 【容器统一升级系统 v2】（用户拍板 09-12 最终稿）
 // 蛙哥箱子（custom_storage_box）与鲁滨逊容器共用：
 //   - 段位制（0-5，有上限）＋ 读档按段位重设（固定小整数，根治无限宽读档 bug）
-//   - 蛙哥箱子：段0=3×3 → nuts_metal（螺丝）升级 5/10/20/40/80 → 满级 52×10
-//   - 鲁滨逊容器：段0=原宽50%（开局减半）→ junk 升级 5/10/20/40/80 → 满级 100% 原宽
+//   - 蛙哥箱子：段0=3×3 → nuts_metal（螺丝）升级 5/10/20/40/80 → 满级 52×10 → 奖励第二个妙妙箱
+//   - 鲁滨逊容器：段0=原宽50%（开局减半）→ junk 升级 5/10/20/40/80 → 满级 200% 原宽（×2）
 // 数据 tag（物品 tag，ES3 随档天然持久化）：
 //   wb_stage  int 0-5  段位（两容器共用语义）
 //   wb_orig_w int      鲁滨逊：官方原宽（减半时记录）
-//   wb_page   int 0-1  翻页（预留；满级翻页为 Phase 2）
+//   满级奖励：蛙哥=第二个妙妙箱；鲁滨逊=容量×2（09-12 拍板，替代翻页）
 // 老档迁移：鲁滨逊旧 wageUpgradeCap > 0 → 满级；蛙哥旧箱（shape>3×3）→ 满级
 // ============================================================
 public static class ContainerUpgradeV2
@@ -369,7 +369,7 @@ public static class ContainerUpgradeV2
             if (!item.IsTag("CUSTOM_STORAGE_TAG")) return;
             int stage = GetTagIntSafe(item, "wb_stage");
             if (stage >= MAX_STAGE)
-                builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）· 第" + (GetTagIntSafe(item, "wb_page") + 1) + "/2 页（Tab 翻页）", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ") · Page " + (GetTagIntSafe(item, "wb_page") + 1) + "/2 (Tab)"),
+                builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）· 奖励：第二个妙妙箱已入背包", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ") · Reward: second box in backpack"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             else
                 {

@@ -1540,7 +1540,7 @@ internal static class RobinCrusoePerk
             {
                 int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
                 if (stage >= ContainerUpgradeV2.MAX_STAGE)
-                    builder.AddLine(LangHelper.T("◆ 储存区：满级（拖 junk 可正常放入）· 第" + (ContainerUpgradeV2.GetTagIntSafe(item, "wb_page") + 1) + "/2 页（Tab 翻页）", "◆ Storage: MAX (drag junk to store) · Page " + (ContainerUpgradeV2.GetTagIntSafe(item, "wb_page") + 1) + "/2 (Tab)"),
+                    builder.AddLine(LangHelper.T("◆ 储存区：满级（容量×2）· 拖 junk 可正常放入", "◆ Storage: MAX (2× capacity) · drag junk to store"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 else
                     {
@@ -1811,7 +1811,7 @@ internal static class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 机器升级异常: " + ex.Message); return false; }
     }
     // 容器升级（v2 段位制，用户拍板 09-12）：段0-5，junk 消耗 5/10/20/40/80，满级后 junk 正常放入
-    // 段位换算：宽 = floor(wb_orig_w × (50% + 10%k))；段0=开局减半(50%)，段5=官方原宽(100%)
+    // 段位换算：宽 = floor(wb_orig_w × (50% + 30%k))；段0=开局减半(50%)，段5=原宽2倍(200%)
     private static bool TryUpgradeContainer(GameItem junk, GameItem container)
     {
         try
@@ -1836,7 +1836,7 @@ internal static class RobinCrusoePerk
             int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
             int targetW;
             if (origW > 0)
-                targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1); // 减半容器：恢复语义 50%→100%
+                targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1); // 减半容器：恢复语义 50%→200%
             else
                 targetW = w + 1; // 未减半容器（玩家装备腰包 fanny_pack 等）：每段 +1 列（3→4→5...）
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
@@ -1845,7 +1845,7 @@ internal static class RobinCrusoePerk
             // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
             try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
-            try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T((stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "储存区满级！容量翻倍（宽 " + targetW + "）" : "储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", (stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "Storage MAX! 2x capacity (width " + targetW + ")" : "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
             try { Core.LogMsg("[容器v2] " + GetId(container) + " 升段 stage=" + (stage + 1) + " w=" + w + "->" + targetW + " origW=" + origW); } catch { }
             return true;
         }

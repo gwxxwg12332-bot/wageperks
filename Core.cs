@@ -5818,8 +5818,6 @@ public class Core : MelonMod
 
             if (PerkUIController.Instance != null && PerkUIController.Instance.ui != null && PerkUIController.Instance.ui.activeSelf)
             {
-                // 诊断探针B：PerkUI 挡住（限频 120 帧一条，测完删）
-                try { if ((int)(UnityEngine.Time.frameCount % 120) == 0) Core.LogMsg("[翻页诊断] OnUpdate 被PerkUI挡住"); } catch { }
                 return;
             }
 
@@ -6078,8 +6076,6 @@ public class Core : MelonMod
 
 
         try { inGame = PlayerStore.Instance != null; } catch { }
-        // 诊断探针C：inGame 判定后（限频 120 帧一条，测完删）
-        try { if ((int)(UnityEngine.Time.frameCount % 120) == 0) Core.LogMsg("[翻页诊断] OnUpdate inGame=" + inGame + " frame=" + UnityEngine.Time.frameCount); } catch { }
 
 
 
