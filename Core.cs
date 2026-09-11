@@ -28861,6 +28861,16 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientManager), "HandleNormalClient",
                 postfix: nameof(RobinCrusoePerk.PostfixHandleNormalClient),
                 patchHost: typeof(RobinCrusoePerk));
+            // 屠夫/李北文供应商（09-12 用户拍板：并入鲁滨逊职业）：电话端注册 + 接听拦截 + 拨号即叫货
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StorePhoneClient), "InitPhoneClientDict",
+                postfix: nameof(RobinCrusoePerk.PostfixInitPhoneClientDict),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.PhoneUIManager), "WillAnswerCall",
+                prefix: nameof(RobinCrusoePerk.PrefixWillAnswerCall),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.PhoneUIManager), "StartPhoneDialog",
+                prefix: nameof(RobinCrusoePerk.PrefixStartPhoneDialog),
+                patchHost: typeof(RobinCrusoePerk));
             // 日历租金显示：100天制文案强制显示（拆包：temporaryRent==0 原生隐藏）
             ManualPatcher.TryPatch(typeof(Il2Cpp.AdvCalendarUIManager), "OnCalendarButtonClicked",
                 postfix: nameof(RobinCrusoePerk.PostfixOnCalendarButtonClicked),

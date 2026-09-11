@@ -2568,6 +2568,10 @@ internal static class RobinCrusoePerk
             catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T("第" + day + "天：", "Day " + day + ": ") + nodeTxt + "｜" + moodTxt, "white"); } catch { }
             RefreshStatusPanel(); // 每日结算刷新常驻面板
+            // ===== 屠夫/李北文供应商每日调度 + 电话冷却 + 兜底注册 =====
+            WantedSupplierSchedule(day);
+            TickWantedPhoneCooldown();
+            TryRegisterWantedPhones();
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixOnNewDay 异常: " + ex.Message); }
     }
@@ -2925,4 +2929,250 @@ internal static class RobinCrusoePerk
     // T1 需求池 = 静态 List<工厂委托>，GetRandomT1XxxClient 用 RNG.GetRandomInt 均匀随机选一个（ISIL 实锤）。
     // 委托身份在 IL2CPP 二进制层不可枚举（ISIL 读不到），无法精确把状态客户占比乘 1.2/0.85——
     // 需运行时枚举池内委托（UnityExplorer）或拆生成链更深层才能精确落点。本轮不实装，避免猜测。
+    // ============================================================
+    // 屠夫/李北文供应商（09-12 用户拍板：并入鲁滨逊职业内，不加新特性）
+    // 复用原版 wanted2（屠夫）/ wanted6（李北文）通缉犯实体改造，不自建 identifier；
+    // 电话端仿原版红魔鬼/GP矿业双通道（StorePhoneClient）；名片简化=到店直接解锁电话簿（phoneState=4）；
+    // 拨号即叫货（跳过原版 PhoneDialogList 对话选项——wanted 无电话对话定义）
+    // ============================================================
+    private const long BUTCHER_PHONE_NUMBER = 8800;   // 屠夫电话（避开原版 8376/8815/56371/4615/3319/51189）
+    private const long LI_BEIWEN_PHONE_NUMBER = 8801; // 李北文电话
+    private const int BUTCHER_FIRST_VISIT_DAY = 14;   // 屠夫第14天首次上门
+    private const int LI_BEIWEN_FIRST_VISIT_DAY = 21; // 李北文第21天首次上门
+    private const int CALL_TO_ARRIVE_DAYS = 2;        // 电话叫货后排 2 天到店
+    private const int CALL_COOLDOWN_DAYS = 3;         // 电话冷却 3 天
+    private static int _wantedSupplierScheduledDay = -1; // 防同日重复调度
+    private static readonly string[] BUTCHER_MEAT_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat" };
+    private static readonly string[] BUTCHER_WEAPON_IDS = { "combat_knife", "combat_machete", "hatchet", "crowbar", "stun_baton" };
+
+    // 每日调度：第14/21天固定排首次上门（PostfixOnNewDay 调用）
+    internal static void WantedSupplierSchedule(int day)
+    {
+        try
+        {
+            if (!IsActive() || PlayerStore.Instance == null) return;
+            if (day == _wantedSupplierScheduledDay) return; // 同日只排一次
+            if (day == BUTCHER_FIRST_VISIT_DAY) { QueueWantedClient("wanted2"); _wantedSupplierScheduledDay = day; }
+            else if (day == LI_BEIWEN_FIRST_VISIT_DAY) { QueueWantedClient("wanted6"); _wantedSupplierScheduledDay = day; }
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] WantedSupplierSchedule 异常: " + ex.Message); }
+    }
+
+    private static void QueueWantedClient(string id)
+    {
+        try
+        {
+            PlayerStore ps = PlayerStore.Instance;
+            if (ps == null || ps.storeClientManager == null) return;
+            try { ps.storeClientManager.RemoveDuplicateClientsByIdentifier(id); } catch { } // 防原版随机 wanted 同天撞车
+            ps.QueueFuturClient(id, 0);
+            Core.LogMsg("[空间站鲁滨逊] 已预约" + (id == "wanted2" ? "屠夫" : "李北文") + "当天到店（" + id + "）");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] QueueWantedClient(" + id + ") 异常: " + ex.Message); }
+    }
+
+    // 到店处理（Patches.PostfixSpecialNpcStartDialogue 调用）：解锁电话簿 + 上货
+    internal static void WantedSupplierOnArrived(StoreClient client)
+    {
+        try
+        {
+            if (!IsActive() || client == null) return;
+            string id = client.identifier;
+            if (id == "wanted2") { UnlockWantedPhone(BUTCHER_PHONE_NUMBER, LangHelper.T("屠夫", "The Butcher")); AddButcherGoods(); }
+            else if (id == "wanted6") { UnlockWantedPhone(LI_BEIWEN_PHONE_NUMBER, LangHelper.T("李北文", "Li Beiwen")); AddLiBeiwenGoods(); }
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] WantedSupplierOnArrived 异常: " + ex.Message); }
+    }
+
+    // 名片简化：到店直接解锁电话簿（phoneState=4），不发实体名片物品（自建物品 id 需注册 sprite/名称，有空物品风险）
+    private static void UnlockWantedPhone(long number, string name)
+    {
+        try
+        {
+            var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(number);
+            if (pc == null) { Core.LogMsg("[空间站鲁滨逊] 电话端未注册 " + number); return; }
+            if ((int)pc.phoneState < 4)
+            {
+                pc.phoneState = (Il2Cpp.StorePhoneClient.PhoneState)4; // Regular：电话簿显示 + 可拨
+                pc.cooldownDuration = CALL_COOLDOWN_DAYS;
+                pc.dialedBefore = false;
+                try { StoreUIManager.Instance.Notify(LangHelper.T(name + "的电话已存入电话簿，拨号即可叫货", name + "'s number saved. Dial to order supplies."), "green"); } catch { }
+                Core.LogMsg("[空间站鲁滨逊] " + name + " 电话簿解锁（" + number + "）");
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] UnlockWantedPhone 异常: " + ex.Message); }
+    }
+
+    // 屠夫货单：肉 + 近战武器
+    private static void AddButcherGoods()
+    {
+        try
+        {
+            int added = 0;
+            foreach (string mid in BUTCHER_MEAT_IDS)
+            {
+                try { if (MerchantHelper.AddItemToCounter(mid, 0, false) != null) added++; }
+                catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 屠夫加肉 " + mid + " 失败: " + ex.Message); }
+            }
+            foreach (string wid in BUTCHER_WEAPON_IDS)
+            {
+                try { if (MerchantHelper.AddItemToCounter(wid, 0, false) != null) added++; }
+                catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 屠夫加武器 " + wid + " 失败: " + ex.Message); }
+            }
+            Core.LogMsg("[空间站鲁滨逊] 屠夫已上货 " + added + " 件（肉+近战武器）");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] AddButcherGoods 异常: " + ex.Message); }
+    }
+
+    // 李北文货单：梦尘×5 + 奥克莫吸×5
+    private static void AddLiBeiwenGoods()
+    {
+        try
+        {
+            int added = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                try { if (MerchantHelper.AddItemToCounter("dream_dust", 0, false) != null) added++; } catch { }
+            }
+            for (int i = 0; i < 5; i++)
+            {
+                try { if (MerchantHelper.AddItemToCounter("oxycodone_pill", 0, false) != null) added++; } catch { }
+            }
+            Core.LogMsg("[空间站鲁滨逊] 李北文已上货 " + added + " 件（梦尘×5+奥克莫吸×5）");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] AddLiBeiwenGoods 异常: " + ex.Message); }
+    }
+
+    // 电话端注册（Core 注册 Postfix StorePhoneClient.InitPhoneClientDict）
+    public static void PostfixInitPhoneClientDict(Il2CppSystem.Collections.Generic.Dictionary<long, Il2Cpp.StorePhoneClient> __result)
+    {
+        try
+        {
+            if (!IsActive() || __result == null) return;
+            if (__result.ContainsKey(BUTCHER_PHONE_NUMBER) && __result.ContainsKey(LI_BEIWEN_PHONE_NUMBER)) return; // 已注册
+            if (!__result.ContainsKey(BUTCHER_PHONE_NUMBER))
+            {
+                var butcher = new Il2Cpp.StorePhoneClient();
+                butcher.phoneClientType = Il2Cpp.StorePhoneClient.PhoneClientType.Supplier;
+                butcher.phoneState = Il2Cpp.StorePhoneClient.PhoneState.None;
+                butcher.displayName = LangHelper.T("屠夫", "The Butcher");
+                butcher.locID = "name_the_butcher";
+                butcher.dialogFuncId = "";
+                butcher.cooldownDuration = CALL_COOLDOWN_DAYS;
+                butcher.currentCooldown = 0;
+                butcher.dialedBefore = false;
+                __result.Add(BUTCHER_PHONE_NUMBER, butcher);
+            }
+            if (!__result.ContainsKey(LI_BEIWEN_PHONE_NUMBER))
+            {
+                var libw = new Il2Cpp.StorePhoneClient();
+                libw.phoneClientType = Il2Cpp.StorePhoneClient.PhoneClientType.Supplier;
+                libw.phoneState = Il2Cpp.StorePhoneClient.PhoneState.None;
+                libw.displayName = LangHelper.T("李北文", "Li Beiwen");
+                libw.locID = "name_li_bei_wen";
+                libw.dialogFuncId = "";
+                libw.cooldownDuration = CALL_COOLDOWN_DAYS;
+                libw.currentCooldown = 0;
+                libw.dialedBefore = false;
+                __result.Add(LI_BEIWEN_PHONE_NUMBER, libw);
+            }
+            Core.LogMsg("[空间站鲁滨逊] 电话端已注册 屠夫8800/李北文8801");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixInitPhoneClientDict 异常: " + ex.Message); }
+    }
+
+    // 兜底补注册：InitPhoneClientDict 若在特性未激活时跑过，每日结算用 PlayerStore.PhoneClientDict 补
+    private static void TryRegisterWantedPhones()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            PlayerStore ps = PlayerStore.Instance;
+            if (ps == null || ps.PhoneClientDict == null) return;
+            if (!ps.PhoneClientDict.ContainsKey(BUTCHER_PHONE_NUMBER) || !ps.PhoneClientDict.ContainsKey(LI_BEIWEN_PHONE_NUMBER))
+            {
+                PostfixInitPhoneClientDict(ps.PhoneClientDict);
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] TryRegisterWantedPhones 异常: " + ex.Message); }
+    }
+
+    // 接听拦截（Core 注册 Prefix PhoneUIManager.WillAnswerCall）：未解锁 → 空号提示
+    public static bool PrefixWillAnswerCall(long number)
+    {
+        try
+        {
+            if (!IsActive()) return true;
+            if (number != BUTCHER_PHONE_NUMBER && number != LI_BEIWEN_PHONE_NUMBER) return true; // 非我们号码放行原版
+            var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(number);
+            if (pc == null || (int)pc.phoneState < 4)
+            {
+                try { Il2Cpp.PhoneUIManager.Instance.NoNumber(); } catch { }
+                return false; // 未解锁：空号
+            }
+            return true; // 已解锁：放行原版
+        }
+        catch { return true; }
+    }
+
+    // 拨号即叫货（Core 注册 Prefix PhoneUIManager.StartPhoneDialog）：接通瞬间自动排期 + 冷却，拦掉原版对话
+    public static bool PrefixStartPhoneDialog(long currentNumber)
+    {
+        try
+        {
+            if (!IsActive()) return true;
+            string id = null, name = null;
+            if (currentNumber == BUTCHER_PHONE_NUMBER) { id = "wanted2"; name = LangHelper.T("屠夫", "The Butcher"); }
+            else if (currentNumber == LI_BEIWEN_PHONE_NUMBER) { id = "wanted6"; name = LangHelper.T("李北文", "Li Beiwen"); }
+            else return true;
+            var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(currentNumber);
+            if (pc != null && (pc.currentCooldown > 0 || (int)pc.phoneState == 5))
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T(name + "还在忙，过几天再打", name + " is busy, call again in a few days."), "red"); } catch { }
+                return false; // 冷却中：占线
+            }
+            PlayerStore ps = PlayerStore.Instance;
+            if (ps == null || ps.storeClientManager == null) return true;
+            try { ps.storeClientManager.RemoveDuplicateClientsByIdentifier(id); } catch { }
+            ps.QueueFuturClient(id, CALL_TO_ARRIVE_DAYS); // 排 2 天到店
+            if (pc != null)
+            {
+                pc.phoneState = Il2Cpp.StorePhoneClient.PhoneState.Cooldown; // 冷却
+                pc.currentCooldown = CALL_COOLDOWN_DAYS;
+                pc.cooldownDuration = CALL_COOLDOWN_DAYS;
+                pc.dialedBefore = true;
+            }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("已预约" + name + " " + CALL_TO_ARRIVE_DAYS + " 天后到店", name + " will arrive in " + CALL_TO_ARRIVE_DAYS + " days."), "green"); } catch { }
+            Core.LogMsg("[空间站鲁滨逊] 电话叫货成功：" + name + " " + CALL_TO_ARRIVE_DAYS + " 天后到店");
+            return false; // 拦掉原版对话显示
+        }
+        catch { return true; }
+    }
+
+    // 电话冷却自管（PostfixOnNewDay 调用；原版 OnNewDay 是否遍历递减不确定，自己维护最稳）
+    private static void TickWantedPhoneCooldown()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            TickOnePhoneCooldown(BUTCHER_PHONE_NUMBER);
+            TickOnePhoneCooldown(LI_BEIWEN_PHONE_NUMBER);
+        }
+        catch { }
+    }
+    private static void TickOnePhoneCooldown(long number)
+    {
+        try
+        {
+            var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(number);
+            if (pc == null) return;
+            if (pc.currentCooldown > 0)
+            {
+                pc.currentCooldown--;
+                if (pc.currentCooldown <= 0 && (int)pc.phoneState == 5)
+                    pc.phoneState = Il2Cpp.StorePhoneClient.PhoneState.Regular; // 冷却结束恢复可拨
+            }
+        }
+        catch { }
+    }
 }

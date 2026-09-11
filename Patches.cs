@@ -790,6 +790,15 @@ internal static class Patches
                 SpecialNpcManager.HandleSpecialNpcArrived(client);
             }
 
+            // 2.0b 屠夫/李北文供应商（鲁滨逊职业内）：到店解锁电话簿 + 上货（wanted2=屠夫 / wanted6=李北文）
+            try
+            {
+                string sid = client.identifier;
+                if (sid == "wanted2" || sid == "wanted6")
+                    RobinCrusoePerk.WantedSupplierOnArrived(client);
+            }
+            catch { }
+
             // 2.0 成瘾警官：伪装客户到达判定分支（通用事件，不依赖特性）
             try { AddictOfficerEvent.OnClientArrived(client); } catch { }
 
