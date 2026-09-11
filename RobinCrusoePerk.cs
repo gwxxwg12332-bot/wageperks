@@ -1509,15 +1509,6 @@ internal static class RobinCrusoePerk
                     builder.AddLine(LangHelper.T(q >= 3 ? "食用：40% 患病风险（卡路里按20%恢复）" : "食用：10% 患病风险（卡路里按50%恢复）", q >= 3 ? "Eating: 40% illness risk (calories at 20%)" : "Eating: 10% illness risk (calories at 50%)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
-            else if (IsDrink(item))
-            {
-                int purity = -1; int pIdx = -1;
-                try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-                try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
-                string wname = ((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity >= 9900)) ? LangHelper.T("优质", "Pure") : (((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100)) ? LangHelper.T("脏", "Dirty") : LangHelper.T("普通", "Plain"));
-                builder.AddLine(LangHelper.T("水质：", "Water quality: ") + wname + LangHelper.T("（剩余 ", " (left ") + GetWaterMl(item) + LangHelper.T(" ml）", " ml)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            }
             else if (IsMachine(item) || item.IsTag("MODULE_TAG"))
             {
                 // 升级提示（用户拍板：显示在机器上储存区/机器箱子/模板）
