@@ -11,7 +11,7 @@
 
 ### BUG-001 打开储藏箱卡顿卡死
 - 优先级：🔴 高
-- 状态：已确认根因（09-11 拆包源码级实锤）→ 待修复
+- 状态：已修复（09-11 落地，commit 待填）
 - 现象：打开容器/储藏箱时游戏直接卡顿卡死；hover 物品也卡；转移所有物品时格外卡（蛙哥箱子格外卡）
 - 触发：打开容器、hover 物品（tooltip 显示价格）、批量转移物品
 - 初步猜想：容器 UI 渲染/物品遍历循环、保存加载钩子无限迭代，打开容器触发大量状态计算（已拆包推翻：非死循环）
@@ -22,12 +22,13 @@
   - StringBuilder 全量拼接 → 每次价格计算重建整段文本
   - 叠加：itemFeatures 线性遍历防重复（O(N)）+ IsFood/IsMedicine 宽松判断
   - 批量转移几百件 / 鼠标扫过堆积物品 → 每件 × 每帧重跑整条链，物品越多越卡
-- 修复建议（3 点，待开发落地）：
-  1. GetTradeBuffDisplay 缓存：节点状态只在打烊结算/状态变化时变 → 状态变化入口失效缓存，价格计算直接读缓存字符串
-  2. TryAddNodeBuffFeature 快速路径：HashSet<IntPtr> 记已添加物品 O(1) 跳过，替代每次 O(N) 线性遍历
-  3. IsFood/IsMedicine 价格链轻量化：价格链上先走快速 FOOD_IDS.Contains（哈希），宽松 CALORIE 兜底只在打烊品质链用
+- 修复方案（已按此落地 09-11）：
+  1. GetTradeBuffDisplay 缓存：节点状态只在打烊结算/状态变化时变 → 7 个 Set* + SetCompBuffDays 写入时 InvalidateTradeCaches()，价格计算直接读缓存字符串
+  2. GetSellBonusPct/GetBudgetBonusPct/GetBargainBonusPct 各自缓存（-999 哨兵），失效同 1
+  3. TryAddNodeBuffFeature 物品指针 HashSet<long> 快速路径：同一缓存周期每件物品只处理一次（ClearNodeBuffItems 随缓存失效清空）
+  - IsFood/IsMedicine 保持原样（哈希/tag 判断已快，指针缓存收益低且指针复用有误判风险，不缓存）
 - 验证方法：非鲁滨逊职业（startType≠14）的档不卡 → 可用来验证修复效果
-- 修复版本：（待填）
+- 修复版本：v1.1.6（待发布）
 
 ## 🟠 中优先级（机制逻辑错误，影响核心玩法）
 

@@ -1688,14 +1688,20 @@ internal static class Patches
     }
 
     // ============ 鲁滨逊：节点状态 buff → 报价面板实时标签（用户拍板：出售/购买面板都显示）============
+    // BUG-001 09-11：物品指针防重集合——同一缓存周期内每件物品只处理一次（GetTradeBuffDisplay 已缓存，O(N) 遍历只在首见跑）
+    private static readonly HashSet<long> _nodeBuffItems = new HashSet<long>();
+    internal static void ClearNodeBuffItems() { _nodeBuffItems.Clear(); }
     private static void TryAddNodeBuffFeature(GameItem item)
     {
         try
         {
             if (item == null || item.itemFeatures == null) return;
             if (!RobinCrusoePerk.IsActive()) return;
-            string disp = RobinCrusoePerk.GetTradeBuffDisplay();
+            string disp = RobinCrusoePerk.GetTradeBuffDisplay(); // BUG-001：缓存命中，便宜
             if (disp.Length == 0) return;
+            long ptr = 0;
+            try { ptr = item.Pointer.ToInt64(); } catch { }
+            if (ptr != 0 && _nodeBuffItems.Contains(ptr)) return; // 本缓存周期已处理（防重复遍历）
             // 防重复：同 identifier 更新显示文本（实时跟随状态变化）
             for (int j = 0; j < item.itemFeatures.Count; j++)
             {
@@ -1703,6 +1709,7 @@ internal static class Patches
                 {
                     item.itemFeatures[j].publicDisplay = disp;
                     item.itemFeatures[j].actualDisplay = disp;
+                    if (ptr != 0) _nodeBuffItems.Add(ptr);
                     return;
                 }
             }
@@ -1718,6 +1725,7 @@ internal static class Patches
             val.publicDisplay = disp;
             val.actualDisplay = disp;
             item.itemFeatures.Add(val);
+            if (ptr != 0) _nodeBuffItems.Add(ptr);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 节点buff feature失败: " + ex.Message); }
     }
@@ -2278,6 +2286,22 @@ internal static class Patches
     public static void PrefixEmporiumShowAfterhourInv(EmporiumEntry __instance)
     {
         DrJacksonFriendPerk.EmporiumEntryShowAfterhourPatch.Prefix(__instance);
+    }
+
+    // ============================================================
+    // 溶液拦截（09-11 用户确认）：酸性/碱性溶液不出现在任何池子
+    // 拆包 2.5.45：唯一生成点 = MaterialDirectory.CommonChemicalSupplies → CreateAcidBottle/CreateBaseBottle → GraphUtils.EmporiumTryAdd（null 安全，返回 null 直接跳过）
+    // ============================================================
+    public static bool PrefixCreateAcidBottle(ref GameItem __result)
+    {
+        __result = null;
+        return false;
+    }
+
+    public static bool PrefixCreateBaseBottle(ref GameItem __result)
+    {
+        __result = null;
+        return false;
     }
 
     // ============================================================

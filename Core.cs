@@ -13074,6 +13074,12 @@ public class Core : MelonMod
                 prefix: nameof(RetiredGunsmithPerk.PrefixAddDirectSellingItemToTable),
                 patchHost: typeof(RetiredGunsmithPerk));
 
+            // 酸性/碱性溶液源头拦截（09-11 用户确认）：任何池子不再出（MaterialDirectory.CommonChemicalSupplies 唯一生成点 → 两创建方法返回 null）
+            ManualPatcher.TryPatch(typeof(PreBuildChemHelper), "CreateAcidBottle",
+                prefix: nameof(Patches.PrefixCreateAcidBottle));
+            ManualPatcher.TryPatch(typeof(PreBuildChemHelper), "CreateBaseBottle",
+                prefix: nameof(Patches.PrefixCreateBaseBottle));
+
 
 
 

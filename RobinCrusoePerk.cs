@@ -203,17 +203,17 @@ internal static class RobinCrusoePerk
     internal static int GetStarveDays() => PerkStatePersistence.GetInt(PERK_ID, "starveDays", 0); // 濒饿持续（饱食<20或口渴<20）
     internal static int GetCritDays() => PerkStatePersistence.GetInt(PERK_ID, "critDays", 0);     // 病危持续（健康<20）
     internal static int GetThirstDeathDays() => PerkStatePersistence.GetInt(PERK_ID, "thirstDeath", 0); // 渴死持续（口渴<20）
-    internal static void SetSatiety(int v) => PerkStatePersistence.SetInt(PERK_ID, "sat", v);
-    internal static void SetThirstPct(int v) => PerkStatePersistence.SetInt(PERK_ID, "thirst", v);
-    internal static void SetHealth(int v) => PerkStatePersistence.SetInt(PERK_ID, "health", v);
-    internal static void SetMood(int v) => PerkStatePersistence.SetInt(PERK_ID, "mood", v);
+    internal static void SetSatiety(int v) { PerkStatePersistence.SetInt(PERK_ID, "sat", v); InvalidateTradeCaches(); }
+    internal static void SetThirstPct(int v) { PerkStatePersistence.SetInt(PERK_ID, "thirst", v); InvalidateTradeCaches(); }
+    internal static void SetHealth(int v) { PerkStatePersistence.SetInt(PERK_ID, "health", v); InvalidateTradeCaches(); }
+    internal static void SetMood(int v) { PerkStatePersistence.SetInt(PERK_ID, "mood", v); InvalidateTradeCaches(); }
     // 新三状态（v5.7+ 用户拍板：清洁度/睡眠/社交）
     internal static int GetClean() => PerkStatePersistence.GetInt(PERK_ID, "clean", CLEAN_START);       // 清洁 0-100
     internal static int GetSleep() => PerkStatePersistence.GetInt(PERK_ID, "sleep", SLEEP_START);       // 睡眠 0-100
     internal static int GetSocial() => PerkStatePersistence.GetInt(PERK_ID, "social", SOCIAL_START);    // 社交 0-100
-    internal static void SetClean(int v) => PerkStatePersistence.SetInt(PERK_ID, "clean", v);
-    internal static void SetSleep(int v) => PerkStatePersistence.SetInt(PERK_ID, "sleep", v);
-    internal static void SetSocial(int v) => PerkStatePersistence.SetInt(PERK_ID, "social", v);
+    internal static void SetClean(int v) { PerkStatePersistence.SetInt(PERK_ID, "clean", v); InvalidateTradeCaches(); }
+    internal static void SetSleep(int v) { PerkStatePersistence.SetInt(PERK_ID, "sleep", v); InvalidateTradeCaches(); }
+    internal static void SetSocial(int v) { PerkStatePersistence.SetInt(PERK_ID, "social", v); InvalidateTradeCaches(); }
 
     // ===== Z 键调出/关闭状态面板（用户拍板；特性界面/主菜单不响应，硬约束守护）=====
     internal static void HandleHotkeys()
@@ -399,6 +399,22 @@ internal static class RobinCrusoePerk
     }
     // 当日客流削减标记（病恹恹爆发：当日客流-50%，打烊结算后清零）
     internal static int _burstClientCut = 0;
+    // ===== BUG-001 09-11：交易价格计算链缓存 =====
+    // 卡顿根因（拆包实锤）：hover/批量转移每件物品算价 → GetCurrentValue Postfix → TryApplyTradeMarkup → GetTradeBuffDisplay/GetSellBonusPct 每次重建节点文本
+    // 节点状态只在 Set*/打烊结算/抽取时变 → Set* 里失效缓存，价格计算链直接读缓存
+    private static string _tradeBuffCache = null;   // 报价面板文本（null = 需重建）
+    private static int _sellBonusCache = -999;      // 售价加成（-999 = 失效）
+    private static int _budgetBonusCache = -999;    // 预算加成
+    private static int _bargainBonusCache = -999;   // 议价加成
+    internal static void InvalidateTradeCaches()
+    {
+        _tradeBuffCache = null;
+        _sellBonusCache = -999;
+        _budgetBonusCache = -999;
+        _bargainBonusCache = -999;
+        Patches.ClearNodeBuffItems(); // 面板 feature 防重集合一并清：新状态周期内所有物品重新刷新显示文本
+    }
+
     // 效果数值查询（v5.8-8 修正：Lock 效果按当前节点实时聚合，不依赖打烊锁定——面板显示与实际生效永远一致）
     private static int FxVal(string fx, string prefix)
     {
@@ -450,6 +466,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (_tradeBuffCache != null) return _tradeBuffCache; // BUG-001：缓存命中直接返回
             var sb = new System.Text.StringBuilder();
             foreach (int n in AllActiveNodes())
             {
@@ -472,7 +489,8 @@ internal static class RobinCrusoePerk
             if (bargainB != 0) total += LangHelper.T("议价", "Bargaining ") + (bargainB > 0 ? "+" : "") + bargainB + "% ";
             if (budgetB != 0) total += LangHelper.T("预算", "Budget ") + (budgetB > 0 ? "+" : "") + budgetB + "% ";
             if (total.Length > 2) sb.Append("｜" + total.Trim());
-            return sb.ToString().Trim();
+            _tradeBuffCache = sb.ToString().Trim(); // BUG-001：写缓存
+            return _tradeBuffCache;
         }
         catch { return ""; }
     }
@@ -529,16 +547,19 @@ internal static class RobinCrusoePerk
     // 售价加成：粮仓 +5% + 昂扬累计 + 节点（sell±N，如蓬头垢面锁 sell-30 / 吃饱喝足锁 sell+5）
     internal static int GetSellBonusPct()
     {
+        if (_sellBonusCache != -999) return _sellBonusCache; // BUG-001：缓存
         int bonus = 0;
         if (GetGranaryDays() >= GRANARY_DAYS) bonus += 5;
         bonus += Math.Min(ELEV_MAX, GetElevCount());
         bonus += FxNum("sell");
         bonus += (int)GetCompBuffSellBonus(); // v5.9 精打细算：卖出+5%（肚里打鼓爆发补偿）
+        _sellBonusCache = bonus;
         return bonus;
     }
     // 客户预算：max(心情, 昂扬) + 节点负向（budget±N 叠加；正向取更高）
     internal static int GetBudgetBonusPct()
     {
+        if (_budgetBonusCache != -999) return _budgetBonusCache; // BUG-001：缓存
         int moodB = 0, m = GetMood();
         if (m >= SATIETY_GOOD) moodB = 15;
         else if (m >= 40) moodB = -5;
@@ -546,7 +567,8 @@ internal static class RobinCrusoePerk
         int elevB = Math.Min(25, GetElevCount() * 5);
         int baseB = Math.Max(moodB, elevB);
         int nodeB = FxNum("budget");
-        return nodeB < 0 ? baseB + nodeB : Math.Max(baseB, nodeB);
+        _budgetBonusCache = nodeB < 0 ? baseB + nodeB : Math.Max(baseB, nodeB);
+        return _budgetBonusCache;
     }
     // 客流削减（节点池：client-2 / client-1 锁定；病恹恹爆发当日另按 50% 隔一skip一）
     internal static int GetClientReduction() => -FxNum("client");
@@ -567,10 +589,12 @@ internal static class RobinCrusoePerk
     // 议价成功率：max(心情≥80+15, 社交≥80+10) + 节点（bargain±N）
     internal static int GetBargainBonusPct()
     {
+        if (_bargainBonusCache != -999) return _bargainBonusCache; // BUG-001：缓存
         int socialB = GetSocial() >= 80 ? 10 : 0;
         int moodB = GetMood() >= 80 ? 15 : 0;
         int b = Math.Max(socialB, moodB);
         b += FxNum("bargain");
+        _bargainBonusCache = b;
         return b;
     }
     internal static int GetMoodScavDropPct() // 拾荒掉落率：≥80 +20% / <40 -20% + 节点（drop-20 破罐破摔池恶）
@@ -590,7 +614,7 @@ internal static class RobinCrusoePerk
     // ===== v5.9 CompBuff（补偿 buff，Duration 制：进负面节点当天自动获得、按天倒计时、到期移除、期间实时生效）=====
     internal static readonly string[] COMP_BUFF_KEYS = { "eatEff","thirstEff50","thirstEff10","wearEff","drugEff","antiTheft","moodDamp","forage20","sell5","mood2","mood3","sleepR10","contraEff" };
     internal static int GetCompBuffDays(string eff) => PerkStatePersistence.GetInt(PERK_ID, "cb_" + eff, 0);
-    internal static void SetCompBuffDays(string eff, int days) { PerkStatePersistence.SetInt(PERK_ID, "cb_" + eff, days > 0 ? days : 0); }
+    internal static void SetCompBuffDays(string eff, int days) { PerkStatePersistence.SetInt(PERK_ID, "cb_" + eff, days > 0 ? days : 0); InvalidateTradeCaches(); }
     internal static void TickCompBuffs() { foreach (string k in COMP_BUFF_KEYS) { int d = GetCompBuffDays(k); if (d > 0) SetCompBuffDays(k, d - 1); } }
     internal static double GetEatEffMult() => GetCompBuffDays("eatEff") > 0 ? 1.5 : 1.0;          // 饿狼代谢 吃食物+50%
     internal static double GetThirstEffMult() { if (GetCompBuffDays("thirstEff50") > 0) return 0.5; if (GetCompBuffDays("thirstEff10") > 0) return 0.9; return 1.0; } // 耐旱-50%/省水-10%
