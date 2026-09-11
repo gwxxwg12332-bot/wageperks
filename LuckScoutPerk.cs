@@ -213,6 +213,25 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
     // HandleInitialItem 只在开新档调用（读档走 LoadGame 分支），天然不会多刷。
 
     private static bool _kitGiven = false;
+    // ===== 开局发放重试（09-12）：emporium 未就绪/部分失败 → 帧轮询补发 =====
+    private static bool _pendingGive = false;
+    private static int _pendingGiveFrames = 0;
+    private static bool _kitOk = false;      // 工具箱发放成功
+    private static bool _scannerOk = false;  // 探测器发放成功
+    private static bool _beadOk = false;     // 虚空珠发放成功
+
+    public static void OnUpdateGiveRetry()
+    {
+        try
+        {
+            if (!_pendingGive) return;
+            if (_pendingGiveFrames-- <= 0) { _pendingGive = false; return; } // 超时放弃
+            EmporiumEntry emporium = EmporiumEntry.Instance;
+            if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪继续等
+            TryGiveKit();
+        }
+        catch { }
+    }
 
 
 
@@ -302,12 +321,11 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
             EmporiumEntry emporium = EmporiumEntry.Instance;
 
             if (emporium == null || emporium.backInvinvElement == null)
-
             {
-
-
+                Core.LogMsg("[捡漏直觉] EmporiumEntry未就绪，入队重试");
+                _pendingGive = true;
+                _pendingGiveFrames = 600;
                 return;
-
             }
 
 
@@ -340,6 +358,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
                     emporium.TransferOwnedItemBackToInv();
 
+                    _kitOk = true;
                     given++;
 
 
@@ -373,6 +392,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
                     emporium.TransferOwnedItemBackToInv();
 
+                    _scannerOk = true;
                     given++;
 
 
@@ -406,6 +426,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
                     emporium.TransferOwnedItemBackToInv();
 
+                    _beadOk = true;
                     given++;
 
 
@@ -419,7 +440,17 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
 
 
-            if (given >= 1) _kitGiven = true;
+            if (_kitOk && _scannerOk && _beadOk)
+            {
+                _kitGiven = true;
+                _pendingGive = false;
+            }
+            else
+            {
+                _pendingGive = true;
+                _pendingGiveFrames = 600;
+                Core.LogMsg("[捡漏直觉] 发放未全成功（工具箱=" + _kitOk + " 探测器=" + _scannerOk + " 虚空珠=" + _beadOk + "），入队重试");
+            }
 
 
         }

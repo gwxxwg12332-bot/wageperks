@@ -2387,7 +2387,9 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
             EmporiumEntry emporium = EmporiumEntry.Instance;
             if (emporium == null || emporium.backInvinvElement == null)
             {
-                Core.LogMsg("[蛙哥牛逼] EmporiumEntry或backInvinvElement为null，稍后重试");
+                Core.LogMsg("[蛙哥牛逼] EmporiumEntry或backInvinvElement为null，入队重试");
+                _pendingBoxGive = true;
+                _pendingBoxFrames = 600;
                 return;
             }
             
@@ -2421,6 +2423,7 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
                 emporium.TransferOwnershipBackInv();
                 emporium.TransferOwnedItemBackToInv();
                 _storageBoxGiven = true;
+                _pendingBoxGive = false;
                 // 持久化发箱状态，读档后不再重复给（Bug2修复）
                 try { PerkStatePersistence.SetBool(PerkId, "storageBoxGiven", true); } catch { }
             }
@@ -2462,6 +2465,22 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
     
     // 蛙哥妙妙箱：新游戏开局时需要给玩家一个箱子
     public static bool _storageBoxGiven = false; // 是否已给予过蛙哥妙妙箱（只给一次）
+    // ===== 蛙哥妙妙箱发放重试（09-12）：emporium 未就绪 → 帧轮询补发 =====
+    private static bool _pendingBoxGive = false;
+    private static int _pendingBoxFrames = 0;
+
+    public static void OnUpdateBoxGiveRetry()
+    {
+        try
+        {
+            if (!_pendingBoxGive) return;
+            if (_pendingBoxFrames-- <= 0) { _pendingBoxGive = false; return; } // 超时放弃
+            EmporiumEntry emporium = EmporiumEntry.Instance;
+            if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪继续等
+            TryGiveStorageBox();
+        }
+        catch { }
+    }
 
     // ============================================================
     // 补丁: 客户添加时修改对话和物品

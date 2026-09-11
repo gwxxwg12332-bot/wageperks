@@ -6651,6 +6651,8 @@ public class Core : MelonMod
 
         try { Diagnostics.OnUpdate(); } catch { }
         try { LuckScoutBackpackUpgrade.OnUpdateRestore(); } catch { }
+        try { LuckScoutPerk.OnUpdateGiveRetry(); } catch { }
+        try { FrogPowerPerk.OnUpdateBoxGiveRetry(); } catch { }
 
 
 
