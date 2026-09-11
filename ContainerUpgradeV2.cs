@@ -270,14 +270,15 @@ public static class ContainerUpgradeV2
     }
 
     // ===================== 鲁滨逊容器段位 =====================
-    // 段位 k（0-5）：宽 = floor(原宽 × (50% + 10%k))，高度不变，最小 1
+    // 段位 k（0-5）：宽 = floor(原宽 × (50% + 30%k))，高度不变，最小 1
+    // 满级 = 原宽 × 200%（比官方原尺寸大一倍，用户拍板 09-12）
     public static int GetCrusoeTargetWidth(int origW, int stage)
     {
         try
         {
             if (origW <= 0) return 1;
             int s = Math.Max(0, Math.Min(MAX_STAGE, stage));
-            return Math.Max(1, (int)Math.Floor(origW * (0.5 + 0.1 * s)));
+            return Math.Max(1, (int)Math.Floor(origW * (0.5 + 0.3 * s)));
         }
         catch { return 1; }
     }
