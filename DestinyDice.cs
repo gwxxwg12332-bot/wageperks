@@ -2665,6 +2665,15 @@ namespace JacksonPerks
         public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)
 
         {
+            // ===== 方案C：装备/使用链一律不吸收 =====
+            // ItemSelectHandler = 原生"装备/使用物品"系统（右键装备→光标→点击目标交互）。
+            // 用户拍板：这种"使用工具箱内的物品交互对应交互物"的操作，不管骰子在哪、目标是谁，都不应吸收。
+            try
+            {
+                var selHandler = Il2Cpp.ItemSelectHandler.current;
+                if (selHandler != null && selHandler.IsEquipped) return true; // 放行，不吸收
+            }
+            catch { }
 
             // 只允许：物品拖到骰子上（骰子是目标）。骰子拖到别的物品上 → 不拦截（走原版逻辑）
 
@@ -2724,6 +2733,15 @@ namespace JacksonPerks
         public static bool PrefixTarget(GameItem __instance, GameItem targetItem)
 
         {
+            // ===== 方案C：装备/使用链一律不吸收 =====
+            // ItemSelectHandler = 原生"装备/使用物品"系统（右键装备→光标→点击目标交互）。
+            // 用户拍板：这种"使用工具箱内的物品交互对应交互物"的操作，不管骰子在哪、目标是谁，都不应吸收。
+            try
+            {
+                var selHandler = Il2Cpp.ItemSelectHandler.current;
+                if (selHandler != null && selHandler.IsEquipped) return true; // 放行，不吸收
+            }
+            catch { }
 
             GameItem dice = null, food = null;
 

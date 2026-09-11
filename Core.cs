@@ -2047,18 +2047,6 @@ public class Core : MelonMod
 
 
         ManualPatcher.Init(((MelonBase)this).HarmonyInstance);
-            // ===== 前 3 天无随机客户（统一拦截：全部 HandleXxx 客户生成分支，特殊客户放行——不再逐个特性补丁）=====
-            try
-            {
-                foreach (var mi in HarmonyLib.AccessTools.GetDeclaredMethods(typeof(Il2Cpp.StoreClientManager)))
-                {
-                    if (!mi.Name.StartsWith("Handle")) continue;
-                    if (mi.Name == "HandleNormalClient" || mi.Name == "HandleAugClient" || mi.Name == "HandleMinorClient") continue; // 专属 prefix 已覆盖
-                    try { ((MelonBase)this).HarmonyInstance.Patch(mi, prefix: new HarmonyLib.HarmonyMethod(typeof(RobinCrusoePerk), "PrefixHandleAnyClient")); }
-                    catch { }
-                }
-            }
-            catch (Exception _ex) { Core.LogMsg("[客户拦截] 统一拦截注册异常 " + _ex.Message); }
             // 博士上货 ModHook（参考 ModuleWorkbench）——SubscribeModHooks 被二分禁用，这里单独挂
             try { DrJacksonFriendPerk.RegisterInventorStockHook(); } catch (Exception _ex) { Log.Msg("[博士之友] 注册失败 " + _ex.Message); }
             // 博士上货最稳方案（参考 ItemForge）：Patch AddDirectSellingItemToTable Postfix（Busy 防递归）
@@ -28772,14 +28760,7 @@ public class Core : MelonMod
 
             // ===== 鲁滨逊的账本（职业 startType=14 生存系统）=====
             // 价格统一走 Patches.TryApplyTradeMarkup（GetNegociatedValue/GetCurrentValue Postfix，拆包实锤买入卖出同链）
-            // 前 3 天无随机客户
-            // 前 3 天无随机客户（通用：只拦随机客户，特殊客户全放行——不再逐个特性补丁）
-            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientManager), "HandleNormalClient",
-                prefix: nameof(RobinCrusoePerk.PrefixHandleNormalClient),
-                patchHost: typeof(RobinCrusoePerk));
-            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientManager), "HandleAugClient",
-                prefix: nameof(RobinCrusoePerk.PrefixHandleAugClient),
-                patchHost: typeof(RobinCrusoePerk));
+            // 09-11 用户确认：取消"前3天无随机客户"设定（注册已删）；只保留次要客户永久拦截
             ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientManager), "HandleMinorClient",
                 prefix: nameof(RobinCrusoePerk.PrefixHandleMinorClient),
                 patchHost: typeof(RobinCrusoePerk));

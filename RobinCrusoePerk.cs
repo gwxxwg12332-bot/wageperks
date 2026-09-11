@@ -1152,32 +1152,11 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
-    // ===== 前 3 天无随机客户（通用方案：只拦普通+义体随机客户，特殊客户全放行）=====
-    public static bool PrefixHandleNormalClient()
-    {
-        try { if (IsActive() && StoreStation.GetDayCounter() <= 3) return false; }
-        catch { }
-        return true;
-    }
-
-    public static bool PrefixHandleAugClient()
-    {
-        try { if (IsActive() && StoreStation.GetDayCounter() <= 3) return false; }
-        catch { }
-        return true;
-    }
-
+    // 09-11 用户确认：取消"前3天无随机客户"设定（PrefixHandleNormalClient/AugClient/AnyClient 已删，只保留次要客户永久拦截）
     public static bool PrefixHandleMinorClient()
     {
         // 09-10 用户拍板：次要客户（拾荒客/上层医生等）永久删掉，不限前3天
         try { if (IsActive()) return false; }
-        catch { }
-        return true;
-    }
-
-    public static bool PrefixHandleAnyClient(System.Reflection.MethodBase __originalMethod)
-    {
-        try { if (IsActive() && StoreStation.GetDayCounter() <= 3) return false; }
         catch { }
         return true;
     }
@@ -1268,8 +1247,16 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (!IsActive() || newItem == null) return;
-            if (Patches.CurrentUITradeMode != 0) return;
+            if (!IsActive() || newItem == null)
+            {
+                int st1 = -1, st2 = -1;
+                try { var ps0 = Il2Cpp.PlayerStore.Instance; if (ps0 != null) st1 = (int)ps0.startType; } catch { }
+                try { var ng0 = Il2Cpp.NewGameData.Instance; if (ng0 != null) st2 = (int)ng0.startType; } catch { }
+                Core.LogMsg("[喝水诊断] 双击 return IsActive=" + (newItem != null && IsActive()) + " PlayerStore.startType=" + st1 + " NewGameData.startType=" + st2 + " START_TYPE=" + START_TYPE);
+                return;
+            }
+            if (Patches.CurrentUITradeMode != 0) { Core.LogMsg("[喝水诊断] 双击 return tradeMode=" + Patches.CurrentUITradeMode + " id=" + GetId(newItem)); return; }
+            Core.LogMsg("[喝水诊断] 双击放行 id=" + GetId(newItem) + " isDrink=" + IsDrink(newItem) + " isFood=" + IsFood(newItem) + " isAlc=" + IsAlc(newItem));
             // v5.7 双击位置不限（背包/柜台/存储容器均可吃喝，用户反馈"背包吃不了"修复）；仅交易模式拦截
             // 博士夜晚商店（afterhourInventory）的货没买不能吃/喝/用药（用户反馈"博士晚上的食品没买就能食用"）
             if (IsInDoctorNightInventory(newItem)) {  return; }
@@ -1398,6 +1385,7 @@ internal static class RobinCrusoePerk
     private static void DrinkSip(GameItem item)
     {
         int ml = GetWaterMl(item);
+        Core.LogMsg("[喝水诊断] DrinkSip 进入 ml=" + ml + " id=" + GetId(item));
         if (ml <= 0) {  return; }
         int sip = Math.Min(SIP_ML, ml);
         bool isStartWater = false;
@@ -1408,8 +1396,8 @@ internal static class RobinCrusoePerk
         int purity = -1;
         try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
         try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
-        bool pure = isStartWater || (pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity >= 9900);
-        bool dirty = !isStartWater && ((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity <= 9100)); // 09-11 用户确认：只按原版真实水质判定
+        bool pure = isStartWater || (pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity >= 9900);   // 日志实锤档位方向：档0=最纯(10000)、档5=最脏(<=8500)
+        bool dirty = !isStartWater && ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100)); // 09-11 用户确认：只按原版真实水质判定
         int gain = pure ? 20 : (dirty ? 5 : 10); // 优质×2 / 脏×0.5 / 普通×1
         SetThirstPct(Math.Min(100, GetThirstPct() + gain)); // 200ml = 2000ml 总量 10%（ml 显示自洽）
         SetClean(Math.Min(100, GetClean() + 5));          // 用水=喝+洗：清洁度 +5%（用户拍板"用水恢复"）
@@ -1489,9 +1477,10 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive() || item == null) return true;
-            int purity = -1;
+            int purity = -1; int pIdx = -1;
             try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-            if (purity >= 4)
+            try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
+            if ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100))
             {
                 TryInfect(0.1); // 自动喝频次高：10% 概率（拆包提示勿每次必病）
                 try { StoreUIManager.Instance.Notify(LangHelper.T("夜间喝了脏水，身体不适", "Drank dirty water at night..."), "red"); } catch { }
@@ -1534,7 +1523,7 @@ internal static class RobinCrusoePerk
                 int purity = -1; int pIdx = -1;
                 try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
                 try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
-                string wname = ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity >= 9900)) ? LangHelper.T("优质", "Pure") : (((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity <= 9100)) ? LangHelper.T("脏", "Dirty") : LangHelper.T("普通", "Plain"));
+                string wname = ((pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity >= 9900)) ? LangHelper.T("优质", "Pure") : (((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100)) ? LangHelper.T("脏", "Dirty") : LangHelper.T("普通", "Plain"));
                 builder.AddLine(LangHelper.T("水质：", "Water quality: ") + wname + LangHelper.T("（剩余 ", " (left ") + GetWaterMl(item) + LangHelper.T(" ml）", " ml)"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
