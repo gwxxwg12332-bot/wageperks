@@ -1536,7 +1536,7 @@ internal static class RobinCrusoePerk
                     builder.AddLine(LangHelper.T("◆ 升级：拖 metal_ingot 到机器/模板 +1%/次（性能/效率/质量）", "◆ Upgrade: drag metal_ingot to machine/template +1%/each (Perf/Eff/Quality)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
-            else if (item.IsTag("CONTAINER_TAG") && !item.IsTag("VOID_BEAD_TAG") && !item.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(item))
+            else if (ContainerUpgradeV2.IsUpgradeableContainer(item))
             {
                 int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
                 if (stage >= ContainerUpgradeV2.MAX_STAGE)
@@ -1714,7 +1714,7 @@ internal static class RobinCrusoePerk
             if (!IsActive() || __instance == null || targetItem == null) return true;
             // 拖动中 MayTarget 会被反复调用：匹配即放行（hover 可拖），升级/消耗留给松手时的 Target/MayHaveValidInventorySlot
             if ((IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
-                || (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(targetItem)))
+                || (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem)))
             { __result = true; return false; }
         }
         catch { }
@@ -1732,7 +1732,7 @@ internal static class RobinCrusoePerk
             if (!IsDragRelease()) return true;
             if (IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
             { if (TryUpgradeMachine(__instance, targetItem)) return false; }
-            else if (IsJunk(__instance) && targetItem.IsTag("CONTAINER_TAG") && !targetItem.IsTag("VOID_BEAD_TAG") && !targetItem.IsTag("CUSTOM_STORAGE_TAG") && !ContainerUpgradeV2.IsVoidBeadStorage(targetItem))
+            else if (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem))
             { if (TryUpgradeContainer(__instance, targetItem)) return false; }
         }
         catch { }
@@ -1745,7 +1745,7 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive() || __instance == null || item == null) return true;
             if (!IsJunk(item)) return true;
-            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || __instance.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance)) return true;
+            if (!ContainerUpgradeV2.IsUpgradeableContainer(__instance)) return true;
             if (!IsDragRelease()) return true;
             if (TryUpgradeContainer(item, __instance)) { __result = false; return false; }
         }
@@ -1836,7 +1836,7 @@ internal static class RobinCrusoePerk
             int targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1);
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
             ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", 0); // 达标升段，进度清零重计
-            try { if (container.IsTag("CONTAINER_TAG")) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
+            try { if (ContainerUpgradeV2.IsUpgradeableContainer(container)) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
             // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
             try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }

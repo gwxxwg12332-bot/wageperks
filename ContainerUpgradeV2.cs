@@ -110,6 +110,42 @@ public static class ContainerUpgradeV2
         catch { return false; }
     }
 
+    // ===================== 可升级容器判定 =====================
+    // 建筑容器白名单：storage_bay/machine_bay 等是 ItemCategory.Container 建筑模块，
+    // 没有 CONTAINER_TAG（减半遍历靠 CONTAINER_TAG OR IsMachine 双通道，升级判定原本只有
+    // CONTAINER_TAG → 拖 junk 到 storage_bay 完全不触发，用户实测"面板都没有"）。
+    // 背包类（backpack_*）一律排除，不参与升级。
+    private static readonly HashSet<string> BUILDING_CONTAINER_IDS = new HashSet<string>(new string[] {
+        "storage_bay", "storage_bay_large", "machine_bay", "machine_bay_ext",
+        "mini_smuggler_bay", "smuggler_bay", "smuggler_bay_mod", "smuggler_bay_mini",
+        "chemist_storage_bay", "gunsmith_storage_bay", "makeshift_storage_bay"
+    });
+
+    public static bool IsBuildingContainerId(string id)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            string low = id.ToLowerInvariant();
+            if (low.StartsWith("backpack")) return false; // 背包类永不升级
+            return BUILDING_CONTAINER_IDS.Contains(low);
+        }
+        catch { return false; }
+    }
+
+    public static bool IsUpgradeableContainer(GameItem item)
+    {
+        try
+        {
+            if (item == null) return false;
+            if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) return false;
+            if (IsVoidBeadStorage(item)) return false;
+            if (item.IsTag("CONTAINER_TAG")) return true;
+            return IsBuildingContainerId(item.identifier ?? "");
+        }
+        catch { return false; }
+    }
+
     // ===================== 虚空珠储物袋排除 =====================
     // 虚空珠储物袋（void_bead_storage）EnableTag 的是 backpack/BACKPACK_TAG/CONTAINER_TAG，
     // VOID_BEAD_TAG 在每颗珠子上、储物袋没有 → 鲁滨逊容器系统会误劫持（存档实锤 wb_stage=1/progress=5 写在储物袋上，
