@@ -1734,8 +1734,7 @@ internal static class RobinCrusoePerk
             { if (TryUpgradeMachine(__instance, targetItem)) return false; }
             else if (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem))
             {
-                ContainerPageUI.NoteInteraction(targetItem); // 满级容器交互：Tab 翻页目标
-                if (TryUpgradeContainer(__instance, targetItem)) return false;
+                    if (TryUpgradeContainer(__instance, targetItem)) return false;
             }
         }
         catch { }
@@ -1749,7 +1748,6 @@ internal static class RobinCrusoePerk
             if (!IsActive() || __instance == null || item == null) return true;
             if (!IsJunk(item)) return true;
             if (!ContainerUpgradeV2.IsUpgradeableContainer(__instance)) return true;
-            ContainerPageUI.NoteInteraction(__instance); // 满级容器交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeContainer(item, __instance)) { __result = false; return false; }
         }

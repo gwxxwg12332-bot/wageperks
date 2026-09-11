@@ -5816,7 +5816,12 @@ public class Core : MelonMod
 
 
 
-            if (PerkUIController.Instance != null && PerkUIController.Instance.isActiveAndEnabled) return;
+            if (PerkUIController.Instance != null && PerkUIController.Instance.ui != null && PerkUIController.Instance.ui.activeSelf)
+            {
+                // 诊断探针B：PerkUI 挡住（限频 120 帧一条，测完删）
+                try { if ((int)(UnityEngine.Time.frameCount % 120) == 0) Core.LogMsg("[翻页诊断] OnUpdate 被PerkUI挡住"); } catch { }
+                return;
+            }
 
 
 
@@ -6073,6 +6078,8 @@ public class Core : MelonMod
 
 
         try { inGame = PlayerStore.Instance != null; } catch { }
+        // 诊断探针C：inGame 判定后（限频 120 帧一条，测完删）
+        try { if ((int)(UnityEngine.Time.frameCount % 120) == 0) Core.LogMsg("[翻页诊断] OnUpdate inGame=" + inGame + " frame=" + UnityEngine.Time.frameCount); } catch { }
 
 
 
@@ -6138,7 +6145,6 @@ public class Core : MelonMod
 
         if (!inGame) return;
         try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键调出/关闭状态面板（轻量检测，无重操作）
-        try { ContainerPageUI.HandleTab(); } catch { } // 容器满级翻页：Tab 键（轻量检测：无目标不动作）
 
 
 
@@ -28830,19 +28836,6 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(Il2Cpp.PlayerStore), "LoadGame",
                 postfix: nameof(RobinCrusoePerk.PostfixLoadGame_IngotContainer),
                 patchHost: typeof(RobinCrusoePerk)); // 容器升级读档恢复（SetShape 不存档，按 wageUpgradeCap 重设）
-            // 容器满级翻页（09-12 拍板：Tab 键 + 双库存 Swap，InventoryPages 同款；拆包实锤 SaveGame Prefix 在序列化前）
-            ManualPatcher.TryPatch(typeof(Il2Cpp.PlayerStore), "SaveGame",
-                prefix: nameof(ContainerPageUI.MergeForSave),
-                patchHost: typeof(ContainerPageUI)); // 保存前：非显示页（buffer）合并进 main，ES3 只存 main
-            ManualPatcher.TryPatch(typeof(Il2Cpp.PlayerStore), "SaveGame",
-                postfix: nameof(ContainerPageUI.SplitAfterSave),
-                patchHost: typeof(ContainerPageUI)); // 保存后：按 wb_page 拆回 buffer，保持显示页
-            ManualPatcher.TryPatch(typeof(Il2Cpp.PlayerStore), "LoadGame",
-                postfix: nameof(ContainerPageUI.ResetOnLoad),
-                patchHost: typeof(ContainerPageUI)); // 读档：清运行期缓存（buffer/页2集合重建）
-            ManualPatcher.TryPatch(typeof(GameItem), "SetContentWindow",
-                postfix: nameof(ContainerPageUI.SplitOnLoad),
-                patchHost: typeof(ContainerPageUI)); // 读档：窗口构建后恢复 main + 按 wb_page 分页
             // 自动喝水按质生效（拆包 09-10 [L1]：原版 AutoSipFromContainer 不读品质）
             ManualPatcher.TryPatch(typeof(Il2Cpp.LiquidContainerHelper), "AutoSipFromContainer",
                 prefix: nameof(RobinCrusoePerk.PrefixAutoSipFromContainer),

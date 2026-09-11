@@ -206,10 +206,38 @@ public static class ContainerUpgradeV2
             SetFullRect(grid, targetW, targetH);
             AddTagInt(box, "wb_stage", 1);
             SetTagIntValue(box, "wb_progress", 0); // 达标升段，进度清零重计
+            if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box); // 满级：发第二个妙妙箱（两个箱子方案，天然存档）
             try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5（" + targetW + "×" + targetH + "）", "Wage Box upgraded! Stage " + (stage + 1) + "/5 (" + targetW + "×" + targetH + ")"), "white"); } catch { }
             return true;
         }
         catch (Exception ex) { Core.LogMsg("[容器v2] 蛙哥箱子升级异常: " + ex.Message); return false; }
+    }
+
+    // 满级奖励第二个妙妙箱（09-12 用户拍板两个箱子方案：替代翻页，天然存档/读档/睡眠零冲突）
+    private static readonly System.Collections.Generic.HashSet<IntPtr> _secondGiven = new System.Collections.Generic.HashSet<IntPtr>();
+    public static void TryGiveSecondWageBox(GameItem box)
+    {
+        try
+        {
+            if (box == null || _secondGiven.Contains(box.Pointer)) return;
+            if (box.IsTag("wb_second_given")) return; // 已发过
+            var emporium = EmporiumEntry.Instance;
+            if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪：下次升级动作再试（升级可重复触发）
+            var second = CustomStorageContainer.CreateContainer();
+            if (second == null) { Core.LogMsg("[容器v2] 创建第二个妙妙箱失败"); return; }
+            second.DisableTag("TAG_NOT_PURCHASED", true);
+            second.DisableTag("not_purchased", true);
+            emporium.backInvinvElement.TryFindOneValidInventorySlot(second, false);
+            if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(second))
+            {
+                emporium.TransferOwnershipBackInv();
+                emporium.TransferOwnedItemBackToInv();
+                box.EnableTag("wb_second_given", true);
+                _secondGiven.Add(box.Pointer);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("满级！第二个妙妙箱已放入背包", "Maxed! Second Wage Box added to inventory"), "white"); } catch { }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[容器v2] 发第二个妙妙箱异常: " + ex.Message); }
     }
 
     // 蛙哥箱子读档恢复：按 wb_stage 重设网格；老档（无 wb_stage 且 shape>3×3）→ 满级迁移
@@ -233,6 +261,7 @@ public static class ContainerUpgradeV2
             }
             if (stage < 0) stage = 0;
             if (stage > MAX_STAGE) stage = MAX_STAGE;
+            if (stage >= MAX_STAGE && !box.IsTag("wb_second_given")) TryGiveSecondWageBox(box); // 老档满级箱读档补发第二个
             int targetW = WAGE_BOX_W[stage], targetH = WAGE_BOX_H[stage];
             if (w == targetW && h == targetH) return;
             SetFullRect(grid, targetW, targetH);
@@ -311,7 +340,6 @@ public static class ContainerUpgradeV2
         {
             if (__instance == null || targetItem == null) return true;
             if (!IsNuts(__instance) || !targetItem.IsTag("CUSTOM_STORAGE_TAG")) return true;
-            ContainerPageUI.NoteInteraction(targetItem); // 满级箱子交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(__instance, targetItem)) return false; // 升级成功：拦截原生放入
         }
@@ -324,7 +352,6 @@ public static class ContainerUpgradeV2
         {
             if (__instance == null || item == null) return true;
             if (!IsNuts(item) || !__instance.IsTag("CUSTOM_STORAGE_TAG")) return true;
-            ContainerPageUI.NoteInteraction(__instance); // 满级箱子交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(item, __instance)) { __result = false; return false; }
         }
