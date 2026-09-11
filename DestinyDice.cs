@@ -585,7 +585,7 @@ namespace JacksonPerks
             string evtId = GetTagString(dice, DICE_PENDING_EVENT_TAG);
             if (string.IsNullOrEmpty(evtId)) return;
             float w = 170f, h = 30f;
-            float x = UnityEngine.Screen.width - w - 16f;
+            float x = 16f;
             float y = UnityEngine.Screen.height - h - 16f;
             if (!_unloadConfirm)
             {
