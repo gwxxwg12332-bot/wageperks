@@ -11,19 +11,22 @@
 
 ### BUG-001 打开储藏箱卡顿卡死
 - 优先级：🔴 高
-- 状态：排查中（09-11 拆包一轮：未发现死循环代码，排除 6 类嫌疑，剩 2 个待实测方向）
-- 现象：打开容器/储藏箱时游戏直接卡顿卡死
-- 触发：打开容器、储藏箱时
-- 初步猜想：容器 UI 渲染/物品遍历循环、保存加载钩子无限迭代，打开容器触发大量状态计算（**待拆包确认**）
-- 拆包进展（09-11）：
-  - ✅ 已排除：SetContentWindow Postfix×2（虚空珠/容器升级——仅在物品创建/读档时触发，打开时不触发）
-  - ✅ 已排除：GetValue / GetDisplayName Postfix（轻量字符串替换，无递归）
-  - ✅ 已排除：GetCurrentValue Postfix→TryApplyTradeMarkup（非交易 CurrentUITradeMode==0 时快速返回；AddFeature 系列均防重复无递归）
-  - ✅ 已排除：LoadFromAtlas Prefix×3（虚空珠/骰子/自定义贴图——字符串比较+缓存 sprite，轻量）
-  - ⚠️ 待实测①：大容器渲染——升级过的容器（SetShape 扩容）/虚空珠 200 格/蛙哥妙妙箱 520 格打开时 ValidateBackground 重建网格 + mod 叠加开销
-  - ⚠️ 待实测②：读档后 180 帧 OnUpdateRestore 全库递归遍历（RestoreAllBeadsInPlayerInventories）期间打开容器叠加卡顿
-  - 需复现信息确认：卡的是哪个箱子（蛙哥/虚空珠/普通储藏箱）？卡死瞬间 Latest.log 有无异常刷屏？
-- 根因：（待填）
+- 状态：已确认根因（09-11 拆包源码级实锤）→ 待修复
+- 现象：打开容器/储藏箱时游戏直接卡顿卡死；hover 物品也卡；转移所有物品时格外卡（蛙哥箱子格外卡）
+- 触发：打开容器、hover 物品（tooltip 显示价格）、批量转移物品
+- 初步猜想：容器 UI 渲染/物品遍历循环、保存加载钩子无限迭代，打开容器触发大量状态计算（已拆包推翻：非死循环）
+- 根因（[L1] 源码级实锤）：hover/批量转移 → 每件物品调 GetCurrentValue/GetNegociatedValue → Postfix TryApplyTradeMarkup（Patches.cs L1297）→ 鲁滨逊职业激活时每次价格计算都跑 TryAddNodeBuffFeature（L1691）→ GetTradeBuffDisplay（RobinCrusoePerk.cs L449）重活：
+  - AllActiveNodes() 7 状态节点判定 → 每节点遍历 Lock 效果数组 + FxLabel switch
+  - GetStoredNodeKey + GetNodeFx（读抽取状态）
+  - GetSellBonusPct/GetBargainBonusPct/GetBudgetBonusPct 三个重算（各自调 GetMood/GetSocial/GetGranaryDays/GetElevCount/FxNum）
+  - StringBuilder 全量拼接 → 每次价格计算重建整段文本
+  - 叠加：itemFeatures 线性遍历防重复（O(N)）+ IsFood/IsMedicine 宽松判断
+  - 批量转移几百件 / 鼠标扫过堆积物品 → 每件 × 每帧重跑整条链，物品越多越卡
+- 修复建议（3 点，待开发落地）：
+  1. GetTradeBuffDisplay 缓存：节点状态只在打烊结算/状态变化时变 → 状态变化入口失效缓存，价格计算直接读缓存字符串
+  2. TryAddNodeBuffFeature 快速路径：HashSet<IntPtr> 记已添加物品 O(1) 跳过，替代每次 O(N) 线性遍历
+  3. IsFood/IsMedicine 价格链轻量化：价格链上先走快速 FOOD_IDS.Contains（哈希），宽松 CALORIE 兜底只在打烊品质链用
+- 验证方法：非鲁滨逊职业（startType≠14）的档不卡 → 可用来验证修复效果
 - 修复版本：（待填）
 
 ## 🟠 中优先级（机制逻辑错误，影响核心玩法）
