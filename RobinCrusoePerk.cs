@@ -1538,12 +1538,12 @@ internal static class RobinCrusoePerk
             }
             else if (item.IsTag("CONTAINER_TAG") && !item.IsTag("VOID_BEAD_TAG") && !item.IsTag("CUSTOM_STORAGE_TAG"))
             {
-                int cap = GetTagIntSafe(item, "wageUpgradeCap");
-                if (cap > 0)
-                    builder.AddLine(LangHelper.T("◆ 扩容：+" + cap + " 列（拖 junk +1 列/次）", "◆ Expand: +" + cap + " columns (drag junk +1 column/each)"),
+                int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
+                if (stage >= ContainerUpgradeV2.MAX_STAGE)
+                    builder.AddLine(LangHelper.T("◆ 储存区：满级（拖 junk 可正常放入）", "◆ Storage: MAX (drag junk to store)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 else
-                    builder.AddLine(LangHelper.T("◆ 扩容：拖 junk +1 列/次", "◆ Expand: drag junk +1 column/each"),
+                    builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/5 · 拖 junk 升级（需 " + ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)] + " 个）", "◆ Storage: Stage " + stage + "/5 · drag junk to upgrade (need " + ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)] + ")"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
         }
@@ -1804,7 +1804,8 @@ internal static class RobinCrusoePerk
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 机器升级异常: " + ex.Message); return false; }
     }
-    // 容器升级：宽+1（保货）；消耗垃圾。容器内部库存 = item.inventory/contentWindow（inventoryShape 属性编译不可见→反射，同 ShrinkInv）
+    // 容器升级（v2 段位制，用户拍板 09-12）：段0-5，junk 消耗 5/10/20/40/80，满级后 junk 正常放入
+    // 段位换算：宽 = floor(wb_orig_w × (50% + 10%k))；段0=开局减半(50%)，段5=官方原宽(100%)
     private static bool TryUpgradeContainer(GameItem junk, GameItem container)
     {
         try
@@ -1814,13 +1815,24 @@ internal static class RobinCrusoePerk
             int w = 0, h = 0;
             GetShapeWH(grid, ref w, ref h);
             if (w <= 0 || h <= 0) { Core.LogMsg("[空间站鲁滨逊] 容器升级失败：宽高异常 " + w + "x" + h); return false; }
-            AddTagInt(container, "wageUpgradeCap", 1);
+            int stage = ContainerUpgradeV2.GetTagIntSafe(container, "wb_stage");
+            if (stage >= ContainerUpgradeV2.MAX_STAGE) return false; // 满级：junk 正常放入
+            int need = ContainerUpgradeV2.UPGRADE_COSTS[stage];
+            if (junk.unitCount < need)
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级需要 " + need + " 个垃圾（当前 " + junk.unitCount + "）", "Storage needs " + need + " junk (have " + junk.unitCount + ")"), "red"); } catch { }
+                return false; // 不够：不升级也不放入
+            }
+            int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
+            if (origW <= 0) origW = w * 2; // 兜底：段0=半宽 → 原宽≈2×当前宽
+            int targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1);
+            ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
             try { if (container.IsTag("CONTAINER_TAG")) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
-            // 拆包 09-11 [L1]：数字重载 SetShape(w,h) 缺 ValidateBackground（背景不重建→视觉/容量不刷新，storage_bay 命名形状容器升级无效）
-            // 改用字符串重载 SetShape(shape,width)（内部自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
-            try { grid.SetShape(new string('0', (w + 1) * h), w + 1); } catch { try { grid.SetShape("", w + 1); } catch { } }
+            // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
+            try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
-            ConsumeOne(junk);
+            ContainerUpgradeV2.ConsumeN(junk, need);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
             return true;
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 容器升级异常: " + ex.Message); return false; }
@@ -1932,19 +1944,16 @@ internal static class RobinCrusoePerk
                     if (item == null) continue;
                     try
                     {
-                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) continue;
-                        int cap = GetTagIntSafe(item, "wageUpgradeCap");
-                        if (cap <= 0) continue;
-                        var grid = GetContainerGrid(item);
-                        if (grid == null) continue;
-                        int w = 0, h = 0;
-                        GetShapeWH(grid, ref w, ref h);
-                        if (w <= 0 || h <= 0) continue;
-                        // 字符串重载（同 L1778：自动 ValidateBackground，防 storage_bay 升级后不刷新）
-                        try { grid.SetShape(new string('0', (w + cap) * h), w + cap); } catch { try { grid.SetShape("", w + cap); } catch { } }
-                        try { grid.Validate(); } catch { }
-                        _rcRestoredContainers.Add(item.Pointer); // 防 SetContentWindow 重复恢复双加
-                        restored++;
+                        if (item.IsTag("CUSTOM_STORAGE_TAG"))
+                        {
+                            ContainerUpgradeV2.RestoreWageBoxShape(item); // 蛙哥箱子：按段位恢复（含老档满级迁移）
+                            _rcRestoredContainers.Add(item.Pointer);
+                            restored++;
+                            continue;
+                        }
+                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG")) continue;
+                        // 容器v2：按段位恢复（含老档 wageUpgradeCap>0 → 满级迁移）；未升级老档保持现状
+                        if (ContainerUpgradeV2.RestoreCrusoeShape(item)) { _rcRestoredContainers.Add(item.Pointer); restored++; }
                     }
                     catch { }
                 }
@@ -1959,18 +1968,15 @@ internal static class RobinCrusoePerk
         try
         {
             if (__instance == null || !IsActive()) return;
-            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || __instance.IsTag("CUSTOM_STORAGE_TAG")) return;
-            int cap = GetTagIntSafe(__instance, "wageUpgradeCap");
-            if (cap <= 0) return;
-            var grid = GetContainerGrid(__instance);
-            if (grid == null) return;
-            int w = 0, h = 0;
-            GetShapeWH(grid, ref w, ref h);
-            if (w <= 0 || h <= 0) return;
+            if (__instance.IsTag("CUSTOM_STORAGE_TAG"))
+            {
+                if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
+                return;
+            }
+            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG")) return;
+            if (!ContainerUpgradeV2.HasTag(__instance, "wb_stage") && GetTagIntSafe(__instance, "wageUpgradeCap") <= 0) return; // 未升级老档不恢复
             if (!_rcRestoredContainers.Add(__instance.Pointer)) return; // 已恢复过：跳过防双加
-            // 字符串重载（同 L1778：自动 ValidateBackground）
-            try { grid.SetShape(new string('0', (w + cap) * h), w + cap); } catch { try { grid.SetShape("", w + cap); } catch { } }
-            try { grid.Validate(); } catch { }
+            ContainerUpgradeV2.RestoreCrusoeShape(__instance);
         }
         catch { }
     }
@@ -2049,7 +2055,8 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive() || __0 == null || __1 == null) return;
             if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG")) return;
-            ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)");
+            if (ContainerUpgradeV2.HasTag(__1, "wb_stage")) return; // 容器v2：已有段位（读档/已减半）→ 不重复减半
+            ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)", __1);
             try { __1.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 容量行显示门控（拆包 2.5.32）
         }
         catch { }
@@ -2082,8 +2089,9 @@ internal static class RobinCrusoePerk
                 {
                     if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) continue;
                     if (!item.IsTag("CONTAINER_TAG") && !IsMachine(item)) continue;
+                    if (ContainerUpgradeV2.HasTag(item, "wb_stage")) continue; // 容器v2：已按段位管理，不重复减半
                     var grid = GetContainerGrid(item);
-                    if (grid != null) ShrinkInv(grid, GetId(item) + "(储存区/机器箱)");
+                    if (grid != null) ShrinkInv(grid, GetId(item) + "(储存区/机器箱)", item);
                 }
                 catch { }
             }
@@ -2092,7 +2100,7 @@ internal static class RobinCrusoePerk
     }
     // 真减半：读运行时 inventoryShape（GridShape 接口，实际 GridShapeBuilder 实现）的 width/height → SetShape(半宽, 高)
     // 保底：现有物品数 +5 格；宽度下限 4（防极端容器）
-    private static void ShrinkInv(GameGridInventory inv, string label)
+    private static void ShrinkInv(GameGridInventory inv, string label, GameItem item = null)
     {
         if (inv == null) return;
         // 拆包 2.5.32 六：容器容量行显示 = CONTAINER_TAG + CONTAINER_TOOLTIP_TAG（EnableTag 后原生 tooltip 自动显示容量）
@@ -2107,6 +2115,8 @@ internal static class RobinCrusoePerk
             int nw = Math.Max(4, w / 2);
             int cap = nw * h;
             if (items + 5 > cap) nw = Math.Max(4, (int)Math.Ceiling((items + 5) / (double)h)); // 保底不丢货
+            // 容器v2：减半 = 段0（50%）；记录段位 + 官方原宽（读档按段位重设）
+            if (item != null) { ContainerUpgradeV2.SetTagIntValue(item, "wb_stage", 0); ContainerUpgradeV2.SetTagIntValue(item, "wb_orig_w", w); }
             // 字符串重载（同 L1778：自动 ValidateBackground；全开放矩形 '0'=可放）
             inv.SetShape(new string('0', nw * h), nw);
             try { inv.Validate(); } catch { }

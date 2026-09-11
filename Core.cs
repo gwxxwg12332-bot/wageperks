@@ -28739,6 +28739,10 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(Il2Cpp.HusbandryHelper), "CreateItemTooltip",
                 postfix: nameof(RobinCrusoePerk.PostfixCreateItemTooltip),
                 patchHost: typeof(RobinCrusoePerk));
+            // 蛙哥箱子 tooltip：段位显示（独立挂载，非鲁滨逊场景也显示）
+            ManualPatcher.TryPatch(typeof(Il2Cpp.HusbandryHelper), "CreateItemTooltip",
+                postfix: nameof(ContainerUpgradeV2.PostfixWageBoxTooltip),
+                patchHost: typeof(ContainerUpgradeV2));
             // 拾荒：健康高受伤率低+次数多；患病受伤率相对高+次数少（拆包：HealthData.Receive*Wound + ScavHelper.CanScavenge）
             ManualPatcher.TryPatch(typeof(Il2Cpp.HealthData), "ReceiveMinorWound",
                 prefix: nameof(RobinCrusoePerk.PrefixReceiveWound),
@@ -28809,6 +28813,19 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(GameItem), "MayHaveValidInventorySlot",
                 prefix: nameof(RobinCrusoePerk.PrefixMayHaveValidInventorySlot),
                 patchHost: typeof(RobinCrusoePerk));
+            // 容器统一升级系统 v2（用户拍板 09-12）：蛙哥箱子螺丝升级（独立挂载，不依赖鲁滨逊职业）
+            ManualPatcher.TryPatch(typeof(GameItem), "MayTarget",
+                prefix: nameof(ContainerUpgradeV2.PrefixMayTarget_WageBox),
+                patchHost: typeof(ContainerUpgradeV2));
+            ManualPatcher.TryPatch(typeof(GameItem), "CanTarget",
+                prefix: nameof(ContainerUpgradeV2.PrefixCanTarget_WageBox),
+                patchHost: typeof(ContainerUpgradeV2));
+            ManualPatcher.TryPatch(typeof(GameItem), "Target",
+                prefix: nameof(ContainerUpgradeV2.PrefixTarget_WageBox),
+                patchHost: typeof(ContainerUpgradeV2));
+            ManualPatcher.TryPatch(typeof(GameItem), "MayHaveValidInventorySlot",
+                prefix: nameof(ContainerUpgradeV2.PrefixMayHaveValidInventorySlot_WageBox),
+                patchHost: typeof(ContainerUpgradeV2));
             ManualPatcher.TryPatch(typeof(Il2Cpp.PlayerStore), "LoadGame",
                 postfix: nameof(RobinCrusoePerk.PostfixLoadGame_IngotContainer),
                 patchHost: typeof(RobinCrusoePerk)); // 容器升级读档恢复（SetShape 不存档，按 wageUpgradeCap 重设）

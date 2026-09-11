@@ -258,7 +258,7 @@ namespace JacksonPerks
                 }
 
                 // 1. 创建内部库存窗口（52×10=520格，宽度加7）
-                var invWindow = DirectoryUtils.CreateInventoryWindow(52, 10, true);
+                var invWindow = DirectoryUtils.CreateInventoryWindow(3, 3, true); // 容器v2：段0=3x3（拖螺丝升级到52x10）
                 PixelWindow contentWindow = invWindow.Item1;
                 GameInventory internalInv = invWindow.Item2;
 
@@ -332,6 +332,8 @@ namespace JacksonPerks
                     container.EnableTag("SYSTEM_TAG");
                     container.EnableTag("SYSTEM_TAG_UTILITY");
                     container.SetGameItemType("STORAGE");
+                    // 容器v2：段位标记（0=3x3起步；读档按 wb_stage 重设网格）
+                    try { if (!container.IsTag("wb_stage")) container.EnableTag("wb_stage", true); ContainerUpgradeV2.SetTagIntValue(container, "wb_stage", 0); } catch { }
                 }
                 catch (Exception ex)
                 {
