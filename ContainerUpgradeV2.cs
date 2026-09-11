@@ -54,12 +54,12 @@ public static class ContainerUpgradeV2
     {
         try { SetTagIntValue(item, tag, GetTagIntSafe(item, tag) + delta); } catch { }
     }
-    public static void ConsumeN(GameItem item, int n)
+    public static void ConsumeOne(GameItem item)
     {
         try
         {
-            if (item == null || n <= 0) return;
-            int c = item.unitCount - n;
+            if (item == null) return;
+            int c = item.unitCount - 1;
             if (c <= 0) item.Destroy(); else item.SetUnitCount(c);
         }
         catch { try { item.Destroy(); } catch { } }
@@ -118,19 +118,22 @@ public static class ContainerUpgradeV2
         {
             if (nuts == null || box == null) return false;
             int stage = GetTagIntSafe(box, "wb_stage");
-            if (stage >= MAX_STAGE) return false; // 满级：nuts 正常放入
+            if (stage >= MAX_STAGE) return false; // 满级：nuts 正常放入（不再消耗）
+            ConsumeOne(nuts); // 逐颗消耗：每拖 1 颗立即扣 1
+            int progress = GetTagIntSafe(box, "wb_progress") + 1;
             int need = UPGRADE_COSTS[stage];
-            if (nuts.unitCount < need)
+            if (progress < need)
             {
-                try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级需要 " + need + " 个螺丝（当前 " + nuts.unitCount + "）", "Wage Box needs " + need + " nuts (have " + nuts.unitCount + ")"), "red"); } catch { }
-                return false; // 不够：不升级也不放入
+                SetTagIntValue(box, "wb_progress", progress);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱 升级进度 " + progress + "/" + need, "Wage Box progress " + progress + "/" + need), "white"); } catch { }
+                return true; // 已消耗，拦截放入
             }
             var grid = GetContainerGrid(box);
-            if (grid == null) { Core.LogMsg("[容器v2] 蛙哥箱子升级失败：取不到内部库存"); return false; }
+            if (grid == null) { Core.LogMsg("[容器v2] 蛙哥箱子升段失败：取不到内部库存"); return true; }
             int targetW = WAGE_BOX_W[stage + 1], targetH = WAGE_BOX_H[stage + 1];
             SetFullRect(grid, targetW, targetH);
             AddTagInt(box, "wb_stage", 1);
-            ConsumeN(nuts, need);
+            SetTagIntValue(box, "wb_progress", 0); // 达标升段，进度清零重计
             try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5（" + targetW + "×" + targetH + "）", "Wage Box upgraded! Stage " + (stage + 1) + "/5 (" + targetW + "×" + targetH + ")"), "white"); } catch { }
             return true;
         }
@@ -264,8 +267,12 @@ public static class ContainerUpgradeV2
                 builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ")"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             else
-                builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 拖螺丝升级（需 " + UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)] + " 个）", "◆ Wage Box: Stage " + stage + "/5 · drag nuts to upgrade (need " + UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)] + ")"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                {
+                    int progress = GetTagIntSafe(item, "wb_progress");
+                    int need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
+                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need, "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                }
         }
         catch { }
     }

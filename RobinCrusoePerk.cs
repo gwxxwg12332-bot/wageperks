@@ -1543,8 +1543,12 @@ internal static class RobinCrusoePerk
                     builder.AddLine(LangHelper.T("◆ 储存区：满级（拖 junk 可正常放入）", "◆ Storage: MAX (drag junk to store)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 else
-                    builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/5 · 拖 junk 升级（需 " + ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)] + " 个）", "◆ Storage: Stage " + stage + "/5 · drag junk to upgrade (need " + ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)] + ")"),
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    {
+                        int progress = ContainerUpgradeV2.GetTagIntSafe(item, "wb_progress");
+                        int need = ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)];
+                        builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need, "◆ Storage: Stage " + stage + "/5 · progress " + progress + "/" + need),
+                            true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    }
             }
         }
         catch { }
@@ -1816,22 +1820,25 @@ internal static class RobinCrusoePerk
             GetShapeWH(grid, ref w, ref h);
             if (w <= 0 || h <= 0) { Core.LogMsg("[空间站鲁滨逊] 容器升级失败：宽高异常 " + w + "x" + h); return false; }
             int stage = ContainerUpgradeV2.GetTagIntSafe(container, "wb_stage");
-            if (stage >= ContainerUpgradeV2.MAX_STAGE) return false; // 满级：junk 正常放入
+            if (stage >= ContainerUpgradeV2.MAX_STAGE) return false; // 满级：junk 正常放入（不再消耗）
+            ContainerUpgradeV2.ConsumeOne(junk); // 逐颗消耗：每拖 1 个 junk 立即扣 1
+            int progress = ContainerUpgradeV2.GetTagIntSafe(container, "wb_progress") + 1;
             int need = ContainerUpgradeV2.UPGRADE_COSTS[stage];
-            if (junk.unitCount < need)
+            if (progress < need)
             {
-                try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级需要 " + need + " 个垃圾（当前 " + junk.unitCount + "）", "Storage needs " + need + " junk (have " + junk.unitCount + ")"), "red"); } catch { }
-                return false; // 不够：不升级也不放入
+                ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", progress);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("储存区 升级进度 " + progress + "/" + need, "Storage progress " + progress + "/" + need), "white"); } catch { }
+                return true; // 已消耗，拦截放入
             }
             int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
             if (origW <= 0) origW = w * 2; // 兜底：段0=半宽 → 原宽≈2×当前宽
             int targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1);
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
+            ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", 0); // 达标升段，进度清零重计
             try { if (container.IsTag("CONTAINER_TAG")) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
             // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
             try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
-            ContainerUpgradeV2.ConsumeN(junk, need);
             try { StoreUIManager.Instance.Notify(LangHelper.T("储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
             return true;
         }
