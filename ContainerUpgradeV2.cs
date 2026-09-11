@@ -277,8 +277,11 @@ public static class ContainerUpgradeV2
                 SetTagIntValue(box, "wb_stage", MAX_STAGE);
                 if (origW <= 0) { origW = w; SetTagIntValue(box, "wb_orig_w", w); }
             }
-            if (origW <= 0) origW = w * 2; // 兜底：段0=半宽 → 原宽≈2×当前宽
-            int targetW = GetCrusoeTargetWidth(origW, stage);
+            int targetW;
+            if (origW > 0)
+                targetW = GetCrusoeTargetWidth(origW, stage); // 减半容器：恢复语义
+            else
+                targetW = w + stage; // 未减半容器（腰包类）：官方宽 + 每段 1 列（读档 ES3 恢复默认 shape=官方宽）
             if (w == targetW) return false;
             SetFullRect(grid, targetW, h);
             return true;

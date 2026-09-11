@@ -1832,8 +1832,11 @@ internal static class RobinCrusoePerk
                 return true; // 已消耗，拦截放入
             }
             int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
-            if (origW <= 0) origW = w * 2; // 兜底：段0=半宽 → 原宽≈2×当前宽
-            int targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1);
+            int targetW;
+            if (origW > 0)
+                targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1); // 减半容器：恢复语义 50%→100%
+            else
+                targetW = w + 1; // 未减半容器（玩家装备腰包 fanny_pack 等）：每段 +1 列（3→4→5...）
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
             ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", 0); // 达标升段，进度清零重计
             try { if (ContainerUpgradeV2.IsUpgradeableContainer(container)) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
