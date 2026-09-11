@@ -311,6 +311,7 @@ public static class ContainerUpgradeV2
         {
             if (__instance == null || targetItem == null) return true;
             if (!IsNuts(__instance) || !targetItem.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            ContainerPageUI.NoteInteraction(targetItem); // 满级箱子交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(__instance, targetItem)) return false; // 升级成功：拦截原生放入
         }
@@ -323,6 +324,7 @@ public static class ContainerUpgradeV2
         {
             if (__instance == null || item == null) return true;
             if (!IsNuts(item) || !__instance.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            ContainerPageUI.NoteInteraction(__instance); // 满级箱子交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(item, __instance)) { __result = false; return false; }
         }
@@ -339,7 +341,7 @@ public static class ContainerUpgradeV2
             if (!item.IsTag("CUSTOM_STORAGE_TAG")) return;
             int stage = GetTagIntSafe(item, "wb_stage");
             if (stage >= MAX_STAGE)
-                builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ")"),
+                builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）· 第" + (GetTagIntSafe(item, "wb_page") + 1) + "/2 页（Tab 翻页）", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ") · Page " + (GetTagIntSafe(item, "wb_page") + 1) + "/2 (Tab)"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             else
                 {

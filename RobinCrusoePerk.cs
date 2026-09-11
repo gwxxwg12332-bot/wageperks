@@ -1540,7 +1540,7 @@ internal static class RobinCrusoePerk
             {
                 int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
                 if (stage >= ContainerUpgradeV2.MAX_STAGE)
-                    builder.AddLine(LangHelper.T("◆ 储存区：满级（拖 junk 可正常放入）", "◆ Storage: MAX (drag junk to store)"),
+                    builder.AddLine(LangHelper.T("◆ 储存区：满级（拖 junk 可正常放入）· 第" + (ContainerUpgradeV2.GetTagIntSafe(item, "wb_page") + 1) + "/2 页（Tab 翻页）", "◆ Storage: MAX (drag junk to store) · Page " + (ContainerUpgradeV2.GetTagIntSafe(item, "wb_page") + 1) + "/2 (Tab)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 else
                     {
@@ -1733,7 +1733,10 @@ internal static class RobinCrusoePerk
             if (IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
             { if (TryUpgradeMachine(__instance, targetItem)) return false; }
             else if (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem))
-            { if (TryUpgradeContainer(__instance, targetItem)) return false; }
+            {
+                ContainerPageUI.NoteInteraction(targetItem); // 满级容器交互：Tab 翻页目标
+                if (TryUpgradeContainer(__instance, targetItem)) return false;
+            }
         }
         catch { }
         return true;
@@ -1746,6 +1749,7 @@ internal static class RobinCrusoePerk
             if (!IsActive() || __instance == null || item == null) return true;
             if (!IsJunk(item)) return true;
             if (!ContainerUpgradeV2.IsUpgradeableContainer(__instance)) return true;
+            ContainerPageUI.NoteInteraction(__instance); // 满级容器交互：Tab 翻页目标
             if (!IsDragRelease()) return true;
             if (TryUpgradeContainer(item, __instance)) { __result = false; return false; }
         }
