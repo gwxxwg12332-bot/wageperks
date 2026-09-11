@@ -1138,10 +1138,10 @@ internal static class RobinCrusoePerk
                 if (!DirectoryMaster.Has<GameItem>("large_bottled_water")) return;
                 GameItem item = DirectoryMaster.Item("large_bottled_water", true);
                 if (item == null) continue;
-                try { item.EnableTag("WAGES_START_WATER", true); } catch { } // 开局纯水标记：喝水双倍恢复口渴（用户拍板）
                 GameItem spawn = item;
                 try { GameItem cl = item.CloneLinked(); if (cl != null) spawn = cl; } catch { }
                 try { WaterHelper.AddWater(spawn, 0, -1, false, 0, 1, true); } catch { }
+                try { Core.LogMsg("[开局水诊断] purity=" + Il2Cpp.WaterHelper.GetWaterPurity(spawn) + " tier判定=" + (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9900 ? "优质" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9600 ? "较好" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 9200 ? "普通" : (Il2Cpp.WaterHelper.GetWaterPurity(spawn) >= 8800 ? "浑浊" : "脏水"))))); } catch { }
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
@@ -1373,30 +1373,26 @@ internal static class RobinCrusoePerk
         RefreshStatusPanel(); // 实时刷新常驻面板
     }
 
-    // 喝水（v5.7 百分比制 + ml 自洽）：一口 200ml = 口渴总量 2000ml 的 10%；空瓶保留不消失；脏水→患病（健康-40 在 TryInfect 内）
+    // 喝水（09-11 用户拍板 5 档真实水质）：purity 分 5 档，每档独立 口渴/健康/患病/清洁；Remove 单位=ml（拆包实锤，修复 sip*1000 误删全瓶）
     private static void DrinkSip(GameItem item)
     {
         int ml = GetWaterMl(item);
         if (ml <= 0) {  return; }
         int sip = Math.Min(SIP_ML, ml);
-        bool isStartWater = false;
-        try { isStartWater = item.IsTag("WAGES_START_WATER"); } catch { }
-        // 原生水质 purity（拆包 09-10 修正 [L1]：GetPurityArrayIndex 档越高越纯（档5=最纯，采样 优质9914/普通9897/脏9023）
-        // 原判 0-1 优质/4-5 脏方向反了（纯水被当脏水只回 5%）；修正：4-5 纯 / 0-1 脏；fallback 阈值按采样内插 9900/9100
-        int pIdx = -1;
         int purity = -1;
         try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-        try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
-        bool pure = isStartWater || (pIdx >= 0 && pIdx <= 1) || (pIdx < 0 && purity >= 9900);   // 日志实锤档位方向：档0=最纯(10000)、档5=最脏(<=8500)
-        bool dirty = !isStartWater && ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100)); // 09-11 用户确认：只按原版真实水质判定
-        int gain = pure ? 20 : (dirty ? 5 : 10); // 优质×2 / 脏×0.5 / 普通×1
-        SetThirstPct(Math.Min(100, GetThirstPct() + gain)); // 200ml = 2000ml 总量 10%（ml 显示自洽）
-        SetClean(Math.Min(100, GetClean() + 5));          // 用水=喝+洗：清洁度 +5%（用户拍板"用水恢复"）
-        if (dirty) TryInfect(0.3); // 脏水患病概率 30%
-        string wname = pure ? LangHelper.T("优质", "Pure") : (dirty ? LangHelper.T("脏", "Dirty") : LangHelper.T("普通", "Plain"));
+        int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4; // 0优质 1较好 2普通 3浑浊 4脏水
+        int gain = new[] { 25, 18, 12, 6, 2 }[tier];
+        int hd   = new[] { 5, 2, 0, -5, -10 }[tier];
+        int inf  = new[] { 0, 0, 5, 15, 30 }[tier];
+        int cg   = new[] { 5, 4, 3, 1, 0 }[tier];
+        SetThirstPct(Math.Min(100, GetThirstPct() + gain));
+        if (cg > 0) SetClean(Math.Min(100, GetClean() + cg));
+        if (hd != 0) SetHealth(Math.Max(0, Math.Min(100, GetHealth() + hd)));
+        if (inf > 0) TryInfect(inf / 100.0);
+        string wname = new[] { LangHelper.T("优质", "Pure"), LangHelper.T("较好", "Good"), LangHelper.T("普通", "Plain"), LangHelper.T("浑浊", "Cloudy"), LangHelper.T("脏水", "Dirty") }[tier];
         try { StoreUIManager.Instance.Notify(LangHelper.T("饮水 +" + gain + "% 口渴（" + wname + "）", "Drinking +" + gain + "% Thirst (" + wname + ")"), "white"); } catch { }
-        try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
-        int verify = GetWaterMl(item);
+        try { WaterHelper.Remove(item, sip); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
         RefreshStatusPanel(); // 实时刷新常驻面板
     }
 
@@ -1462,23 +1458,41 @@ internal static class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixPlaceSupplierInventory 异常: " + ex.Message); }
     }
 
-    // ===== 自动喝水按质生效（拆包 09-10 [L1]：AutoSipFromContainer 原版不读品质；夜间自动喝脏水也致病）=====
+    // ===== 自动喝水按质生效（09-11 用户拍板：与双击同 5 档；return false 接管原版"补口渴+减水"，仿原版 AutoSipFromContainer 逻辑）=====
     public static bool PrefixAutoSipFromContainer(GameItem item, GameCharacterItem GCI)
     {
         try
         {
-            if (!IsActive() || item == null) return true;
-            int purity = -1; int pIdx = -1;
+            if (!IsActive() || item == null || GCI == null) return true;
+            int ml = GetWaterMl(item);
+            if (ml <= 0) return true;
+            int purity = -1;
             try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-            try { pIdx = Il2Cpp.WaterFeatureHelper.GetPurityArrayIndex(purity); } catch { }
-            if ((pIdx >= 4 && pIdx <= 5) || (pIdx < 0 && purity <= 9100))
+            int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4;
+            int hd  = new[] { 5, 2, 0, -5, -10 }[tier];
+            int inf = new[] { 0, 0, 5, 15, 30 }[tier];
+            int cg  = new[] { 5, 4, 3, 1, 0 }[tier];
+            if (hd != 0) SetHealth(Math.Max(0, Math.Min(100, GetHealth() + hd)));
+            if (cg > 0) SetClean(Math.Min(100, GetClean() + cg));
+            if (inf > 0) TryInfect(inf / 100.0);
+            // 补原版 AutoSipFromContainer（return false 后原版不执行）：sip = min(ml, 缺口渴量)；GCI.thirst += sip；Remove(item, sip)
+            try
             {
-                TryInfect(0.1); // 自动喝频次高：10% 概率（拆包提示勿每次必病）
-                try { StoreUIManager.Instance.Notify(LangHelper.T("夜间喝了脏水，身体不适", "Drank dirty water at night..."), "red"); } catch { }
+                int cur = 0, mx = 0;
+                try { cur = (int)GCI.currentThirst; } catch { }
+                try { mx = (int)GCI.maxThirst; } catch { }
+                int need = Math.Max(0, mx - cur);
+                int sip = Math.Min(ml, need);
+                if (sip > 0)
+                {
+                    try { GCI.currentThirst = cur + sip; } catch { }
+                    try { Il2Cpp.WaterHelper.Remove(item, sip); } catch { }
+                }
             }
+            catch { }
+            return false; // 拦原版：水质挂钩已由 mod 接管
         }
-        catch { }
-        return true; // 放原生继续补口渴
+        catch { return true; }
     }
 
     // ===== 物品面板 tooltip =====
