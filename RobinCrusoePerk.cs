@@ -1252,8 +1252,8 @@ internal static class RobinCrusoePerk
             // v5.7 双击位置不限（背包/柜台/存储容器均可吃喝，用户反馈"背包吃不了"修复）；仅交易模式拦截
             // 博士夜晚商店（afterhourInventory）的货没买不能吃/喝/用药（用户反馈"博士晚上的食品没买就能食用"）
             if (IsInDoctorNightInventory(newItem)) {  return; }
-            // v1.1.6 未购买物品禁止吃喝用（柜台 not_purchased 商品可双击，用户反馈；双 tag 与 MerchantHelper.IsItemClean 先例一致；入口统一拦，覆盖酒/烟/毒/彩票/吃/喝/药全链）
-            if (newItem.IsTag("not_purchased") || newItem.IsTag("TAG_NOT_PURCHASED")) { return; }
+            // v1.1.6 未购买物品禁止吃喝用（拆包 09-12 [L1]：柜台 isOwend=false → SetItemOwned 去 IS_OWNED_TAG；权威读口 GeneralHelper.IsItemOwned=IsTag("IS_OWNED_TAG")。not_purchased 是 GameCharacterItem 静态常量非商品 tag，TAG_NOT_PURCHASED 不存在——原 IsTag 双查无效已删）
+            if (!Il2Cpp.GeneralHelper.IsItemOwned(newItem)) { return; }
             // v5.7 心情主动提升：酒/烟/毒/彩票优先于吃喝（酒也是饮品，先判酒）
             if (IsAlc(newItem)) DrinkAlcohol(newItem);
             else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
