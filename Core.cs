@@ -510,7 +510,7 @@ using Il2CppInterop.Runtime;
 
 
 
-[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks", "1.1.5", "gwxxwg12332")]
+[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks" + (JacksonPerks.BuildConfig.HARD_MODE ? " Hard" : ""), "1.1.6", "gwxxwg12332")]
 
 
 
@@ -703,6 +703,9 @@ using Il2CppInterop.Runtime;
 
 
 namespace JacksonPerks;
+
+// 版本构建开关（09-12）：标准版 false / 硬爽版 true——打包前切换，编译产物以 ModInfo 名称区分（Wage's Perks / Wage's Perks Hard）
+public static class BuildConfig { public const bool HARD_MODE = true; }
 
 
 

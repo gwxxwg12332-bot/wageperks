@@ -196,7 +196,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
     private const int UPGRADE_CHANCE = 2;            // 每级 +2（放慢升级节奏）
 
-    private const int MAX_CHANCE = 25;   // 稀有物发现几率上限 25%（用户要求加到25）
+    private const int MAX_CHANCE = BuildConfig.HARD_MODE ? 50 : 25;   // 稀有物发现几率上限（标准版25%；硬爽版50%，09-12 用户拍板）
 
     private const int LEVELUP_EVERY = 15;             // 每拾荒 15 次升 1 级（目标更漫长）
 
@@ -641,7 +641,9 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
         {
 
             // 09-10 用户拍板：捡漏直觉不再加拾荒次数（任何职业；此前 +10 有缩减 bug）
-            _ = IsActive(); _ = RobinCrusoePerk.IsActive();
+            // 09-12 硬爽版：加回 +10（仅非鲁滨逊职业；鲁滨逊走 GetScavCap 已含，防双 Postfix 叠加）
+            if (BuildConfig.HARD_MODE && IsActive() && !RobinCrusoePerk.IsActive())
+                __result += 10;
 
         }
 
@@ -660,6 +662,9 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
         {
 
             // 09-10 用户拍板：捡漏直觉不再加拾荒次数（任何职业）
+            // 09-12 硬爽版：加回 +10（GetScavTimeLeft=实际可拾荒次数读口，须同步；非鲁滨逊防双加）
+            if (BuildConfig.HARD_MODE && IsActive() && !RobinCrusoePerk.IsActive())
+                __result += 10;
             if (false) { }
 
         }
@@ -998,70 +1003,67 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
     // 稀有物价值池（用户确认：价值≥200，排除容器/机器/家具）
 
     // 数据源 all_item_values_359_dump.txt，筛选后 28 个（材料/模块/武器/高级消耗品）
+    // 09-12 用户拍板：硬爽版把神经模组加回稀有均匀池（标准版保持移出，防叠加）
+    private static readonly string[] RARE_VALUE_POOL = BuildRarePool();
 
-    private static readonly string[] RARE_VALUE_POOL = new string[] {
-
-        // 500
-
-        "skincare_cream",
-
-        // 350
-
-        "black_injector", "desequencer", "crypto_module_cmd", "module_extractor_advanced",
-
-        // 325
-
-        "bottled_water_premium",
-
-        // 310
-
-        "shotgun",
-
-        // 300
-
-        "turbo_booster_adv", "advanced_flux_agent", "crypto_module_sec",
-
-        // 280
-
-        "smg",
-
-        // 250
-
-        "crypto_module_med", "crypto_module_eng", "chem_module",
-
-        "c4", "stun_gun", "blue_blood_bag", "wine_yeast_infinite", "metal_scanner", "c4_set",
-
-        // 200
-
-        "surgery_tool", "pheromone_perfume", "crypto_module_sup", "crypto_module_ser", "glock_receiver"
-
-    };
+    private static string[] BuildRarePool()
+    {
+        var list = new System.Collections.Generic.List<string> {
+            // 500
+            "skincare_cream",
+            // 350
+            "black_injector", "desequencer", "crypto_module_cmd", "module_extractor_advanced",
+            // 325
+            "bottled_water_premium",
+            // 310
+            "shotgun",
+            // 300
+            "turbo_booster_adv", "advanced_flux_agent", "crypto_module_sec",
+            // 280
+            "smg",
+            // 250
+            "crypto_module_med", "crypto_module_eng", "chem_module",
+            "c4", "stun_gun", "blue_blood_bag", "wine_yeast_infinite", "metal_scanner", "c4_set",
+            // 200
+            "surgery_tool", "pheromone_perfume", "crypto_module_sup", "crypto_module_ser", "glock_receiver"
+        };
+        if (BuildConfig.HARD_MODE)
+        {
+            list.Add("system_capped_neural_core");     // 受限神经模组（硬爽版加回均匀池）
+            list.Add("system_uncapped_neural_core");   // 未受限神经模组（硬爽版加回均匀池）
+        }
+        return list.ToArray();
+    }
 
 
 
     // 稀有物：从价值池随机（价值≥200，排除容器/机器/家具），创建失败自动换下一个
-    // 09-12 用户拍板：神经模组独立概率——未受限 0.5% / 受限 2%（已移出均匀池，防叠加）
+    // 09-12 用户拍板：神经模组独立概率——未受限 0.5% / 受限 2%（标准版，已移出均匀池，防叠加）
+    // 09-12 硬爽版：神经模组加回均匀池，删独立 roll（单渠道）
     private static GameItem CreateRareItem()
     {
         try
         {
-            // 神经模组独立 roll（未命中/创建失败回落原池）
-            double nr = Core.Rng.NextDouble();
-            string neuralId = null;
-            if (nr < 0.005) neuralId = "system_uncapped_neural_core";
-            else if (nr < 0.02) neuralId = "system_capped_neural_core";
-            if (neuralId != null)
+            // 神经模组独立 roll（仅标准版；未命中/创建失败回落原池）
+            if (!BuildConfig.HARD_MODE)
             {
-                try
+                double nr = Core.Rng.NextDouble();
+                string neuralId = null;
+                if (nr < 0.005) neuralId = "system_uncapped_neural_core";
+                else if (nr < 0.02) neuralId = "system_capped_neural_core";
+                if (neuralId != null)
                 {
-                    GameItem neural = DirectoryMaster.Item(neuralId, true);
-                    if (neural != null)
+                    try
                     {
-                        try { neural.DisableTag("not_purchased", true); neural.DisableTag("TAG_NOT_PURCHASED", true); } catch { }
-                        return neural;
+                        GameItem neural = DirectoryMaster.Item(neuralId, true);
+                        if (neural != null)
+                        {
+                            try { neural.DisableTag("not_purchased", true); neural.DisableTag("TAG_NOT_PURCHASED", true); } catch { }
+                            return neural;
+                        }
                     }
+                    catch { }
                 }
-                catch { }
             }
 
             // 从随机起点尝试最多 5 个候选，避免个别物品创建失败导致掉落为空

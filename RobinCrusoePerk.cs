@@ -1610,7 +1610,9 @@ internal static class RobinCrusoePerk
         try
         {
             // 捡漏直觉不再额外加拾荒次数（用户拍板 09-10：该加成有缩减 bug，特性不影响次数）
+            // 09-12 硬爽版：捡漏直觉加回 +10（鲁滨逊走 GetScavCap 单一读口，LuckScout 侧 Postfix 已排除鲁滨逊防双加）
             int cap = 5 + GetMoodScavBonus();
+            if (BuildConfig.HARD_MODE && LuckScoutPerk.IsActive()) cap += 10;
             if (IsHomebrewWineBuffActive()) cap += 1; // 顶级自酿 buff：拾荒次数+1（用户拍板 09-10）
             cap = Math.Max(1, cap);
             return cap;
@@ -3112,15 +3114,16 @@ internal static class RobinCrusoePerk
             }
 
             // 神经模组概率：落实到博士之友特性（09-12 用户拍板：特性激活才 roll）
-            // 独立 roll：3% 受限 + 0.5% 未受限，可同时出；防堆叠
+            // 标准版：独立 roll 3% 受限 + 0.5% 未受限，可同时出；防堆叠
+            // 硬爽版：50% 受限 + 50% 未受限（09-12 用户拍板；防堆叠保留）
             if (DrJacksonFriendPerk.IsActive())
             {
-                if (UnityEngine.Random.value < 0.005f)
+                if (UnityEngine.Random.value < (BuildConfig.HARD_MODE ? 0.5f : 0.005f))
                 {
                     if (!HasGoodOnFront("system_uncapped_neural_core"))
                         try { if (MerchantHelper.AddItemToCounter("system_uncapped_neural_core", 0, false) != null) added++; } catch { }
                 }
-                if (UnityEngine.Random.value < 0.03f)
+                if (UnityEngine.Random.value < (BuildConfig.HARD_MODE ? 0.5f : 0.03f))
                 {
                     if (!HasGoodOnFront("system_capped_neural_core"))
                         try { if (MerchantHelper.AddItemToCounter("system_capped_neural_core", 0, false) != null) added++; } catch { }
