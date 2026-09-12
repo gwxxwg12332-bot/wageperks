@@ -6140,7 +6140,7 @@ public class Core : MelonMod
 
 
         if (!inGame) return;
-        try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键调出/关闭状态面板（轻量检测，无重操作）
+        // Z 键不挂 OnUpdate（09-12 实锤双钩子重复处理 + cheatsheet：MelonLoader 生命周期不可靠）——仅挂游戏原生 InputActionManager.Update Postfix
 
 
 

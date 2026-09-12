@@ -215,11 +215,16 @@ internal static class RobinCrusoePerk
     internal static void SetSocial(int v) { PerkStatePersistence.SetInt(PERK_ID, "social", v); InvalidateTradeCaches(); }
 
     // ===== Z 键调出/关闭状态面板（用户拍板；特性界面/主菜单不响应，硬约束守护）=====
+    // 09-12 实锤：InputActionManager.Update 每帧可被多次调用（多实例/多Patch）→ 必须同帧去重，否则一次按键开→关双翻转，面板打不开
+    private static int _zKeyFrame = -1;
     internal static void HandleHotkeys()
     {
         try
         {
             if (!UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Z)) return;
+            int _zFrame = UnityEngine.Time.frameCount;
+            if (_zFrame == _zKeyFrame) return; // 同帧已处理（去重，防双钩子/双实例重复翻转）
+            _zKeyFrame = _zFrame;
             if (!IsActive())
             {
                 // 诊断：读档场景 startType 实况（用户确认开的是鲁滨逊存档但 IsActive=false）

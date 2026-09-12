@@ -24,7 +24,7 @@ internal static class Patches
     internal static void PostfixInputActionManagerUpdate(Il2Cpp.InputActionManager __instance)
     {
         if (__instance == null) return;
-        try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键：改挂游戏原生每帧钩子（MelonLoader OnUpdate 不触发）
+        try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键：挂游戏原生每帧钩子（MelonLoader OnUpdate 不触发；同帧去重在 HandleHotkeys 内）
         if (_keysDumped) return;
         _keysDumped = true;
         try
