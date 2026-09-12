@@ -765,13 +765,16 @@ internal static class Patches
     // ============================================================
     // 博士商店开张权威点：Patch StoreClientList.PlaceInventorInventory Postfix
     // （玩家拜访博士 VisitUpgradeMerchant -> b__33_0 -> PlaceInventorInventory）
-    // 方法执行 = 博士商店上货，无条件补我们的货（不判定 seller——博士商店场景 currentClientInstance 不一定是博士）
+    // 方法执行 = 博士商店上货。
+    // 09-12 用户拍板：夜晚商店原版货不动；不再追加机器/储存；
+    //   鲁滨逊职业内加卖食物水（罐头×2+大瓶纯水×1）+ 3%受限/0.5%未受限神经模组概率
+    //   （鲁滨逊独立改动，不牵扯博士之友特性；白天博士到访走 AddDirectSellingItemToTable 链，不动）
     // ============================================================
     internal static void PostfixPlaceInventorInventory(bool isVisitingPlayerStore)
     {
         try
         {
-            DrJacksonFriendPerk.AddJacksonGoodsToCounter(null);
+            RobinCrusoePerk.AddDoctorNightGoods();
         }
         catch (Exception ex) { Core.LogMsg("[博士之友] PostfixPlaceInventorInventory 异常: " + ex.Message); }
     }

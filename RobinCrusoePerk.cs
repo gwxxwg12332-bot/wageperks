@@ -3080,6 +3080,69 @@ internal static class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] AddLiBeiwenGoods 异常: " + ex.Message); }
     }
 
+    // ============================================================
+    // 博士夜晚商店专属货（09-12 用户拍板，鲁滨逊职业内独立改动，不牵扯博士之友特性）：
+    // 原版货不动；不再追加机器/储存（白天博士到访的机器/储存逻辑不动）
+    // 1) 加卖食物水：罐头 processed_meat ×2 + 大瓶纯水 large_bottled_water ×1（防堆叠）
+    // 2) 每次拜访独立 roll：3% 出受限神经模组 system_capped_neural_core、0.5% 出未受限神经模组 system_uncapped_neural_core（防堆叠）
+    // ============================================================
+    internal static void AddDoctorNightGoods()
+    {
+        try
+        {
+            if (!IsActive()) return; // 鲁滨逊职业专属
+            int added = 0;
+
+            // 食物水：鲁滨逊职业即有（不牵扯博士之友特性，柜台无同 id 才补，防堆叠）
+            if (!HasGoodOnFront("processed_meat"))
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    try { if (MerchantHelper.AddItemToCounter("processed_meat", 0, false) != null) added++; } catch { }
+                }
+            }
+            if (!HasGoodOnFront("large_bottled_water"))
+            {
+                try { if (MerchantHelper.AddItemToCounter("large_bottled_water", 0, false) != null) added++; } catch { }
+            }
+
+            // 神经模组概率：落实到博士之友特性（09-12 用户拍板：特性激活才 roll）
+            // 独立 roll：3% 受限 + 0.5% 未受限，可同时出；防堆叠
+            if (DrJacksonFriendPerk.IsActive())
+            {
+                if (UnityEngine.Random.value < 0.005f)
+                {
+                    if (!HasGoodOnFront("system_uncapped_neural_core"))
+                        try { if (MerchantHelper.AddItemToCounter("system_uncapped_neural_core", 0, false) != null) added++; } catch { }
+                }
+                if (UnityEngine.Random.value < 0.03f)
+                {
+                    if (!HasGoodOnFront("system_capped_neural_core"))
+                        try { if (MerchantHelper.AddItemToCounter("system_capped_neural_core", 0, false) != null) added++; } catch { }
+                }
+            }
+
+            if (added > 0) Core.LogMsg("[空间站鲁滨逊] 博士夜晚商店加货 " + added + " 件（食物水/神经模组）");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] AddDoctorNightGoods 异常: " + ex.Message); }
+    }
+
+    // 柜台是否已有同 id 的货（夜晚商店加货防堆叠；与 DrJacksonFriendPerk.CounterHasOnFront 同逻辑）
+    private static bool HasGoodOnFront(string itemId)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null || em.frontInvinvElement.items == null) return false;
+            foreach (var it in em.frontInvinvElement.items)
+            {
+                if (it != null && it.identifier == itemId) return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
     // 电话端注册（Core 注册 Postfix StorePhoneClient.InitPhoneClientDict）
     public static void PostfixInitPhoneClientDict(Il2CppSystem.Collections.Generic.Dictionary<long, Il2Cpp.StorePhoneClient> __result)
     {

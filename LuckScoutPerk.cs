@@ -1003,7 +1003,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
         // 500
 
-        "skincare_cream", "system_uncapped_neural_core",
+        "skincare_cream",
 
         // 350
 
@@ -1027,7 +1027,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
         // 250
 
-        "crypto_module_med", "crypto_module_eng", "chem_module", "system_capped_neural_core",
+        "crypto_module_med", "crypto_module_eng", "chem_module",
 
         "c4", "stun_gun", "blue_blood_bag", "wine_yeast_infinite", "metal_scanner", "c4_set",
 
@@ -1040,17 +1040,31 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
 
     // 稀有物：从价值池随机（价值≥200，排除容器/机器/家具），创建失败自动换下一个
-
+    // 09-12 用户拍板：神经模组独立概率——未受限 0.5% / 受限 2%（已移出均匀池，防叠加）
     private static GameItem CreateRareItem()
-
     {
-
         try
-
         {
+            // 神经模组独立 roll（未命中/创建失败回落原池）
+            double nr = Core.Rng.NextDouble();
+            string neuralId = null;
+            if (nr < 0.005) neuralId = "system_uncapped_neural_core";
+            else if (nr < 0.02) neuralId = "system_capped_neural_core";
+            if (neuralId != null)
+            {
+                try
+                {
+                    GameItem neural = DirectoryMaster.Item(neuralId, true);
+                    if (neural != null)
+                    {
+                        try { neural.DisableTag("not_purchased", true); neural.DisableTag("TAG_NOT_PURCHASED", true); } catch { }
+                        return neural;
+                    }
+                }
+                catch { }
+            }
 
             // 从随机起点尝试最多 5 个候选，避免个别物品创建失败导致掉落为空
-
             int start = Core.Rng.Next(RARE_VALUE_POOL.Length);
 
             for (int attempt = 0; attempt < Math.Min(5, RARE_VALUE_POOL.Length); attempt++)
