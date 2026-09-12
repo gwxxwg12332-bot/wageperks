@@ -2963,8 +2963,8 @@ internal static class RobinCrusoePerk
     // ============================================================
     private const long BUTCHER_PHONE_NUMBER = 8800;   // 屠夫电话（避开原版 8376/8815/56371/4615/3319/51189）
     private const long LI_BEIWEN_PHONE_NUMBER = 8801; // 李北文电话
-    private const int BUTCHER_FIRST_VISIT_DAY = 14;   // 屠夫第14天首次上门
-    private const int LI_BEIWEN_FIRST_VISIT_DAY = 21; // 李北文第21天首次上门
+    private const int BUTCHER_FIRST_VISIT_DAY = 13;   // 屠夫第14天首次上门（拆包 09-12 [L1]：GetDayCounter 0-based，第14天=13；原14永不命中）
+    private const int LI_BEIWEN_FIRST_VISIT_DAY = 20; // 李北文第21天首次上门（0-based：第21天=20）
     private const int CALL_TO_ARRIVE_DAYS = 2;        // 电话叫货后排 2 天到店
     private const int CALL_COOLDOWN_DAYS = 3;         // 电话冷却 3 天
     private static int _wantedSupplierScheduledDay = -1; // 防同日重复调度
