@@ -1854,7 +1854,7 @@ public class Core : MelonMod
 
 
 
-        Log.Msg("Wage's Perks v1.1.5 已加载 - 手动Patch模式");
+        Log.Msg("Wage's Perks v1.1.6 已加载 - 手动Patch模式");
 
 
 
@@ -28847,7 +28847,11 @@ public class Core : MelonMod
             // 容器获得即减半（用户拍板 09-09：任何 CONTAINER_TAG 容器物品初始化时缩半，可拖 junk 升级恢复）
             ManualPatcher.TryPatch(typeof(Il2Cpp.ContainerHelper), "InitContainerItem",
                 postfix: nameof(RobinCrusoePerk.PostfixInitContainerItem),
-                parameterTypes: new Type[] { typeof(GameInventory), typeof(GameItem) },
+                parameterTypes: new Type[] {
+                    typeof(GameInventory), typeof(GameItem),
+                    typeof(Il2CppSystem.Collections.Generic.List<Il2CppSystem.String>),
+                    typeof(Il2CppSystem.Collections.Generic.List<Il2CppSystem.String>)
+                },
                 patchHost: typeof(RobinCrusoePerk));
             // 机器初始耗电 +2（统一耗电读口 GetMachinePowerUsage，鲁滨逊职业内）
             ManualPatcher.TryPatch(typeof(Il2Cpp.MachineryHelper), "GetMachinePowerUsage",

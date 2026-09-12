@@ -15,7 +15,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("博士之友", "Doctor Friend");
-    internal override string Description => LangHelper.T("杰克逊博士，这位神秘的黑市商人，向来只与他信任的人交易。传说中，能成为博士之友的当铺老板，每周二便会收到博士的秘密拜访。选择此特性：博士每周到访一次，从他那里购买物品享受友情价 -5%。", "Doctor Jackson, a mysterious black-market merchant, only trades with those he trusts. Legend says the pawnbroker who becomes the Doctor's friend receives a secret visit every Tuesday. Choose this perk: the Doctor visits once a week, and everything you buy from him gets a 5% friend discount.");
+    internal override string Description => LangHelper.T("杰克逊博士，这位神秘的黑市商人，向来只与他信任的人交易。传说中，能成为博士之友的当铺老板，每周二便会收到博士的秘密拜访。选择此特性：博士每周到访一次，售卖大型机器与大型储存箱，购买享受友情价 -5%。", "Doctor Jackson, a mysterious black-market merchant, only trades with those he trusts. Legend says the pawnbroker who becomes the Doctor's friend receives a secret visit every Tuesday. Choose this perk: the Doctor visits once a week, selling large machines and large storage boxes, and everything you buy from him gets a 5% friend discount.");
     internal override int Cost => 2;
     internal override int Type => 0;
 

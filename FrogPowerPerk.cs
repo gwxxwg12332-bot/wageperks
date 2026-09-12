@@ -15,7 +15,7 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("蛙哥牛逼", "Wage Power");
-    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱），每位到店客户免费赠送1件精选好货，客户携带随机商品。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage). Every customer gets 1 free hand-picked gift. Customers bring random inventory.");
+    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱），每位到店客户免费赠送1件精选好货，客户携带随机商品。妙妙箱可拖入螺丝逐格升级扩容，满级额外获得第二个妙妙箱。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage). Every customer gets 1 free hand-picked gift. Customers bring random inventory. The Wonder Box can be upgraded with screws; at max level you get a second Wonder Box.");
     internal override int Cost => 5;
     internal override int Type => 0;
 

@@ -11,7 +11,7 @@ internal sealed class DestinyDicePerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("命运之骰", "Dice of Fate");
-    internal override string Description => LangHelper.T("开局获得一枚命运骰子：拖物品到骰子上可吸收其价值，每累计400价值触发1个随机事件。", "Start with a Dice of Fate: drag items onto it to absorb their value. Every 400 value triggers a random event.");
+    internal override string Description => LangHelper.T("开局获得一枚命运骰子：双击激活触发随机事件（每累计400价值触发一次，打烊后门槛回落），拖拽物品到骰子可吸收其价值，面板可卸载取出。", "Start with a Dice of Fate: double-click to trigger a random event (once per 400 absorbed value, threshold resets after closing). Drag items onto it to absorb their value; unload via the panel button.");
     internal override int Cost => 3;
     internal override int Type => 0;
 

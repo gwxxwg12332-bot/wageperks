@@ -46,7 +46,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
 
-    internal override string DisplayName => LangHelper.T("检漏直觉", "Luck Scout");
+    internal override string DisplayName => LangHelper.T("捡漏直觉", "Luck Scout");
 
     internal override string Description => LangHelper.T(
 
