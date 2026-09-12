@@ -2594,10 +2594,6 @@ internal static class RobinCrusoePerk
             catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T("第" + day + "天：", "Day " + day + ": ") + nodeTxt + "｜" + moodTxt, "white"); } catch { }
             RefreshStatusPanel(); // 每日结算刷新常驻面板
-            // ===== 屠夫/李北文供应商每日调度 + 电话冷却 + 兜底注册 =====
-            WantedSupplierSchedule(day);
-            TickWantedPhoneCooldown();
-            TryRegisterWantedPhones();
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixOnNewDay 异常: " + ex.Message); }
     }
@@ -2971,7 +2967,22 @@ internal static class RobinCrusoePerk
     private static readonly string[] BUTCHER_MEAT_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat" };
     private static readonly string[] BUTCHER_WEAPON_IDS = { "combat_knife", "combat_machete", "hatchet", "crowbar", "stun_baton" };
 
-    // 每日调度：第14/21天固定排首次上门（PostfixOnNewDay 调用）
+    // 屠夫/李北文供应商每日调度（v1.1.6 统一挂 PlayerStore.BeginDay 可靠挂点——PostfixOnBeginDay 调用：
+    // 原挂 StoreClientManager.OnNewDay 触发时机不可靠，且跳天数工具不走 BeginDay/OnNewDay 无法测试；
+    // 单入口保证冷却只扣一次）
+    internal static void TickWantedSupplierDaily()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            WantedSupplierSchedule(StoreStation.GetDayCounter());
+            TickWantedPhoneCooldown();
+            TryRegisterWantedPhones();
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] TickWantedSupplierDaily 异常: " + ex.Message); }
+    }
+
+    // 每日调度：第14/21天固定排首次上门（PostfixOnBeginDay 调用）
     internal static void WantedSupplierSchedule(int day)
     {
         try
@@ -3021,7 +3032,7 @@ internal static class RobinCrusoePerk
             {
                 pc.phoneState = (Il2Cpp.StorePhoneClient.PhoneState)4; // Regular：电话簿显示 + 可拨
                 pc.cooldownDuration = CALL_COOLDOWN_DAYS;
-                pc.dialedBefore = false;
+                pc.dialedBefore = true; // 拆包 09-12 [L1]：ShownInPhoneBook=(state∈{4,5} && dialedBefore≠0)，原设 false 导致电话簿不显示
                 try { StoreUIManager.Instance.Notify(LangHelper.T(name + "的电话已存入电话簿，拨号即可叫货", name + "'s number saved. Dial to order supplies."), "green"); } catch { }
                 Core.LogMsg("[空间站鲁滨逊] " + name + " 电话簿解锁（" + number + "）");
             }
@@ -3155,6 +3166,7 @@ internal static class RobinCrusoePerk
             if (pc != null && (pc.currentCooldown > 0 || (int)pc.phoneState == 5))
             {
                 try { StoreUIManager.Instance.Notify(LangHelper.T(name + "还在忙，过几天再打", name + " is busy, call again in a few days."), "red"); } catch { }
+                try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { } // 清拨号状态，防卡死（拆包 09-12 [L1]）
                 return false; // 冷却中：占线
             }
             PlayerStore ps = PlayerStore.Instance;
@@ -3170,6 +3182,7 @@ internal static class RobinCrusoePerk
             }
             try { StoreUIManager.Instance.Notify(LangHelper.T("已预约" + name + " " + CALL_TO_ARRIVE_DAYS + " 天后到店", name + " will arrive in " + CALL_TO_ARRIVE_DAYS + " days."), "green"); } catch { }
             Core.LogMsg("[空间站鲁滨逊] 电话叫货成功：" + name + " " + CALL_TO_ARRIVE_DAYS + " 天后到店");
+            try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { } // 清拨号状态，防卡死（拆包 09-12 [L1]：StartCalling 已挂 0x64=1，原版由 StartDialogue 收尾，被拦需 StopCall 清理）
             return false; // 拦掉原版对话显示
         }
         catch { return true; }

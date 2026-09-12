@@ -287,6 +287,8 @@ internal static class Patches
     {
         try
         {
+            // 屠夫/李北文供应商每日调度（v1.1.6：统一挂可靠挂点 BeginDay，每天进档/跨天必走；不再依赖 OnNewDay）
+            RobinCrusoePerk.TickWantedSupplierDaily();
             ForceInspectionToday();
             ApplyBadLuck();
             
