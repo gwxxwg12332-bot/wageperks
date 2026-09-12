@@ -1342,7 +1342,7 @@ public class Core : MelonMod
 
 
 
-    public static bool DebugMode = true;  // 开发态：发布打包时改false编译  // 开发态：发布打包时改false编译  // 开发态：发布打包时改false编译
+    public static bool DebugMode = false;  // 发布态：false（开发态改true，发布打包必须false；发布版不带任何诊断/测试快捷键）
 
 
 
@@ -28845,13 +28845,10 @@ public class Core : MelonMod
                 postfix: nameof(RobinCrusoePerk.PostfixEmporiumEntryStart),
                 patchHost: typeof(RobinCrusoePerk));
             // 容器获得即减半（用户拍板 09-09：任何 CONTAINER_TAG 容器物品初始化时缩半，可拖 junk 升级恢复）
-            ManualPatcher.TryPatch(typeof(Il2Cpp.ContainerHelper), "InitContainerItem",
+            // 09-12 拆包实证签名 4 参（GameInventory, GameItem, List<string>×2），但 Il2Cpp 互操作下 List 参数类型比较失败
+            // （日志 WARNING: AccessTools.Method could not find for List<String>）→ 改 TryPatchByName 按名挂载（方法名唯一，无重载冲突）
+            ManualPatcher.TryPatchByName(typeof(Il2Cpp.ContainerHelper), "InitContainerItem",
                 postfix: nameof(RobinCrusoePerk.PostfixInitContainerItem),
-                parameterTypes: new Type[] {
-                    typeof(GameInventory), typeof(GameItem),
-                    typeof(Il2CppSystem.Collections.Generic.List<Il2CppSystem.String>),
-                    typeof(Il2CppSystem.Collections.Generic.List<Il2CppSystem.String>)
-                },
                 patchHost: typeof(RobinCrusoePerk));
             // 机器初始耗电 +2（统一耗电读口 GetMachinePowerUsage，鲁滨逊职业内）
             ManualPatcher.TryPatch(typeof(Il2Cpp.MachineryHelper), "GetMachinePowerUsage",
