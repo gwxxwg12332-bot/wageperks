@@ -674,15 +674,16 @@ namespace JacksonPerks
                 if (pendingEvt != "") { try { if (!EventZhName.TryGetValue(pendingEvt, out evtZh)) evtZh = pendingEvt; } catch { evtZh = pendingEvt; } }
                 // 非容器：计数显示在物品名称上（悬停/列表可见）
                 dice.SetName(LangHelper.T("命运骰子（价值" + value + " / 门槛" + threshold + " / 触发" + trig + "）", "Dice of Fate (value " + value + " / cost " + threshold + " / triggers " + trig + ")"));
-                // 09-13 修复"吸收面板介绍"bug：原 shortDescription 首次备份，事件信息追加显示、事件清空后恢复原介绍（不覆盖）
-                string dkey = DiceKey(dice);
-                if (dkey != "" && !_diceOrigDesc.ContainsKey(dkey) && !string.IsNullOrEmpty(dice.shortDescription))
-                    _diceOrigDesc[dkey] = dice.shortDescription;
-                string baseDesc = (dkey != "" && _diceOrigDesc.TryGetValue(dkey, out string _od)) ? _od : "";
+                // 09-13 修复"吸收面板介绍"bug：事件说明追加显示、事件清空后恢复原介绍
+                // 09-14 修复：说明文本每日累积（对象 HashCode 缓存失效 → 原描述被重复追加）——改用固定标记剥除上次事件文本
+                const string EVT_MARKER = "【命运事件】";
+                string curDesc = dice.shortDescription ?? "";
+                int markerIdx = curDesc.IndexOf(EVT_MARKER);
+                string baseDesc = markerIdx >= 0 ? curDesc.Substring(0, markerIdx) : curDesc;
                 if (evtZh != "")
-                    dice.shortDescription = (string.IsNullOrEmpty(baseDesc) ? "" : baseDesc + "。") + LangHelper.T("明日事件：" + evtZh + "。拖物品累积价值，双击掷骰。", "Tomorrow: " + evtZh + ". Drag to absorb, double-click to roll.");
-                else if (!string.IsNullOrEmpty(baseDesc))
-                    dice.shortDescription = baseDesc; // 无事件恢复原介绍
+                    dice.shortDescription = (string.IsNullOrEmpty(baseDesc.Trim()) ? "" : baseDesc.TrimEnd('。', ' ') + "。") + EVT_MARKER + LangHelper.T("明日事件：" + evtZh + "。拖物品累积价值，双击掷骰。", "Tomorrow: " + evtZh + ". Drag to absorb, double-click to roll.");
+                else
+                    dice.shortDescription = baseDesc.TrimEnd('。', ' '); // 无事件恢复原介绍
 
                 try { dice.SyncModifiedState(); } catch { }
 
