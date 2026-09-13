@@ -1273,10 +1273,12 @@ internal static class RobinCrusoePerk
             else if (IsMedicine(newItem)) TreatWithMedicine(newItem);
             // 09-13 清洁系统 v1：日用品双击恢复清洁（白名单按 id；满 100 不消耗给提示）
             else if (IsDailyNeed(newItem)) UseDailyNeed(newItem);
+
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 双击异常: " + ex.Message); }
     }
 
+    // 09-14 诊断（双击连吃定位）：每次点击打印双击判定状态（OnEventPress 后），定位"第二次双击是否判定成功"
     // 喝酒（v5.7 心情+15；拆包 09-10 自酿酒价值分档）：酒瓶有剩余才给心情；喝一口减 ml（修"酒剩余0还能无限喝"）
     // 自酿酒（wine_quality_homebrew 条件）按价值心情分档（用户拍板 09-10）：<50 +10 / 50-149 +15 / 150-299 +20 / 300-999 +30；
     // ≥1000 顶级自酿：额外 睡眠+25 + 出门连续3天不受伤 + 拾荒次数+1（PerkStatePersistence 存档，runID 隔离）

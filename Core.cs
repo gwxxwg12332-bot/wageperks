@@ -28728,6 +28728,7 @@ public class Core : MelonMod
                 postfix: nameof(RobinCrusoePerk.PostfixDoubleClickAction),
                 patchHost: typeof(RobinCrusoePerk),
                 parameterTypes: new Type[] { typeof(Il2Cpp.GameItem), typeof(Vector2) });
+
             // 腐烂食物客户拒买（购买判定上游）
             ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClient), "CanClientExposeAnyFeature",
                 prefix: nameof(RobinCrusoePerk.PrefixCanClientExposeAnyFeature),
