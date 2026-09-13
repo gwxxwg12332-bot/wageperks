@@ -299,7 +299,7 @@ namespace JacksonPerks
 
                 item.SetName(LangHelper.T("命运骰子（累计0价值 / 触发0事件）", "Dice of Fate (value 0 / triggers 0)"));
 
-                try { item.shortDescription = LangHelper.T("拖物品到骰子上吸收其价值，双击掷骰触发随机事件（累计满400后打烊回落）。", "Drag items onto the die to absorb their value; every 400 value triggers 1 random event."); } catch { }
+                try { item.shortDescription = LangHelper.T("拖物品到骰子上吸收其价值，双击掷骰触发随机事件（累计满400后打烊回落）。", "Drag items onto the die to absorb their value; double-click to roll a random event (threshold resets at closing after 400)."); } catch { }
 
                 try { item.flavorText = LangHelper.T("古老的命运骰子，能吸收物品的价值并改写命运。", "An ancient die of fate that absorbs the value of items and rewrites destiny."); } catch { }
 

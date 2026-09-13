@@ -287,7 +287,7 @@ internal static class NewStartTypeUI
                     "Granary: sell +5% after 7 well-fed days; Ascension levels up every 2 days\n" +
                     "8 status customers drop by with special deals; press Z for the survival panel\n" +
                     "Containers start halved: pouches, storage and machine bins (main backpack excluded); drag junk to upgrade back\n" +
-                    "The Doctor visits every week, selling food and medicine");
+                    "The Doctor visits at night, selling food and water");
             }
 
         }

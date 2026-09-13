@@ -1857,7 +1857,7 @@ public class Core : MelonMod
 
 
 
-        Log.Msg("Wage's Perks v1.1.6 已加载 - 手动Patch模式");
+        Log.Msg("Wage's Perks v1.1.7 已加载 - 手动Patch模式");
 
 
 
