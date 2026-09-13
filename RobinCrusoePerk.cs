@@ -2023,8 +2023,9 @@ internal static class RobinCrusoePerk
                     if (item == null) continue;
                     try
                     {
-                        if (item.IsTag("CUSTOM_STORAGE_TAG"))
+                        if (ContainerUpgradeV2.IsWageBox(item))
                         {
+                            try { if (!item.IsTag("CUSTOM_STORAGE_TAG")) item.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档箱子补打 tag（09-13：缺 tag 导致升级挂点不识别）
                             ContainerUpgradeV2.RestoreWageBoxShape(item); // 蛙哥箱子：按段位恢复（含老档满级迁移）
                             _rcRestoredContainers.Add(item.Pointer);
                             restored++;
@@ -2047,8 +2048,9 @@ internal static class RobinCrusoePerk
         try
         {
             if (__instance == null || !IsActive()) return;
-            if (__instance.IsTag("CUSTOM_STORAGE_TAG"))
+            if (ContainerUpgradeV2.IsWageBox(__instance))
             {
+                try { if (!__instance.IsTag("CUSTOM_STORAGE_TAG")) __instance.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档补打
                 if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
                 return;
             }
@@ -2133,7 +2135,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive() || __0 == null || __1 == null) return;
-            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__1) || ContainerUpgradeV2.IsExcludedContainer(__1)) return;
+            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsWageBox(__1) || ContainerUpgradeV2.IsVoidBeadStorage(__1) || ContainerUpgradeV2.IsExcludedContainer(__1)) return;
             if (ContainerUpgradeV2.HasTag(__1, "wb_stage")) return; // 容器v2：已有段位（读档/已减半）→ 不重复减半
             ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)", __1);
             try { __1.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 容量行显示门控（拆包 2.5.32）
@@ -2166,7 +2168,7 @@ internal static class RobinCrusoePerk
             {
                 try
                 {
-                    if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item) || ContainerUpgradeV2.IsExcludedContainer(item)) continue;
+                    if (item.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsWageBox(item) || ContainerUpgradeV2.IsVoidBeadStorage(item) || ContainerUpgradeV2.IsExcludedContainer(item)) continue;
                     if (!item.IsTag("CONTAINER_TAG") && !IsMachine(item)) continue;
                     if (ContainerUpgradeV2.HasTag(item, "wb_stage")) continue; // 容器v2：已按段位管理，不重复减半
                     var grid = GetContainerGrid(item);

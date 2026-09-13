@@ -200,6 +200,11 @@ internal static class Patches
     {
         try
         {
+            // 09-13 修复：新档开始（HandleInitialItem 只在开新档调用）重置开局物品静态标记。
+            // PostfixOnNewGame 依赖原生 NewGame 钩子，游戏内连续开档可能不触发 → 标记残留 → 新档漏发。
+            try { FrogPowerPerk._storageBoxGiven = false; } catch { }
+            try { DestinyDicePerk._diceGiven = false; } catch { }
+            try { LuckScoutPerk.ResetGiveFlag(); } catch { }
             if (FrogPowerPerk.IsActive() && !FrogPowerPerk._storageBoxGiven)
             {
                 FrogPowerPerk.TryGiveStorageBox();

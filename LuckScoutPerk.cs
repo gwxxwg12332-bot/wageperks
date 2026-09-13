@@ -213,6 +213,12 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
     // HandleInitialItem 只在开新档调用（读档走 LoadGame 分支），天然不会多刷。
 
     private static bool _kitGiven = false;
+
+    // 09-13 修复：新档开始时重置发放标记（Patches.HandleInitialItemPostfix 调用）
+    internal static void ResetGiveFlag()
+    {
+        _kitGiven = false;
+    }
     // ===== 开局发放重试（09-12）：emporium 未就绪/部分失败 → 帧轮询补发 =====
     private static bool _pendingGive = false;
     private static int _pendingGiveFrames = 0;

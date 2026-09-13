@@ -143,13 +143,26 @@ public static class ContainerUpgradeV2
         try { if (item == null) return false; return EXCLUDED_CONTAINER_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
     }
 
+    // ===================== 蛙哥箱识别（tag 或 identifier 兜底） =====================
+    // 老档蛙哥箱（旧版创建）可能缺 CUSTOM_STORAGE_TAG（ES3 不保证 tag 保留），用 identifier 兜底
+    public static bool IsWageBox(GameItem item)
+    {
+        try
+        {
+            if (item == null) return false;
+            if (item.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            return (item.identifier ?? "").ToLowerInvariant() == "custom_storage_box";
+        }
+        catch { return false; }
+    }
+
     public static bool IsUpgradeableContainer(GameItem item)
     {
         try
         {
             if (item == null) return false;
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
-            if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) return false;
+            if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false;
             if (IsVoidBeadStorage(item)) return false;
             if (item.IsTag("CONTAINER_TAG")) return true; // 普通腰包/背包（原版 CONTAINER_TAG）在此命中
             return IsBuildingContainerId(item.identifier ?? "");
@@ -337,7 +350,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (__instance == null || targetItem == null) return true;
-            if (IsNuts(__instance) && targetItem.IsTag("CUSTOM_STORAGE_TAG"))
+            if (IsNuts(__instance) && IsWageBox(targetItem))
             { __result = true; return false; } // hover 可拖
         }
         catch { }
@@ -352,7 +365,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (__instance == null || targetItem == null) return true;
-            if (!IsNuts(__instance) || !targetItem.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            if (!IsNuts(__instance) || !IsWageBox(targetItem)) return true;
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(__instance, targetItem)) return false; // 升级成功：拦截原生放入
         }
@@ -364,7 +377,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (__instance == null || item == null) return true;
-            if (!IsNuts(item) || !__instance.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            if (!IsNuts(item) || !IsWageBox(__instance)) return true;
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(item, __instance)) { __result = false; return false; }
         }
@@ -378,7 +391,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (builder == null || item == null) return;
-            if (!item.IsTag("CUSTOM_STORAGE_TAG")) return;
+            if (!IsWageBox(item)) return;
             int stage = GetTagIntSafe(item, "wb_stage");
             if (stage >= MAX_STAGE)
                 builder.AddLine(LangHelper.T("◆ 妙妙箱：满级（" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + "）· 奖励：第二个妙妙箱已入背包", "◆ Wage Box: MAX (" + WAGE_BOX_W[MAX_STAGE] + "×" + WAGE_BOX_H[MAX_STAGE] + ") · Reward: second box in backpack"),
