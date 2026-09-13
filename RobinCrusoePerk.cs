@@ -3152,7 +3152,7 @@ internal static class RobinCrusoePerk
     // 拆包 09-13 [L1]：offerSets Action 模式 = DirectoryMaster.Item 创建 + PlayerStore.AddDirectSellingItemToTable 进交易台
     private static Il2Cpp.BarterOffer BuildJuanOffer(int lv)
     {
-        var offer = new Il2Cpp.BarterOffer();
+        var offer = Il2Cpp.BarterOfferList.CreateBarterFoodMultiOffer(); // 09-13 修复：用原版工厂构造（字段完整），防 IsBarterAcceptable NPE
         try
         {
             var ids = new System.Collections.Generic.List<string>();
@@ -3167,6 +3167,7 @@ internal static class RobinCrusoePerk
                 }
             });
             var action = Il2CppInterop.Runtime.DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(sysAction);
+            try { offer.offerSets.Clear(); } catch { } // 清掉原版3组食物报价，只留我们的档位货单
             offer.offerSets.Add(action);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] BuildJuanOffer 异常: " + ex.Message); }
