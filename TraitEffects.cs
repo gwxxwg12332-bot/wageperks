@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -83,7 +83,7 @@ internal static class TraitEffects
                 "dream_dust", "nightmare_dust", "unlicensed_phagimycin_pill",
                 "handmade_pistol", "heavy_handmade_pistol", "smg", "shotgun",
                 "c4", "smoke_grenade", "stun_gun",
-                "system_uncapped_neural_core", "system_capped_neural_core",
+                "system_capped_neural_core",
                 "ancient_alien_relics", "blank_module", "crypto_module_cmd",
                 "crypto_module_sec", "smuggler_bay_mod", "smuggler_bay_mini",
                 "neural_core", "神经核心"

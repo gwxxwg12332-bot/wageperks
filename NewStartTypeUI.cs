@@ -278,7 +278,7 @@ internal static class NewStartTypeUI
                     "粮仓与升华：饱腹满 7 天售价 +5%；满状态每 2 天升 1 级（上限 5）\n" +
                     "8 种状态客户登门买卖；按 Z 键随时打开生存状态面板\n" +
                     "容器容量减半：腰包、储存箱与机器内嵌箱子开局容量减半（主背包除外），可拖垃圾（junk）逐格升级恢复\n" +
-                    "博士每周到访，出售食物与药品",
+                    "博士夜晚到访，出售食物与水",
                     "A brand-new starting type with its own tab on the start screen. Stranded on the station, survive like Robinson Crusoe:\n" +
                     "Daily 2200 kcal & 2000 ml water; six survival stats: satiety, thirst, health, cleanliness, sleep, social\n\n" +
                     "6 status axes, 20 nodes — from Starving/Parched to Well-Fed/Quenched, each affecting customers, prices, haggling, scavenging and wounds\n" +

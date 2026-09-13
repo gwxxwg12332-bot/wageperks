@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using System.Collections.Generic;
 
@@ -222,13 +222,9 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
             string __head = shape.Substring(0, Math.Min(20, shape.Length));
 
-
-
-
-                        inv.SetShape(shape, GRID_WIDTH);
+            inv.SetShape(shape, GRID_WIDTH);
 
             inv.Validate();
-
 
         }
 
@@ -255,8 +251,10 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                 var inv = cw.childElement.Cast<GameGridInventory>();
                 if (inv != null)
                 {
-                    ApplyLockedShape(inv, pe.Item2);
-                    try { cw.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + pe.Item2 + LangHelper.T("/200格)", "/200 slots)"); } catch { }
+                    // 【09-13 不降级保护】pending 目标不得低于当前已升级 slots（读档重建入队 1 不能覆盖升级后的 6）
+                    int target = Math.Max(pe.Item2, GetTagInt(item, SLOTS_TAG));
+                    ApplyLockedShape(inv, target);
+                    try { cw.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + target + LangHelper.T("/200格)", "/200 slots)"); } catch { }
                 }
                 _pendingShapes.RemoveAt(i);
             }
@@ -279,8 +277,6 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
             if (__instance == null) return;
 
             if (!__instance.IsTag(BACKPACK_TAG)) return;
-
-
 
             // 加入_beadItems列表（去重）
 
@@ -388,6 +384,45 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
 
 
+    // 检查玩家所有库存（4 主背包 + 递归容器）是否已有虚空珠储物袋（09-13 多刷根治：发放前判定，位置无关）
+    public static bool HasAnyVoidBeadStorage()
+    {
+        try
+        {
+            var allInvs = new System.Collections.Generic.List<GameInventory>();
+            EmporiumEntry emporium = EmporiumEntry.Instance;
+            if (emporium == null) return false;
+            try { var v = emporium.backInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.frontInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            var visited = new HashSet<IntPtr>();
+            var stack = new Stack<GameInventory>(allInvs);
+            while (stack.Count > 0)
+            {
+                var inv = stack.Pop();
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null || !visited.Add(it.Pointer)) continue;
+                    if (it.IsTag(BACKPACK_TAG) || it.identifier == "void_bead_storage") return true;
+                    try
+                    {
+                        var cw = it.contentWindow;
+                        if (cw == null || cw.childElement == null) continue;
+                        var inner = cw.childElement.Cast<GameGridInventory>();
+                        if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
+                    }
+                    catch { }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
     // ===== 读档恢复：LoadGame完成后遍历玩家所有背包找虚空珠并恢复SetShape（根本方案） =====
     // 不依赖_beadItems列表（读档后列表为空），直接遍历玩家4个背包
     // 加固（2.5.39）：容器内容读档后延迟加载 → 立即恢复可能漏掉容器内虚空珠（尤其满级无法"碰一下自愈"）
@@ -488,8 +523,9 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
 
     // ===== 创建虚空珠 =====
-
-    public static GameItem CreateScrollableScavBackpack()
+    // enqueuePending：新档发放(true)入队 pending + 启动 600 帧轮询（开局容器未就绪保护）；
+    // 读档工厂重建(false)不挂 pending（读档恢复由 PostfixLoadGame/RestoreAllBeads 负责，挂 pending 会把存档 slots 覆盖回 1）
+    public static GameItem CreateScrollableScavBackpack(bool enqueuePending = true)
 
     {
 
@@ -576,9 +612,13 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
             SetTagInt(item, SLOTS_TAG, 1);
             ApplyLockedShape(gridInv, 1);
             // 开局容器未就绪时 SetShape 会被初始化覆盖（用户反馈新档显示 3/4）→ 入队，下帧容器就绪后强制应用
-            try { _pendingShapes.Add(System.Tuple.Create(item, 1)); } catch { }
-            // 并启动 600 帧恢复轮询（每帧 RestoreAllBeads 强制 ApplyLockedShape，覆盖创建后任意时点的初始化覆盖）
-            try { _restoreFramesLeft = 600; } catch { }
+            // 09-13：仅新档发放时入队；读档工厂重建不入队（否则把存档 slots 覆盖回 1）
+            if (enqueuePending)
+            {
+                try { _pendingShapes.Add(System.Tuple.Create(item, 1)); } catch { }
+                // 并启动 600 帧恢复轮询（每帧 RestoreAllBeads 强制 ApplyLockedShape，覆盖创建后任意时点的初始化覆盖）
+                try { _restoreFramesLeft = 600; } catch { }
+            }
 
 
 
@@ -669,7 +709,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
         {
 
-            GameItem item = CreateScrollableScavBackpack();
+            GameItem item = CreateScrollableScavBackpack(false);
 
             if (item != null) return item;
 

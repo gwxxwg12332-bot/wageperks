@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Il2Cpp;
@@ -136,7 +136,7 @@ internal static class RobinCrusoePerk
     internal const int CLEAN_START = 100;      // 清洁度初始 100
     internal const int SLEEP_START = 100;      // 睡眠初始 100
     internal const int SOCIAL_START = 50;      // 社交初始 50
-    internal const int DAILY_CLEAN_LOSS = 10;  // 清洁每日 -10%
+    internal const int DAILY_CLEAN_LOSS = 2;   // 清洁每日 -2%（09-13 用户拍板 v1 定稿：原 -10）
     internal const int DAILY_SLEEP_GAIN = 30;  // 睡眠打烊 +30%
     internal const int SLEEP_SCAV_LOSS = 7;    // 外出拾荒睡眠 -7%（09-10 用户拍板：15% 太狠会触发禁拾荒自锁，3% 太轻，定为 7%）
     internal const int DAILY_SOCIAL_GAIN = 5;  // 社交每日 +5（开店接待）
@@ -1260,13 +1260,19 @@ internal static class RobinCrusoePerk
             // v1.1.6 未购买物品禁止吃喝用（拆包 09-12 [L1]：柜台 isOwend=false → SetItemOwned 去 IS_OWNED_TAG；权威读口 GeneralHelper.IsItemOwned=IsTag("IS_OWNED_TAG")。not_purchased 是 GameCharacterItem 静态常量非商品 tag，TAG_NOT_PURCHASED 不存在——原 IsTag 双查无效已删）
             if (!Il2Cpp.GeneralHelper.IsItemOwned(newItem)) { return; }
             // v5.7 心情主动提升：酒/烟/毒/彩票优先于吃喝（酒也是饮品，先判酒）
-            if (IsAlc(newItem)) DrinkAlcohol(newItem);
+            // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
+            if (IsAlc(newItem)) { DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）
             else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
-            else if (IsNarcotic(newItem)) BoostMood(25, LangHelper.T("麻醉品", "Narcotics"));
+            else if (IsNarcotic(newItem)) { BoostMood(20, LangHelper.T("麻醉品", "Narcotics")); TryExpel(newItem); } // 麻醉品：+20 + 消失（09-13 拍板）
             else if (IsLottery(newItem)) BoostMood(UnityEngine.Random.Range(10, 21), LangHelper.T("刮彩票", "Scratch Ticket"));
-            else if (IsFood(newItem)) EatBite(newItem);
+            // 09-13 拍板：非水饮品双击恢复 饱食+10/口渴+15（soda_red/energy_drink/galaxy_blend）
+            else if (IsBeverage(newItem)) DrinkBeverage(newItem);
+            // 09-13 拍板：零食（cat_bar/li_eat_snackbar/processed_cheese）吃恢复饱食 + 心情+10 + 整件消失
+            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(10, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); }
             else if (IsDrink(newItem)) DrinkSip(newItem);
             else if (IsMedicine(newItem)) TreatWithMedicine(newItem);
+            // 09-13 清洁系统 v1：日用品双击恢复清洁（白名单按 id；满 100 不消耗给提示）
+            else if (IsDailyNeed(newItem)) UseDailyNeed(newItem);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 双击异常: " + ex.Message); }
     }
@@ -1276,11 +1282,9 @@ internal static class RobinCrusoePerk
     // ≥1000 顶级自酿：额外 睡眠+25 + 出门连续3天不受伤 + 拾荒次数+1（PerkStatePersistence 存档，runID 隔离）
     private static void DrinkAlcohol(GameItem item)
     {
+        if (IsEmptyBottle(item)) return; // 空瓶：不加心情、不消耗（装水用，09-13 拍板）
         int ml = GetWaterMl(item);
-        if (ml <= 0)
-        {
-            return;
-        }
+        // 09-13 拍板：酒类双击 = 心情+15 + 整件消失（不依赖 ml——修复 ItemSpawner 刷酒/无 ml 酒不加心情）
         int sip = Math.Min(SIP_ML, ml); // 一口 200ml（仿喝水）
         bool homebrew = IsHomebrewWine(item);
         int mood = 15;
@@ -1296,8 +1300,8 @@ internal static class RobinCrusoePerk
             }
         }
         BoostMood(mood, homebrew ? LangHelper.T("自酿酒", "Homebrew") : LangHelper.T("喝酒", "Drinking"));
-        try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 喝酒Remove异常 " + ex.Message); }
-        if (ml <= SIP_ML) TryExpel(item); // ★ 喝光：酒瓶消失（同食物/药品消耗链）
+        if (ml > 0) { try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 喝酒Remove异常 " + ex.Message); } }
+        TryExpel(item); // 整件消失（09-13 用户拍板：双击酒类使用后消失）
         RefreshStatusPanel();
     }
 
@@ -1380,6 +1384,38 @@ internal static class RobinCrusoePerk
         RefreshStatusPanel(); // 实时刷新常驻面板
     }
 
+    // ===== 09-13 拍板：非水饮品（汽水/能量饮料/果糊）双击恢复 饱食+10/口渴+15，喝完消耗 1 件 =====
+    private static readonly System.Collections.Generic.HashSet<string> BEVERAGE_IDS = new System.Collections.Generic.HashSet<string>
+    { "soda_red", "energy_drink", "galaxy_blend", "processed_milk", "processed_juice" }; // 09-13 用户反馈：碳酸代乳(processed_milk)/代糖果汁(processed_juice)也走饮品链（饱食+口渴）
+    private static bool IsBeverage(GameItem item)
+    {
+        try { return item != null && BEVERAGE_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
+    }
+    private static void DrinkBeverage(GameItem item)
+    {
+        try
+        {
+            SetSatiety(Math.Min(100, GetSatiety() + 10));
+            SetThirstPct(Math.Min(100, GetThirstPct() + 15));
+            try { StoreUIManager.Instance.Notify(LangHelper.T("饮品 +10% 饱食 +15% 口渴", "Beverage +10% Satiety +15% Thirst"), "green"); } catch { }
+            TryExpel(item); // 饮料喝完消失（消耗 1 件）
+            RefreshStatusPanel();
+        }
+        catch { }
+    }
+    // ===== 09-13 拍板：零食（猫咪巧克力棒/轻食能量棒/合成奶酪）吃恢复饱食 + 心情+10 =====
+    private static readonly System.Collections.Generic.HashSet<string> SNACK_IDS = new System.Collections.Generic.HashSet<string>
+    { "cat_bar", "li_eat_snackbar", "processed_cheese" };
+    private static bool IsSnack(GameItem item)
+    {
+        try { return item != null && SNACK_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
+    }
+    // 空瓶：不消耗（装水用，09-13 拍板）
+    private static bool IsEmptyBottle(GameItem item)
+    {
+        try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "empty_beer_bottle"; } catch { return false; }
+    }
+
     // 喝水（09-11 用户拍板 5 档真实水质）：purity 分 5 档，每档独立 口渴/健康/患病/清洁；Remove 单位=ml（拆包实锤，修复 sip*1000 误删全瓶）
     private static void DrinkSip(GameItem item)
     {
@@ -1392,9 +1428,8 @@ internal static class RobinCrusoePerk
         int gain = new[] { 25, 18, 12, 6, 2 }[tier];
         int hd   = new[] { 5, 2, 0, -5, -10 }[tier];
         int inf  = new[] { 0, 0, 5, 15, 30 }[tier];
-        int cg   = new[] { 5, 4, 3, 1, 0 }[tier];
+        // 09-13 用户拍板：喝水不再恢复清洁（移除 +5% 清洁，cg 全 0）
         SetThirstPct(Math.Min(100, GetThirstPct() + gain));
-        if (cg > 0) SetClean(Math.Min(100, GetClean() + cg));
         if (hd != 0) SetHealth(Math.Max(0, Math.Min(100, GetHealth() + hd)));
         if (inf > 0) TryInfect(inf / 100.0);
         string wname = new[] { LangHelper.T("优质", "Pure"), LangHelper.T("较好", "Good"), LangHelper.T("普通", "Plain"), LangHelper.T("浑浊", "Cloudy"), LangHelper.T("脏水", "Dirty") }[tier];
@@ -1557,6 +1592,27 @@ internal static class RobinCrusoePerk
                             true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                     }
             }
+            // 09-13 清洁系统 v1：日用品面板显示"双击恢复清洁"
+            else if (IsDailyNeed(item))
+            {
+                string id = (item.identifier ?? "").ToLowerInvariant();
+                if (DAILY_NEED_CLEAN.TryGetValue(id, out int _gain))
+                    builder.AddLine(LangHelper.T("双击使用：清洁 +" + _gain, "Double-click: Cleanliness +" + _gain),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            }
+            // 09-13 双击使用类效果面板显示：饮品/零食/酒/麻醉品
+            else if (IsBeverage(item))
+                builder.AddLine(LangHelper.T("双击使用：饱食+10 口渴+15（消耗1件）", "Double-click: Satiety +10 Thirst +15 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsSnack(item))
+                builder.AddLine(LangHelper.T("双击使用：饱食 + 心情+10（消耗1件）", "Double-click: Satiety + Mood +10 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsAlc(item) && !IsEmptyBottle(item))
+                builder.AddLine(LangHelper.T("双击饮用：心情+15（消耗1件）", "Double-click drink: Mood +15 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsNarcotic(item))
+                builder.AddLine(LangHelper.T("双击使用：心情+20（消耗1件）", "Double-click: Mood +20 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
         }
         catch { }
     }
@@ -1974,7 +2030,7 @@ internal static class RobinCrusoePerk
                             restored++;
                             continue;
                         }
-                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item)) continue;
+                        if (!item.IsTag("CONTAINER_TAG") || item.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item) || ContainerUpgradeV2.IsExcludedContainer(item)) continue;
                         // 容器v2：按段位恢复（含老档 wageUpgradeCap>0 → 满级迁移）；未升级老档保持现状
                         if (ContainerUpgradeV2.RestoreCrusoeShape(item)) { _rcRestoredContainers.Add(item.Pointer); restored++; }
                     }
@@ -1996,7 +2052,7 @@ internal static class RobinCrusoePerk
                 if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
                 return;
             }
-            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance)) return;
+            if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance) || ContainerUpgradeV2.IsExcludedContainer(__instance)) return;
             if (!ContainerUpgradeV2.HasTag(__instance, "wb_stage") && GetTagIntSafe(__instance, "wageUpgradeCap") <= 0) return; // 未升级老档不恢复
             if (!_rcRestoredContainers.Add(__instance.Pointer)) return; // 已恢复过：跳过防双加
             ContainerUpgradeV2.RestoreCrusoeShape(__instance);
@@ -2077,7 +2133,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive() || __0 == null || __1 == null) return;
-            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__1)) return;
+            if (!__1.IsTag("CONTAINER_TAG") || __1.IsTag("VOID_BEAD_TAG") || __1.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__1) || ContainerUpgradeV2.IsExcludedContainer(__1)) return;
             if (ContainerUpgradeV2.HasTag(__1, "wb_stage")) return; // 容器v2：已有段位（读档/已减半）→ 不重复减半
             ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)", __1);
             try { __1.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 容量行显示门控（拆包 2.5.32）
@@ -2110,7 +2166,7 @@ internal static class RobinCrusoePerk
             {
                 try
                 {
-                    if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item)) continue;
+                    if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(item) || ContainerUpgradeV2.IsExcludedContainer(item)) continue;
                     if (!item.IsTag("CONTAINER_TAG") && !IsMachine(item)) continue;
                     if (ContainerUpgradeV2.HasTag(item, "wb_stage")) continue; // 容器v2：已按段位管理，不重复减半
                     var grid = GetContainerGrid(item);
@@ -2164,6 +2220,8 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive()) return;
             SetSleep(Math.Max(0, GetSleep() - SLEEP_SCAV_LOSS));
+            // 09-13 用户拍板 v1 定稿：拾荒每次 -2 清洁（单一场景）
+            SetClean(Math.Max(0, GetClean() - 2));
         }
         catch { }
     }
@@ -2768,6 +2826,39 @@ internal static class RobinCrusoePerk
         catch { return true; }
     }
 
+    // ===== 清洁系统 v1（09-13 用户拍板）：日用品双击恢复清洁 + 物品消失 =====
+    // 白名单按 id（toothpaste/toilet_paper/shampoo/paper_towel）；排除 pack_condom/box_tampon（不在表内自然不触发）
+    private static readonly System.Collections.Generic.Dictionary<string, int> DAILY_NEED_CLEAN = new System.Collections.Generic.Dictionary<string, int>
+    {
+        { "toothpaste", 15 },
+        { "toilet_paper", 30 },
+        { "shampoo", 45 },
+        { "paper_towel", 45 },
+    };
+    private static bool IsDailyNeed(GameItem item)
+    {
+        try { return item != null && DAILY_NEED_CLEAN.ContainsKey((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
+    }
+    private static void UseDailyNeed(GameItem item)
+    {
+        try
+        {
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            if (!DAILY_NEED_CLEAN.TryGetValue(id, out int gain)) return;
+            int c = GetClean();
+            if (c >= 100)
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("清洁已满，不需要使用日用品", "Cleanliness full, no need"), "white"); } catch { }
+                return; // 满 100 不消耗
+            }
+            SetClean(Math.Min(100, c + gain));
+            try { StoreUIManager.Instance.Notify(LangHelper.T("清洁 +" + gain, "Cleanliness +" + gain), "green"); } catch { }
+            TryExpel(item); // 物品从库存消失（消耗 1 件）
+            RefreshStatusPanel();
+        }
+        catch { }
+    }
+
     private static bool TryExpel(GameItem item)
     {
         try
@@ -2959,20 +3050,20 @@ internal static class RobinCrusoePerk
     // 委托身份在 IL2CPP 二进制层不可枚举（ISIL 读不到），无法精确把状态客户占比乘 1.2/0.85——
     // 需运行时枚举池内委托（UnityExplorer）或拆生成链更深层才能精确落点。本轮不实装，避免猜测。
     // ============================================================
-    // 屠夫/李北文供应商（09-12 用户拍板：并入鲁滨逊职业内，不加新特性）
-    // 复用原版 wanted2（屠夫）/ wanted6（李北文）通缉犯实体改造，不自建 identifier；
+    // 胡安(wanted7)/李北文(wanted6)供应商（09-12 并入鲁滨逊职业；09-13 屠夫→上层厨师→胡安：卖食物）
+    // 复用原版 wanted2（屠夫实体改造）/ wanted6（李北文）通缉犯实体，不自建 identifier；
     // 电话端仿原版红魔鬼/GP矿业双通道（StorePhoneClient）；名片简化=到店直接解锁电话簿（phoneState=4）；
     // 拨号即叫货（跳过原版 PhoneDialogList 对话选项——wanted 无电话对话定义）
     // ============================================================
-    private const long BUTCHER_PHONE_NUMBER = 8800;   // 屠夫电话（避开原版 8376/8815/56371/4615/3319/51189）
+    private const long BUTCHER_PHONE_NUMBER = 8800;   // 胡安电话（原屠夫/上层厨师，避开原版 8376/8815/56371/4615/3319/51189）
     private const long LI_BEIWEN_PHONE_NUMBER = 8801; // 李北文电话
-    private const int BUTCHER_FIRST_VISIT_DAY = 13;   // 屠夫第14天首次上门（拆包 09-12 [L1]：GetDayCounter 0-based，第14天=13；原14永不命中）
+    private const int BUTCHER_FIRST_VISIT_DAY = 13;   // 胡安第14天首次上门（拆包 09-12 [L1]：GetDayCounter 0-based，第14天=13；原14永不命中）
     private const int LI_BEIWEN_FIRST_VISIT_DAY = 20; // 李北文第21天首次上门（0-based：第21天=20）
     private const int CALL_TO_ARRIVE_DAYS = 2;        // 电话叫货后排 2 天到店
     private const int CALL_COOLDOWN_DAYS = 3;         // 电话冷却 3 天
     private static int _wantedSupplierScheduledDay = -1; // 防同日重复调度
-    private static readonly string[] BUTCHER_MEAT_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat" };
-    private static readonly string[] BUTCHER_WEAPON_IDS = { "combat_knife", "combat_machete", "hatchet", "crowbar", "stun_baton" };
+    // 09-13 胡安货单相关：到店 SetBarterOffer 食物报价
+    private static readonly string[] CHEF_FOOD_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat", "morsel", "small_morsel", "processed_cheese", "meat_scrap", "cup_noodle", "processed_juice", "energy_drink" };
 
     // 屠夫/李北文供应商每日调度（v1.1.6 统一挂 PlayerStore.BeginDay 可靠挂点——PostfixOnBeginDay 调用：
     // 原挂 StoreClientManager.OnNewDay 触发时机不可靠，且跳天数工具不走 BeginDay/OnNewDay 无法测试；
@@ -2996,7 +3087,7 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive() || PlayerStore.Instance == null) return;
             if (day == _wantedSupplierScheduledDay) return; // 同日只排一次
-            if (day == BUTCHER_FIRST_VISIT_DAY) { QueueWantedClient("wanted2"); _wantedSupplierScheduledDay = day; }
+            if (day == BUTCHER_FIRST_VISIT_DAY) { QueueWantedClient("wanted7"); _wantedSupplierScheduledDay = day; }
             else if (day == LI_BEIWEN_FIRST_VISIT_DAY) { QueueWantedClient("wanted6"); _wantedSupplierScheduledDay = day; }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] WantedSupplierSchedule 异常: " + ex.Message); }
@@ -3006,13 +3097,22 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (id == "wanted7") { } // wanted7=胡安 原版字典已有（拆包 09-13 [L1]）
             PlayerStore ps = PlayerStore.Instance;
             if (ps == null || ps.storeClientManager == null) return;
             try { ps.storeClientManager.RemoveDuplicateClientsByIdentifier(id); } catch { } // 防原版随机 wanted 同天撞车
             ps.QueueFuturClient(id, 0);
-            Core.LogMsg("[空间站鲁滨逊] 已预约" + (id == "wanted2" ? "屠夫" : "李北文") + "当天到店（" + id + "）");
+            Core.LogMsg("[空间站鲁滨逊] 已预约" + (id == "wanted7" ? "胡安" : "李北文") + "当天到店（" + id + "）");
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] QueueWantedClient(" + id + ") 异常: " + ex.Message); }
+    }
+
+    // 工厂创建即设显示名（Core 注册 Postfix StoreClientList.CreateWanted2/CreateWanted6）：
+    // 拆包 09-13 [L1]：ResolveClientNames 在 CreateClientInstance 实例化时读 displayName，实例化后设则头顶名/横幅已锁定——
+    // 提前到工厂 Postfix，让 displayName 在实例化前即为"胡安"，所有显示点（对话/电话簿/头顶/横幅）一致
+    public static void PostfixCreateWanted6(Il2Cpp.StoreClient __result)
+    {
+        try { if (__result != null) __result.displayName = LangHelper.T("李北文", "Li Beiwen"); } catch { }
     }
 
     // 到店处理（Patches.PostfixSpecialNpcStartDialogue 调用）：解锁电话簿 + 上货
@@ -3022,8 +3122,8 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive() || client == null) return;
             string id = client.identifier;
-            if (id == "wanted2") { UnlockWantedPhone(BUTCHER_PHONE_NUMBER, LangHelper.T("屠夫", "The Butcher")); AddButcherGoods(); }
-            else if (id == "wanted6") { UnlockWantedPhone(LI_BEIWEN_PHONE_NUMBER, LangHelper.T("李北文", "Li Beiwen")); AddLiBeiwenGoods(); }
+            if (id == "wanted7") { try { client.displayName = LangHelper.T("胡安", "Juan"); } catch { } int visits = PerkStatePersistence.GetInt("juan", "visit", 0) + 1; PerkStatePersistence.SetInt("juan", "visit", visits); int lv = visits <= 2 ? 0 : (visits <= 5 ? 1 : 2); try { client.SetBarterOffer(BuildJuanOffer(lv)); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 胡安报价异常: " + ex.Message); } Core.LogMsg("[空间站鲁滨逊] 胡安到店#" + visits + " Lv" + lv + "（" + (lv == 0 ? "基础" : (lv == 1 ? "中档" : "高档")) + "）"); UnlockWantedPhone(BUTCHER_PHONE_NUMBER, LangHelper.T("胡安", "Juan")); }
+            else if (id == "wanted6") { try { client.displayName = LangHelper.T("李北文", "Li Beiwen"); } catch { } UnlockWantedPhone(LI_BEIWEN_PHONE_NUMBER, LangHelper.T("李北文", "Li Beiwen")); AddLiBeiwenGoods(); }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] WantedSupplierOnArrived 异常: " + ex.Message); }
     }
@@ -3047,25 +3147,30 @@ internal static class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] UnlockWantedPhone 异常: " + ex.Message); }
     }
 
-    // 屠夫货单：肉 + 近战武器
-    private static void AddButcherGoods()
+    // 胡安货单：到店 SetBarterOffer 食物报价（原版 CreateBarterFoodMultiOffer）
+    // 胡安三档货单（09-13 用户拍板：随到店次数升级价值；Lv0 前2次 / Lv1 3-5次 / Lv2 6次+）
+    // 拆包 09-13 [L1]：offerSets Action 模式 = DirectoryMaster.Item 创建 + PlayerStore.AddDirectSellingItemToTable 进交易台
+    private static Il2Cpp.BarterOffer BuildJuanOffer(int lv)
     {
+        var offer = new Il2Cpp.BarterOffer();
         try
         {
-            int added = 0;
-            foreach (string mid in BUTCHER_MEAT_IDS)
+            var ids = new System.Collections.Generic.List<string>();
+            if (lv <= 0) { ids.Add("processed_meat"); ids.Add("processed_meat"); ids.Add("large_bottled_water"); }
+            else if (lv == 1) { ids.Add("processed_meat"); ids.Add("processed_meat"); ids.Add("processed_cheese"); ids.Add("processed_cheese"); ids.Add("galaxy_blend"); ids.Add("galaxy_blend"); ids.Add("large_bottled_water"); }
+            else { ids.Add("processed_meat"); ids.Add("processed_meat"); ids.Add("processed_meat"); ids.Add("processed_cheese"); ids.Add("processed_cheese"); ids.Add("processed_cheese"); ids.Add("galaxy_blend"); ids.Add("galaxy_blend"); ids.Add("galaxy_blend"); ids.Add("soda_red"); ids.Add("soda_red"); ids.Add("energy_drink"); ids.Add("energy_drink"); ids.Add("large_bottled_water"); ids.Add("large_bottled_water"); }
+            var sysAction = new System.Action(() =>
             {
-                try { if (MerchantHelper.AddItemToCounter(mid, 0, false) != null) added++; }
-                catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 屠夫加肉 " + mid + " 失败: " + ex.Message); }
-            }
-            foreach (string wid in BUTCHER_WEAPON_IDS)
-            {
-                try { if (MerchantHelper.AddItemToCounter(wid, 0, false) != null) added++; }
-                catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 屠夫加武器 " + wid + " 失败: " + ex.Message); }
-            }
-            Core.LogMsg("[空间站鲁滨逊] 屠夫已上货 " + added + " 件（肉+近战武器）");
+                foreach (var fid in ids)
+                {
+                    try { var item = Il2Cpp.DirectoryMaster.Item(fid); if (item != null) Il2Cpp.PlayerStore.Instance.AddDirectSellingItemToTable(item, false, false, false, 0); } catch { }
+                }
+            });
+            var action = Il2CppInterop.Runtime.DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(sysAction);
+            offer.offerSets.Add(action);
         }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] AddButcherGoods 异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] BuildJuanOffer 异常: " + ex.Message); }
+        return offer;
     }
 
     // 李北文货单：梦尘×5 + 奥克莫吸×5
@@ -3091,7 +3196,7 @@ internal static class RobinCrusoePerk
     // 博士夜晚商店专属货（09-12 用户拍板，鲁滨逊职业内独立改动，不牵扯博士之友特性）：
     // 原版货不动；不再追加机器/储存（白天博士到访的机器/储存逻辑不动）
     // 1) 加卖食物水：罐头 processed_meat ×2 + 大瓶纯水 large_bottled_water ×1（防堆叠）
-    // 2) 每次拜访独立 roll：3% 出受限神经模组 system_capped_neural_core、0.5% 出未受限神经模组 system_uncapped_neural_core（防堆叠）
+    // 2) 每次拜访独立 roll：3% 出受限神经模组 system_capped_neural_core（09-13 用户拍板：未受限已删）
     // ============================================================
     internal static void AddDoctorNightGoods()
     {
@@ -3114,15 +3219,10 @@ internal static class RobinCrusoePerk
             }
 
             // 神经模组概率：落实到博士之友特性（09-12 用户拍板：特性激活才 roll）
-            // 标准版：独立 roll 3% 受限 + 0.5% 未受限，可同时出；防堆叠
-            // 硬爽版：50% 受限 + 50% 未受限（09-12 用户拍板；防堆叠保留）
+            // 标准版：独立 roll 3% 受限；09-13 用户拍板：未受限神经模组全删（不再生成）
+            // 硬爽版：50% 受限（09-12 用户拍板；防堆叠保留）
             if (DrJacksonFriendPerk.IsActive())
             {
-                if (UnityEngine.Random.value < (BuildConfig.HARD_MODE ? 0.5f : 0.005f))
-                {
-                    if (!HasGoodOnFront("system_uncapped_neural_core"))
-                        try { if (MerchantHelper.AddItemToCounter("system_uncapped_neural_core", 0, false) != null) added++; } catch { }
-                }
                 if (UnityEngine.Random.value < (BuildConfig.HARD_MODE ? 0.5f : 0.03f))
                 {
                     if (!HasGoodOnFront("system_capped_neural_core"))
@@ -3163,8 +3263,8 @@ internal static class RobinCrusoePerk
                 var butcher = new Il2Cpp.StorePhoneClient();
                 butcher.phoneClientType = Il2Cpp.StorePhoneClient.PhoneClientType.Supplier;
                 butcher.phoneState = Il2Cpp.StorePhoneClient.PhoneState.None;
-                butcher.displayName = LangHelper.T("屠夫", "The Butcher");
-                butcher.locID = "name_the_butcher";
+                butcher.displayName = LangHelper.T("胡安", "Juan");
+                butcher.locID = "name_juan";
                 butcher.dialogFuncId = "";
                 butcher.cooldownDuration = CALL_COOLDOWN_DAYS;
                 butcher.currentCooldown = 0;
@@ -3184,7 +3284,7 @@ internal static class RobinCrusoePerk
                 libw.dialedBefore = false;
                 __result.Add(LI_BEIWEN_PHONE_NUMBER, libw);
             }
-            Core.LogMsg("[空间站鲁滨逊] 电话端已注册 屠夫8800/李北文8801");
+            Core.LogMsg("[空间站鲁滨逊] 电话端已注册 胡安8800/李北文8801");
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixInitPhoneClientDict 异常: " + ex.Message); }
     }
@@ -3203,6 +3303,126 @@ internal static class RobinCrusoePerk
             }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] TryRegisterWantedPhones 异常: " + ex.Message); }
+    }
+
+    // ===== 09-13 用户拍板：枪械改装全局关闭（恢复"王尔德枪匠未解锁"状态）+ 定制单删除 =====
+    // A. Postfix GunHelper.InitGun：拆包 09-13 [L1] moddable=true → SetGameItemType("MODDABLE")，模组系统按 type 判定可装——
+    // 全局移除 MODDABLE type → 所有枪不可加零件（不显示可加零件）
+    public static void PostfixInitGun(Il2Cpp.GameItem __0)
+    {
+        try
+        {
+            if (__0 == null) return;
+            var types = __0.GetGameItemType();
+            if (types != null && types.Contains("MODDABLE"))
+                __0.RemoveGameItemType("MODDABLE");
+        }
+        catch { }
+    }
+    // C. Prefix StoreClientListGun 订单生成：拦截定制单（拆包 09-13 [L1]：原生有 null 防护——客户端照常来店但无定制要求）
+    public static bool PrefixBlockGunOrder() { return false; }
+    // ===== 09-13 修复：举报/击毙 wanted 后电话停用（不能再叫货）=====
+    private static readonly System.Collections.Generic.HashSet<long> _wantedPhoneRemoved = new System.Collections.Generic.HashSet<long>();
+    private static void MarkWantedPhoneRemoved(string identifier)
+    {
+        try
+        {
+            // 09-13：8800=胡安（wanted7，原版常客）；8801=李北文（wanted6）。屠夫 wanted2 已下线电话（原版随机出现，mod 不管）
+            long num;
+            string label;
+            if (identifier == "wanted7") { num = BUTCHER_PHONE_NUMBER; label = "胡安"; }
+            else if (identifier == "wanted6") { num = LI_BEIWEN_PHONE_NUMBER; label = "李北文"; }
+            else return;
+            _wantedPhoneRemoved.Add(num);
+            try
+            {
+                var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(num);
+                if (pc != null) pc.phoneState = Il2Cpp.StorePhoneClient.PhoneState.None; // 电话簿消失 + 拨号空号
+            }
+            catch { }
+            Core.LogMsg("[空间站鲁滨逊] " + label + " 已被举报/击毙，电话停用");
+        }
+        catch { }
+    }
+    // 举报（Core 注册 Postfix WantedElement.OnArrested——通缉 UI 举报回调，identifier 字段实锤）
+    public static void PostfixWantedElementOnArrested(Il2Cpp.WantedElement __instance)
+    {
+        try
+        {
+            if (__instance == null || __instance.identifier == null) return;
+            if (__instance.identifier == "wanted6") // 李北文可举报（通缉犯）；胡安 wanted7 保持原版行为
+                MarkWantedPhoneRemoved(__instance.identifier);
+        }
+        catch { }
+    }
+    // 击毙（Core 注册 Postfix AugHelper.CleanupKill——枪战对话击杀处理；拆包 09-13 [L1]：
+    // 客户击杀=枪战对话（SecShootoutDialog），KillCurrentEntity 不在客户链（仅 Debug/Survival 调）。
+    // 客户到店 id 由 PrefixStoreUIManagerOnGenericArrived 记录，击杀时用它标记停用电话）
+    private static string _lastArrivedClientId = null;
+    public static void PrefixStoreUIManagerOnGenericArrived(string id)
+    {
+        try { _lastArrivedClientId = id; } catch { }
+    }
+    public static void PostfixAugHelperCleanupKill()
+    {
+        try
+        {
+            string id = _lastArrivedClientId;
+            if (id == "wanted7" || id == "wanted6")
+                MarkWantedPhoneRemoved(id);
+        }
+        catch { }
+    }
+    // B. Prefix DirectoryMaster.Item：枪械模组 id 重定向无害物品（拆包 09-13 [L1]：全游戏物品创建统一入口，商店/奖励/全量随机都走它；
+    // 模组物品无按 id 点名生成，只可能经全量池随机进入游戏 → 此处拦截全覆盖；重定向而非 null 防崩）
+    private static System.Collections.Generic.HashSet<string> _gunModIds = null;
+    private static readonly string[] _gunModIdFallback = {
+        "rds_view", "rds_view2", "rds_makeshift_view", "silencer_view", "silencer2_view",
+        "barrel_view", "compensator_view", "grip_view", "stock_view"
+    };
+    private static bool IsGunModIdentifier(string id)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            if (_gunModIds == null)
+            {
+                _gunModIds = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+                foreach (var s in _gunModIdFallback) _gunModIds.Add(s);
+                // 运行时枚举 GunModDirectory 注册表补全（失败兜底硬编码）
+                try
+                {
+                    var ids = Il2Cpp.DirectoryMaster.GetIdentifierList<object>("GunModDirectory");
+                    if (ids != null) { foreach (var s in ids) { if (!string.IsNullOrEmpty(s)) _gunModIds.Add(s); } }
+                }
+                catch { }
+            }
+            return _gunModIds.Contains(id);
+        }
+        catch { return false; }
+    }
+    public static bool PrefixDirectoryMasterItem(ref string identifier, bool isOwned)
+    {
+        try
+        {
+            if (identifier != null && IsGunModIdentifier(identifier))
+                identifier = "scrap_metal"; // 重定向无害废金属（防崩；模组物品不再生成到任何池）
+        }
+        catch { }
+        return true;
+    }
+
+    // 电话簿显示名修正（Core 注册 Postfix ContactElement.OnInit）：原生读 locID，覆盖为 displayName（胡安/李北文）
+    public static void PostfixOnContactInit(Il2Cpp.ContactElement __instance, long targetNumber)
+    {
+        try
+        {
+            if (__instance == null || __instance.titleTMP == null) return;
+            var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(targetNumber);
+            if (pc == null || string.IsNullOrEmpty(pc.displayName)) return;
+            __instance.titleTMP.text = pc.displayName;
+        }
+        catch { }
     }
 
     // 接听拦截（Core 注册 Prefix PhoneUIManager.WillAnswerCall）：未解锁 → 空号提示
@@ -3230,9 +3450,17 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive()) return true;
             string id = null, name = null;
-            if (currentNumber == BUTCHER_PHONE_NUMBER) { id = "wanted2"; name = LangHelper.T("屠夫", "The Butcher"); }
+            if (currentNumber == BUTCHER_PHONE_NUMBER) { id = "wanted7"; name = LangHelper.T("胡安", "Juan"); }
             else if (currentNumber == LI_BEIWEN_PHONE_NUMBER) { id = "wanted6"; name = LangHelper.T("李北文", "Li Beiwen"); }
             else return true;
+            if (id == "wanted7") { }
+            // 09-13 修复：举报/击毙后电话停用（不能再叫货）
+            if (_wantedPhoneRemoved.Contains(currentNumber))
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T(name + "已被举报/击毙，无法再叫货", name + " has been reported/killed, cannot order."), "red"); } catch { }
+                try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { }
+                return false;
+            }
             var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(currentNumber);
             if (pc != null && (pc.currentCooldown > 0 || (int)pc.phoneState == 5))
             {

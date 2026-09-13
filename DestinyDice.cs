@@ -299,7 +299,7 @@ namespace JacksonPerks
 
                 item.SetName(LangHelper.T("命运骰子（累计0价值 / 触发0事件）", "Dice of Fate (value 0 / triggers 0)"));
 
-                try { item.shortDescription = LangHelper.T("拖物品到骰子上可吸收其价值，每满400价值触发1个随机事件。", "Drag items onto the die to absorb their value; every 400 value triggers 1 random event."); } catch { }
+                try { item.shortDescription = LangHelper.T("拖物品到骰子上吸收其价值，双击掷骰触发随机事件（累计满400后打烊回落）。", "Drag items onto the die to absorb their value; every 400 value triggers 1 random event."); } catch { }
 
                 try { item.flavorText = LangHelper.T("古老的命运骰子，能吸收物品的价值并改写命运。", "An ancient die of fate that absorbs the value of items and rewrites destiny."); } catch { }
 
@@ -652,6 +652,9 @@ namespace JacksonPerks
     }
 
     // ===== 触发随机事件（暂时用日志占位，后续接入游戏原生事件） =====
+    // 09-13 修复"吸收面板介绍"bug：原 shortDescription 首次备份，事件信息改为追加显示、事件清空后恢复原介绍（不再覆盖）
+    private static readonly System.Collections.Generic.Dictionary<string, string> _diceOrigDesc = new System.Collections.Generic.Dictionary<string, string>();
+    private static string DiceKey(GameItem dice) { try { return dice.identifier + "_" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(dice).ToString(); } catch { return ""; } }
 
         private static void UpdateDicePanelTitle(GameItem dice, int value)
 
@@ -671,9 +674,15 @@ namespace JacksonPerks
                 if (pendingEvt != "") { try { if (!EventZhName.TryGetValue(pendingEvt, out evtZh)) evtZh = pendingEvt; } catch { evtZh = pendingEvt; } }
                 // 非容器：计数显示在物品名称上（悬停/列表可见）
                 dice.SetName(LangHelper.T("命运骰子（价值" + value + " / 门槛" + threshold + " / 触发" + trig + "）", "Dice of Fate (value " + value + " / cost " + threshold + " / triggers " + trig + ")"));
-                if (evtZh != "") { try { dice.shortDescription = LangHelper.T("明日事件：" + evtZh + "。拖物品累积价值，双击掷骰。", "Tomorrow: " + evtZh + ". Drag to absorb, double-click to roll."); } catch { } }
-
-                // 同步状态强制刷新名称显示（WineAppraisalMaster拆出的新锚点）
+                // 09-13 修复"吸收面板介绍"bug：原 shortDescription 首次备份，事件信息追加显示、事件清空后恢复原介绍（不覆盖）
+                string dkey = DiceKey(dice);
+                if (dkey != "" && !_diceOrigDesc.ContainsKey(dkey) && !string.IsNullOrEmpty(dice.shortDescription))
+                    _diceOrigDesc[dkey] = dice.shortDescription;
+                string baseDesc = (dkey != "" && _diceOrigDesc.TryGetValue(dkey, out string _od)) ? _od : "";
+                if (evtZh != "")
+                    dice.shortDescription = (string.IsNullOrEmpty(baseDesc) ? "" : baseDesc + "。") + LangHelper.T("明日事件：" + evtZh + "。拖物品累积价值，双击掷骰。", "Tomorrow: " + evtZh + ". Drag to absorb, double-click to roll.");
+                else if (!string.IsNullOrEmpty(baseDesc))
+                    dice.shortDescription = baseDesc; // 无事件恢复原介绍
 
                 try { dice.SyncModifiedState(); } catch { }
 

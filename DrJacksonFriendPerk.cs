@@ -292,7 +292,6 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             if (BuildConfig.HARD_MODE)
             {
                 goods.Add("system_capped_neural_core");
-                goods.Add("system_uncapped_neural_core");
             }
             int added = 0;
             foreach (string itemId in goods)

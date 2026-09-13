@@ -18,13 +18,32 @@ internal static class Patches
     private static int _inspectionTriggeredDay = -1;
 
     // ============================================================
+    // 统一每帧入口（09-13 用户拍板）：所有每帧/轮询逻辑挂游戏原生钩子（InputActionManager.Update Postfix），
+    // 禁用 MelonLoader OnUpdate（已实锤不可靠）。各子项内部自带门控/节流，空则立即返回。
+    // ============================================================
+    internal static void FrameUpdate()
+    {
+        // 特性界面保护（原 Core.OnUpdate 首行守护）：特性选择界面打开时执行游戏逻辑会导致选择界面无法交互（用户硬约束）
+        try
+        {
+            if (PerkUIController.Instance != null && PerkUIController.Instance.ui != null && PerkUIController.Instance.ui.activeSelf)
+                return;
+        }
+        catch { }
+        try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键（同帧去重在 HandleHotkeys 内）
+        try { LuckScoutBackpackUpgrade.ProcessPendingValidate(); } catch { } // 虚空珠待定形状
+        try { LuckScoutBackpackUpgrade.OnUpdateRestore(); } catch { } // 虚空珠读档恢复轮询
+        try { UpdatePendingLoadGameRestore(); } catch { } // LoadGame 延迟恢复（博士/特性状态/容器）
+    }
+
+    // ============================================================
     // 按键诊断：InputActionManager.Update Postfix，第一次触发时 dump 全部 handler 按键
     // ============================================================
     private static bool _keysDumped = false;
     internal static void PostfixInputActionManagerUpdate(Il2Cpp.InputActionManager __instance)
     {
         if (__instance == null) return;
-        try { RobinCrusoePerk.HandleHotkeys(); } catch { } // Z 键：挂游戏原生每帧钩子（MelonLoader OnUpdate 不触发；同帧去重在 HandleHotkeys 内）
+        FrameUpdate(); // 统一每帧入口：挂游戏原生钩子（09-13 用户拍板：MelonLoader OnUpdate 不可靠，所有每帧逻辑走此链）
         if (_keysDumped) return;
         _keysDumped = true;
         try
@@ -795,11 +814,11 @@ internal static class Patches
                 SpecialNpcManager.HandleSpecialNpcArrived(client);
             }
 
-            // 2.0b 屠夫/李北文供应商（鲁滨逊职业内）：到店解锁电话簿 + 上货（wanted2=屠夫 / wanted6=李北文）
+            // 2.0b 胡安/李北文供应商（鲁滨逊职业内）：到店解锁电话簿 + 上货（wanted7=胡安 / wanted6=李北文）
             try
             {
                 string sid = client.identifier;
-                if (sid == "wanted2" || sid == "wanted6")
+                if (sid == "wanted7" || sid == "wanted6")
                     RobinCrusoePerk.WantedSupplierOnArrived(client);
             }
             catch { }

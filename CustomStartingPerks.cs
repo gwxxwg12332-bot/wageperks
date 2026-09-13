@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using Il2Cpp;
 using MelonLoader;
@@ -12,7 +12,6 @@ internal static class CustomStartingPerks
     {
         new FrogPowerPerk(),
         new DrJacksonFriendPerk(),
-        new RetiredGunsmithPerk(),
         new WaterMerchantPerk(),
         new AlcoholMerchantPerk(),
         new LuckScoutPerk(),

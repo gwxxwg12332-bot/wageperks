@@ -510,7 +510,7 @@ using Il2CppInterop.Runtime;
 
 
 
-[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks" + (JacksonPerks.BuildConfig.HARD_MODE ? " Hard" : ""), "1.1.6", "gwxxwg12332")]
+[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks" + (JacksonPerks.BuildConfig.HARD_MODE ? " Hard" : ""), "1.1.7", "gwxxwg12332")]
 
 
 
@@ -1345,7 +1345,7 @@ public class Core : MelonMod
 
 
 
-    public static bool DebugMode = false;  // 发布态：false（开发态改true，发布打包必须false；发布版不带任何诊断/测试快捷键）
+    public static bool DebugMode = true;  // 开发态（打包发布时改 false）
 
 
 
@@ -5819,10 +5819,7 @@ public class Core : MelonMod
 
 
 
-            if (PerkUIController.Instance != null && PerkUIController.Instance.ui != null && PerkUIController.Instance.ui.activeSelf)
-            {
-                return;
-            }
+            // 特性界面保护已迁移到 Patches.FrameUpdate()（OnUpdate 不触发，见 09-13 注释）
 
 
 
@@ -6271,7 +6268,7 @@ public class Core : MelonMod
 
 
 
-        try { LuckScoutBackpackUpgrade.ProcessPendingValidate(); } catch { }
+        // 每帧逻辑已全部迁移到 Patches.FrameUpdate()（挂 InputActionManager.Update Postfix，09-13 用户拍板：MelonLoader OnUpdate 不可靠）
 
 
 
@@ -6399,7 +6396,7 @@ public class Core : MelonMod
 
 
 
-        try { Patches.UpdatePendingLoadGameRestore(); } catch { }
+        // LoadGame 延迟恢复已迁移到 Patches.FrameUpdate()（OnUpdate 不触发，见上）
 
 
 
@@ -28895,6 +28892,44 @@ public class Core : MelonMod
             ManualPatcher.TryPatch(typeof(Il2Cpp.PhoneUIManager), "StartPhoneDialog",
                 prefix: nameof(RobinCrusoePerk.PrefixStartPhoneDialog),
                 patchHost: typeof(RobinCrusoePerk));
+            // 电话簿显示名修正：原生读 locID（屠夫），覆盖为 displayName（上层厨师）
+            ManualPatcher.TryPatch(typeof(Il2Cpp.ContactElement), "OnInit",
+                postfix: nameof(RobinCrusoePerk.PostfixOnContactInit),
+                patchHost: typeof(RobinCrusoePerk));
+            // 到店显示名提前：工厂创建即设 displayName（实例化前全覆盖对话/电话簿/头顶/横幅）
+            // 09-13 修正：CreateWanted2/6 在 StoreClientListWanted（日志实锤 StoreClientList 找不到方法）；
+            // 8800 已改为原版上层厨师（mod_upper_chef，字典注册），不再 Patch wanted2 屠夫——只保留李北文 wanted6
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientListWanted), "CreateWanted6",
+                postfix: nameof(RobinCrusoePerk.PostfixCreateWanted6),
+                patchHost: typeof(RobinCrusoePerk));
+            // 09-13 用户拍板：枪械改装全局关闭（A：InitGun 后清 MODDABLE type）+ 定制单删除（C：拦截 3 个订单生成方法）
+            ManualPatcher.TryPatchByName(typeof(Il2Cpp.GunHelper), "InitGun",
+                postfix: nameof(RobinCrusoePerk.PostfixInitGun),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientListGun), "GetRandomBasicOrder",
+                prefix: nameof(RobinCrusoePerk.PrefixBlockGunOrder),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientListGun), "GetRandomMidOrder",
+                prefix: nameof(RobinCrusoePerk.PrefixBlockGunOrder),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreClientListGun), "GetRandomHighOrder",
+                prefix: nameof(RobinCrusoePerk.PrefixBlockGunOrder),
+                patchHost: typeof(RobinCrusoePerk));
+            // B：枪械模组 id 重定向（全游戏物品创建统一入口拦截）
+            ManualPatcher.TryPatch(typeof(Il2Cpp.DirectoryMaster), "Item",
+                prefix: nameof(RobinCrusoePerk.PrefixDirectoryMasterItem),
+                patchHost: typeof(RobinCrusoePerk));
+            // 09-13 修复：举报/击毙 wanted 后电话停用
+            ManualPatcher.TryPatch(typeof(Il2Cpp.WantedElement), "OnArrested",
+                postfix: nameof(RobinCrusoePerk.PostfixWantedElementOnArrested),
+                patchHost: typeof(RobinCrusoePerk));
+            // 09-13 修正：客户击杀=枪战对话（拆包实锤 KillCurrentEntity 不在客户链）；OnGenericArrived 记录到店 id，CleanupKill 时标记停用
+            ManualPatcher.TryPatch(typeof(Il2Cpp.StoreUIManager), "OnGenericArrived",
+                prefix: nameof(RobinCrusoePerk.PrefixStoreUIManagerOnGenericArrived),
+                patchHost: typeof(RobinCrusoePerk));
+            ManualPatcher.TryPatch(typeof(Il2Cpp.AugHelper), "CleanupKill",
+                postfix: nameof(RobinCrusoePerk.PostfixAugHelperCleanupKill),
+                patchHost: typeof(RobinCrusoePerk));
             // 日历租金显示：100天制文案强制显示（拆包：temporaryRent==0 原生隐藏）
             ManualPatcher.TryPatch(typeof(Il2Cpp.AdvCalendarUIManager), "OnCalendarButtonClicked",
                 postfix: nameof(RobinCrusoePerk.PostfixOnCalendarButtonClicked),
@@ -30115,6 +30150,7 @@ public class Core : MelonMod
     }
 
 public static void LogMsg(string msg)
+
 
 
 

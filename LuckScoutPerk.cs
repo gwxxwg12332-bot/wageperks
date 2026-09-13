@@ -315,6 +315,12 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
             if (!IsActive()) return;
 
             if (_kitGiven) return; // 本次运行已给，防重复
+            // 【09-13 多刷根治】玩家库存已有虚空珠储物袋（任意位置：背包/容器/柜台）→ 视为已发放，不再创建新珠
+            if (LuckScoutBackpackUpgrade.HasAnyVoidBeadStorage())
+            {
+                _kitGiven = true;
+                return;
+            }
 
 
 
@@ -1029,8 +1035,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
         };
         if (BuildConfig.HARD_MODE)
         {
-            list.Add("system_capped_neural_core");     // 受限神经模组（硬爽版加回均匀池）
-            list.Add("system_uncapped_neural_core");   // 未受限神经模组（硬爽版加回均匀池）
+            list.Add("system_capped_neural_core");     // 受限神经模组（硬爽版加回均匀池；09-13 用户拍板：未受限全删）
         }
         return list.ToArray();
     }
@@ -1044,13 +1049,12 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
     {
         try
         {
-            // 神经模组独立 roll（仅标准版；未命中/创建失败回落原池）
+            // 神经模组独立 roll（仅标准版；未命中/创建失败回落原池；09-13 用户拍板：未受限已全删，仅剩受限 2%）
             if (!BuildConfig.HARD_MODE)
             {
                 double nr = Core.Rng.NextDouble();
                 string neuralId = null;
-                if (nr < 0.005) neuralId = "system_uncapped_neural_core";
-                else if (nr < 0.02) neuralId = "system_capped_neural_core";
+                if (nr < 0.02) neuralId = "system_capped_neural_core";
                 if (neuralId != null)
                 {
                     try

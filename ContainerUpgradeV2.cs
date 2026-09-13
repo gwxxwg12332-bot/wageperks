@@ -132,11 +132,23 @@ public static class ContainerUpgradeV2
         catch { return false; }
     }
 
+    // ===================== 升级系统排除名单（09-13 用户拍板） =====================
+    // 文档箱(dossier)/工具箱(toolbox) 已拖 junk 实证命中升级；收音机=cassette_player（磁带播放器，用户提供 id）。
+    // 排除后：不参与拖 junk 升级、不开局减半、不读档恢复 shape——完全回原版。
+    private static readonly HashSet<string> EXCLUDED_CONTAINER_IDS = new HashSet<string>(new string[] {
+        "toolbox", "dossier", "cassette_player"
+    });
+    public static bool IsExcludedContainer(GameItem item)
+    {
+        try { if (item == null) return false; return EXCLUDED_CONTAINER_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
+    }
+
     public static bool IsUpgradeableContainer(GameItem item)
     {
         try
         {
             if (item == null) return false;
+            if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || item.IsTag("CUSTOM_STORAGE_TAG")) return false;
             if (IsVoidBeadStorage(item)) return false;
             if (item.IsTag("CONTAINER_TAG")) return true; // 普通腰包/背包（原版 CONTAINER_TAG）在此命中
