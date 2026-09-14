@@ -289,7 +289,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             // 博士只卖：1 大机器 + 1 大储存（09-11 用户确认：只留这两样，不带食品/水/药品/神经模组，任何开局一致）
             List<string> goods = new List<string> { "machine_bay_ext", "storage_bay_large" };
             // 09-12 硬爽版：固定加卖受限神经模组 + 未受限神经模组（用户拍板）
-            if (BuildConfig.HARD_MODE)
+            if (BuildConfig.HardMode)
             {
                 goods.Add("system_capped_neural_core");
             }

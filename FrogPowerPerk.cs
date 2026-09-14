@@ -2822,7 +2822,7 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
         try
         {
             // 09-14 用户拍板：普通版取消"精选好货"赠送（硬爽版保留）
-            if (!BuildConfig.HARD_MODE) return;
+            if (!BuildConfig.HardMode) return;
             PlayerStore instance = PlayerStore.Instance;
             if (instance == null)
             {

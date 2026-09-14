@@ -136,7 +136,7 @@ internal static class RobinCrusoePerk
     internal const int CLEAN_START = 100;      // 清洁度初始 100
     internal const int SLEEP_START = 100;      // 睡眠初始 100
     internal const int SOCIAL_START = 50;      // 社交初始 50
-    internal const int DAILY_CLEAN_LOSS = 2;   // 清洁每日 -2%（09-13 用户拍板 v1 定稿：原 -10）
+    internal static int DAILY_CLEAN_LOSS => BuildConfig.CleanDailyLoss;   // 清洁每日衰减（CFG 可调）
     internal const int DAILY_SLEEP_GAIN = 30;  // 睡眠打烊 +30%
     internal const int SLEEP_SCAV_LOSS = 7;    // 外出拾荒睡眠 -7%（09-10 用户拍板：15% 太狠会触发禁拾荒自锁，3% 太轻，定为 7%）
     internal const int DAILY_SOCIAL_GAIN = 5;  // 社交每日 +5（开店接待）
@@ -1263,12 +1263,12 @@ internal static class RobinCrusoePerk
             // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
             if (IsAlc(newItem)) { DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）
             else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
-            else if (IsNarcotic(newItem)) { BoostMood(20, LangHelper.T("麻醉品", "Narcotics")); TryExpel(newItem); } // 麻醉品：+20 + 消失（09-13 拍板）
+            else if (IsNarcotic(newItem)) { BoostMood(BuildConfig.NarcoticMood, LangHelper.T("麻醉品", "Narcotics")); TryExpel(newItem); } // 麻醉品：+20 + 消失（09-13 拍板）
             else if (IsLottery(newItem)) BoostMood(UnityEngine.Random.Range(10, 21), LangHelper.T("刮彩票", "Scratch Ticket"));
             // 09-13 拍板：非水饮品双击恢复 饱食+10/口渴+15（soda_red/energy_drink/galaxy_blend）
             else if (IsBeverage(newItem)) DrinkBeverage(newItem);
             // 09-13 拍板：零食（cat_bar/li_eat_snackbar/processed_cheese）吃恢复饱食 + 心情+10 + 整件消失
-            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(10, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); }
+            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(BuildConfig.SnackMood, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); }
             else if (IsDrink(newItem)) DrinkSip(newItem);
             else if (IsMedicine(newItem)) TreatWithMedicine(newItem);
             // 09-13 清洁系统 v1：日用品双击恢复清洁（白名单按 id；满 100 不消耗给提示）
@@ -1289,7 +1289,7 @@ internal static class RobinCrusoePerk
         // 09-13 拍板：酒类双击 = 心情+15 + 整件消失（不依赖 ml——修复 ItemSpawner 刷酒/无 ml 酒不加心情）
         int sip = Math.Min(SIP_ML, ml); // 一口 200ml（仿喝水）
         bool homebrew = IsHomebrewWine(item);
-        int mood = 15;
+        int mood = BuildConfig.AlcoholMood;
         if (homebrew)
         {
             int bv = GetItemBaseValue(item);
@@ -1397,8 +1397,8 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            SetSatiety(Math.Min(100, GetSatiety() + 10));
-            SetThirstPct(Math.Min(100, GetThirstPct() + 15));
+            SetSatiety(Math.Min(100, GetSatiety() + BuildConfig.BeverageSatiety));
+            SetThirstPct(Math.Min(100, GetThirstPct() + BuildConfig.BeverageThirst));
             try { StoreUIManager.Instance.Notify(LangHelper.T("饮品 +10% 饱食 +15% 口渴", "Beverage +10% Satiety +15% Thirst"), "green"); } catch { }
             TryExpel(item); // 饮料喝完消失（消耗 1 件）
             RefreshStatusPanel();
@@ -1670,7 +1670,7 @@ internal static class RobinCrusoePerk
             // 捡漏直觉不再额外加拾荒次数（用户拍板 09-10：该加成有缩减 bug，特性不影响次数）
             // 09-12 硬爽版：捡漏直觉加回 +10（鲁滨逊走 GetScavCap 单一读口，LuckScout 侧 Postfix 已排除鲁滨逊防双加）
             int cap = 5 + GetMoodScavBonus();
-            if (BuildConfig.HARD_MODE && LuckScoutPerk.IsActive()) cap += 10;
+            if (BuildConfig.HardMode && LuckScoutPerk.IsActive()) cap += 10;
             if (IsHomebrewWineBuffActive()) cap += 1; // 顶级自酿 buff：拾荒次数+1（用户拍板 09-10）
             cap = Math.Max(1, cap);
             return cap;
@@ -2225,7 +2225,7 @@ internal static class RobinCrusoePerk
             if (!IsActive()) return;
             SetSleep(Math.Max(0, GetSleep() - SLEEP_SCAV_LOSS));
             // 09-13 用户拍板 v1 定稿：拾荒每次 -2 清洁（单一场景）
-            SetClean(Math.Max(0, GetClean() - 2));
+            SetClean(Math.Max(0, GetClean() - BuildConfig.CleanScavCost));
         }
         catch { }
     }
@@ -2834,10 +2834,10 @@ internal static class RobinCrusoePerk
     // 白名单按 id（toothpaste/toilet_paper/shampoo/paper_towel）；排除 pack_condom/box_tampon（不在表内自然不触发）
     private static readonly System.Collections.Generic.Dictionary<string, int> DAILY_NEED_CLEAN = new System.Collections.Generic.Dictionary<string, int>
     {
-        { "toothpaste", 15 },
-        { "toilet_paper", 30 },
-        { "shampoo", 45 },
-        { "paper_towel", 45 },
+        { "toothpaste", BuildConfig.CleanToothpaste },
+        { "toilet_paper", BuildConfig.CleanToiletPaper },
+        { "shampoo", BuildConfig.CleanShampoo },
+        { "paper_towel", BuildConfig.CleanPaperTowel },
     };
     private static bool IsDailyNeed(GameItem item)
     {
@@ -3228,7 +3228,7 @@ internal static class RobinCrusoePerk
             // 硬爽版：50% 受限（09-12 用户拍板；防堆叠保留）
             if (DrJacksonFriendPerk.IsActive())
             {
-                if (UnityEngine.Random.value < (BuildConfig.HARD_MODE ? 0.5f : 0.03f))
+                if (UnityEngine.Random.value < (BuildConfig.HardMode ? 0.5f : 0.03f))
                 {
                     if (!HasGoodOnFront("system_capped_neural_core"))
                         try { if (MerchantHelper.AddItemToCounter("system_capped_neural_core", 0, false) != null) added++; } catch { }

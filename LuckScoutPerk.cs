@@ -196,7 +196,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
     private const int UPGRADE_CHANCE = 2;            // 每级 +2（放慢升级节奏）
 
-    private const int MAX_CHANCE = BuildConfig.HARD_MODE ? 50 : 25;   // 稀有物发现几率上限（标准版25%；硬爽版50%，09-12 用户拍板）
+    private static int MAX_CHANCE => BuildConfig.HardMode ? 50 : 25;   // 稀有物发现几率上限（标准版25%；硬爽版50%，09-12 用户拍板）
 
     private const int LEVELUP_EVERY = 15;             // 每拾荒 15 次升 1 级（目标更漫长）
 
@@ -654,7 +654,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
             // 09-10 用户拍板：捡漏直觉不再加拾荒次数（任何职业；此前 +10 有缩减 bug）
             // 09-12 硬爽版：加回 +10（仅非鲁滨逊职业；鲁滨逊走 GetScavCap 已含，防双 Postfix 叠加）
-            if (BuildConfig.HARD_MODE && IsActive() && !RobinCrusoePerk.IsActive())
+            if (BuildConfig.HardMode && IsActive() && !RobinCrusoePerk.IsActive())
                 __result += 10;
 
         }
@@ -675,7 +675,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
             // 09-10 用户拍板：捡漏直觉不再加拾荒次数（任何职业）
             // 09-12 硬爽版：加回 +10（GetScavTimeLeft=实际可拾荒次数读口，须同步；非鲁滨逊防双加）
-            if (BuildConfig.HARD_MODE && IsActive() && !RobinCrusoePerk.IsActive())
+            if (BuildConfig.HardMode && IsActive() && !RobinCrusoePerk.IsActive())
                 __result += 10;
             if (false) { }
 
@@ -1039,7 +1039,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
             // 200
             "surgery_tool", "pheromone_perfume", "crypto_module_sup", "crypto_module_ser", "glock_receiver"
         };
-        if (BuildConfig.HARD_MODE)
+        if (BuildConfig.HardMode)
         {
             list.Add("system_capped_neural_core");     // 受限神经模组（硬爽版加回均匀池；09-13 用户拍板：未受限全删）
         }
@@ -1056,7 +1056,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
         try
         {
             // 神经模组独立 roll（仅标准版；未命中/创建失败回落原池；09-13 用户拍板：未受限已全删，仅剩受限 2%）
-            if (!BuildConfig.HARD_MODE)
+            if (!BuildConfig.HardMode)
             {
                 double nr = Core.Rng.NextDouble();
                 string neuralId = null;
