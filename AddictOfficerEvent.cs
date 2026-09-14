@@ -213,10 +213,7 @@ internal static class AddictOfficerEvent
         {
             PlayerStore store = PlayerStore.Instance;
             if (store == null) return null;
-            var prop = typeof(PlayerStore).GetProperty("storeClientManager", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (prop != null && prop.GetValue(store) is StoreClientManager m) return m;
-            var field = typeof(PlayerStore).GetField("storeClientManager", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            return field?.GetValue(store) as StoreClientManager;
+                            return store.storeClientManager;
         }
         catch { return null; }
     }

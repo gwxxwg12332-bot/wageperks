@@ -2530,11 +2530,9 @@ internal static class Patches
             var ng = Il2Cpp.NewGameData.Instance;
             if (ng != null)
             {
-                // ISIL 偏移是十进制：OnPointerClick 检查 [rax+48] = 0x30 = isInMainMenu
-                byte b30 = System.Runtime.InteropServices.Marshal.ReadByte(ng.Pointer, 0x30);
-                if (b30 == 0)
+                if (!ng.isInMainMenu)
                 {
-                    System.Runtime.InteropServices.Marshal.WriteByte(ng.Pointer, 0x30, 1);
+                    ng.isInMainMenu = true;
                 }
             }
         }

@@ -2573,22 +2573,8 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
             // 方式1：直接从PlayerStore获取currentClientInstance属性
             try
             {
-                PropertyInfo prop = typeof(PlayerStore).GetProperty("currentClientInstance",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (prop != null)
-                {
-                    object instance = prop.GetValue(store);
-                    if (instance != null)
-                    {
-                        PropertyInfo clientProp = instance.GetType().GetProperty("storeClient",
-                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (clientProp != null)
-                        {
-                            StoreClient c = clientProp.GetValue(instance) as StoreClient;
-                            if (c != null) return c;
-                        }
-                    }
-                }
+                StoreClientInstance instance = store.currentClientInstance;
+                if (instance != null && instance.storeClient != null) return instance.storeClient;
             }
             catch { }
 
