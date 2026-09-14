@@ -510,7 +510,7 @@ using Il2CppInterop.Runtime;
 
 
 
-[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks" + (JacksonPerks.BuildConfig.HARD_MODE ? " Hard" : ""), "1.1.7", "gwxxwg12332")]
+[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks", "1.1.8", "gwxxwg12332")]
 
 
 
@@ -704,8 +704,61 @@ using Il2CppInterop.Runtime;
 
 namespace JacksonPerks;
 
-// 版本构建开关（09-12）：标准版 false / 硬爽版 true——打包前切换，编译产物以 ModInfo 名称区分（Wage's Perks / Wage's Perks Hard）
-public static class BuildConfig { public const bool HARD_MODE = true; }
+// 版本配置（09-14 一个 DLL 化）：HardMode 运行时读 MelonPreferences（Mod Manager 面板可编辑，重启生效）
+public static class BuildConfig
+{
+    private static bool? _hardMode = null;
+    public static bool HardMode
+    {
+        get
+        {
+            if (_hardMode == null)
+            {
+                try { _hardMode = MelonLoader.MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode"); }
+                catch { _hardMode = false; }
+            }
+            return _hardMode.Value;
+        }
+    }
+    public static void InitPrefs()
+    {
+        try
+        {
+            var cat = MelonLoader.MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
+            cat.CreateEntry<bool>("HardMode", false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
+            // 数值配置（09-14 一个 DLL 化：Mod Manager 面板可调，重启生效）
+            cat.CreateEntry<int>("CleanDailyLoss", 2, "清洁每日衰减量");
+            cat.CreateEntry<int>("CleanScavCost", 2, "拾荒清洁消耗");
+            cat.CreateEntry<int>("CleanToothpaste", 15, "牙膏恢复清洁");
+            cat.CreateEntry<int>("CleanToiletPaper", 30, "厕纸恢复清洁");
+            cat.CreateEntry<int>("CleanShampoo", 45, "洗涤剂恢复清洁");
+            cat.CreateEntry<int>("CleanPaperTowel", 45, "纸巾恢复清洁");
+            cat.CreateEntry<int>("BeverageSatiety", 10, "饮品饱食恢复");
+            cat.CreateEntry<int>("BeverageThirst", 15, "饮品口渴恢复");
+            cat.CreateEntry<int>("SnackMood", 10, "零食心情恢复");
+            cat.CreateEntry<int>("AlcoholMood", 15, "酒类心情恢复");
+            cat.CreateEntry<int>("NarcoticMood", 20, "麻醉品心情恢复");
+            _hardMode = null; // 强制重读（CFG 可能已被外部修改）
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WagePerks] BuildConfig.InitPrefs 异常: " + ex.Message); }
+    }
+    public static int CleanDailyLoss => GetInt("CleanDailyLoss", 2);
+    public static int CleanScavCost => GetInt("CleanScavCost", 2);
+    public static int CleanToothpaste => GetInt("CleanToothpaste", 15);
+    public static int CleanToiletPaper => GetInt("CleanToiletPaper", 30);
+    public static int CleanShampoo => GetInt("CleanShampoo", 45);
+    public static int CleanPaperTowel => GetInt("CleanPaperTowel", 45);
+    public static int BeverageSatiety => GetInt("BeverageSatiety", 10);
+    public static int BeverageThirst => GetInt("BeverageThirst", 15);
+    public static int SnackMood => GetInt("SnackMood", 10);
+    public static int AlcoholMood => GetInt("AlcoholMood", 15);
+    public static int NarcoticMood => GetInt("NarcoticMood", 20);
+    private static int GetInt(string key, int def)
+    {
+        try { return MelonLoader.MelonPreferences.GetEntryValue<int>("WagesPerks", key); }
+        catch { return def; }
+    }
+}
 
 
 
@@ -1666,70 +1719,8 @@ public class Core : MelonMod
 
 
     public override void OnInitializeMelon()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     {
+        BuildConfig.InitPrefs();
 
 
 
@@ -21648,7 +21639,8 @@ public class Core : MelonMod
 
 
 
-                prefix: nameof(Patches.PrefixClientNoExposeInjector));
+                prefix: nameof(Patches.PrefixClientNoExposeInjector),
+                parameterTypes: new Type[] { typeof(ItemFeature) });
 
 
 
