@@ -192,13 +192,13 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
     private const string SCANNER_TAG = "SCAV_SCANNER_DOUBLE_CHANCE";
 
-    private const int BASE_CHANCE = 0;               // 初始稀有率（%）从0开始
+    private static int BASE_CHANCE => BuildConfig.BaseChance;               // 初始稀有率（%）（CFG 可调）
 
-    private const int UPGRADE_CHANCE = 2;            // 每级 +2（放慢升级节奏）
+    private static int UPGRADE_CHANCE => BuildConfig.UpgradeChance;            // 每级 +%（CFG 可调）
 
     private static int MAX_CHANCE => BuildConfig.HardMode ? 50 : 25;   // 稀有物发现几率上限（标准版25%；硬爽版50%，09-12 用户拍板）
 
-    private const int LEVELUP_EVERY = 15;             // 每拾荒 15 次升 1 级（目标更漫长）
+    private static int LEVELUP_EVERY => BuildConfig.LevelupEvery;             // 每 N 次拾荒升 1 级（CFG 可调）
 
 
 
@@ -1060,7 +1060,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
             {
                 double nr = Core.Rng.NextDouble();
                 string neuralId = null;
-                if (nr < 0.02) neuralId = "system_capped_neural_core";
+                if (nr < BuildConfig.NeuralRollChance / 100f) neuralId = "system_capped_neural_core";
                 if (neuralId != null)
                 {
                     try

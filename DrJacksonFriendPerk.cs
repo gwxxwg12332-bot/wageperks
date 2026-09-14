@@ -19,8 +19,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     internal override int Cost => 2;
     internal override int Type => 0;
 
-    private const int VISIT_INTERVAL_DAYS = 7; // 一周来一次
-    private const int EXTRA_ITEMS_COUNT = 8; // 额外售卖物品数量
+    private static int VISIT_INTERVAL_DAYS => BuildConfig.DoctorVisitInterval; // 来访间隔（CFG 可调）
+    private static int EXTRA_ITEMS_COUNT => BuildConfig.DoctorExtraItems; // 额外售卖物品数量
 
     // 上次博士来访的游戏天数
     private static int _lastJacksonVisitDay = -1;

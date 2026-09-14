@@ -21,7 +21,7 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
 
     // 上次酒商来访的天数
     private static int _lastVisitDay = -1;
-    private const int VISIT_INTERVAL = 7; // 一周来一次
+    private static int VISIT_INTERVAL => BuildConfig.AlcoholVisitInterval; // 来访间隔（CFG 可调）
     internal override void OnNewGame()
     {
         _lastVisitDay = -1;

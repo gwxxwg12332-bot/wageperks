@@ -35,7 +35,7 @@ internal static class RobinCrusoePerk
     internal const int UNIT_CAL = 2200;             // 1 单位卡路里
     internal const int NORMAL_MAX_UNIT = 5;         // 常态上限（5 单位）
     internal const int GRANARY_UNIT = 7;            // 粮仓充盈（7 单位 = 15400 卡）
-    internal const int SIP_ML = 200;                // 一口水 = 200ml
+    internal static int SIP_ML => BuildConfig.SipMl;                // 一口水 = 200ml（CFG 可调）
     internal const int BOTTLE_ML = 1000;            // 开局大瓶纯水容量 1000ml
 
     // ===== v5.8-8 节点效果池（最终锁定：六状态独立节点 + 主导节点 + 池子抽1锁定）=====
@@ -133,14 +133,14 @@ internal static class RobinCrusoePerk
     };
 
     // 新三状态（用户拍板 09-09：清洁度/睡眠/社交）
-    internal const int CLEAN_START = 100;      // 清洁度初始 100
-    internal const int SLEEP_START = 100;      // 睡眠初始 100
-    internal const int SOCIAL_START = 50;      // 社交初始 50
+    internal static int CLEAN_START => BuildConfig.CleanStart;      // 清洁度初始（CFG 可调）
+    internal static int SLEEP_START => BuildConfig.SleepStart;      // 睡眠初始（CFG 可调）
+    internal static int SOCIAL_START => BuildConfig.SocialStart;      // 社交初始（CFG 可调）
     internal static int DAILY_CLEAN_LOSS => BuildConfig.CleanDailyLoss;   // 清洁每日衰减（CFG 可调）
-    internal const int DAILY_SLEEP_GAIN = 30;  // 睡眠打烊 +30%
-    internal const int SLEEP_SCAV_LOSS = 7;    // 外出拾荒睡眠 -7%（09-10 用户拍板：15% 太狠会触发禁拾荒自锁，3% 太轻，定为 7%）
-    internal const int DAILY_SOCIAL_GAIN = 5;  // 社交每日 +5（开店接待）
-    internal const int DAILY_SOCIAL_LOSS = 5;  // 客流削减日社交 -5（独处）
+    internal static int DAILY_SLEEP_GAIN => BuildConfig.DailySleepGain;  // 睡眠打烊（CFG 可调）
+    internal static int SLEEP_SCAV_LOSS => BuildConfig.SleepScavLoss;    // 外出拾荒睡眠 -%（CFG 可调）
+    internal static int DAILY_SOCIAL_GAIN => BuildConfig.DailySocialGain;  // 社交每日 +（开店接待，CFG 可调）
+    internal static int DAILY_SOCIAL_LOSS => BuildConfig.DailySocialLoss;  // 社交每日 -（独处，CFG 可调）
 
     // 绝境良性 buff（暗黑地牢式，非性格）：绝境节点自带正面补偿，效果内联在对应方法（觅食/恢复/药效），无长期状态
     // 饿疯了→觅食+30%（PostfixGetRandomScavengedItem）；饥饿→觅食+15%；虚弱→每日恢复+10%（PostfixOnNewDay）；
@@ -158,15 +158,15 @@ internal static class RobinCrusoePerk
     internal const int HEALTH_GOOD = 80;       // 健康良好线
     internal const int NODE_BAD = 50;          // 节点分界线
     internal const int NODE_CRIT = 20;         // 濒危分界线
-    internal const int MOOD_START = 60;        // 心情初始值
-    internal const int DAILY_SAT_LOSS = 20;    // 饱食每日 -20%
-    internal const int DAILY_THIRST_LOSS = 25; // 口渴每日 -25%
-    internal const int DAILY_HEALTH_GAIN = 10; // 健康每日 +10% 自然恢复
-    internal const int GRANARY_DAYS = 7;       // 粮仓：饱食≥80 连续 7 天
-    internal const int ELEV_EVERY = 2;         // 昂扬：每 2 天结算一次
-    internal const int ELEV_MAX = 5;           // 昂扬累计封顶 5 次
-    internal const int MOOD_UP = 5;            // 三项全好 每日 +5
-    internal const int MOOD_DOWN = 10;         // 任一项<60 每日 -10
+    internal static int MOOD_START => BuildConfig.MoodStart;        // 心情初始值（CFG 可调）
+    internal static int DAILY_SAT_LOSS => BuildConfig.DailySatLoss;    // 饱食每日 -%（CFG 可调）
+    internal static int DAILY_THIRST_LOSS => BuildConfig.DailyThirstLoss; // 口渴每日 -%（CFG 可调）
+    internal static int DAILY_HEALTH_GAIN => BuildConfig.DailyHealthGain; // 健康每日 +%（CFG 可调）
+    internal static int GRANARY_DAYS => BuildConfig.GranaryDays;       // 粮仓连续天数（CFG 可调）
+    internal static int ELEV_EVERY => BuildConfig.ElevEvery;         // 昂扬结算间隔（CFG 可调）
+    internal static int ELEV_MAX => BuildConfig.ElevMax;           // 昂扬累计封顶（CFG 可调）
+    internal static int MOOD_UP => BuildConfig.MoodUp;            // 三项全好每日+（CFG 可调）
+    internal static int MOOD_DOWN => BuildConfig.MoodDown;         // 任一项低每日-（CFG 可调）
 
     // 状态客户 identifier（cheatsheet 2.3.12 实锤 + 工厂打标补充）
     private static readonly HashSet<string> STATUS_CLIENT_IDS = new HashSet<string>
@@ -3061,10 +3061,10 @@ internal static class RobinCrusoePerk
     // ============================================================
     private const long BUTCHER_PHONE_NUMBER = 8800;   // 胡安电话（原屠夫/上层厨师，避开原版 8376/8815/56371/4615/3319/51189）
     private const long LI_BEIWEN_PHONE_NUMBER = 8801; // 李北文电话
-    private const int BUTCHER_FIRST_VISIT_DAY = 13;   // 胡安第14天首次上门（拆包 09-12 [L1]：GetDayCounter 0-based，第14天=13；原14永不命中）
-    private const int LI_BEIWEN_FIRST_VISIT_DAY = 20; // 李北文第21天首次上门（0-based：第21天=20）
-    private const int CALL_TO_ARRIVE_DAYS = 2;        // 电话叫货后排 2 天到店
-    private const int CALL_COOLDOWN_DAYS = 3;         // 电话冷却 3 天
+    private static int BUTCHER_FIRST_VISIT_DAY => BuildConfig.ButcherVisitDay;   // 胡安首次上门（CFG 可调） 0-based，第14天=13；原14永不命中）
+    private static int LI_BEIWEN_FIRST_VISIT_DAY => BuildConfig.LiBeiwenVisitDay; // 李北文首次上门（CFG 可调）
+    private static int CALL_TO_ARRIVE_DAYS => BuildConfig.CallArriveDays;        // 电话叫货到店天数（CFG 可调）
+    private static int CALL_COOLDOWN_DAYS => BuildConfig.CallCooldownDays;         // 电话冷却天数（CFG 可调）
     private static int _wantedSupplierScheduledDay = -1; // 防同日重复调度
     // 09-13 胡安货单相关：到店 SetBarterOffer 食物报价
     private static readonly string[] CHEF_FOOD_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat", "morsel", "small_morsel", "processed_cheese", "meat_scrap", "cup_noodle", "processed_juice", "energy_drink" };
@@ -3228,7 +3228,8 @@ internal static class RobinCrusoePerk
             // 硬爽版：50% 受限（09-12 用户拍板；防堆叠保留）
             if (DrJacksonFriendPerk.IsActive())
             {
-                if (UnityEngine.Random.value < (BuildConfig.HardMode ? 0.5f : 0.03f))
+                float neuralChance = (BuildConfig.HardMode ? BuildConfig.NeuralChanceHard : BuildConfig.NeuralChanceNormal) / 100f;
+            if (UnityEngine.Random.value < neuralChance)
                 {
                     if (!HasGoodOnFront("system_capped_neural_core"))
                         try { if (MerchantHelper.AddItemToCounter("system_capped_neural_core", 0, false) != null) added++; } catch { }

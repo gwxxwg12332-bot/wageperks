@@ -738,6 +738,49 @@ public static class BuildConfig
             cat.CreateEntry<int>("SnackMood", 10, "零食心情恢复");
             cat.CreateEntry<int>("AlcoholMood", 15, "酒类心情恢复");
             cat.CreateEntry<int>("NarcoticMood", 20, "麻醉品心情恢复");
+            // 鲁滨逊生存（09-14 全量 CFG 化）
+            cat.CreateEntry<int>("DailySatLoss", 20, "饱食每日衰减");
+            cat.CreateEntry<int>("DailyThirstLoss", 25, "口渴每日衰减");
+            cat.CreateEntry<int>("DailyHealthGain", 10, "健康每日恢复");
+            cat.CreateEntry<int>("DailySleepGain", 30, "打烊睡眠恢复");
+            cat.CreateEntry<int>("SleepScavLoss", 7, "拾荒睡眠消耗");
+            cat.CreateEntry<int>("DailySocialGain", 5, "社交每日+（接待）");
+            cat.CreateEntry<int>("DailySocialLoss", 5, "社交每日-（独处）");
+            cat.CreateEntry<int>("MoodUp", 5, "三项全好每日心情+");
+            cat.CreateEntry<int>("MoodDown", 10, "任一项低每日心情-");
+            cat.CreateEntry<int>("MoodStart", 60, "心情初始值");
+            cat.CreateEntry<int>("SipMl", 200, "一口喝水量(ml)");
+            cat.CreateEntry<int>("CleanStart", 100, "清洁初始值");
+            cat.CreateEntry<int>("SleepStart", 100, "睡眠初始值");
+            cat.CreateEntry<int>("SocialStart", 50, "社交初始值");
+            cat.CreateEntry<int>("GranaryDays", 7, "粮仓连续天数门槛");
+            cat.CreateEntry<int>("ElevEvery", 2, "昂扬结算间隔(天)");
+            cat.CreateEntry<int>("ElevMax", 5, "昂扬累计封顶");
+            // 电话/供应商
+            cat.CreateEntry<int>("ButcherVisitDay", 13, "胡安首次到店天(0-based)");
+            cat.CreateEntry<int>("LiBeiwenVisitDay", 20, "李北文首次到店天(0-based)");
+            cat.CreateEntry<int>("CallArriveDays", 2, "电话叫货到店天数");
+            cat.CreateEntry<int>("CallCooldownDays", 3, "电话冷却天数");
+            // 捡漏直觉
+            cat.CreateEntry<int>("BaseChance", 0, "稀有率初始(%)");
+            cat.CreateEntry<int>("UpgradeChance", 2, "每级稀有率+(%)");
+            cat.CreateEntry<int>("LevelupEvery", 15, "每N次拾荒升1级");
+            // 博士之友
+            cat.CreateEntry<int>("DoctorVisitInterval", 7, "博士来访间隔(天)");
+            cat.CreateEntry<int>("DoctorExtraItems", 8, "博士夜店加货数量");
+            // 神经模组概率（int %）
+            cat.CreateEntry<int>("NeuralChanceHard", 50, "硬爽博士夜受限模组概率(%)");
+            cat.CreateEntry<int>("NeuralChanceNormal", 3, "普通博士夜受限模组概率(%)");
+            cat.CreateEntry<int>("NeuralRollChance", 2, "普通拾荒独立roll受限模组(%)");
+            // 命运骰
+            cat.CreateEntry<int>("DiceTriggerValue", 400, "骰子触发累计值");
+            cat.CreateEntry<int>("DiceUninstallRefund", 50, "卸载返还(%)");
+            // 商人周期
+            cat.CreateEntry<int>("AlcoholVisitInterval", 7, "酒商来访间隔(天)");
+            cat.CreateEntry<int>("WaterVisitInterval", 7, "水商来访间隔(天)");
+            cat.CreateEntry<int>("GunsmithVisitInterval", 7, "枪匠来访间隔(天)");
+            // 容器升级
+            cat.CreateEntry<int>("ContainerMaxStage", 5, "蛙哥箱段位上限");
             _hardMode = null; // 强制重读（CFG 可能已被外部修改）
         }
         catch (System.Exception ex) { Core.LogMsg("[WagePerks] BuildConfig.InitPrefs 异常: " + ex.Message); }
@@ -753,6 +796,41 @@ public static class BuildConfig
     public static int SnackMood => GetInt("SnackMood", 10);
     public static int AlcoholMood => GetInt("AlcoholMood", 15);
     public static int NarcoticMood => GetInt("NarcoticMood", 20);
+    public static int DailySatLoss => GetInt("DailySatLoss", 20);
+    public static int DailyThirstLoss => GetInt("DailyThirstLoss", 25);
+    public static int DailyHealthGain => GetInt("DailyHealthGain", 10);
+    public static int DailySleepGain => GetInt("DailySleepGain", 30);
+    public static int SleepScavLoss => GetInt("SleepScavLoss", 7);
+    public static int DailySocialGain => GetInt("DailySocialGain", 5);
+    public static int DailySocialLoss => GetInt("DailySocialLoss", 5);
+    public static int MoodUp => GetInt("MoodUp", 5);
+    public static int MoodDown => GetInt("MoodDown", 10);
+    public static int MoodStart => GetInt("MoodStart", 60);
+    public static int SipMl => GetInt("SipMl", 200);
+    public static int CleanStart => GetInt("CleanStart", 100);
+    public static int SleepStart => GetInt("SleepStart", 100);
+    public static int SocialStart => GetInt("SocialStart", 50);
+    public static int GranaryDays => GetInt("GranaryDays", 7);
+    public static int ElevEvery => GetInt("ElevEvery", 2);
+    public static int ElevMax => GetInt("ElevMax", 5);
+    public static int ButcherVisitDay => GetInt("ButcherVisitDay", 13);
+    public static int LiBeiwenVisitDay => GetInt("LiBeiwenVisitDay", 20);
+    public static int CallArriveDays => GetInt("CallArriveDays", 2);
+    public static int CallCooldownDays => GetInt("CallCooldownDays", 3);
+    public static int BaseChance => GetInt("BaseChance", 0);
+    public static int UpgradeChance => GetInt("UpgradeChance", 2);
+    public static int LevelupEvery => GetInt("LevelupEvery", 15);
+    public static int DoctorVisitInterval => GetInt("DoctorVisitInterval", 7);
+    public static int DoctorExtraItems => GetInt("DoctorExtraItems", 8);
+    public static int NeuralChanceHard => GetInt("NeuralChanceHard", 50);
+    public static int NeuralChanceNormal => GetInt("NeuralChanceNormal", 3);
+    public static int NeuralRollChance => GetInt("NeuralRollChance", 2);
+    public static int DiceTriggerValue => GetInt("DiceTriggerValue", 400);
+    public static int DiceUninstallRefund => GetInt("DiceUninstallRefund", 50);
+    public static int AlcoholVisitInterval => GetInt("AlcoholVisitInterval", 7);
+    public static int WaterVisitInterval => GetInt("WaterVisitInterval", 7);
+    public static int GunsmithVisitInterval => GetInt("GunsmithVisitInterval", 7);
+    public static int ContainerMaxStage => GetInt("ContainerMaxStage", 5);
     private static int GetInt(string key, int def)
     {
         try { return MelonLoader.MelonPreferences.GetEntryValue<int>("WagesPerks", key); }
@@ -1848,7 +1926,7 @@ public class Core : MelonMod
 
 
 
-        Log.Msg("Wage's Perks v1.1.7 已加载 - 手动Patch模式");
+        Log.Msg("Wage's Perks v1.1.8 已加载 - 手动Patch模式");
 
 
 

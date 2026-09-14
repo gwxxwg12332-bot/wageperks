@@ -20,7 +20,7 @@ namespace JacksonPerks;
 // ============================================================
 public static class ContainerUpgradeV2
 {
-    public const int MAX_STAGE = 5;
+    public static int MAX_STAGE => BuildConfig.ContainerMaxStage;
 
     // 蛙哥箱子段位网格表（段 k → 宽×高）
     public static readonly int[] WAGE_BOX_W = { 3, 10, 20, 32, 42, 52 };

@@ -21,7 +21,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
 
     // 上次水商来访的天数
     private static int _lastVisitDay = -1;
-    private const int VISIT_INTERVAL = 7; // 一周来一次
+    private static int VISIT_INTERVAL => BuildConfig.WaterVisitInterval; // 来访间隔（CFG 可调）
 
     // 水商售卖的物品
     private static readonly string[] WaterItems = {

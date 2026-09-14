@@ -42,7 +42,7 @@ namespace JacksonPerks
         public const string DICE_THRESHOLD_TAG = "destinyDiceThreshold"; // 当前摇骰门槛（初始400，每次掷骰+400）
         public const string DICE_LAST_COST_TAG = "destinyDiceLastCost"; // 最近一次掷骰消耗的门槛（卸载返还50%）
         public const string DICE_PENDING_EVENT_TAG = "destinyDicePendingEventId"; // 已排队事件id（string，卸载用）
-        public const int DICE_BASE_THRESHOLD = 400;
+        public static int DICE_BASE_THRESHOLD => BuildConfig.DiceTriggerValue;
 
 
 
@@ -496,7 +496,7 @@ namespace JacksonPerks
     private static GameItem _activeDice = null;   // 最近操作的骰子（双击/吸收时更新），OnGUI 卸载按钮目标
     private static bool _unloadConfirm = false;   // 卸载确认框模态
 
-    // 双击掷骰：value >= threshold 才可摇；摇后 value-=threshold、threshold+=400、triggers+1、LastCost=本次门槛
+    // 双击掷骰：value >= threshold 才可摇；摇后 value-=threshold、threshold+=门槛、triggers+1、LastCost=本次门槛
     public static void RollDice(GameItem dice)
     {
         try
@@ -547,7 +547,7 @@ namespace JacksonPerks
             int lastCost = GetTagInt(dice, DICE_LAST_COST_TAG);
             if (lastCost > 0)
             {
-                int refund = lastCost / 2;
+                int refund = (int)(lastCost * BuildConfig.DiceUninstallRefund / 100f);
                 int value = GetTagInt(dice, DICE_VALUE_TAG);
                 SetTagInt(dice, DICE_VALUE_TAG, value + refund);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("已卸载事件，返还 " + refund + " 价值", "Event unloaded, +" + refund + " value"), "green"); } catch { }
