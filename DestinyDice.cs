@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using System.Collections.Generic;
 
@@ -2978,7 +2978,6 @@ namespace JacksonPerks
 
                 // v2 激活制（09-12）：吸收只累加价值，双击掷骰才触发事件
                 SetTagInt(dice, DICE_VALUE_TAG, newValue);
-
 
 
                 // 更新计数面板标题

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
@@ -22,12 +22,12 @@ public static class ContainerUpgradeV2
 {
     public static int MAX_STAGE => BuildConfig.ContainerMaxStage;
 
-    // 蛙哥箱子段位网格表（段 k → 宽×高）
-    public static readonly int[] WAGE_BOX_W = { 3, 10, 20, 32, 42, 52 };
-    public static readonly int[] WAGE_BOX_H = { 3, 10, 10, 10, 10, 10 };
+    // 蛙哥箱子段位网格表（段 k → 宽×高）——09-14 CFG 化（BuildConfig.BoxWidths/BoxHeights）
+    public static int[] WAGE_BOX_W => BuildConfig.BoxWidthsArr;
+    public static int[] WAGE_BOX_H => BuildConfig.BoxHeightsArr;
 
-    // 升级消耗（段 k → 段 k+1 需材料数）
-    public static readonly int[] UPGRADE_COSTS = { 5, 10, 20, 40, 80 };
+    // 升级消耗（段 k → 段 k+1 需材料数）——09-14 CFG 化（BuildConfig.UpgradeCosts）
+    public static int[] UPGRADE_COSTS => BuildConfig.UpgradeCostsArr;
 
     // ===================== tag 工具 =====================
     public static int GetTagIntSafe(GameItem item, string tag)
@@ -91,6 +91,9 @@ public static class ContainerUpgradeV2
     {
         try { grid.SetShape(new string('0', w * h), w); } catch { try { grid.SetShape("", w); } catch { } }
         try { grid.Validate(); } catch { }
+        // ★ 09-14 拆包实证：GameItem.shape(0x198)=物品场景占地，绝不能写（写 w×h 全开矩形 → 箱子占地变内部尺寸、
+        //   挤压桌面）。存档 itemShape 存的就是占地（本就不该变）；内部容量=GameGridInventory.inventoryShape(0x1B0)，
+        //   由 grid.SetShape 维护 + 读档恢复链（PostfixLoadGame/SetContentWindow → RestoreWageBoxShape/RestoreCrusoeShape）按段位重设。
     }
 
     // ===================== 同帧防重 =====================
@@ -151,6 +154,8 @@ public static class ContainerUpgradeV2
         {
             if (item == null) return false;
             if (item.IsTag("CUSTOM_STORAGE_TAG")) return true;
+            if (item.IsTag("WAGE_BOX_TAG")) return true; // 09-14 场景读档：CSTAG 丢但升级 tag 随档 → 专属标记识别
+            if (item.IsTag("wage_box_type")) return true; // 09-14 带值 tag（用原生 IsTag——HasTag=GetTagReadonly!=null 对不存在 tag 恒 True，骰子/所有物品误判成蛙哥箱）
             return (item.identifier ?? "").ToLowerInvariant() == "custom_storage_box";
         }
         catch { return false; }
@@ -231,6 +236,9 @@ public static class ContainerUpgradeV2
             SetFullRect(grid, targetW, targetH);
             AddTagInt(box, "wb_stage", 1);
             SetTagIntValue(box, "wb_progress", 0); // 达标升段，进度清零重计
+            try { SetTagIntValue(box, "wage_box_type", 1); } catch { } // 09-14 带值类型标记（随档；布尔 tag 不随档，带值 tag 随档——wb_stage 先例）
+            try { int _hidx = FindBoxInHidden(box); SetHiddenStageByIndex(_hidx, stage + 1); Core.LogMsg("[位置方案] 蛙哥升段记录 hiddenIdx=" + _hidx + " stage=" + (stage + 1)); } catch { } // 09-14 海报后边位置关联
+            try { PerkStatePersistence.SetInt("RobinCrusoe", "wage_stage_u" + box.uniqueId, stage + 1); } catch { }
             if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box); // 满级：发第二个妙妙箱（两个箱子方案，天然存档）
             try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5（" + targetW + "×" + targetH + "）", "Wage Box upgraded! Stage " + (stage + 1) + "/5 (" + targetW + "×" + targetH + ")"), "white"); } catch { }
             return true;
@@ -276,11 +284,11 @@ public static class ContainerUpgradeV2
             int w = 0, h = 0;
             GetShapeWH(grid, ref w, ref h);
             if (w <= 0 || h <= 0) return;
-            bool hasStage = HasTag(box, "wb_stage");
+            bool hasStage = box.IsTag("wb_stage"); // 09-14 弃用 HasTag（GetTagReadonly 对不存在 tag 返回非 null → 恒 True 误判）改用原生 IsTag
             int stage = GetTagIntSafe(box, "wb_stage");
             if (!hasStage)
             {
-                // 老档迁移：v1.1.5 老箱（52×10）→ 满级；否则新档段0兜底
+                // 按尺寸推断（老档迁移）：形状>初始（3×3）→ 满级（不缩水）；未升级 → 段 0
                 if (w > WAGE_BOX_W[0] || h > WAGE_BOX_H[0]) { stage = MAX_STAGE; SetTagIntValue(box, "wb_stage", MAX_STAGE); }
                 else { stage = 0; SetTagIntValue(box, "wb_stage", 0); }
             }
@@ -290,6 +298,55 @@ public static class ContainerUpgradeV2
             int targetW = WAGE_BOX_W[stage], targetH = WAGE_BOX_H[stage];
             if (w == targetW && h == targetH) return;
             SetFullRect(grid, targetW, targetH);
+        }
+        catch { }
+    }
+
+    // ===================== 09-14 位置方案（hiddenElement 海报后边 2×2）=====================
+    // 场景物品读档后 tag/identifier/uniqueId 全丢（HasTag 误判）→ 无法从物品识别
+    // 用 childItems 索引 + PlayerPrefs 关联（场景存档按顺序恢复，索引稳定）
+    public static int FindBoxInHidden(GameItem box)
+    {
+        try
+        {
+            var emporium = EmporiumEntry.Instance;
+            if (emporium == null || box == null) return -1;
+            var hid = emporium.hiddenElement as GameGridInventory;
+            if (hid == null || hid.childItems == null) return -1;
+            for (int i = 0; i < hid.childItems.Count; i++)
+                if (hid.childItems[i] != null && hid.childItems[i].Pointer == box.Pointer) return i;
+        }
+        catch { }
+        return -1;
+    }
+    // 按索引从 PlayerPrefs 读段位（-1=无记录）
+    public static int GetHiddenStageByIndex(int idx)
+    {
+        if (idx < 0) return -1;
+        return PerkStatePersistence.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
+    }
+    // 记录 hiddenElement 索引段位
+    public static void SetHiddenStageByIndex(int idx, int stage)
+    {
+        if (idx < 0) return;
+        PerkStatePersistence.SetInt("RobinCrusoe", "wage_stage_idx_" + idx, stage);
+    }
+    // 按指定段位强恢复（不依赖 tag——场景物品 tag 全丢）
+    public static void RestoreWageBoxToStage(GameItem box, int stage)
+    {
+        try
+        {
+            if (box == null || stage <= 0) return;
+            var grid = GetContainerGrid(box);
+            if (grid == null) return;
+            int w = 0, h = 0; GetShapeWH(grid, ref w, ref h);
+            if (w <= 0 || h <= 0) return;
+            if (stage > MAX_STAGE) stage = MAX_STAGE;
+            int targetW = WAGE_BOX_W[stage], targetH = WAGE_BOX_H[stage];
+            if (w == targetW && h == targetH) return;
+            SetFullRect(grid, targetW, targetH);
+            try { SetTagIntValue(box, "wb_stage", stage); } catch { }
+            try { Core.LogMsg("[位置方案] 恢复蛙哥 stage=" + stage + " shape=" + w + "x" + h + "->" + targetW + "x" + targetH); } catch { }
         }
         catch { }
     }
@@ -320,7 +377,7 @@ public static class ContainerUpgradeV2
             int w = 0, h = 0;
             GetShapeWH(grid, ref w, ref h);
             if (w <= 0 || h <= 0) return false;
-            bool hasStage = HasTag(box, "wb_stage");
+            bool hasStage = box.IsTag("wb_stage"); // 09-14 弃用 HasTag（恒 True 误判）改用原生 IsTag
             int stage = GetTagIntSafe(box, "wb_stage");
             int origW = GetTagIntSafe(box, "wb_orig_w");
             if (!hasStage)

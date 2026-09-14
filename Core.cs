@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 
 
@@ -781,6 +781,17 @@ public static class BuildConfig
             cat.CreateEntry<int>("GunsmithVisitInterval", 7, "枪匠来访间隔(天)");
             // 容器升级
             cat.CreateEntry<int>("ContainerMaxStage", 5, "蛙哥箱段位上限");
+            cat.CreateEntry<string>("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
+            cat.CreateEntry<string>("BoxHeights", "3,10,10,10,10,10", "蛙哥箱每段高度(逗号分隔)");
+            cat.CreateEntry<string>("UpgradeCosts", "5,10,20,40,80", "蛙哥箱每级升级材料数(逗号分隔)");
+            // 容器尺寸/成本表（逗号分隔字符串 → 数组，长度不足按末项补齐防越界）
+            try
+            {
+                BoxWidthsArr = PadToLast(ParseIntList(GetStr("BoxWidths", "3,10,20,32,42,52")), Math.Max(6, ContainerMaxStage + 1));
+                BoxHeightsArr = PadToLast(ParseIntList(GetStr("BoxHeights", "3,10,10,10,10,10")), Math.Max(6, ContainerMaxStage + 1));
+                UpgradeCostsArr = PadToLast(ParseIntList(GetStr("UpgradeCosts", "5,10,20,40,80")), Math.Max(5, ContainerMaxStage));
+            }
+            catch (System.Exception ex) { Core.LogMsg("[WagePerks] 容器表解析异常: " + ex.Message); }
             _hardMode = null; // 强制重读（CFG 可能已被外部修改）
         }
         catch (System.Exception ex) { Core.LogMsg("[WagePerks] BuildConfig.InitPrefs 异常: " + ex.Message); }
@@ -831,6 +842,36 @@ public static class BuildConfig
     public static int WaterVisitInterval => GetInt("WaterVisitInterval", 7);
     public static int GunsmithVisitInterval => GetInt("GunsmithVisitInterval", 7);
     public static int ContainerMaxStage => GetInt("ContainerMaxStage", 5);
+    // 容器尺寸/成本表（InitPrefs 时解析；长度不足按末项补齐）
+    public static int[] BoxWidthsArr = new int[] { 3, 10, 20, 32, 42, 52 };
+    public static int[] BoxHeightsArr = new int[] { 3, 10, 10, 10, 10, 10 };
+    public static int[] UpgradeCostsArr = new int[] { 5, 10, 20, 40, 80 };
+    private static string GetStr(string key, string def)
+    {
+        try { return MelonLoader.MelonPreferences.GetEntryValue<string>("WagesPerks", key); }
+        catch { return def; }
+    }
+    private static int[] ParseIntList(string s)
+    {
+        var list = new System.Collections.Generic.List<int>();
+        try
+        {
+            foreach (var part in s.Split(','))
+            {
+                if (int.TryParse(part.Trim(), out var v)) list.Add(v);
+            }
+        }
+        catch { }
+        return list.ToArray();
+    }
+    private static int[] PadToLast(int[] arr, int minLen)
+    {
+        if (arr.Length >= minLen) return arr;
+        var list = new System.Collections.Generic.List<int>(arr);
+        int last = arr.Length > 0 ? arr[arr.Length - 1] : 0;
+        while (list.Count < minLen) list.Add(last);
+        return list.ToArray();
+    }
     private static int GetInt(string key, int def)
     {
         try { return MelonLoader.MelonPreferences.GetEntryValue<int>("WagesPerks", key); }
@@ -1476,7 +1517,7 @@ public class Core : MelonMod
 
 
 
-    public static bool DebugMode = true;  // 开发态（打包发布时改 false）
+    public static bool DebugMode = false;  // 发布态（开发调试时改 true）
 
 
 
@@ -21719,6 +21760,18 @@ public class Core : MelonMod
 
                 prefix: nameof(Patches.PrefixClientNoExposeInjector),
                 parameterTypes: new Type[] { typeof(ItemFeature) });
+
+
+
+
+
+            ManualPatcher.TryPatch(typeof(ItemFeature), "GetClientExposeDialog",
+
+
+
+
+
+                prefix: nameof(Patches.PrefixGetClientExposeDialog));
 
 
 

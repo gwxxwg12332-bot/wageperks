@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
@@ -88,20 +88,46 @@ internal static class Patches
     // Bug修复：ClientNoExposeInjector NullReferenceException
     // 卖武器/酒给上层区收货员时，itemFeature为null导致原生方法崩溃
     // Prefix拦截：itemFeature为null时按"无NoExpose限制"返回true，跳过原方法（避免NRE且不阻塞售卖）
+    // 09-14 拆包扩展（ClientCanExposeFunc L1410-1607 [L1]）：realCondition/fakeCondition 天然 null 也走原生 throw 路径——
+    //   ItemFeature 三个构造器都不设 realCondition，普通武器/酒 feature 的 realCondition 天然 null →
+    //   上层收货员遍历 → 原生 NRE。三个 null case 全部按"无限制=true"拦截。
     // ============================================================
     public static bool PrefixClientNoExposeInjector(ItemFeature itemFeature, ref bool __result)
     {
         try
         {
-            if (itemFeature == null)
+            if (itemFeature == null
+                || itemFeature.realCondition == null
+                || itemFeature.fakeCondition == null
+                || itemFeature.realCondition.identifier == null)
             {
-                // ISIL实锤：原生 null 会抛 NRE；语义上 null feature = 无 NoExpose 限制 = 不阻塞售卖
+                // 拆包实锤：原生对这四类 null 全走 throw（NRE）；语义上 null = 无 NoExpose 限制 = 不阻塞售卖
                 __result = true;
-                Core.LogMsg("[Bug修复] ClientNoExposeInjector: itemFeature为null，按无限制处理（true）");
+                Core.LogMsg("[Bug修复] ClientNoExposeInjector: null 条件拦截，按无限制处理（true）");
                 return false; // 跳过原方法
             }
         }
         catch (Exception ex) { Core.LogMsg("[Bug修复] PrefixClientNoExposeInjector异常: " + ex.Message); }
+        return true; // 正常执行原方法
+    }
+
+    // ============================================================
+    // Bug修复：ItemFeature.GetClientExposeDialog NullReferenceException
+    // 链：StoreClient.ClientExposeFeature → GetClientExposeDialog → CreateCustomerConfrontDialog
+    // 普通武器/酒 feature 的 realCondition/fakeCondition 天然 null → 原生 throw（NRE）
+    // Prefix：null → 返回 null（ClientExposeFeature L3390 对 null 返回值有检查，安全跳过）
+    // ============================================================
+    public static bool PrefixGetClientExposeDialog(ItemFeature __instance, ref Il2Cpp.Dialogue __result)
+    {
+        try
+        {
+            if (__instance == null || __instance.realCondition == null || __instance.fakeCondition == null)
+            {
+                __result = null;
+                return false; // 跳过原方法，避免 NRE
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[Bug修复] PrefixGetClientExposeDialog异常: " + ex.Message); }
         return true; // 正常执行原方法
     }
 
@@ -1734,12 +1760,13 @@ internal static class Patches
         try
         {
             if (item == null || item.itemFeatures == null) return;
+            if (item.IsTag("destiny_dice_tag")) return; // 骰子不需要交易词条（09-14 词条叠加根因拦截）
             if (!RobinCrusoePerk.IsActive()) return;
             string disp = RobinCrusoePerk.GetTradeBuffDisplay(); // BUG-001：缓存命中，便宜
             if (disp.Length == 0) return;
             long ptr = 0;
             try { ptr = item.Pointer.ToInt64(); } catch { }
-            if (ptr != 0 && _nodeBuffItems.Contains(ptr)) return; // 本缓存周期已处理（防重复遍历）
+            // 09-14 幂等化：删指针防重 return（新实例/词条丢失后不再被跳过）；_nodeBuffItems 仅作防同一帧重复遍历缓存
             // 防重复：同 identifier 更新显示文本（实时跟随状态变化）
             for (int j = 0; j < item.itemFeatures.Count; j++)
             {
@@ -1836,6 +1863,7 @@ internal static class Patches
         try
         {
             if (item == null || item.itemFeatures == null) return;
+            if (item.IsTag("destiny_dice_tag")) return; // 骰子不需要交易词条（09-14 词条叠加根因拦截）
             string disp = LangHelper.T("鲁滨逊·口粮双倍价", "Robinson·Ration x2");
             for (int j = 0; j < item.itemFeatures.Count; j++)
             {

@@ -1590,7 +1590,7 @@ internal static class RobinCrusoePerk
                     {
                         int progress = ContainerUpgradeV2.GetTagIntSafe(item, "wb_progress");
                         int need = ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)];
-                        builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need, "◆ Storage: Stage " + stage + "/5 · progress " + progress + "/" + need),
+                        builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · 升级进度 " + progress + "/" + need, "◆ Storage: Stage " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · progress " + progress + "/" + need),
                             true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                     }
             }
@@ -1908,11 +1908,12 @@ internal static class RobinCrusoePerk
                 targetW = w + 1; // 未减半容器（玩家装备腰包 fanny_pack 等）：每段 +1 列（3→4→5...）
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
             ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", 0); // 达标升段，进度清零重计
+            try { PerkStatePersistence.SetInt(PERK_ID, "wage_stage_u" + container.uniqueId, stage + 1); } catch { } // 09-14 双写：场景位置 tags 不随档，PlayerPrefs 兜底
             try { if (ContainerUpgradeV2.IsUpgradeableContainer(container)) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
             // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
             try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
-            try { StoreUIManager.Instance.Notify(LangHelper.T((stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "储存区满级！容量翻倍（宽 " + targetW + "）" : "储存区升级！段位 " + (stage + 1) + "/5（宽 " + targetW + "）", (stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "Storage MAX! 2x capacity (width " + targetW + ")" : "Storage upgraded! Stage " + (stage + 1) + "/5 (width " + targetW + ")"), "white"); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T((stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "储存区满级！容量翻倍（宽 " + targetW + "）" : "储存区升级！段位 " + (stage + 1) + "/" + ContainerUpgradeV2.MAX_STAGE + "（宽 " + targetW + "）", (stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "Storage MAX! 2x capacity (width " + targetW + ")" : "Storage upgraded! Stage " + (stage + 1) + "/" + ContainerUpgradeV2.MAX_STAGE + " (width " + targetW + ")"), "white"); } catch { }
             try { Core.LogMsg("[容器v2] " + GetId(container) + " 升段 stage=" + (stage + 1) + " w=" + w + "->" + targetW + " origW=" + origW); } catch { }
             return true;
         }
@@ -1996,6 +1997,7 @@ internal static class RobinCrusoePerk
             try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
             try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
             try { var v = emporium.frontInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { } // 09-10 补 frontInv（前台）——升级的包放前台时恢复漏找
+            try { var v = emporium.hiddenElement as GameInventory; if (v != null) allInvs.Add(v); } catch { } // 09-14 补 hiddenElement（海报后边 2×2）——位置方案
             var visited = new HashSet<IntPtr>();
             var stack = new Stack<GameInventory>(allInvs);
             while (stack.Count > 0)
@@ -2025,6 +2027,10 @@ internal static class RobinCrusoePerk
                     if (item == null) continue;
                     try
                     {
+                        // 09-14 位置方案：hiddenElement（海报后边）物品按索引 PlayerPrefs 强恢复（tag 全丢无法识别）
+                        int _hidx = ContainerUpgradeV2.FindBoxInHidden(item);
+                        int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
+                        if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(item, _hstage); _rcRestoredContainers.Add(item.Pointer); restored++; continue; }
                         if (ContainerUpgradeV2.IsWageBox(item))
                         {
                             try { if (!item.IsTag("CUSTOM_STORAGE_TAG")) item.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档箱子补打 tag（09-13：缺 tag 导致升级挂点不识别）
@@ -2050,6 +2056,14 @@ internal static class RobinCrusoePerk
         try
         {
             if (__instance == null || !IsActive()) return;
+            // 09-14 位置方案：海报后边 hiddenElement 物品 tag 全丢 → 按索引 PlayerPrefs 强恢复（优先于 IsWageBox）
+            try
+            {
+                int _hidx = ContainerUpgradeV2.FindBoxInHidden(__instance);
+                int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
+                if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); try { Core.LogMsg("[位置方案] 打开恢复 hiddenIdx=" + _hidx + " stage=" + _hstage); } catch { } return; }
+            }
+            catch { }
             if (ContainerUpgradeV2.IsWageBox(__instance))
             {
                 try { if (!__instance.IsTag("CUSTOM_STORAGE_TAG")) __instance.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档补打
