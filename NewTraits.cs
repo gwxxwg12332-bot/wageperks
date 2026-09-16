@@ -441,6 +441,20 @@ internal sealed class WandererPerk : CustomStartingPerk
     // 09-17 拍板：原生 id 池（拆包给的工具/日用品）
     private static readonly string[] TOOL_IDS = { "magnifier", "labeler", "logo_checker", "stamp_guide" };
     private static readonly string[] HOUSEHOLD_IDS = { "cigarette_color", "cigarette_guide" };
+    // 09-20 M1 拍板：随机池过滤文档/书/笔记/指南类（工具/日用品判定不变——仅全物品池过滤）
+    private static readonly string[] DOCUMENT_IDS = {
+        "tutorial_book", "wanted_paper", "joe_card",
+        "cigarette_guide", "stamp_guide", "logo_checker",
+        "mentor_note", "mentor_notes", "tutorial_note"
+    };
+    private static bool IsDocumentId(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return true;
+        string i = id.ToLowerInvariant();
+        if (System.Array.IndexOf(DOCUMENT_IDS, i) >= 0) return true;
+        return i.Contains("book") || i.Contains("guide") || i.Contains("paper")
+            || i.Contains("note") || i.Contains("mentor");
+    }
 
     // ============ PlayerStore.StartNewGame Postfix（09-17 流浪者：替换原版发放） ============
     public static void PostfixStartNewGame()
@@ -501,6 +515,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                     if (string.IsNullOrEmpty(id)) continue;
                     if (System.Array.IndexOf(TOOL_IDS, id) >= 0) continue;
                     if (System.Array.IndexOf(HOUSEHOLD_IDS, id) >= 0) continue;
+                    if (IsDocumentId(id)) continue; // 09-20 M1：随机池排除文档/书/笔记/指南类
                     ids.Add(id);
                 }
             }

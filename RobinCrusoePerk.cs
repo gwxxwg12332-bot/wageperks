@@ -1256,6 +1256,11 @@ internal static class RobinCrusoePerk
             if (id != BLOOD_DRAW_ID) return true;
             if (Patches.CurrentUITradeMode != 0) return true;          // 交易模式不抽
             if (IsInDoctorNightInventory(newItem)) return true;        // 博士夜晚商店未买不抽
+            if (IsBloodWeak() || IsForcedRest())
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱/恢复期，无法抽血", "Too weak - cannot draw blood"), "red"); } catch { }
+                return false;
+            }
             int blood = GetBlood();
             if (blood < 500)
             {
@@ -1266,12 +1271,24 @@ internal static class RobinCrusoePerk
             bool bag = false;
             try
             {
-                if (DirectoryMaster.Has<GameItem>("blue_blood_bag")) { GiveToBackpack("blue_blood_bag", 1); bag = true; }
+                // 09-20 M2 拍板：产普通血袋 blood_bag（价值 200，走原生医疗品销路）；删 blue_blood_bag 路径
+                GameItem bb = DirectoryMaster.Item("blood_bag", true);
+                if (bb != null)
+                {
+                    try { bb.SetValue(200); } catch { }
+                    var em = EmporiumEntry.Instance;
+                    if (em != null && em.backInvinvElement != null)
+                    {
+                        var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bb, false);
+                        if (slot != null) { try { slot.TryAcceptOnce(); bag = true; } catch { } }
+                        if (!bag) { try { ((GameInventory)em.backInvinvElement).UncheckedAccept(bb); bag = true; } catch { } }
+                    }
+                }
             }
             catch { }
-            if (!bag) Core.LogMsg("[卖血] blue_blood_bag 不存在或发放失败");
+            if (!bag) Core.LogMsg("[卖血] blood_bag 不存在或发放失败");
             try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
-            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 蓝血袋（血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (blood " + GetBlood() + "/6000)"), "green"); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000)"), "green"); } catch { }
             RefreshStatusPanel();
             return false; // 拦截原生双击
         }
@@ -1799,6 +1816,45 @@ internal static class RobinCrusoePerk
     internal static void SetBlood(int v) { try { PerkStatePersistence.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
     internal static int AddBlood(int delta) { int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta)); SetBlood(b); return b; }
     internal static bool IsBloodWeak() { try { return GetBlood() < 3000; } catch { return false; } }
+    // 09-20 M5 拍板：虚弱强化——强制休息期判定（休息中禁采血/禁出门）
+    internal static bool IsForcedRest()
+    {
+        try { return PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0) > 0; }
+        catch { return false; }
+    }
+    // 09-20 M5：虚弱强制休息 3 天 → 结束 ±20% 血量（默认 50/50）；每日结算调用
+    internal static void TickBloodRest()
+    {
+        try
+        {
+            int rest = PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0);
+            if (rest > 0)
+            {
+                rest--;
+                PerkStatePersistence.SetInt(PERK_ID, "blood_rest", rest);
+                if (rest == 0)
+                {
+                    bool good = Core.Rng.Next(2) == 0;
+                    int delta = (int)(BLOOD_MAX * 0.2f); // 1200
+                    AddBlood(good ? delta : -delta);
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体恢复期结束：血量" + (good ? "+" : "-") + delta + "（" + GetBlood() + "/6000）", "Recovery over: blood " + (good ? "+" : "-") + delta + " (" + GetBlood() + "/6000)"), good ? "green" : "red"); } catch { }
+                }
+                else
+                {
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱，强制休息（剩余 " + rest + " 天）", "Too weak - forced rest (" + rest + "d left)"), "red"); } catch { }
+                }
+                RefreshStatusPanel();
+            }
+            else if (IsBloodWeak())
+            {
+                PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱到极限，强制休息 3 天", "At your limit - forced 3-day rest"), "red"); } catch { }
+                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"));
+                RefreshStatusPanel();
+            }
+        }
+        catch { }
+    }
 
     public static bool PrefixReceiveWound()
     {
@@ -1828,6 +1884,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            if (IsBloodWeak() || IsForcedRest()) { __result = false; return; } // 09-20 M5：虚弱/恢复期禁出门
             // 三处同 cap（拆包 2.13.11.4：GetMaxScavAttempts/GetScavTimeLeft/CanScavenge 独立复制，须一致）
             __result = GetScavAttempts() < GetScavCap();
         }
@@ -1838,6 +1895,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            if (IsBloodWeak() || IsForcedRest()) { __result = 0; return; } // 09-20 M5
             __result = GetScavCap(); // 上限
         }
         catch { }
@@ -1847,6 +1905,7 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            if (IsBloodWeak() || IsForcedRest()) { __result = 0; return; } // 09-20 M5
             // UI 显示：剩余 = 上限 - 已用（不为负，数字整对）
             __result = Math.Max(0, GetScavCap() - GetScavAttempts());
         }
@@ -2891,6 +2950,7 @@ internal static class RobinCrusoePerk
             SetClean(Math.Max(0, Math.Min(100, GetClean() - DAILY_CLEAN_LOSS - FxNum("cleanD") + FxNum("cleanR"))));
             SetSleep(Math.Min(100, Math.Max(0, GetSleep() + DAILY_SLEEP_GAIN + FxNum("sleepR") + GetCompBuffSleepRestore()))); // sleepR 符号修正（拆包 09-10：'sleepR-10'=恢复-10，减号负负得正，改加号）
             AddBlood(100); // 睡觉回血（09-17 卖血）
+            TickBloodRest(); // 09-20 M5：虚弱强制休息 3 天 → 结束 ±20%
             int deals = PerkStatePersistence.GetInt(PERK_ID, "deals", 0);
             int social = GetSocial() + (deals > 0 ? DAILY_SOCIAL_GAIN : -DAILY_SOCIAL_LOSS) + FxNum("socD") + FxNum("socR");
             SetSocial(Math.Max(0, Math.Min(100, social)));
