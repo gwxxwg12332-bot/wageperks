@@ -1072,10 +1072,17 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            WandererPerk.ClearBackpack(); // 09-20 设计稿：清原版发放（invElement+dossier）——先清后发，防误清自己物资
             bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 原生困难模式开关（开局界面）
             PerkStatePersistence.SetInt(PERK_ID, "robinson_hard", hard ? 1 : 0); // 随档（原生 hardMode 退出重进重置，存 mod 状态）
             PlayerStore ps = PlayerStore.Instance;
-            if (ps != null) ps.playerCash = hard ? 0 : 360; // 默认600 × 0.6（资金 -40%）；困难模式开局清零
+            if (ps != null)
+            {
+                // 09-20 设计稿：金钱随机——hard 清零；普通 50%→0 / 50%→1~600（原固定 360）
+                if (hard) ps.playerCash = 0;
+                else if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
+                else ps.playerCash = Core.Rng.Next(1, 601);
+            }
 
             if (!hard)
             {
@@ -1140,11 +1147,8 @@ internal static class RobinCrusoePerk
             var inv = (GameInventory)em.backInvinvElement;
             for (int i = 0; i < count; i++)
             {
-                if (!DirectoryMaster.Has<GameItem>("large_bottled_water")) return;
-                GameItem item = DirectoryMaster.Item("large_bottled_water", true);
-                if (item == null) continue;
-                GameItem spawn = item; // 09-17 A2 修复：删 CloneLinked（克隆品丢容器状态 → AddWater 静默失败 → 空瓶）；直接工厂产物，照 AccurateHighQualityWater 模式
-                try { WaterHelper.AddWater(spawn, 0, -1, false, 0, 1, true); } catch { }
+                GameItem item = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water"); // 09-20 设计稿：直接生成带水大瓶（删 DirectoryMaster.Item+AddWater 链——工厂产物 AddWater 静默失败 → 空瓶）
+                GameItem spawn = item;
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
@@ -1918,6 +1922,8 @@ internal static class RobinCrusoePerk
         {
             // 捡漏直觉不再额外加拾荒次数（用户拍板 09-10：该加成有缩减 bug，特性不影响次数）
             // 09-12 硬爽版：捡漏直觉加回 +10（鲁滨逊走 GetScavCap 单一读口，LuckScout 侧 Postfix 已排除鲁滨逊防双加）
+            // 09-20 回归修复：受伤且伤口未稳定 → cap 0 → 禁拾荒（打绷带 isWoundStable=true → cap 恢复，09-09 已拆实锤）
+            if (IsWounded() && !IsWoundStable()) return 0;
             int cap = 5 + GetMoodScavBonus();
             if (BuildConfig.HardMode && LuckScoutPerk.IsActive()) cap += 10;
             if (IsHomebrewWineBuffActive()) cap += 1; // 顶级自酿 buff：拾荒次数+1（用户拍板 09-10）
@@ -3609,7 +3615,12 @@ internal static class RobinCrusoePerk
             }
             if (!HasGoodOnFront("large_bottled_water"))
             {
-                try { if (MerchantHelper.AddItemToCounter("large_bottled_water", 0, false) != null) added++; } catch { }
+                try
+                {
+                    GameItem hq = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water"); // 09-20 设计稿：带水大瓶（删 DirectoryMaster.Item+AddWater 链——工厂产物 AddWater 静默失败 → 空瓶）
+                    if (hq != null) { if (MerchantHelper.AddItemToCounter(hq, 0, false) != null) added++; }
+                }
+                catch { }
             }
 
             // 神经模组概率：落实到博士之友特性（09-12 用户拍板：特性激活才 roll）

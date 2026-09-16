@@ -37,6 +37,7 @@ internal static class NewStartTypeUI
     private static string MarkerKey(string runId) => NEW_START_MARKER_PREFIX + runId;
     internal static bool IsMarkedRun(string runId)
     {
+        try { UnityEngine.PlayerPrefs.SetString("WAGES_PROBE_RUN_20260917", "1"); } catch { } // 编译源探针（验证后删除）
         if (string.IsNullOrEmpty(runId)) return false;
         try { if (UnityEngine.PlayerPrefs.GetString(MarkerKey(runId), "") == "1") return true; } catch { }
         return UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == runId; // 老 key 兜底（旧档迁移）
@@ -392,10 +393,16 @@ internal static class NewStartTypeUI
     {
         try
         {
-            if (__instance != null && IsMarkedRun(__instance.runID ?? ""))
+            // [B2DIAG] 诊断日志（用完即删）：读档时打印 runID / IsMarkedRun / startType 恢复前后
+            string runId = __instance?.runID ?? "";
+            bool marked = IsMarkedRun(runId);
+            int before = __instance != null ? (int)__instance.startType : -1;
+            if (__instance != null && marked)
             {
                 __instance.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE;
             }
+            int after = __instance != null ? (int)__instance.startType : -1;
+            Core.Log?.Msg($"[B2DIAG] PostfixLoadGame runID='{runId}' IsMarkedRun={marked} startType {before}->{after}");
         }
         catch (Exception ex) { Core.LogMsg("[新职业] PostfixLoadGame 异常: " + ex.Message); }
     }

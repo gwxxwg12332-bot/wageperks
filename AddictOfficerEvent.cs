@@ -54,7 +54,7 @@ internal static class AddictOfficerEvent
     internal static void OnDayStartPostfix()
     {
         try { OnNewDay(); } catch (Exception ex) { Core.LogMsg("[AddictOfficer] OnDayStart失败: " + ex.Message); }
-        try { DarkGridInspectorPerk.OnNewDay(); } catch (Exception ex) { Core.LogMsg("[治安部眼线] OnDayStart失败: " + ex.Message); }
+        // 09-20 设计稿：眼线独立挂 StoreEventManager.OnDayStart（DarkGridInspectorPerk.OnDayStartPostfix），此处不再代调——防双重触发
     }
 
     // ============ 伪装成瘾警官进店 ============

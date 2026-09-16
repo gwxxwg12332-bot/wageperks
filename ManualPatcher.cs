@@ -119,11 +119,13 @@ internal static class ManualPatcher
             var list = new System.Collections.Generic.HashSet<string>();
             if (info.Prefixes != null)
                 foreach (var p in info.Prefixes)
-                    if (!string.Equals(p.owner, _harmony.Id, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(p.owner, _harmony.Id, StringComparison.OrdinalIgnoreCase)
+                        && !ModCompat.IsSafeCoexistOwner(p.owner))
                         list.Add(p.owner);
             if (info.Postfixes != null)
                 foreach (var p in info.Postfixes)
-                    if (!string.Equals(p.owner, _harmony.Id, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(p.owner, _harmony.Id, StringComparison.OrdinalIgnoreCase)
+                        && !ModCompat.IsSafeCoexistOwner(p.owner))
                         list.Add(p.owner);
             if (list.Count == 0) return false;
             owners = string.Join(", ", list);

@@ -354,7 +354,7 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = false;
+	public static bool DebugMode = true; // B2DIAG 临时开启（用完必关）
 
 	public static readonly System.Random Rng = new System.Random();
 
@@ -524,14 +524,6 @@ public class Core : MelonMod
 			}
 			try
 			{
-				DarkGridInspectorPerk.OnNewDay();
-			}
-			catch (System.Exception ex2)
-			{
-				LogMsg("[治安部眼线] 调度失败: " + ex2.Message);
-			}
-			try
-			{
 				Patches.ForceInspectionToday();
 			}
 			catch (System.Exception ex3)
@@ -670,6 +662,7 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(AddictOfficerEvent));
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(DarkGridInspectorPerk)); // 09-20 设计稿：眼线独立挂（不依赖 AddictOfficerEvent 链）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));

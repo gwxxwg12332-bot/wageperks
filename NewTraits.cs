@@ -306,6 +306,12 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
     }
 
     // ============ 每日调度（AddictOfficerEvent.OnDayStartPostfix 调用） ============
+    // 09-20 设计稿：独立挂 StoreEventManager.OnDayStart Postfix（照吞噬/电池挂法，不依赖 AddictOfficerEvent 链）
+    public static void OnDayStartPostfix()
+    {
+        try { OnNewDay(); } catch (System.Exception ex) { Core.LogMsg("[治安部眼线] OnDayStart失败: " + ex.Message); }
+    }
+
     internal static new void OnNewDay()
     {
         try
@@ -483,13 +489,15 @@ internal sealed class WandererPerk : CustomStartingPerk
             string house = RandomFromPool(HOUSEHOLD_IDS);
             if (tool != null) GiveToBackpack(tool);
             if (house != null) GiveToBackpack(house);
-            var all = GetAllItemIds();
-            int given = 0;
-            while (given < 4 && all != null && all.Count > 0)
+            // 09-20 设计稿：4 随机从 FrogPowerPerk.ItemPool（77 项，无文档类/机器容器占比合理）抽，不重复
+            var pool = new System.Collections.Generic.List<string>(FrogPowerPerk.ItemPool ?? new string[0]);
+            int given = 0, guard = 0;
+            while (given < 4 && pool.Count > 0 && guard < 20)
             {
-                int idx = Core.Rng.Next(all.Count);
-                string id = all[idx];
-                all.RemoveAt(idx);
+                guard++;
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx];
+                pool.RemoveAt(idx);
                 if (GiveToBackpack(id) != null) given++;
             }
         }
@@ -551,6 +559,7 @@ internal sealed class WandererPerk : CustomStartingPerk
     }
 
     // 09-20 B3 修复：清三处（dossier 0x178 / invElement 0x30 / backInvinvElement 0x98）全清——原版物品+其他特性物资兜底清除
+    // 09-20 设计稿双保险：ExpelAll（批量 RemoveAll）→ 残留逐个 Expel（parent 检查不过的失败）→ 残留 Destroy 兜底 + CLEARDIAG 日志
     internal static void ClearBackpack()
     {
         try
@@ -574,9 +583,22 @@ internal sealed class WandererPerk : CustomStartingPerk
             foreach (var inv in invs)
             {
                 if (inv == null || inv.childItems == null) continue;
+                int before = inv.childItems.Count;
+                int expel = 0, destroy = 0;
+                try { inv.ExpelAll(); } catch { }   // ① 原生批量移除（RemoveAll 语义）
                 var items = new System.Collections.Generic.List<GameItem>();
                 foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
-                foreach (var it in items) { try { inv.Expel(it); } catch { } }
+                foreach (var it in items)
+                {
+                    try { if (inv.Expel(it)) expel++; } catch { }   // ② 残留逐个 Expel（parent 检查不过的会失败）
+                }
+                var still = new System.Collections.Generic.List<GameItem>();
+                foreach (var it in inv.childItems) { if (it != null) still.Add(it); }
+                foreach (var it in still)
+                {
+                    try { it.Destroy(); destroy++; } catch { }      // ③ 兜底 Destroy（绕过 parent 检查）
+                }
+                Core.LogMsg("[CLEARDIAG] as=" + (before == expel + destroy ? "OK" : "FAIL") + " n=" + before + " expel=" + expel + " destroy=" + destroy);
             }
         }
         catch { }

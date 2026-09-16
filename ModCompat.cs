@@ -41,6 +41,26 @@ public static class ModCompat
 
     private static readonly Dictionary<string, bool?> _loadedCache = new Dictionary<string, bool?>();
 
+    // ===== 已知安全共存白名单（09-19 B2 根因修复）=====
+    // 背景：ManualPatcher.IsConflictOwned 无差别拦截"已被其他 mod patch"的方法——
+    // 本机 Demo 环境常驻的调试工具 PS_DebugTool 先挂 PlayerStore.LoadGame（[HarmonyPatch] attribute，
+    // Postfix 仅 LeftPanel.ClearLockedState() 纯 UI 清理，无状态修改）→ 我们的 LoadGame 恢复链全部被跳过
+    // （B2 面板/吃喝失效、B1 房租 100 天制失效同根）。
+    // 白名单放行条件：标准 Harmony patch（非 MonoMod detour 复制，无 CLR fatal 风险）+ 行为已实锤安全。
+    private static readonly string[] SAFE_COEXIST_OWNERS = new string[]
+    {
+        "PS_DebugTool", // 我方调试工具：LoadGame Postfix = LeftPanel.ClearLockedState()（源码实锤）
+    };
+
+    /// <summary>冲突 owner 是否在白名单（安全共存）</summary>
+    public static bool IsSafeCoexistOwner(string owner)
+    {
+        if (string.IsNullOrEmpty(owner)) return false;
+        foreach (var s in SAFE_COEXIST_OWNERS)
+            if (owner.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        return false;
+    }
+
     // ===== 已知冲突表（已拆包实锤；新重叠点拆包确认后追加）=====
     // 分级：主动让路（YieldOnLoad=true）= 功能可降级，检测到对方已加载即跳过（防双 detour 崩）
     //       共存告警（YieldOnLoad=false）= 数据/注册核心不让（让了=职业失效/存档错乱），靠被动 GetPatchInfo + 实测
