@@ -358,6 +358,7 @@ internal static class NewStartTypeUI
                 string runId = __instance.runID ?? "";
                 UnityEngine.PlayerPrefs.SetString(MarkerKey(runId), "1");  // per-runID（多档不互覆盖）
                 UnityEngine.PlayerPrefs.SetString(NEW_START_MARKER_KEY, runId); // 老 key 同步（旧版判定兼容）
+                UnityEngine.PlayerPrefs.Save(); // 09-20 B3：防强退丢标记（对比 LuckScoutPerk/PerkStatePersistence）
                 __instance.startType = (Il2Cpp.NewGameData.StartType)12;
             }
         }

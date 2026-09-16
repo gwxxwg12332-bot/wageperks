@@ -467,9 +467,18 @@ internal sealed class WandererPerk : CustomStartingPerk
             // 1. 现金随机：50% → 0；50% → 1~600 均匀
             if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
             else ps.playerCash = Core.Rng.Next(1, 601);
-            // 2. 清后背包（开局时刻 = 原版发放物，替换原版发放）
+            // 2. 清三处（dossier/invElement/backInvinvElement）+ 发 6 件（09-20 B3：抽方法供 HandleInitialItem 兜底复用）
             ClearBackpack();
-            // 3. 发 6 件：1 工具 + 1 日用品 + 4 完全随机（全物品库）
+            GiveRandomItems();
+        }
+        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+
+    // 09-20 B3：发 6 件（1 工具 + 1 日用品 + 4 随机）抽方法——PostfixStartNewGame / HandleInitialItemPostfix 兜底复用
+    internal static void GiveRandomItems()
+    {
+        try
+        {
             string tool = RandomFromPool(TOOL_IDS);
             string house = RandomFromPool(HOUSEHOLD_IDS);
             if (tool != null) GiveToBackpack(tool);
@@ -484,7 +493,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 if (GiveToBackpack(id) != null) given++;
             }
         }
-        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixStartNewGame 异常: " + ex.Message); }
+        catch { }
     }
 
     private static string RandomFromPool(string[] pool)
@@ -541,16 +550,34 @@ internal sealed class WandererPerk : CustomStartingPerk
         catch { return null; }
     }
 
-    private static void ClearBackpack()
+    // 09-20 B3 修复：清三处（dossier 0x178 / invElement 0x30 / backInvinvElement 0x98）全清——原版物品+其他特性物资兜底清除
+    internal static void ClearBackpack()
     {
         try
         {
             var em = EmporiumEntry.Instance;
-            if (em == null || em.backInvinvElement == null) return;
-            var inv = (GameInventory)em.backInvinvElement;
-            var items = new System.Collections.Generic.List<GameItem>();
-            foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
-            foreach (var it in items) { try { inv.Expel(it); } catch { } }
+            if (em == null) return;
+            var invs = new System.Collections.Generic.List<GameInventory>();
+            try { var i = em.invElement as GameInventory; if (i != null) invs.Add(i); } catch { }
+            try { var b = em.backInvinvElement as GameInventory; if (b != null) invs.Add(b); } catch { }
+            // dossier（0x178 档案夹）反射兜底（GetTabRancher 同模式，防字段名/代理差异）
+            try
+            {
+                var t = Il2CppSystem.Type.GetType("EmporiumEntry, Assembly-CSharp");
+                if (t != null)
+                {
+                    var f = t.GetField("dossier");
+                    if (f != null) { var v = f.GetValue(em) as GameInventory; if (v != null) invs.Add(v); }
+                }
+            }
+            catch { }
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                var items = new System.Collections.Generic.List<GameItem>();
+                foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
+                foreach (var it in items) { try { inv.Expel(it); } catch { } }
+            }
         }
         catch { }
     }

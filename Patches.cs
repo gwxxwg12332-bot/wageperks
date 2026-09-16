@@ -533,6 +533,14 @@ internal static class Patches
 			catch
 			{
 			}
+			try
+			{
+				// 09-20 B3：流浪者兜底——鲁滨逊等其他特性发放后全清 + 重发 6 件（HandleInitialItem 晚于各特性发放）
+				if (WandererPerk.IsActive()) { WandererPerk.ClearBackpack(); WandererPerk.GiveRandomItems(); }
+			}
+			catch
+			{
+			}
 		}
 		catch (System.Exception ex)
 		{
