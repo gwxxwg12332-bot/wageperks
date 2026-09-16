@@ -196,7 +196,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
     private static int UPGRADE_CHANCE => BuildConfig.UpgradeChance;            // 每级 +%（CFG 可调）
 
-    private static int MAX_CHANCE => BuildConfig.HardMode ? 50 : 25;   // 稀有物发现几率上限（标准版25%；硬爽版50%，09-12 用户拍板）
+    private static int MAX_CHANCE => BuildConfig.HardMode ? BuildConfig.LuckMaxChanceHard : BuildConfig.LuckMaxChance;   // 稀有物发现几率上限（CFG 可调：标准25%/硬爽50%）
 
     private static int LEVELUP_EVERY => BuildConfig.LevelupEvery;             // 每 N 次拾荒升 1 级（CFG 可调）
 

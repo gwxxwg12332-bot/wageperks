@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Il2Cpp;
 
 namespace JacksonPerks;
@@ -43,11 +43,6 @@ public static class Diagnostics
     public static void ApplyPatches()
     {
         if (!Core.DebugMode) return;
-        // 诊断：客户接受物品判定（仅开发版，发布版不注册避免刷日志）
-        ManualPatcher.TryPatch(typeof(StoreClient), "IsClientBuyingThisItem",
-            postfix: nameof(Patches.PostfixStoreClientIsClientBuying),
-            parameterTypes: new Type[] { typeof(GameItem) });
-
         // 【已禁用】诊断 Patch 挂在特性选择核心方法上，疑为 IL2CPP 下 Harmony 注入导致选择流程异常
     }
 

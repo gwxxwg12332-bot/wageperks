@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 
@@ -136,6 +136,7 @@
     <EmbeddedResource Include="Icons\13_王尔德之手.png" />
 
     <EmbeddedResource Include="Icons\14_命运之骰.png" />
+    <EmbeddedResource Include="Icons\15_治安部眼线.png" />
 
   </ItemGroup>
 

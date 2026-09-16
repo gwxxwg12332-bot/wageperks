@@ -2812,7 +2812,6 @@ namespace JacksonPerks
 
 
         public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)
-
         {
             // ===== 方案C：装备/使用链一律不吸收 =====
             // ItemSelectHandler = 原生"装备/使用物品"系统（右键装备→光标→点击目标交互）。
@@ -2824,50 +2823,36 @@ namespace JacksonPerks
             }
             catch { }
 
-            // 只允许：物品拖到骰子上（骰子是目标）。骰子拖到别的物品上 → 不拦截（走原版逻辑）
-
+            // 09-15 根因修复（拆包实锤）：吸收唯一触发点 = PrefixTarget（松手放置）。
+            // MayTarget 只做"能否放置"判定——返回 true → 原生继续到 Target（松手才触发吸收）；悬停预览正常，不销毁物品。
+            // 删除旧版"MayTarget 直接吸收"（悬停即销毁 → 未松开就吸收 + 四格全绿异常）。
             if (IsDice(targetItem) && __instance != null && !IsDice(__instance))
-
             {
-                // 根因修复：MayTarget 不止拖拽链调用（hover高亮/选择链也会调且鼠标未按住）——只有拖拽中才允许吸收
-                var dragHandler = Il2Cpp.ItemMouseDragHandler.current;
-                bool dragging = (dragHandler != null && dragHandler.IsDraggingItem);
-                // 2.5.40 多选批量吸收：游戏原生框选组拖拽（ItemMultiSelectHandler）不走单拖 handler，补组拖判定
-                if (!dragging)
-                {
-                    var multiHandler = Il2Cpp.ItemMultiSelectHandler.current;
-                    if (multiHandler != null)
-                    {
-                        try { dragging = multiHandler.IsGroupDraggingItem(__instance); } catch { }
-                    }
-                }
-                if (!dragging) return true;
-
-                // 拖动中（鼠标左键按住）不吸收——MayTarget在拖动过程中也会被调用，松手才触发吸收
-
-                if (UnityEngine.Input.GetMouseButton(0)) { return true; }
-
-                // 防误触修复：只有按住Shift拖到骰子才吸收（普通拖放落点在骰子上→不拦截→走原版148被拒→物品弹回）
-
-                // 直接吸收：游戏拖放链(ItemMouseDragHandler)在MayTarget=true后走148——
-
-                // 148要求目标.inventory(+400)非空，非容器骰子没有→流程放弃→Target永不触发
-
-                // 所以在MayTarget这一步直接执行吸收（DoAbsorb有0.5s冷却+销毁物品防重复）
-
-                DoAbsorb(__instance, targetItem);
-
-                __result = true;
-
+                __result = true; // 可放置——吸收在 Target（松手放置）执行
                 return false;
-
             }
-
             return true;
-
         }
-
-
+        internal static bool TryGroupDragging(GameItem item)
+        {
+            try
+            {
+                var t = Il2CppSystem.Type.GetType("ItemMultiSelectHandler, Assembly-CSharp");
+                if (t == null) return false;
+                var curProp = t.GetProperty("current");
+                if (curProp == null) return false;
+                var handler = curProp.GetGetMethod().Invoke(null, null);
+                if (handler == null) return false;
+                var m = t.GetMethod("IsGroupDraggingItem");
+                if (m == null) return false;
+                var args = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppSystem.Object>(1);
+                args[0] = item;
+                var ret = m.Invoke(handler, args);
+                if (ret == null) return false;
+                return ret.Unbox<bool>();
+            }
+            catch { return false; }
+        }
 
         public static bool PrefixCanTarget(GameItem __instance, GameItem targetItem, ref bool __result)
 
@@ -2899,14 +2884,10 @@ namespace JacksonPerks
                 // 根因修复：Target 同样只在拖拽链触发（高亮/选择链调 MayTarget 不经过这里，但保险起见同样校验）
                 var dragHandler = Il2Cpp.ItemMouseDragHandler.current;
                 bool dragging = (dragHandler != null && dragHandler.IsDraggingItem);
-                // 2.5.40 多选批量吸收：组拖判定补充
+                // 2.5.40 多选批量吸收：组拖判定补充（0.46D 兼容：反射探测 ItemMultiSelectHandler）
                 if (!dragging)
                 {
-                    var multiHandler = Il2Cpp.ItemMultiSelectHandler.current;
-                    if (multiHandler != null)
-                    {
-                        try { dragging = multiHandler.IsGroupDraggingItem(__instance); } catch { }
-                    }
+                    dragging = TryGroupDragging(__instance);
                 }
                 if (!dragging) return true;
             if (IsDice(targetItem) && __instance != null && !IsDice(__instance)) { dice = targetItem; food = __instance; }

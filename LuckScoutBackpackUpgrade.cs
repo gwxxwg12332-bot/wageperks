@@ -61,6 +61,8 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
     private const string MATERIAL_ID = "junk";
 
     private static DateTime _lastConsume = DateTime.MinValue;
+    // 09-19 修复：防抖改 per-bead（原 static 全局共享——珠 A 升级后 0.5s 内拖 junk 到珠 B 被误挡 → "虚空珠有时升级不动"）
+    private static readonly Dictionary<IntPtr, DateTime> _lastConsumeByBead = new Dictionary<IntPtr, DateTime>();
 
 
 
@@ -844,7 +846,9 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
         if (junk == null || bead == null) return false;
 
-        if ((DateTime.UtcNow - _lastConsume).TotalSeconds < 0.5) return false;
+        // 09-19 per-bead 防抖（同一珠 0.5s 防重扣；不同珠互不误伤）
+        DateTime _last;
+        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) return false;
 
         try
 
@@ -909,6 +913,8 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
             else junk.SetUnitCount(count);
 
             _lastConsume = DateTime.UtcNow;
+
+            _lastConsumeByBead[bead.Pointer] = DateTime.UtcNow; // 09-19 per-bead 记录
 
 
             return true;

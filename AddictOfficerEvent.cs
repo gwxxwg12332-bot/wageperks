@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
+using Il2CppInterop.Runtime;
 
 namespace JacksonPerks;
 
@@ -20,7 +21,7 @@ internal static class AddictOfficerEvent
     private const string KEY_GRUDGE = "grudge_flag";      // 记仇 flag
     private const string KEY_LAST = "last_trigger_day";   // 上次触发日（防同一天重复）
 
-    // ============ 每日调度（ModHook.OnShutterOpenedEarly 每天开门调用） ============
+    // ============ 每日调度（StoreEventManager.OnDayStart Postfix 调用——ModHook 在 Demo 不触发，09-17 已回退） ============
     internal static void OnNewDay()
     {
         try
@@ -47,6 +48,13 @@ internal static class AddictOfficerEvent
             }
         }
         catch (Exception ex) { Core.LogMsg("[AddictOfficer] OnNewDay失败: " + ex.Message); }
+    }
+
+    // ============ OnDayStart Postfix（StoreEventManager.OnDayStart——吞噬季同挂点，已验证可靠） ============
+    internal static void OnDayStartPostfix()
+    {
+        try { OnNewDay(); } catch (Exception ex) { Core.LogMsg("[AddictOfficer] OnDayStart失败: " + ex.Message); }
+        try { DarkGridInspectorPerk.OnNewDay(); } catch (Exception ex) { Core.LogMsg("[治安部眼线] OnDayStart失败: " + ex.Message); }
     }
 
     // ============ 伪装成瘾警官进店 ============
@@ -165,9 +173,9 @@ internal static class AddictOfficerEvent
             catch (Exception ex) { Core.LogMsg("[AddictOfficer] 没收失败: " + ex.Message); continue; }
         }
 
-        Core.LastNightReportLine = LangHelper.T(
+        Core.AddNightReportLine(LangHelper.T(
             "例行公务巡查！执勤警官严格检查了所有隐秘区域，从你的暗格中查获并没收了 " + seized.Count + " 件违禁品。",
-            "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items.");
+            "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."));
     }
 
     // ============ 工具方法 ============
@@ -185,7 +193,7 @@ internal static class AddictOfficerEvent
         return false;
     }
 
-    private static bool IsSmugglerBay(GameItem item)
+    internal static bool IsSmugglerBay(GameItem item)
     {
         // 判据1：identifier 前缀 smuggler_bay（最可靠）
         try { string id = item.identifier; if (!string.IsNullOrEmpty(id) && id.StartsWith("smuggler_bay")) return true; } catch { }
@@ -195,7 +203,7 @@ internal static class AddictOfficerEvent
     }
 
     // 容器内部库存：contentWindow.inventory（CustomStorageContainer 验证过的兜底路径）
-    private static GameInventory GetInnerInventory(GameItem container)
+    internal static GameInventory GetInnerInventory(GameItem container)
     {
         try
         {

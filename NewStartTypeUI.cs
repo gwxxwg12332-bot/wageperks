@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using Il2CppInterop.Runtime;
@@ -28,11 +28,51 @@ internal static class NewStartTypeUI
 {
     private const int NEW_START_TYPE = 14;
     private const string CLONE_NAME = "tab_RobinCrusoe";
-    private const string NEW_START_MARKER_KEY = "WagesNewStartType_Run";
+    private const string NEW_START_MARKER_KEY = "WagesNewStartType_Run";       // 老单 key（v3 方案甲，仅兼容旧档）
+    private const string NEW_START_MARKER_PREFIX = "WagesNewStartType_Run_";  // 09-19 per-runID key：多鲁滨逊档互不覆盖
+
+    // 09-19 修复：旧档"有几率无状态/无法吃饭"根因 = 单 key 只存最后一次 SaveGame 的 runID，
+    // 多档玩家新开鲁滨逊档后切回旧鲁滨逊档 → 标记不匹配 → LoadGame 不恢复 14 → IsActive() false（状态面板+双击全失效）
+    // 修复：标记按 runID 独立存储（新 key 优先，老 key 兜底迁移）
+    private static string MarkerKey(string runId) => NEW_START_MARKER_PREFIX + runId;
+    internal static bool IsMarkedRun(string runId)
+    {
+        if (string.IsNullOrEmpty(runId)) return false;
+        try { if (UnityEngine.PlayerPrefs.GetString(MarkerKey(runId), "") == "1") return true; } catch { }
+        return UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == runId; // 老 key 兜底（旧档迁移）
+    }
     // 双语：const 无法运行时切换 → static readonly（LangHelper.IsEnglish 延迟求值）。职业英文名先拟 Space Station Robinson，可改。
     private static readonly string START_NAME = LangHelper.T("空间站鲁滨逊", "Space Station Robinson");
 
     // Patch MainMenuUIController.Awake（场景加载时执行，tab 字段已序列化注入）
+    // 09-14 修正：编译期直接访问优先（当前游戏版本有 tabRancher 字段时最可靠——Il2Cpp 下 Type.GetType 按程序集名经常失败）；
+    // 反射仅作兜底（旧版本无该字段时走字段/属性双通道）
+    private static UnityEngine.UI.Image GetTabRancher(Il2Cpp.MainMenuUIController mc)
+    {
+        try
+        {
+            var direct = mc.tabRancher;
+            if (direct != null) return direct;
+        }
+        catch { /* 当前版本无 tabRancher 字段 → 走反射兜底 */ }
+        try
+        {
+            var t = Il2CppSystem.Type.GetType("MainMenuUIController, Assembly-CSharp");
+            if (t == null) return null;
+            object val = null;
+            var f = t.GetField("tabRancher");
+            if (f != null) { val = f.GetValue(mc); }
+            else
+            {
+                var p = t.GetProperty("tabRancher");
+                if (p != null && p.GetGetMethod() != null) val = p.GetGetMethod().Invoke(mc, null);
+            }
+            if (val == null) return null;
+            return val as UnityEngine.UI.Image;
+        }
+        catch { return null; }
+    }
+
     public static void PostfixAwake(Il2Cpp.MainMenuUIController __instance)
     {
         try
@@ -40,10 +80,10 @@ internal static class NewStartTypeUI
             // 场景级防重：场景重载后新实例会重新克隆（不能用 static 标志，否则重载后消失）
             if (GameObject.Find(CLONE_NAME) != null) return;
 
-            var tabSrc = __instance.tabRancher;
+            var tabSrc = GetTabRancher(__instance);
             if (tabSrc == null)
             {
-                Core.LogMsg("[新职业] tabRancher 为空，跳过克隆");
+                Core.LogMsg("[新职业] tabRancher 不可用（当前游戏版本无此成员），跳过克隆");
                 return;
             }
 
@@ -55,8 +95,6 @@ internal static class NewStartTypeUI
             // 克隆体上所有文字统一改为"空间站鲁滨逊"
             // 递归遍历子物体（GetComponentsInChildren 泛型在 Il2Cpp 下不稳定，改逐层 GetComponents）
             int replaced = 0;
-            DumpHierarchy(template.transform, "模板tabRancher", 0);   // 诊断：看文字在哪
-            DumpHierarchy(clone.transform, "克隆体", 0);
             ReplaceAllText(clone.transform, ref replaced);
 
             // 强制普通态（避免继承选中态导致"始终高亮"）
@@ -81,34 +119,7 @@ internal static class NewStartTypeUI
         }
     }
 
-    // ===== 结构诊断：递归打印节点名 + 组件类型（定位 tab 文字在哪）=====
-    private static void DumpHierarchy(Transform root, string tag, int depth)
-    {
-        try
-        {
-            if (root == null) return;
-            string comps = "";
-            try
-            {
-                var cs = root.gameObject.GetComponents<UnityEngine.Component>();
-                if (cs != null)
-                    foreach (var c in cs)
-                    {
-                        if (c == null) continue;
-                        string cn = "";
-                        try { cn = c.GetIl2CppType().FullName ?? ""; } catch { }
-                        if (string.IsNullOrEmpty(cn)) { try { cn = c.GetType().Name ?? ""; } catch { } }
-                        comps += "[" + cn + "]";
-                    }
-            }
-            catch { comps = "(GetComponents失败)"; }
-            for (int i = 0; i < root.childCount; i++)
-                DumpHierarchy(root.GetChild(i), tag, depth + 1);
-        }
-        catch { }
-    }
-
-    // 替换克隆体上所有 TMP 文字（tab 上只有职业名文字）
+    // ===== 替换克隆体上所有 TMP 文字（tab 上只有职业名文字）=====
     // 诊断版：GetComponents + 反射 set_text（夜间报告同款模式），全程打日志定位失败点
     private static void ReplaceAllText(Transform root, ref int replaced)
     {
@@ -133,7 +144,7 @@ internal static class NewStartTypeUI
                     }
                     if (!cn.Contains("Text") && !cn.Contains("TMP")) continue;
                     System.Reflection.MethodInfo[] ms = null;
-                    try { ms = c.GetType().GetMethods(); } catch (Exception ex) { Core.LogMsg("[新职业-诊断] GetMethods异常 " + ex.Message); }
+                    try { ms = c.GetType().GetMethods(); } catch { }
                     if (ms != null)
                     {
                         var nm = new System.Collections.Generic.List<string>();
@@ -159,7 +170,7 @@ internal static class NewStartTypeUI
                                 replaced++; setOk = true;
                             }
                         }
-                        catch (Exception ex) { Core.LogMsg("[新职业-诊断] 编译期 TMPro 异常 " + ex.Message); }
+                        catch { }
                     }
                     // 方案0：运行时 Type.GetType（编译期 TMPro 在 Il2Cpp 下 CS0246 不可行——参考 mod 全用字符串判断）
                     // Il2Cpp 下 c.GetType() 返回基类 Object（诊断实锤只有 m_CachedPtr）；运行时按程序集名取真实类型
@@ -178,7 +189,7 @@ internal static class NewStartTypeUI
                         }
 
                     }
-                    catch (Exception ex) { Core.LogMsg("[新职业-诊断] 运行时Type 异常 " + ex.Message); }
+                    catch { }
                     // 方案1：set_text / SetText(string) 方法反射（Il2Cpp 下 GetType 是基类，通常不可用，保留兜底）
                     if (ms != null)
                     {
@@ -190,7 +201,7 @@ internal static class NewStartTypeUI
                             var ps = mi.GetParameters();
                             if (ps == null || ps.Length != 1) continue;
                             try { mi.Invoke(c, new object[] { START_NAME }); replaced++; setOk = true;  }
-                            catch (Exception ex) { Core.LogMsg("[新职业-诊断] set_text 异常 " + ex.Message); }
+                            catch { }
                             break;
                         }
                     }
@@ -208,14 +219,14 @@ internal static class NewStartTypeUI
                             else
                             { }
                         }
-                        catch (Exception ex) { Core.LogMsg("[新职业-诊断] 属性 text 异常 " + ex.Message); }
+                        catch { }
                     }
                 }
             }
             for (int i = 0; i < root.childCount; i++)
                 ReplaceAllText(root.GetChild(i), ref replaced);
         }
-        catch (Exception ex) { Core.LogMsg("[新职业-诊断] ReplaceAllText 异常 " + ex.Message); }
+        catch { }
     }
 
 
@@ -332,7 +343,7 @@ internal static class NewStartTypeUI
         }
         catch (Exception ex)
         {
-            Core.LogMsg("[新职业-诊断] BuildPreviewFromStore 异常: " + ex.Message);
+            Core.LogMsg("[新职业] BuildPreviewFromStore 异常: " + ex.Message);
         }
     }
 
@@ -344,23 +355,23 @@ internal static class NewStartTypeUI
         {
             if (__instance != null && (int)__instance.startType == NEW_START_TYPE)
             {
-                UnityEngine.PlayerPrefs.SetString(NEW_START_MARKER_KEY, __instance.runID ?? "");
+                string runId = __instance.runID ?? "";
+                UnityEngine.PlayerPrefs.SetString(MarkerKey(runId), "1");  // per-runID（多档不互覆盖）
+                UnityEngine.PlayerPrefs.SetString(NEW_START_MARKER_KEY, runId); // 老 key 同步（旧版判定兼容）
                 __instance.startType = (Il2Cpp.NewGameData.StartType)12;
             }
         }
         catch (Exception ex) { Core.LogMsg("[新职业] PrefixSaveGame 异常: " + ex.Message); }
     }
 
-    // 当前存档是否带鲁滨逊标记（runID 匹配）
+    // 当前存档是否带鲁滨逊标记（runID 匹配——新 key 优先，老 key 兜底）
     private static bool IsMarkedCurrentRun()
     {
         try
         {
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return false;
-            string runId = ps.runID ?? "";
-            if (string.IsNullOrEmpty(runId)) return false;
-            return UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == runId;
+            return IsMarkedRun(ps.runID ?? "");
         }
         catch { return false; }
     }
@@ -369,7 +380,7 @@ internal static class NewStartTypeUI
     {
         try
         {
-            if (__instance != null && UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == (__instance.runID ?? ""))
+            if (__instance != null && IsMarkedRun(__instance.runID ?? ""))
                 __instance.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE;
         }
         catch (Exception ex) { Core.LogMsg("[新职业] PostfixSaveGame 异常: " + ex.Message); }
@@ -380,7 +391,7 @@ internal static class NewStartTypeUI
     {
         try
         {
-            if (__instance != null && UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == (__instance.runID ?? ""))
+            if (__instance != null && IsMarkedRun(__instance.runID ?? ""))
             {
                 __instance.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE;
             }

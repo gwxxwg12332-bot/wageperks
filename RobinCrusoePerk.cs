@@ -225,18 +225,8 @@ internal static class RobinCrusoePerk
             int _zFrame = UnityEngine.Time.frameCount;
             if (_zFrame == _zKeyFrame) return; // 同帧已处理（去重，防双钩子/双实例重复翻转）
             _zKeyFrame = _zFrame;
-            if (!IsActive())
-            {
-                // 诊断：读档场景 startType 实况（用户确认开的是鲁滨逊存档但 IsActive=false）
-                try
-                {
-                    var ps0 = PlayerStore.Instance;
-                    var ng0 = Il2Cpp.NewGameData.Instance;
-                }
-                catch (Exception ex2) { Core.LogMsg("[空间站鲁滨逊] IsActive诊断异常: " + ex2.Message); }
-                return;
-            }
-            if (PlayerStore.Instance == null) return; // 特性界面/主菜单阶段不响应
+            if (!IsActive()) return;
+            if (Il2Cpp.EmporiumEntry.Instance == null) return; // 主菜单/未进档：纯读判空（PlayerStore getter null 时新建，禁用）
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) {  return; }
             if (mgr.IsOpen("rc_status")) {  mgr.CloseWindow("rc_status"); }
@@ -806,7 +796,7 @@ internal static class RobinCrusoePerk
         {
             bool hasCal = item.IsTag("CALORIE_VALUE_TAG") || item.IsTag("CALORIE");
             if (!hasCal) return false;
-            if (IsDrink(item) || IsMedicine(item)) return false;
+            if (IsMedicine(item)) return false; // 09-18 饮料类放开（有卡路里的饮料也算食物，按真实卡路里）；药品仍排除
             string id = GetId(item);
             if (id.Contains("wine") || id.Contains("beer") || id.Contains("_seed") || id.Contains("seed_") || id.Contains("pill")) return false;
             return true;
@@ -898,7 +888,7 @@ internal static class RobinCrusoePerk
             // 显示具体单位：饱食 100%=2200 kcal（v5.7 锁定）、口渴 100%=2000 ml（与喝水 200ml=10% 自洽）
             int satCal = (int)(sat * 22f);
             int thMl = (int)(th * 20f);
-            b.SetSize(300, 430).SetPosition(Vector2.zero);
+            b.SetSize(300, 460).SetPosition(Vector2.zero);
             // 固定右上角（09-10 用户拍板：锚点(1,1) pivot(1,1) 右上角内侧 16px，不随分辨率变化）
             try
             {
@@ -918,6 +908,8 @@ internal static class RobinCrusoePerk
             b.AddProgressBar(th / 100f, "th");
             b.AddLabel(LangHelper.T("健康 ", "Health ") + h + "/100", "h_l");
             b.AddProgressBar(h / 100f, "h");
+            b.AddLabel(LangHelper.T("血量 ", "Blood ") + GetBlood() + "/6000", "blood_l");
+            b.AddProgressBar(GetBlood() / (float)BLOOD_MAX, "blood");
             // 新三状态（v5.7+ 用户拍板）：清洁/睡眠/社交 进度条+数值
             int clean = GetClean(), sleep = GetSleep(), social = GetSocial();
             b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + clean + "/100", "clean_l");
@@ -1080,17 +1072,24 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 原生困难模式开关（开局界面）
+            PerkStatePersistence.SetInt(PERK_ID, "robinson_hard", hard ? 1 : 0); // 随档（原生 hardMode 退出重进重置，存 mod 状态）
             PlayerStore ps = PlayerStore.Instance;
-            if (ps != null) ps.playerCash = 360; // 默认600 × 0.6（资金 -40%）
+            if (ps != null) ps.playerCash = hard ? 0 : 360; // 默认600 × 0.6（资金 -40%）；困难模式开局清零
 
-            GiveToBackpack("processed_meat", 3);      // 口粮×3（三天量）
-            GiveToBackpack("raw_meat", 2);            // 大肉×2（用户拍板 09-09：另加生肉）
-            GivePureWaterToBackpack(3);               // 大瓶纯水×3（三天量）
-            GiveToBackpack("bandage_item", 5);        // 绷带×5（bandage_item 正确 id）
+            if (!hard)
+            {
+                GiveToBackpack("processed_meat", 3);      // 口粮×3（三天量）
+                GiveToBackpack("raw_meat", 2);            // 大肉×2（用户拍板 09-09：另加生肉）
+                GivePureWaterToBackpack(3);               // 大瓶纯水×3（三天量）
+                GiveToBackpack("bandage_item", 5);        // 绷带×5（bandage_item 正确 id）
+                GiveToBackpack(BLOOD_DRAW_ID, 1); // 卖血：开局送 1 个采血包（09-17 用户拍板）
+            } // HardMode：无开局物资
 
             PerkStatePersistence.SetInt(PERK_ID, "sat", 100);        // v5.7 三状态初始
             PerkStatePersistence.SetInt(PERK_ID, "thirst", 100);
             PerkStatePersistence.SetInt(PERK_ID, "health", 100);
+            PerkStatePersistence.SetInt(PERK_ID, "blood", BLOOD_MAX); // 卖血：开局满血 6000ml（09-17）
             PerkStatePersistence.SetInt(PERK_ID, "mood", MOOD_START);
             PerkStatePersistence.SetInt(PERK_ID, "granary", 0);
             PerkStatePersistence.SetInt(PERK_ID, "elevStreak", 0);
@@ -1144,8 +1143,7 @@ internal static class RobinCrusoePerk
                 if (!DirectoryMaster.Has<GameItem>("large_bottled_water")) return;
                 GameItem item = DirectoryMaster.Item("large_bottled_water", true);
                 if (item == null) continue;
-                GameItem spawn = item;
-                try { GameItem cl = item.CloneLinked(); if (cl != null) spawn = cl; } catch { }
+                GameItem spawn = item; // 09-17 A2 修复：删 CloneLinked（克隆品丢容器状态 → AddWater 静默失败 → 空瓶）；直接工厂产物，照 AccurateHighQualityWater 模式
                 try { WaterHelper.AddWater(spawn, 0, -1, false, 0, 1, true); } catch { }
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
@@ -1248,6 +1246,39 @@ internal static class RobinCrusoePerk
         catch { }
         return false;
     }
+    // ===== 双击采血包（09-17 用户拍板：500cc → 蓝血袋 + 轻伤）=====
+    public static bool PrefixDoubleClickBloodDraw(GameItem newItem, Vector2 mousePosition)
+    {
+        try
+        {
+            if (!IsActive() || newItem == null) return true;
+            string id = ""; try { id = newItem.identifier ?? ""; } catch { }
+            if (id != BLOOD_DRAW_ID) return true;
+            if (Patches.CurrentUITradeMode != 0) return true;          // 交易模式不抽
+            if (IsInDoctorNightInventory(newItem)) return true;        // 博士夜晚商店未买不抽
+            int blood = GetBlood();
+            if (blood < 500)
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("血量不足 500cc，无法抽血", "Not enough blood (need 500cc)"), "red"); } catch { }
+                return false;
+            }
+            AddBlood(-500);
+            bool bag = false;
+            try
+            {
+                if (DirectoryMaster.Has<GameItem>("blue_blood_bag")) { GiveToBackpack("blue_blood_bag", 1); bag = true; }
+            }
+            catch { }
+            if (!bag) Core.LogMsg("[卖血] blue_blood_bag 不存在或发放失败");
+            try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 蓝血袋（血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (blood " + GetBlood() + "/6000)"), "green"); } catch { }
+            RefreshStatusPanel();
+            return false; // 拦截原生双击
+        }
+        catch { }
+        return true;
+    }
+
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {
         try
@@ -1263,13 +1294,13 @@ internal static class RobinCrusoePerk
             // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
             if (IsAlc(newItem)) { DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）
             else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
-            else if (IsNarcotic(newItem)) { BoostMood(BuildConfig.NarcoticMood, LangHelper.T("麻醉品", "Narcotics")); TryExpel(newItem); } // 麻醉品：+20 + 消失（09-13 拍板）
+            else if (IsNarcotic(newItem)) UseNarcotic(newItem); // 09-19 麻醉品：心情+按价值档位加睡眠（原只 +20 心情）
             else if (IsLottery(newItem)) BoostMood(UnityEngine.Random.Range(10, 21), LangHelper.T("刮彩票", "Scratch Ticket"));
             // 09-13 拍板：非水饮品双击恢复 饱食+10/口渴+15（soda_red/energy_drink/galaxy_blend）
             else if (IsBeverage(newItem)) DrinkBeverage(newItem);
             // 09-13 拍板：零食（cat_bar/li_eat_snackbar/processed_cheese）吃恢复饱食 + 心情+10 + 整件消失
-            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(BuildConfig.SnackMood, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); }
-            else if (IsDrink(newItem)) DrinkSip(newItem);
+            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(BuildConfig.SnackMood, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); AddBlood(30); } // 进食回血（09-17 卖血）
+            else if (IsDrink(newItem)) { DrinkSip(newItem); AddBlood(50); } // 喝水回血（09-17 卖血）
             else if (IsMedicine(newItem)) TreatWithMedicine(newItem);
             // 09-13 清洁系统 v1：日用品双击恢复清洁（白名单按 id；满 100 不消耗给提示）
             else if (IsDailyNeed(newItem)) UseDailyNeed(newItem);
@@ -1386,20 +1417,31 @@ internal static class RobinCrusoePerk
         RefreshStatusPanel(); // 实时刷新常驻面板
     }
 
-    // ===== 09-13 拍板：非水饮品（汽水/能量饮料/果糊）双击恢复 饱食+10/口渴+15，喝完消耗 1 件 =====
+    // ===== 09-13 拍板：非水饮品双击恢复 饱食/口渴，喝完消耗 1 件 =====
     private static readonly System.Collections.Generic.HashSet<string> BEVERAGE_IDS = new System.Collections.Generic.HashSet<string>
     { "soda_red", "energy_drink", "galaxy_blend", "processed_milk", "processed_juice" }; // 09-13 用户反馈：碳酸代乳(processed_milk)/代糖果汁(processed_juice)也走饮品链（饱食+口渴）
     private static bool IsBeverage(GameItem item)
     {
         try { return item != null && BEVERAGE_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
     }
+    // 09-19 拆包：饮料卡路里 = InitFoodItem 写 CALORIE_VALUE_TAG（milk=600/juice=450/blend=450）；soda_red/energy_drink 走 TransformEdible 只写 add_thirst=350（原生无卡）→ 补 mod 基准 350
+    private static int GetBeverageCalories(GameItem item)
+    {
+        try { if (item.IsTag("CALORIE_VALUE_TAG") || item.IsTag("CALORIE")) return GetCalorie(item); } catch { }
+        string id = ""; try { id = (item.identifier ?? "").ToLowerInvariant(); } catch { }
+        if (id == "soda_red" || id == "energy_drink") return 350;
+        return GetCalorie(item);
+    }
     private static void DrinkBeverage(GameItem item)
     {
         try
         {
-            SetSatiety(Math.Min(100, GetSatiety() + BuildConfig.BeverageSatiety));
+            // 09-19 修复：按真实卡路里恢复饱食（cal/22=饱食%，同 EatBite 换算）——原固定 +10% 未按原生卡路里
+            int cal = GetBeverageCalories(item);
+            int gain = Math.Max(1, (int)Math.Round(cal / 22f));
+            SetSatiety(Math.Min(100, GetSatiety() + gain));
             SetThirstPct(Math.Min(100, GetThirstPct() + BuildConfig.BeverageThirst));
-            try { StoreUIManager.Instance.Notify(LangHelper.T("饮品 +10% 饱食 +15% 口渴", "Beverage +10% Satiety +15% Thirst"), "green"); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("饮品 +" + gain + "% 饱食 +" + BuildConfig.BeverageThirst + "% 口渴（" + cal + " 卡）", "Beverage +" + gain + "% Satiety +" + BuildConfig.BeverageThirst + "% Thirst (" + cal + " kcal)"), "green"); } catch { }
             TryExpel(item); // 饮料喝完消失（消耗 1 件）
             RefreshStatusPanel();
         }
@@ -1439,6 +1481,24 @@ internal static class RobinCrusoePerk
         // 09-11 日志定案：Remove 参数单位=µl（Remove(200000) 实测扣 200ml 无超量保护）；sip*1000 = 正确扣量
         try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
         RefreshStatusPanel(); // 实时刷新常驻面板
+    }
+
+    // ===== 09-19 用户拍板：麻醉品按价值档位加睡眠（参考健康分档减半；药效倍率同享）=====
+    // 麻醉品双击 = 心情 + 睡眠（<50 +15 / 50-149 +30 / 150-299 +45 / ≥300 +60）+ 消失
+    private static void UseNarcotic(GameItem item)
+    {
+        try
+        {
+            int bv = GetItemBaseValue(item);
+            int slp = bv >= 300 ? 60 : (bv >= 150 ? 45 : (bv >= 50 ? 30 : 15));
+            slp = (int)(slp * GetDrugEffMult()); // 回光返照：药效+50%
+            SetMood(Math.Min(100, GetMood() + BuildConfig.NarcoticMood));
+            SetSleep(Math.Min(100, GetSleep() + slp));
+            TryExpel(item);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("麻醉品：心情 +" + BuildConfig.NarcoticMood + " 睡眠 +" + slp + "%", "Narcotic: Mood +" + BuildConfig.NarcoticMood + " Sleep +" + slp + "%"), "green"); } catch { }
+            RefreshStatusPanel();
+        }
+        catch { }
     }
 
     // 药品：按价值分档恢复健康（用户拍板 09-10：健康上限100，高档药不溢出——<50 +30 / 50-149 +60 / 150-299 +90 / ≥300 +100 回满）
@@ -1504,6 +1564,61 @@ internal static class RobinCrusoePerk
     }
 
     // ===== 自动喝水按质生效（09-11 用户拍板：与双击同 5 档；return false 接管原版"补口渴+减水"，仿原版 AutoSipFromContainer 逻辑）=====
+
+    // ===== 博士廉价模组供货（养蛊机系统 09-15：30 天起每 3 天 3-5 个 overclock/ruined/corrupt，60% 价）=====
+    private static int _doctorSupplyDay = -1;
+    internal static void TryDoctorSupply()
+    {
+        try
+        {
+            int day = DeterministicSchedule.CurrentDay;
+            if (day == _doctorSupplyDay) return; // 同日不重复
+            _doctorSupplyDay = day;
+            // 第 10 天卖养蛊机 / 第 30 天卖生成器 + 保护器（新物品注册后追加）
+            if (day >= 30)
+            {
+                string[] cheap = { "system_module_overclock", "system_module_ruined", "system_module_corrupt" };
+                int n = Core.Rng.Next(BuildConfig.DoctorSupplyCountMin, BuildConfig.DoctorSupplyCountMax + 1);
+                int added = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    try
+                    {
+                        GameItem m = DirectoryMaster.Item(cheap[Core.Rng.Next(cheap.Length)], true);
+                        if (m == null) continue;
+                        long v = 0; try { v = m.GetValue(); } catch { }
+                        int price = (int)(v * BuildConfig.DoctorSupplyPricePct / 100);
+                        MerchantHelper.AddItemToCounter(m, price, false);
+                        added++;
+                    }
+                    catch { }
+                }
+                Core.LogMsg("[养蛊机] 博士廉价模组供货 " + added + " 件（day " + day + "）");
+            }
+            // 养蛊机系统：博士夜晚商店卖新物品（防堆叠——柜台无同 id 才补）
+            // 第 10 天起：养蛊机（wage_gu_machine，2000）——每天到访都补 1 个（柜台无则补）
+            if (day >= 10 && !HasGoodOnFront("wage_gu_machine"))
+            {
+                try { if (MerchantHelper.AddItemToCounter("wage_gu_machine", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖养蛊机（day " + day + "）"); } catch { }
+            }
+            // 第 30 天起：AI 生成器（wage_ai_generator，1500）——柜台无则补
+            if (day >= 30 && !HasGoodOnFront("wage_ai_generator"))
+            {
+                try { if (MerchantHelper.AddItemToCounter("wage_ai_generator", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖生成器（day " + day + "）"); } catch { }
+            }
+            // 30 天起：保护器核心 3 个（wage_protector_core，1500）——每次到访补足 3 个
+            if (day >= 30)
+            {
+                int pc = 0;
+                try { pc = CountGoodOnFront("wage_protector_core"); } catch { }
+                for (int pi = pc; pi < BuildConfig.ProtectorSupplyCount; pi++)
+                {
+                    try { if (MerchantHelper.AddItemToCounter("wage_protector_core", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖保护器（day " + day + "）"); } catch { }
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[养蛊机] TryDoctorSupply 异常: " + ex.Message); }
+    }
     public static bool PrefixAutoSipFromContainer(GameItem item, GameCharacterItem GCI)
     {
         try
@@ -1541,6 +1656,56 @@ internal static class RobinCrusoePerk
     }
 
     // ===== 物品面板 tooltip =====
+    // 09-18 原生满卡虚高修复（拆包 B 方案）：吃过的食物原生行显示剩余卡——Prefix 临时改 CALORIE_VALUE_TAG 为剩余值，Postfix 恢复（外层 mod 行读回满卡，顺序安全）
+    private static int _foodCalBackup = 0;
+    private static bool _foodCalBackupValid = false;
+    public static void PrefixFoodTooltip(GameItem item)
+    {
+        try
+        {
+            _foodCalBackupValid = false;
+            if (item == null || !IsActive()) return;
+            bool eaten = false; try { eaten = item.IsTag(CAL_LEFT_TAG); } catch { }
+            if (!eaten) return;
+            int full = 0; try { full = GetCalorie(item); } catch { }
+            int left = GetCalLeft(item);
+            _foodCalBackup = full; _foodCalBackupValid = true;
+            try { System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(left); }; var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct); item.ModifyTag("CALORIE_VALUE_TAG", il2cppAct, false); } catch { }
+        }
+        catch { }
+    }
+    public static void PostfixFoodTooltip(GameItem item)
+    {
+        try
+        {
+            if (_foodCalBackupValid && item != null)
+            {
+                try { System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(_foodCalBackup); }; var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct); item.ModifyTag("CALORIE_VALUE_TAG", il2cppAct, false); } catch { }
+                _foodCalBackupValid = false;
+            }
+        }
+        catch { }
+    }
+    // ===== 09-18 喂食器按满卡算修复（拆包实锤）：b__3 搅拌转化前把吃过的食物 CALORIE_VALUE_TAG 改为剩余卡，b__3 原样按剩余转（食物随后被移除无需恢复） =====
+    public static void PrefixFeedDispenserB3(Il2Cpp.MachineFeedDispenser.__c__DisplayClass7_0 __instance)
+    {
+        try
+        {
+            if (__instance == null || !IsActive()) return;
+            var grid = __instance.storageGrid;
+            if (grid == null || grid.childItems == null) return;
+            foreach (var m in grid.childItems)
+            {
+                if (m == null) continue;
+                bool eaten = false; try { eaten = m.IsTag(CAL_LEFT_TAG); } catch { }
+                if (!eaten) continue;
+                int left = GetCalLeft(m);
+                try { System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(left); }; var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct); m.ModifyTag("CALORIE_VALUE_TAG", il2cppAct, false); } catch { }
+            }
+        }
+        catch { }
+    }
+
     public static void PostfixCreateItemTooltip(RichTextBuilder builder, GameItem item)
     {
         try
@@ -1579,6 +1744,14 @@ internal static class RobinCrusoePerk
                 else
                     builder.AddLine(LangHelper.T("◆ 升级：拖 metal_ingot 到机器/模板 +1%/次（性能/效率/质量）", "◆ Upgrade: drag metal_ingot to machine/template +1%/each (Perf/Eff/Quality)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                // 吞噬叠加记录（吞噬季：该模组吸收的属性累计——仅模组有 CANNIBALISM_* tag，机器读到 0 不显示）
+                int cp = GetTagIntSafe(item, "CANNIBALISM_PERFORMANCE_INT");
+                int ce = GetTagIntSafe(item, "CANNIBALISM_EFFICIENCY_INT");
+                int cq = GetTagIntSafe(item, "CANNIBALISM_QUALITY_INT");
+                int cv = GetTagIntSafe(item, "CANNIBALISM_VALUE");
+                if (cp > 0 || ce > 0 || cq > 0 || cv > 0)
+                    builder.AddLine(LangHelper.T("◆ 吞噬叠加：性能+" + cp + "% 效率+" + ce + "% 质量+" + cq + "% 价值+" + cv, "◆ Devoured: Perf +" + cp + "% Eff +" + ce + "% Qual +" + cq + "% Value +" + cv),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
             else if (ContainerUpgradeV2.IsUpgradeableContainer(item))
             {
@@ -1590,7 +1763,7 @@ internal static class RobinCrusoePerk
                     {
                         int progress = ContainerUpgradeV2.GetTagIntSafe(item, "wb_progress");
                         int need = ContainerUpgradeV2.UPGRADE_COSTS[Math.Min(stage, ContainerUpgradeV2.MAX_STAGE - 1)];
-                        builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · 升级进度 " + progress + "/" + need, "◆ Storage: Stage " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · progress " + progress + "/" + need),
+                        builder.AddLine(LangHelper.T("◆ 储存区：段位 " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · 升级进度 " + progress + "/" + need + "（拖 junk 升级）", "◆ Storage: Stage " + stage + "/" + ContainerUpgradeV2.MAX_STAGE + " · progress " + progress + "/" + need + " (drag junk to upgrade)"),
                             true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                     }
             }
@@ -1619,7 +1792,14 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
-    // ===== 拾荒/受伤联动（v5.7：只挂心情一个口；病危禁拾荒；受伤一律不能拾荒）=====
+    // ===== 卖血系统（09-17 用户拍板：双击采血包 500cc→蓝血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
+    internal const int BLOOD_MAX = 6000;
+    internal const string BLOOD_DRAW_ID = "wage_blood_draw";
+    internal static int GetBlood() { try { return PerkStatePersistence.GetInt(PERK_ID, "blood", BLOOD_MAX); } catch { return BLOOD_MAX; } }
+    internal static void SetBlood(int v) { try { PerkStatePersistence.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
+    internal static int AddBlood(int delta) { int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta)); SetBlood(b); return b; }
+    internal static bool IsBloodWeak() { try { return GetBlood() < 3000; } catch { return false; } }
+
     public static bool PrefixReceiveWound()
     {
         try
@@ -1628,10 +1808,20 @@ internal static class RobinCrusoePerk
             if (IsHomebrewWineBuffActive()) return false; // 顶级自酿 buff：连续3天不受伤（用户拍板 09-10）
             int pct = GetMoodWoundPct(); // ≥80 -20% / <40 +20%（受伤几率修正）
             float avoid = 0.3f * (1f + pct / 100f); // 免伤基底 30%：≥80→36%（更不易伤）/<40→24%（更容易伤）
+            if (IsBloodWeak()) avoid -= 0.3f; // 卖血虚弱（<3000）：受伤概率 +30%（09-17）
             if (UnityEngine.Random.value < avoid) return false;
         }
         catch { }
         return true;
+    }
+    // 受伤扣血（09-17 卖血）：轻伤 -200 / 重伤 -500（ReceiveMinorWound/MajorWound Postfix）
+    public static void PostfixReceiveMinorWound()
+    {
+        try { if (!IsActive()) return; AddBlood(-200); RefreshStatusPanel(); } catch { }
+    }
+    public static void PostfixReceiveMajorWound()
+    {
+        try { if (!IsActive()) return; AddBlood(-500); RefreshStatusPanel(); } catch { }
     }
     public static void PostfixCanScavenge(ref bool __result)
     {
@@ -1759,7 +1949,7 @@ internal static class RobinCrusoePerk
         }
         catch { }
     }
-    private static void SetTagIntValue(GameItem item, string tag, int value)
+    internal static void SetTagIntValue(GameItem item, string tag, int value)
     {
         try
         {
@@ -1778,9 +1968,11 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (!IsActive() || __instance == null || targetItem == null) return true;
+            bool robC = IsActive();
+            // 09-15 水商之友：非鲁滨逊档但水商之友激活 + 目标是瓶印机 → 允许金属锭升级
+            if ((!robC && !(WaterMerchantPerk.IsActive() && IsBottlePrinter(targetItem))) || __instance == null || targetItem == null) return true;
             // 拖动中 MayTarget 会被反复调用：匹配即放行（hover 可拖），升级/消耗留给松手时的 Target/MayHaveValidInventorySlot
-            if ((IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
+            if ((IsMetalIngot(__instance) && !IsMoreUpdateOwnedMachine(targetItem) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
                 || (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem)))
             { __result = true; return false; }
         }
@@ -1795,9 +1987,11 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (!IsActive() || __instance == null || targetItem == null) return true;
+            bool robC = IsActive();
+            // 09-15 水商之友：非鲁滨逊档但水商之友激活 + 目标是瓶印机 → 允许金属锭升级
+            if ((!robC && !(WaterMerchantPerk.IsActive() && IsBottlePrinter(targetItem))) || __instance == null || targetItem == null) return true;
             if (!IsDragRelease()) return true;
-            if (IsMetalIngot(__instance) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
+            if (IsMetalIngot(__instance) && !IsMoreUpdateOwnedMachine(targetItem) && (IsMachine(targetItem) || targetItem.IsTag("MODULE_TAG")))
             { if (TryUpgradeMachine(__instance, targetItem)) return false; }
             else if (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem))
             {
@@ -1821,6 +2015,51 @@ internal static class RobinCrusoePerk
         catch { }
         return true;
     }
+    // ===== MoreUpdate（MoreDeviceUpgrades v0.2.0）兼容让路（09-14）=====
+    // 动态探测 MoreUpdate 已加载时，我方金属锭升级对它的 4 台配方机器让路（放行给 MoreUpdate 独占），
+    // 消除"同一拖放双响应、metal_ingot 双消耗"。未装 MoreUpdate 时我方行为完全不变。
+    private static bool? _moreUpdateLoaded;
+    private static bool IsMoreUpdateLoaded()
+    {
+        try
+        {
+            if (_moreUpdateLoaded == null)
+            {
+                bool found = false;
+                var asms = System.AppDomain.CurrentDomain.GetAssemblies();
+                if (asms != null)
+                    foreach (var a in asms)
+                    {
+                        if (a == null) continue;
+                        string n = "";
+                        try { n = a.GetName().Name ?? ""; } catch { }
+                        if (n == "MoreDeviceUpgrades") { found = true; break; }
+                    }
+                _moreUpdateLoaded = found;
+            }
+            return _moreUpdateLoaded.Value;
+        }
+        catch { return false; }
+    }
+    // MoreUpdate 配方机器 ∩ 我方机器全集（拆包实锤：furnace/water_purifier/wine_rack/mirage_projector 有 metal_ingot 配方）
+    private static readonly HashSet<string> MOREUPDATE_METAL_INGOT_MACHINES = new HashSet<string>(
+        new[] { "furnace", "water_purifier", "wine_rack", "mirage_projector" });
+    private static bool IsMoreUpdateOwnedMachine(GameItem target)
+    {
+        try
+        {
+            if (!IsMoreUpdateLoaded() || target == null) return false;
+            string id = (target.identifier ?? "").ToLowerInvariant();
+            if (!MOREUPDATE_METAL_INGOT_MACHINES.Contains(id)) return false;
+            // 接力（09-14 拍板）：MoreUpdate 升满（cap reached）后我方接管继续升级——升满判定按拆包实锤
+            if (id == "furnace" && GetTagIntSafe(target, "MOD_FURNACE_INGOT_UPGRADES") >= 10) return false;
+            if (id == "water_purifier" && GetTagIntSafe(target, "MOD_PURIFIER_INGOT_UPGRADES") >= 10) return false;
+            if (id == "wine_rack" && GetTagIntSafe(target, "MOD_WINERACK_WINE_WIDTH") >= 6) return false;
+            // mirage_projector 永不升满（int.MaxValue）→ 始终归 MoreUpdate
+            return true;
+        }
+        catch { return false; }
+    }
     private static bool IsMetalIngot(GameItem item)
     {
         try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "metal_ingot"; } catch { return false; }
@@ -1828,6 +2067,11 @@ internal static class RobinCrusoePerk
     private static bool IsJunk(GameItem item)
     {
         try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "junk"; } catch { return false; }
+    }
+    // 水瓶打印机（水商之友专属升级目标——09-15 用户拍板：水商之友可升级瓶印机质量）
+    private static bool IsBottlePrinter(GameItem item)
+    {
+        try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "bottle_printer"; } catch { return false; }
     }
     private static bool IsDragRelease()
     {
@@ -1841,8 +2085,8 @@ internal static class RobinCrusoePerk
         catch { return false; }
     }
     // 机器白名单全集（拆包 2.5.30 [L1]：STANDARD_MACHINE_TAG 仅 8 台；"所有机器可升级"→ 自定义全集判定）
-        private static readonly HashSet<string> ALL_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
-    private static bool IsMachine(GameItem item)
+        internal static readonly HashSet<string> ALL_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
+    internal static bool IsMachine(GameItem item)
     {
         try
         {
@@ -1860,6 +2104,14 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (IsMoreUpdateOwnedMachine(target)) return false; // MoreUpdate 兼容让路：配方机器归 MoreUpdate 独占
+            // 09-15 瓶印机专用升级：只写质量（TOTAL_PERCENTAGE_QUALITY_BONUS_INT +2，水商之友 Getter 无减半 → 实 +2/次；鲁滨逊 ×0.5 → 实 +1/次）
+            if (IsBottlePrinter(target))
+            {
+                AddTagInt(target, "TOTAL_PERCENTAGE_QUALITY_BONUS_INT", 2);
+                ConsumeOne(ingot);
+                return true;
+            }
             bool isMachine = IsMachine(target);
             if (isMachine && target.IsTag("STANDARD_MACHINE_TAG"))
             {
@@ -2061,7 +2313,7 @@ internal static class RobinCrusoePerk
             {
                 int _hidx = ContainerUpgradeV2.FindBoxInHidden(__instance);
                 int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
-                if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); try { Core.LogMsg("[位置方案] 打开恢复 hiddenIdx=" + _hidx + " stage=" + _hstage); } catch { } return; }
+                if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); _rcRestoredContainers.Add(__instance.Pointer); return; }
             }
             catch { }
             if (ContainerUpgradeV2.IsWageBox(__instance))
@@ -2078,12 +2330,12 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
-    private static int GetTagIntSafe(GameItem item, string tag)
+    internal static int GetTagIntSafe(GameItem item, string tag)
     {
         try { var t = item.GetTagReadonly(tag); if (t != null) return t.valueInt; } catch { }
         return 0;
     }
-    private static void AddTagInt(GameItem item, string tag, int delta)
+    internal static void AddTagInt(GameItem item, string tag, int delta)
     {
         try
         {
@@ -2099,7 +2351,50 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (!IsActive() || builder == null || item == null) return;
+            bool robC = IsActive();
+            // 09-15 养蛊机/生成器 tooltip（全局机器，不绑定职业）：充能/抽卡进度可视化
+            if (item != null && (item.identifier == GuMachineSystem.GU_MACHINE_ID || item.identifier == GuMachineSystem.AI_GENERATOR_ID))
+            {
+                if (builder == null) return;
+                if (item.identifier == GuMachineSystem.GU_MACHINE_ID)
+                {
+                    int charge = GetTagIntSafe(item, GuMachineSystem.GU_CHARGE_TAG);
+                    builder.AddLine(LangHelper.T(
+                        "◆ 充能 " + charge + "/3（打烊 +1，满 3 自动炼蛊·需舱内≥2模组）",
+                        "◆ Charge " + charge + "/3 (+1 at close, auto-forge at 3, needs ≥2 modules)"), bold: true);
+                }
+                else
+                {
+                    // 09-19 P3：显示当前模式（读舱内保护器实时判定）+ 失败结果提示
+                    bool hasProt = false;
+                    try
+                    {
+                        var ggrid = GuMachineSystem.GetGuGrid(item);
+                        if (ggrid != null && ggrid.childItems != null)
+                            foreach (var m in ggrid.childItems)
+                                if (m != null) { string mid = ""; try { mid = m.identifier ?? ""; } catch { } if (mid == GuMachineSystem.PROTECTOR_ID) { hasProt = true; break; } }
+                    }
+                    catch { }
+                    string mode = hasProt
+                        ? LangHelper.T("阉割版（100%成功，上限75%）", "Stable (100% success, cap 75%)")
+                        : LangHelper.T("不稳定版（50%成功，失败产报废模组）", "Unstable (50% success, fail -> scrap module)");
+                    builder.AddLine(LangHelper.T(
+                        "◆ 打烊自动抽卡（舱内≥2模组）· 当前：" + mode,
+                        "◆ Auto-draw at close (≥2 modules) · Now: " + mode), bold: true);
+                }
+                return;
+            }
+            if ((!robC && !(WaterMerchantPerk.IsActive() && IsBottlePrinter(item))) || builder == null || item == null) return;
+            // 09-15 瓶印机专属 tooltip：显示质量实际加成（读 Getter 自动适配两职业倍率）
+            if (IsBottlePrinter(item))
+            {
+                int q = 0;
+                try { q = Il2Cpp.MachineryHelper.GetCurrentQualityBonus(item); } catch { }
+                builder.AddLine(LangHelper.T(
+                    "◆ 金属锭升级：质量 +" + q + "%（拖 metal_ingot 继续 +2%）",
+                    "◆ Ingot upgrade: Quality +" + q + "% (drag metal_ingot +2%/each)"), bold: true);
+                return;
+            }
             if (!IsMachine(item)) return;
             int pct = GetTagIntSafe(item, "wageUpgradePct");
             int effv = GetTagIntSafe(item, "wageUpgradeEff");
@@ -2339,6 +2634,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1) return; // 困难模式：无救助（濒饿直接 GameOver）
             int n = UnityEngine.Random.Range(1, 3); // 1-2 份
             // 2026-09-09 修复：按更缺的送（口渴更缺送水，否则送食）——避免濒饿送食物、濒渴送错
             bool giveWater = GetThirstPct() < GetSatiety();
@@ -2352,6 +2648,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1) return; // 困难模式：无救助（濒渴直接 GameOver）
             GiveToBackpack("bottled_water", 2);
             try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了 2 份水，先撑住", "A kind customer sent 2 waters — hang in there"), "green"); } catch { }
         }
@@ -2361,6 +2658,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1) return; // 困难模式：无救助（病危直接 GameOver）
             GiveToBackpack("bandage_item", 1);
             try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了药品，快用上", "A kind customer sent medicine — use it now"), "green"); } catch { }
         }
@@ -2397,21 +2695,21 @@ internal static class RobinCrusoePerk
         {
             if (!IsActive()) return true;
             int day = DeterministicSchedule.CurrentDay;
-            if (day < 100) return false; // 前99天免租：跳过原生每周收租
-            if (day % 100 != 0) return false; // 每100天收一次
-            int term = day / 100; // 期数：第100天=1、第200天=2…
-            int rent = 10000 + term * 5000; // 第100天=15000、第200天=20000、第300天=25000…
+            int rent = RentForDay(day);
+            if (rent <= 0) return false; // 非收租日：跳过原生每周收租
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return false;
-            if (ps.playerCash >= rent)
-            {
-                ps.playerCash -= rent;
-                try { StoreUIManager.Instance.Notify(LangHelper.T("交租 " + rent + "（第" + term + "期）", "Rent due: " + rent + " (term " + term + ")"), "green"); } catch { }
-            }
+            // A1 防重（09-17）：读档重放当天 CheckRentDay → 不重复扣租（照 ApplyBadLuck per-runID 先例）
+            string _runId = ""; try { _runId = ps.runID ?? ""; } catch { }
+            string _rentKey = "WagesRentPaidDay_Run_" + _runId;
+            if (UnityEngine.PlayerPrefs.GetInt(_rentKey, -1) == day) return false;
+            bool enough = ps.playerCash >= rent;
+            ps.playerCash -= rent; // 09-17 强制扣（现金不足也扣成负数——用户拍板）
+            UnityEngine.PlayerPrefs.SetInt(_rentKey, day); // A1 防重记录
+            if (enough)
+                try { StoreUIManager.Instance.Notify(LangHelper.T("交租 " + rent + "（第" + day + "天）", "Rent due: " + rent + " (day " + day + ")"), "green"); } catch { }
             else
-            {
-                try { StoreUIManager.Instance.Notify(LangHelper.T("房东来收 " + rent + "，现金不足！", "The landlord is here for " + rent + " - not enough cash!"), "red"); } catch { }
-            }
+                try { StoreUIManager.Instance.Notify(LangHelper.T("房东来收 " + rent + "，现金不足，强制扣除！", "The landlord is here for " + rent + " - not enough cash, forcibly deducted!"), "red"); } catch { }
             return false; // 不走原生收租链（原生是每周涨租模式）
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PrefixCheckRentDay 异常: " + ex.Message); }
@@ -2455,6 +2753,27 @@ internal static class RobinCrusoePerk
     }
 
 
+    // ===== 租金表（09-17 用户拍板：49/50 各2500、100→10000、150→20000、200→50000、250→70000、250后每50天封顶70000；不足强制扣负）=====
+    private static int RentForDay(int day)
+    {
+        if (day == 49 || day == 50) return 2500;
+        if (day == 100) return 10000;
+        if (day == 150) return 20000;
+        if (day == 200) return 50000;
+        if (day == 250) return 70000;
+        if (day > 250 && day % 50 == 0) return 70000;
+        return 0; // 非收租日
+    }
+    private static int NextRentDay(int day)
+    {
+        if (day < 49) return 49;
+        if (day < 50) return 50;
+        if (day < 100) return 100;
+        if (day < 150) return 150;
+        if (day < 200) return 200;
+        if (day < 250) return 250;
+        return ((day / 50) + 1) * 50; // 250 后每 50 天
+    }
     // ===== 租金显示同步为100天制（拆包 [L1]：日历/开始日/店内日历都读 dayUntilRent+rentValue）=====
     private static void SyncRentDisplay()
     {
@@ -2463,12 +2782,9 @@ internal static class RobinCrusoePerk
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return;
             int day = DeterministicSchedule.CurrentDay;
-            // 距下次收租：第100天=今天(0)，第99天=1天后，第101天=99天后…
-            int rem = day % 100;
-            ps.dayUntilRent = (rem == 0) ? 0 : (100 - rem);
-            // 下期租金：day 1-100 → 15000（期1）；101-200 → 20000（期2）…
-            int term = (day - 1) / 100 + 1;
-            ps.rentValue = 10000 + term * 5000;
+            int nextDay = NextRentDay(day);
+            ps.dayUntilRent = nextDay - day;
+            ps.rentValue = RentForDay(nextDay);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] SyncRentDisplay 异常: " + ex.Message); }
     }
@@ -2483,13 +2799,12 @@ internal static class RobinCrusoePerk
             if (ps == null) return;
             if (ps.IsPropertyPaid) return; // 房产已付清不显示
             int day = DeterministicSchedule.CurrentDay;
-            int rem = day % 100;
-            int due = rem == 0 ? 0 : 100 - rem;
-            int term = (day - 1) / 100 + 1;
-            int rent = 10000 + term * 5000;
+            int nextDay = NextRentDay(day);
+            int due = nextDay - day;
+            int rent = RentForDay(nextDay);
             string dueTxt = due == 0 ? LangHelper.T("今天", "today") : (due == 1 ? LangHelper.T("明天", "tomorrow") : LangHelper.T(due + "天后", "in " + due + " days"));
             if (__instance.landlordTMP != null)
-                __instance.landlordTMP.text = LangHelper.T("房租 " + rent + " 将于" + dueTxt + "收取（第" + term + "期）", "Rent " + rent + " due " + dueTxt + " (term " + term + ")");
+                __instance.landlordTMP.text = LangHelper.T("房租 " + rent + " 将于" + dueTxt + "收取", "Rent " + rent + " due " + dueTxt);
             if (__instance.landlordNoticeBox != null) __instance.landlordNoticeBox.SetActive(true);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixOnCalendarButtonClicked 异常: " + ex.Message); }
@@ -2505,12 +2820,11 @@ internal static class RobinCrusoePerk
             if (ps == null) return;
             if (ps.IsPropertyPaid) return;
             int day = DeterministicSchedule.CurrentDay;
-            int rem = day % 100;
-            int due = rem == 0 ? 0 : 100 - rem;
-            int term = (day - 1) / 100 + 1;
-            int rent = 10000 + term * 5000;
+            int nextDay = NextRentDay(day);
+            int due = nextDay - day;
+            int rent = RentForDay(nextDay);
             string dueTxt = due == 0 ? LangHelper.T("今天", "today") : (due == 1 ? LangHelper.T("明天", "tomorrow") : LangHelper.T(due + "天后", "in " + due + " days"));
-            string txt = LangHelper.T("房租 " + rent + " " + dueTxt + "收取（第" + term + "期）", "Rent " + rent + " due " + dueTxt + " (term " + term + ")");
+            string txt = LangHelper.T("房租 " + rent + " " + dueTxt + "收取", "Rent " + rent + " due " + dueTxt);
             if (__instance.dayTMP != null && __instance.dayTMP.text != txt) // 防每帧重复 set
                 __instance.dayTMP.text = txt;
         }
@@ -2527,13 +2841,12 @@ internal static class RobinCrusoePerk
             if (ps == null) return;
             if (ps.IsPropertyPaid) return;
             int day = DeterministicSchedule.CurrentDay;
-            int rem = day % 100;
-            int due = rem == 0 ? 0 : 100 - rem;
-            int term = (day - 1) / 100 + 1;
-            int rent = 10000 + term * 5000;
+            int nextDay = NextRentDay(day);
+            int due = nextDay - day;
+            int rent = RentForDay(nextDay);
             string dueTxt = due == 0 ? LangHelper.T("今天", "today") : (due == 1 ? LangHelper.T("明天", "tomorrow") : LangHelper.T(due + "天后", "in " + due + " days"));
             if (__instance.rentReminderTMP != null)
-                __instance.rentReminderTMP.text = LangHelper.T("房租 " + rent + " 将于" + dueTxt + "收取（第" + term + "期）", "Rent " + rent + " due " + dueTxt + " (term " + term + ")");
+                __instance.rentReminderTMP.text = LangHelper.T("房租 " + rent + " 将于" + dueTxt + "收取", "Rent " + rent + " due " + dueTxt);
             if (__instance.rentReminder != null)
                 __instance.rentReminder.SetActive(true);
         }
@@ -2572,10 +2885,12 @@ internal static class RobinCrusoePerk
             int healthGain = DAILY_HEALTH_GAIN + FxNum("hR");   // 健康 +10% + 节点恢复修正（病恹恹 hR-5 / 透心凉 hR+5）
             int hDecay = (int)(FxNum("hD") * GetWearEffMult());                     // 健康衰减 × 糙人抗造系数（v5.9 CompBuff）
             int h = Math.Min(100, Math.Max(0, h0 + healthGain - hDecay));           // 健康自然变化 + 衰减修正
+            if (IsBloodWeak()) h = Math.Max(0, h - 10); // 卖血虚弱（<3000）：健康衰减加速（09-17）
             SetSatiety(sat); SetThirstPct(th); SetHealth(h);
             // 新三状态结算（v5.8-8）：清洁 -10 + 节点衰减/恢复；睡眠 打烊+30（拾荒当天已 -15）+ 节点睡眠恢复 + 补觉高效；社交 接待日+5/无客日-5 + 节点
             SetClean(Math.Max(0, Math.Min(100, GetClean() - DAILY_CLEAN_LOSS - FxNum("cleanD") + FxNum("cleanR"))));
             SetSleep(Math.Min(100, Math.Max(0, GetSleep() + DAILY_SLEEP_GAIN + FxNum("sleepR") + GetCompBuffSleepRestore()))); // sleepR 符号修正（拆包 09-10：'sleepR-10'=恢复-10，减号负负得正，改加号）
+            AddBlood(100); // 睡觉回血（09-17 卖血）
             int deals = PerkStatePersistence.GetInt(PERK_ID, "deals", 0);
             int social = GetSocial() + (deals > 0 ? DAILY_SOCIAL_GAIN : -DAILY_SOCIAL_LOSS) + FxNum("socD") + FxNum("socR");
             SetSocial(Math.Max(0, Math.Min(100, social)));
@@ -3271,6 +3586,24 @@ internal static class RobinCrusoePerk
         return false;
     }
 
+    // 柜台同 id 数量（博士夜晚商店保护器补足用）
+    private static int CountGoodOnFront(string itemId)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null || em.frontInvinvElement.items == null) return 0;
+            int n = 0;
+            foreach (var it in em.frontInvinvElement.items)
+            {
+                if (it != null && it.identifier == itemId) n++;
+            }
+            return n;
+        }
+        catch { }
+        return 0;
+    }
+
     // 电话端注册（Core 注册 Postfix StorePhoneClient.InitPhoneClientDict）
     public static void PostfixInitPhoneClientDict(Il2CppSystem.Collections.Generic.Dictionary<long, Il2Cpp.StorePhoneClient> __result)
     {
@@ -3532,5 +3865,49 @@ internal static class RobinCrusoePerk
             }
         }
         catch { }
+    }
+
+    // ===== 采血包物品注册（09-17：双击抽血消耗品，照 DestinyDice RegisterToDirectory 模板）=====
+    private static Il2CppSystem.Func<GameItem> _bloodDrawFactory = null;
+    public static void RegisterBloodDrawToDirectory(ItemDirectory dir)
+    {
+        try
+        {
+            if (dir == null) return;
+            if (((Directory<GameItem>)(object)dir).Has(BLOOD_DRAW_ID)) return;
+            if (_bloodDrawFactory == null)
+            {
+                System.Func<GameItem> systemFactory = () => CreateBloodDraw();
+                _bloodDrawFactory = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<GameItem>>((System.Delegate)systemFactory);
+            }
+            bool ok = ((Directory<GameItem>)(object)dir).Add(BLOOD_DRAW_ID, _bloodDrawFactory);
+            if (!ok) Core.LogMsg("[采血包] 注册失败");
+        }
+        catch (Exception ex) { Core.LogMsg("[采血包] 注册异常: " + ex.Message); }
+    }
+
+    private static GameItem CreateBloodDraw()
+    {
+        try
+        {
+            var item = ItemDirectory.CreateEmptyItem(null);
+            if (item == null) return null;
+            item.identifier = BLOOD_DRAW_ID;
+            item.EnableTag("wage_blood_draw_tag");
+            item.SetName(LangHelper.T("采血包", "Blood Draw Kit"));
+            try { item.shortDescription = LangHelper.T("双击采血：抽出 500cc 血液制成蓝血袋（医疗品可卖），同时受一点轻伤。", "Double-click to draw 500cc of blood into a blood bag (medical item, sellable), at the cost of a minor wound."); } catch { }
+            try { item.flavorText = LangHelper.T("鲁滨逊的自救工具——血是硬通货，命也是。", "Robinson's self-help kit - blood is currency, and so is life."); } catch { }
+            try { item.SetSprite("Items/items_backpack2", "simple_backpack"); } catch { }
+            try
+            {
+                var gsb = new GridShapeBuilder();
+                gsb.SetDataFill(1, 1);
+                GridShape shape = gsb.Build();
+                item.SetShape(shape);
+            }
+            catch { }
+            return item;
+        }
+        catch { return null; }
     }
 }

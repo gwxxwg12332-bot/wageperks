@@ -21,8 +21,10 @@ internal static class CustomStartingPerks
         new ThiefMagnetPerk(),
         new BadLuckPerk(),
         new BadReputationPerk(),
+        new DarkGridInspectorPerk(),
         new WildeEvidencePerk(),
-        new DestinyDicePerk()
+        new DestinyDicePerk(),
+        new WandererPerk()
     };
 
     private static readonly System.Collections.Generic.Dictionary<string, StartingPerk> Created =

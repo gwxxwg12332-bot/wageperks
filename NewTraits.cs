@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -17,8 +17,8 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("刀尖舔血", "Blood Blade");
-    internal override string Description => LangHelper.T("高风险高回报的赌徒特性。违禁品买卖价+20%，利润丰厚；但代价是每天开张必遭治安部强制检查。利润越高，越可能翻车。", "High-risk high-reward. Contraband price +20 percent, but you face a mandatory security inspection every day. Higher profit, higher risk.");
-    internal override int Cost => 0;
+    internal override string Description => LangHelper.T("高风险高回报的赌徒特性（2点）。违禁品买卖价+20%，利润丰厚；代价是治安部永远盯着你——每天强制检查，连满信誉豁免也无效。吞噬季每 10 天降临：机器里的模组会互相吞噬融合，产出高级违禁品。利润越高，越可能翻车。", "High-risk high-reward gambler (2 points). Contraband price +20 percent, but Security is always watching: mandatory inspection every day — even max reputation won't spare you. Every 10 days, Cannibalism Season strikes: modules in machines devour each other, yielding high-grade contraband. Higher profit, higher risk.");
+    internal override int Cost => 2; // 09-16 用户拍板：需要 2 特性点
     internal override int Type => 2; // 混合特性显示为黄色
 
     internal override void OnNewGame()
@@ -214,7 +214,7 @@ internal sealed class BadLuckPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("霉运缠身", "Bad Luck");
-    internal override string Description => LangHelper.T("你仿佛被诅咒了。每天打烊后都会丢失一笔钱（50-200信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 50-200 credits every day after closing.");
+    internal override string Description => LangHelper.T("你仿佛被诅咒了。每天新的一天开始时都会丢失一笔钱（100-1500信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 100-1500 credits every day as a new day begins.");
     internal override int Cost => -10;   // 返还10点（每天50-200平均125/天×永久）
     internal override int Type => 1;    // 负面特性显示为红色
 
@@ -278,5 +278,265 @@ internal sealed class BadReputationPerk : CustomStartingPerk
             Core.LogMsg("[信誉扫地] 解除检查失败: " + ex.Message);
             return false;
         }
+    }
+}
+
+// ============================================================
+// 负面特性：治安部眼线
+// 每15天治安部突击检查：全店（含暗格+海报夹层+货架表面）违禁品全没收（红色负面，Cost -15）
+// 复用：AddictOfficerEvent.IsSmugglerBay / GetInnerInventory（已提 internal）、Core.LastNightReportLine、PerkStatePersistence
+// ============================================================
+internal sealed class DarkGridInspectorPerk : CustomStartingPerk
+{
+    internal const string PerkId = "治安部眼线";
+
+    internal override string Id => PerkId;
+    internal override string DisplayName => LangHelper.T("治安部眼线", "Security Informant");
+    internal override string Description => LangHelper.T(
+        "治安部的眼睛从未离开过你——你的一举一动都被记录在案。每15天他们上门突击检查，翻出暗格和海报夹层里的违禁品，一律没收，不限数量。满星信誉也拦不住他们。",
+        "The Security Department's eyes never leave you - every move you make is on record. Every 15 days they raid your shop, uncovering contraband even in hidden compartments and behind posters - all confiscated, no limit. Full reputation won't stop them.");
+    internal override int Cost => -15;   // 返还15点（最大负面，09-16 用户拍板）
+    internal override int Type => 1;    // 负面特性显示为红色
+
+    internal override void OnNewGame() { }
+
+    internal static bool IsActive()
+    {
+        return Core.PerkActive(PerkId);
+    }
+
+    // ============ 每日调度（AddictOfficerEvent.OnDayStartPostfix 调用） ============
+    internal static new void OnNewDay()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            if (PlayerStore.Instance == null) return;
+            int day = 1; try { day = StoreStation.GetDayCounter(); } catch { }
+            if (day <= 0 || day % BuildConfig.InspectInterval != 0) return;
+            if (day == PerkStatePersistence.GetInt("dark_grid_inspector", "last_trigger_day", -1)) return;
+            PerkStatePersistence.SetInt("dark_grid_inspector", "last_trigger_day", day);
+            RunInspection(day);
+        }
+        catch (Exception ex) { Core.LogMsg("[治安部眼线] 调度失败: " + ex.Message); }
+    }
+
+    // ============ 突击检查：全店（海报夹层+暗格内部+货架表面）违禁品全没收，不限件数 ============
+    private static void RunInspection(int day)
+    {
+        var haul = new List<(GameItem item, GameInventory inv, int lvl)>();
+        try
+        {
+            // 1. 海报/隐藏区（EmporiumEntry.hiddenElement）
+            GameGridInventory hidden = EmporiumEntry.Instance.hiddenElement;
+            if (hidden != null && hidden.childItems != null)
+            {
+                for (int i = 0; i < hidden.childItems.Count; i++)
+                {
+                    GameItem c = hidden.childItems[i];
+                    if (c == null) continue;
+                    try { int lvl = ContrabandHelper.GetContrabandLevel(c); if (lvl > 0) haul.Add((c, hidden, lvl)); } catch { }
+                }
+            }
+
+            // 2. 走私者暗格容器内部（smuggler_bay 前缀 / ITEM_HIDDEN_TAG+CONTAINER_TAG 双标签）
+            foreach (GameItem shopItem in EmporiumEntry.Instance.GetAllItems())
+            {
+                if (shopItem == null || !AddictOfficerEvent.IsSmugglerBay(shopItem)) continue;
+                GameInventory inner = AddictOfficerEvent.GetInnerInventory(shopItem);
+                if (inner == null || inner.childItems == null) continue;
+                for (int i = 0; i < inner.childItems.Count; i++)
+                {
+                    GameItem c = inner.childItems[i];
+                    if (c == null) continue;
+                    try { int lvl = ContrabandHelper.GetContrabandLevel(c); if (lvl > 0) haul.Add((c, inner, lvl)); } catch { }
+                }
+            }
+
+            // 3. 货架/柜台/展示柜/后背包表面直接违禁品（主要网格；暗格容器本身跳过——内部已在 2 处理）
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em != null)
+            {
+                GameInventory[] surfaces = new GameInventory[]
+                {
+                    em.invElement as GameInventory,
+                    em.backInvinvElement as GameInventory,
+                    em.backInvinvElementCounter as GameInventory,
+                    em.frontInvinvElement as GameInventory,
+                    em.showcaseElement as GameInventory
+                };
+                foreach (GameInventory g in surfaces)
+                {
+                    if (g == null || g.childItems == null) continue;
+                    for (int i = 0; i < g.childItems.Count; i++)
+                    {
+                        GameItem c = g.childItems[i];
+                        if (c == null) continue;
+                        if (AddictOfficerEvent.IsSmugglerBay(c)) continue;
+                        try { int lvl = ContrabandHelper.GetContrabandLevel(c); if (lvl > 0) haul.Add((c, g, lvl)); } catch { }
+                    }
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[治安部眼线] 扫描失败: " + ex.Message); }
+
+        if (haul.Count == 0)
+        {
+            Core.AddNightReportLine(LangHelper.T(
+                "治安部突击检查！眼线把暗格和海报夹层翻了个底朝天，这次没搜到违禁品。",
+                "Security raid! Informants tore through hidden compartments and behind posters - nothing found this time."));
+            try { StoreUIManager.Instance.Notify(LangHelper.T("治安部突击检查！这次没搜到违禁品", "Security raid! Nothing found this time"), "yellow"); } catch { }
+            return;
+        }
+
+        // 全没收（不限件数）
+        int seized = 0;
+        foreach (var s in haul)
+        {
+            try { s.inv.Expel(s.item); seized++; }
+            catch (Exception ex) { Core.LogMsg("[治安部眼线] 没收失败: " + ex.Message); }
+        }
+        if (seized == 0) return;
+
+        // 没收清单（最多列 5 种 + 其余计数）——写进第二天晨报/夜间报告
+        var names = new List<string>();
+        foreach (var s in haul)
+        {
+            string nm = "";
+            try { nm = s.item.name ?? s.item.identifier ?? ""; } catch { }
+            if (!string.IsNullOrEmpty(nm) && !names.Contains(nm)) names.Add(nm);
+            if (names.Count >= 5) break;
+        }
+        string listStr = names.Count > 0 ? string.Join("、", names) : "";
+        if (names.Count >= 5 && haul.Count > 5) listStr += " 等";
+
+        Core.AddNightReportLine(LangHelper.T(
+            "治安部突击检查！眼线翻出了所有隐秘角落，没收了 " + seized + " 件违禁品" + (listStr.Length > 0 ? "：" + listStr : "") + "。",
+            "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."));
+        try { StoreUIManager.Instance.Notify(LangHelper.T("治安部突击检查！没收 " + seized + " 件违禁品", "Security raid! " + seized + " contraband confiscated"), "red"); } catch { }
+    }
+}
+
+// ============================================================
+// 中立特性：流浪者（Wanderer）
+// 开局：现金 50%→0 / 50%→1~600 随机；6 件随机物品（1 工具 + 1 日用品 + 4 完全随机），替换原版发放
+// 免费不占点、两难度都有（09-17 用户拍板：原生 id 池）
+// ============================================================
+internal sealed class WandererPerk : CustomStartingPerk
+{
+    internal const string PerkId = "流浪者";
+
+    internal override string Id => PerkId;
+    internal override string DisplayName => LangHelper.T("流浪者", "Wanderer");
+    internal override string Description => LangHelper.T(
+        "你两手空空地来到空间站——开局现金随机（可能一文不名，也可能小有积蓄），随身只有 6 件随机物品（必含 1 件工具 + 1 件日用品），原版开局物资不会给你。",
+        "You arrive at the station empty-handed - starting cash is random (maybe nothing, maybe a little), and you carry only 6 random items (1 tool + 1 household item included). Original starting supplies are not given.");
+    internal override int Cost => 0;   // 免费不占点
+    internal override int Type => 0;   // 中立
+
+    internal override void OnNewGame() { }
+
+    internal static bool IsActive() => Core.PerkActive(PerkId);
+
+    // 09-17 拍板：原生 id 池（拆包给的工具/日用品）
+    private static readonly string[] TOOL_IDS = { "magnifier", "labeler", "logo_checker", "stamp_guide" };
+    private static readonly string[] HOUSEHOLD_IDS = { "cigarette_color", "cigarette_guide" };
+
+    // ============ PlayerStore.StartNewGame Postfix（09-17 流浪者：替换原版发放） ============
+    public static void PostfixStartNewGame()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null) return;
+            // 1. 现金随机：50% → 0；50% → 1~600 均匀
+            if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
+            else ps.playerCash = Core.Rng.Next(1, 601);
+            // 2. 清后背包（开局时刻 = 原版发放物，替换原版发放）
+            ClearBackpack();
+            // 3. 发 6 件：1 工具 + 1 日用品 + 4 完全随机（全物品库）
+            string tool = RandomFromPool(TOOL_IDS);
+            string house = RandomFromPool(HOUSEHOLD_IDS);
+            if (tool != null) GiveToBackpack(tool);
+            if (house != null) GiveToBackpack(house);
+            var all = GetAllItemIds();
+            int given = 0;
+            while (given < 4 && all != null && all.Count > 0)
+            {
+                int idx = Core.Rng.Next(all.Count);
+                string id = all[idx];
+                all.RemoveAt(idx);
+                if (GiveToBackpack(id) != null) given++;
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+
+    private static string RandomFromPool(string[] pool)
+    {
+        if (pool == null || pool.Length == 0) return null;
+        var list = new System.Collections.Generic.List<string>(pool);
+        while (list.Count > 0)
+        {
+            int idx = Core.Rng.Next(list.Count);
+            string id = list[idx];
+            list.RemoveAt(idx);
+            try { if (DirectoryMaster.Has<GameItem>(id)) return id; } catch { }
+        }
+        return null;
+    }
+
+    private static System.Collections.Generic.List<string> GetAllItemIds()
+    {
+        var ids = new System.Collections.Generic.List<string>();
+        try
+        {
+            var list = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (list != null)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    string id = list[i];
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (System.Array.IndexOf(TOOL_IDS, id) >= 0) continue;
+                    if (System.Array.IndexOf(HOUSEHOLD_IDS, id) >= 0) continue;
+                    ids.Add(id);
+                }
+            }
+        }
+        catch { }
+        return ids;
+    }
+
+    private static GameItem GiveToBackpack(string id)
+    {
+        try
+        {
+            if (!DirectoryMaster.Has<GameItem>(id)) return null;
+            GameItem item = DirectoryMaster.Item(id, true);
+            if (item == null) return null;
+            var em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return null;
+            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
+            if (slot != null) { try { slot.TryAcceptOnce(); return item; } catch { } }
+            ((GameInventory)em.backInvinvElement).UncheckedAccept(item);
+            return item;
+        }
+        catch { return null; }
+    }
+
+    private static void ClearBackpack()
+    {
+        try
+        {
+            var em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            var inv = (GameInventory)em.backInvinvElement;
+            var items = new System.Collections.Generic.List<GameItem>();
+            foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
+            foreach (var it in items) { try { inv.Expel(it); } catch { } }
+        }
+        catch { }
     }
 }

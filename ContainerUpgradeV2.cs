@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
@@ -237,7 +237,7 @@ public static class ContainerUpgradeV2
             AddTagInt(box, "wb_stage", 1);
             SetTagIntValue(box, "wb_progress", 0); // 达标升段，进度清零重计
             try { SetTagIntValue(box, "wage_box_type", 1); } catch { } // 09-14 带值类型标记（随档；布尔 tag 不随档，带值 tag 随档——wb_stage 先例）
-            try { int _hidx = FindBoxInHidden(box); SetHiddenStageByIndex(_hidx, stage + 1); Core.LogMsg("[位置方案] 蛙哥升段记录 hiddenIdx=" + _hidx + " stage=" + (stage + 1)); } catch { } // 09-14 海报后边位置关联
+            try { int _hidx = FindBoxInHidden(box); SetHiddenStageByIndex(_hidx, stage + 1); } catch { } // 09-14 海报后边位置关联
             try { PerkStatePersistence.SetInt("RobinCrusoe", "wage_stage_u" + box.uniqueId, stage + 1); } catch { }
             if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box); // 满级：发第二个妙妙箱（两个箱子方案，天然存档）
             try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5（" + targetW + "×" + targetH + "）", "Wage Box upgraded! Stage " + (stage + 1) + "/5 (" + targetW + "×" + targetH + ")"), "white"); } catch { }
@@ -346,7 +346,6 @@ public static class ContainerUpgradeV2
             if (w == targetW && h == targetH) return;
             SetFullRect(grid, targetW, targetH);
             try { SetTagIntValue(box, "wb_stage", stage); } catch { }
-            try { Core.LogMsg("[位置方案] 恢复蛙哥 stage=" + stage + " shape=" + w + "x" + h + "->" + targetW + "x" + targetH); } catch { }
         }
         catch { }
     }
@@ -457,7 +456,7 @@ public static class ContainerUpgradeV2
                 {
                     int progress = GetTagIntSafe(item, "wb_progress");
                     int need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
-                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need, "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need),
+                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need + "（拖螺丝 nuts 升级）", "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need + " (drag nuts to upgrade)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 }
         }

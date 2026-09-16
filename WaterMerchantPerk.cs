@@ -16,7 +16,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("水商之友", "Water Merchant Friend");
     internal override string Description => LangHelper.T("一位走南闯北的水商听闻你的店铺名声，决定每周来你这拜访一次。他会带来海德拉净水器、水质扫描仪、高级滤水器、水瓶打印机和能量电池——在缺水的下层区，这些净水设备都是硬通货。选择此特性，水商每周到访一次，售卖净水设备和能源。", "A well-traveled water merchant heard of your shop and visits once a week, bringing Hydra purifiers, water scanners, advanced filters, bottle printers, and power cells--essential gear in the water-starved lower levels. Choose this perk: the water merchant visits weekly, selling purification gear and energy.");
-    internal override int Cost => 2;
+    internal override int Cost => 5;
     internal override int Type => 0;
 
     // 上次水商来访的天数
@@ -146,5 +146,63 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             case "energy_credit": return LangHelper.T("能量电池", "Energy Cell");
             default: return null;
         }
+    }
+
+    // ===== 瓶印机打印增强（09-15 用户拍板）=====
+    // B1 挂点：MachineBottlePrinter 嵌套闭包类 __c__DisplayClass6_0 的 TryPrint（Demo Cpp2IL 重命名 = Method_Internal_Void_String_Int32_0，实例方法，闭包含 outputGrid）
+    // B2 替换：bottleId == "large_bottled_water"（原生 ≥9 大瓶档）→ water_jug 超大瓶（空瓶）
+    // B3 装水：质量 ≥100 起（100-149→grade 2 基准水 / 150-199→grade 1 高质水 / ≥200→grade 0 纯水）；<100 空瓶
+    // B4 双链并存：原生 BOTTLE_PRINTER_UPGRADE_COUNT_TAG（升瓶型）与 mod 质量 tag（升水质）互不干扰
+    private static int _printPrevCount = -1; // 打印前输出格物品数（识别新瓶）
+
+    public static void PrefixTryPrint(Il2Cpp.MachineBottlePrinter.__c__DisplayClass6_0 __instance, ref string bottleId, int cost)
+    {
+        try
+        {
+            // B2：大瓶档 → 超大瓶（空瓶）
+            if (bottleId != null && bottleId == "large_bottled_water") bottleId = "water_jug";
+            _printPrevCount = CountPrinterOutput(__instance);
+        }
+        catch { _printPrevCount = -1; }
+    }
+
+    public static void PostfixTryPrint(Il2Cpp.MachineBottlePrinter.__c__DisplayClass6_0 __instance)
+    {
+        try
+        {
+            var printer = __instance.machine;
+            int quality = 0;
+            try { quality = Il2Cpp.MachineryHelper.GetCurrentQualityBonus(printer); } catch { }
+            int grade = -1;
+            if (quality >= 200) grade = 0;        // 纯水（毕业）
+            else if (quality >= 150) grade = 1;   // 高质水
+            else if (quality >= 100) grade = 2;   // 基准水
+            if (grade < 0) { _printPrevCount = -1; return; } // <100：不出水，保持空瓶
+            var grid = __instance.outputGrid;
+            if (grid == null || grid.childItems == null) { _printPrevCount = -1; return; }
+            int start = _printPrevCount > 0 ? _printPrevCount : 0;
+            for (int i = start; i < grid.childItems.Count; i++)
+            {
+                var it = grid.childItems[i];
+                if (it == null) continue;
+                string id = "";
+                try { id = it.identifier ?? ""; } catch { }
+                if (id != "small_bottled_water" && id != "bottled_water" && id != "water_jug") continue;
+                try { Il2Cpp.WaterHelper.AddWater(it, grade, -1, false, 0, 1, true); } catch { }
+            }
+            _printPrevCount = -1;
+        }
+        catch { _printPrevCount = -1; }
+    }
+
+    private static int CountPrinterOutput(Il2Cpp.MachineBottlePrinter.__c__DisplayClass6_0 __instance)
+    {
+        try
+        {
+            var grid = __instance.outputGrid;
+            if (grid == null || grid.childItems == null) return 0;
+            return grid.childItems.Count;
+        }
+        catch { return -1; }
     }
 }
