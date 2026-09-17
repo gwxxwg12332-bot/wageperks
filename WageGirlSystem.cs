@@ -209,7 +209,7 @@ public static class WageGirlSystem
             if (item == null) return false;
             if (Patches.CurrentUITradeMode != 0) return false;
             int gain = 0; int aff = 1; string msg = "";
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净！清洁 +20（照顾）", "Wage Girl cleaned up! Cleanliness +20 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); }
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); }
             else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); }
             else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); }
             else return false;
@@ -247,9 +247,11 @@ public static class WageGirlSystem
                 TryGiveToBackpack();
                 SetExists(true);
             }
-            // 六维每日衰减
-            foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP })
+            // 六维每日衰减（睡眠除外——仿生女仆夜间自然恢复睡眠）
+            foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
                 SetStat(k, GetStat(k) - DAILY_DECAY);
+            // 睡眠自然增长（过夜充电/睡觉恢复）
+            SetStat(K_SLEEP, GetStat(K_SLEEP) + 15);
             // 好感每日回落（不照顾）
             SetAffection(GetAffection() - AFF_DAILY_DROP);
         }
