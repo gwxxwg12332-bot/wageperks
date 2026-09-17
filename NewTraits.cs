@@ -563,10 +563,10 @@ internal sealed class WandererPerk : CustomStartingPerk
             GameItem item = DirectoryMaster.Item(id, true); // 09-20 拆包：Item 触发目录懒加载（Has 只查已初始化字典）
             if (item == null) return null;
             var em = EmporiumEntry.Instance;
-            if (em == null || em.backInvinvElement == null) return null;
-            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
+            if (em == null || em.invElement == null) return null; // 09-20 用户拍板：流浪者 6 件发桌面（invElement，与原生四件同位置）；原发背包
+            var slot = em.invElement.TryFindOneValidInventorySlot(item, false);
             if (slot != null) { try { slot.TryAcceptOnce(); return item; } catch { } }
-            ((GameInventory)em.backInvinvElement).UncheckedAccept(item);
+            ((GameInventory)em.invElement).UncheckedAccept(item);
             return item;
         }
         catch { return null; }
@@ -602,29 +602,28 @@ internal sealed class WandererPerk : CustomStartingPerk
                 string cname = inx < invNames.Length ? invNames[inx] : "inv" + inx;
                 inx++;
                 int before = inv.childItems.Count;
-                int expel = 0, destroy = 0;
-                try { inv.ExpelAll(); } catch { }   // ① 原生批量移除（RemoveAll 语义）
-                int afterAll = inv.childItems.Count;
-                Core.LogMsg("[CLEARDIAG] " + cname + " ExpelAll后 n=" + afterAll + (afterAll == 0 ? " 真清" : " 残留"));
-                var items = new System.Collections.Generic.List<GameItem>();
-                foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
-                foreach (var it in items)
+                int destroy = 0;
+                // 09-20 拆包实锤：ExpelAll/Expel 的 parent(0x190) 检查失败只清引用不清对象（对象悬空仍显示）→ 倒序遍历先 Destroy 再清列表（DebugPanel.ClearMainInv L1819 先例）
+                for (int di = inv.childItems.Count - 1; di >= 0; di--)
                 {
-                    try { if (inv.Expel(it)) expel++; } catch { }   // ② 残留逐个 Expel（parent 检查不过的会失败）
+                    try
+                    {
+                        var dit = inv.childItems[di];
+                        if (dit == null) { try { inv.childItems.RemoveAt(di); } catch { } continue; }
+                        try { dit.Destroy(); } catch (Exception ex) { Core.LogMsg("[CLEARDIAG] Destroy异常 id=" + SafeId(dit) + " msg=" + ex.Message); }
+                        destroy++;
+                    }
+                    catch { }
                 }
-                var still = new System.Collections.Generic.List<GameItem>();
-                foreach (var it in inv.childItems) { if (it != null) still.Add(it); }
-                foreach (var it in still)
-                {
-                    try { it.Destroy(); destroy++; } catch (Exception ex) { Core.LogMsg("[CLEARDIAG] Destroy异常 id=" + SafeId(it) + " msg=" + ex.Message); }      // ③ 兜底 Destroy（绕过 parent 检查）
-                }
-                if (still.Count > 0)
+                try { inv.childItems.Clear(); } catch { }   // 清引用兜底
+                int after = inv.childItems.Count;
+                Core.LogMsg("[CLEARDIAG] " + cname + " n=" + before + " destroy=" + destroy + " 后=" + after + (after == 0 ? " 真清" : " 残留"));
+                if (after > 0)
                 {
                     var ids = new System.Collections.Generic.List<string>();
-                    foreach (var it in still) { try { ids.Add(SafeId(it)); } catch { } }
+                    foreach (var it in inv.childItems) { try { ids.Add(SafeId(it)); } catch { } }
                     Core.LogMsg("[CLEARDIAG] " + cname + " 残留id: " + string.Join(",", ids.ToArray()));
                 }
-                Core.LogMsg("[CLEARDIAG] " + cname + " as=" + (before == expel + destroy ? "OK" : "FAIL") + " n=" + before + " expel=" + expel + " destroy=" + destroy);
             }
         }
         catch { }
