@@ -173,6 +173,9 @@ internal static class AddictOfficerEvent
             catch (Exception ex) { Core.LogMsg("[AddictOfficer] 没收失败: " + ex.Message); continue; }
         }
 
+        try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T(
+            "例行公务巡查！执勤警官严格检查了所有隐秘区域，从你的暗格中查获并没收了 " + seized.Count + " 件违禁品。",
+            "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."), "#FF8A8A"); } catch { } // ① 原生夜报
         Core.AddNightReportLine(LangHelper.T(
             "例行公务巡查！执勤警官严格检查了所有隐秘区域，从你的暗格中查获并没收了 " + seized.Count + " 件违禁品。",
             "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."));

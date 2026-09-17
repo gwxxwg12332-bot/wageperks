@@ -388,6 +388,9 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
 
         if (haul.Count == 0)
         {
+            try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T(
+                "治安部突击检查！眼线把暗格和海报夹层翻了个底朝天，这次没搜到违禁品。",
+                "Security raid! Informants tore through hidden compartments and behind posters - nothing found this time."), "#7FC97F"); } catch { } // ① 原生夜报（拆包：打开报告自动显示）
             Core.AddNightReportLine(LangHelper.T(
                 "治安部突击检查！眼线把暗格和海报夹层翻了个底朝天，这次没搜到违禁品。",
                 "Security raid! Informants tore through hidden compartments and behind posters - nothing found this time."));
@@ -416,6 +419,9 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
         string listStr = names.Count > 0 ? string.Join("、", names) : "";
         if (names.Count >= 5 && haul.Count > 5) listStr += " 等";
 
+        try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T(
+            "治安部突击检查！眼线翻出了所有隐秘角落，没收了 " + seized + " 件违禁品" + (listStr.Length > 0 ? "：" + listStr : "") + "。",
+            "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."), "#FF8A8A"); } catch { } // ① 原生夜报
         Core.AddNightReportLine(LangHelper.T(
             "治安部突击检查！眼线翻出了所有隐秘角落，没收了 " + seized + " 件违禁品" + (listStr.Length > 0 ? "：" + listStr : "") + "。",
             "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."));

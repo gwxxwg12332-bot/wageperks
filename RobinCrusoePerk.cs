@@ -1293,6 +1293,7 @@ internal static class RobinCrusoePerk
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("你因为失血过多昏迷了三天", "You passed out from blood loss - 3-day coma"), "red"); } catch { }
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"), "#FF8A8A"); } catch { } // ① 原生夜报
                 Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"));
                 ForceComaSkip(); // 09-20 拍板：昏迷当天立刻强制过夜 ×3（跳过 3 天）
                 try { RefreshStatusPanel(); } catch { }
@@ -1882,6 +1883,7 @@ internal static class RobinCrusoePerk
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱到极限，强制休息 3 天", "At your limit - forced 3-day rest"), "red"); } catch { }
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"), "#FF8A8A"); } catch { } // ① 原生夜报
                 Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"));
                 RefreshStatusPanel();
             }

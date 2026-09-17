@@ -909,6 +909,7 @@ internal static class Patches
 			if (flag)
 			{
 				PlayerPrefs.SetInt(key, dayCounter);
+				try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."), "#FF8A8A"); } catch { } // ① 原生夜报
 				Core.AddNightReportLine("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."));
 			}
 			else
@@ -2938,9 +2939,13 @@ internal static class Patches
 			{
 				return;
 			}
-			string text = string.Join("\n", Core.NightReportQueue.ToArray());
-			Core.NightReportQueue.Clear();
+						string text = string.Join("\n", Core.NightReportQueue.ToArray());
 			if (__instance == null || __instance.startOfDayTMPPrefab == null || __instance.contentGroupObject == null)
+			{
+				Core.LogMsg("[夜间报告] 报告UI未就绪，无法追加（队列保留不丢）"); // 09-20 拆包：Clear 移到判空后——UI 未就绪时不清队列（原清丢内容）
+				return;
+			}
+			Core.NightReportQueue.Clear();
 			{
 				Core.LogMsg("[夜间报告] 报告UI未就绪，无法追加");
 				return;
