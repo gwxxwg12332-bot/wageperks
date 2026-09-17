@@ -1292,8 +1292,9 @@ internal static class RobinCrusoePerk
             if (IsBloodWeak())
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
-                try { StoreUIManager.Instance.Notify(LangHelper.T("抽血过多，昏迷 3 天", "Blood loss too severe - 3-day coma"), "red"); } catch { }
-                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 抽血过多，昏迷 3 天", "[Robinson] Blood loss too severe - 3-day coma"));
+                try { StoreUIManager.Instance.Notify(LangHelper.T("你因为失血过多昏迷了三天", "You passed out from blood loss - 3-day coma"), "red"); } catch { }
+                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"));
+                ForceComaSkip(); // 09-20 拍板：昏迷当天立刻强制过夜 ×3（跳过 3 天）
                 try { RefreshStatusPanel(); } catch { }
             }
             bool bag = false;
@@ -1840,7 +1841,13 @@ internal static class RobinCrusoePerk
     internal const int BLOOD_MAX = 6000;
     internal static int GetBlood() { try { return PerkStatePersistence.GetInt(PERK_ID, "blood", BLOOD_MAX); } catch { return BLOOD_MAX; } }
     internal static void SetBlood(int v) { try { PerkStatePersistence.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
-    internal static int AddBlood(int delta) { int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta)); SetBlood(b); return b; }
+    internal static int AddBlood(int delta)
+    {
+        int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
+        SetBlood(b);
+        if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } } // 09-20 拍板：失血归零立即死亡（日常/跳天通用）
+        return b;
+    }
     internal static bool IsBloodWeak() { try { return GetBlood() < 3000; } catch { return false; } }
     // 09-20 M5 拍板：虚弱强化——强制休息期判定（休息中禁采血/禁出门）
     internal static bool IsForcedRest()
@@ -2706,10 +2713,43 @@ internal static class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PrefixExecuteGameOver 异常: " + ex.Message); }
         return true;
     }
+    // 09-20 昏迷强制过夜：死亡事件标志（三死/失血 → ExecuteGameOverBy 置位 → ForceComaSkip 停止跳天）
+    private static bool _gameOverTriggered = false;
+
+    // 09-20 拍板：昏迷当天立刻强制过夜 ×3（实际日期 +3，跳过 3 天）；跳天中死亡立即停止
+    private static void ForceComaSkip()
+    {
+        try
+        {
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null) return;
+            _gameOverTriggered = false;
+            for (int i = 0; i < 3; i++)
+            {
+                try { Il2Cpp.StoreUIManager.Instance.CloseAllUI(); } catch { }
+                try { ps.EndDay(); } catch { }
+                try { ps.EndNight(); } catch { }
+                try { var sem = Il2Cpp.StoreStation.instance != null ? Il2Cpp.StoreStation.instance.storeEventManager : null; if (sem != null) sem.OnDayEnd(); } catch { }
+                try { ps.BeginDay(); } catch { }
+                // 防双兜底：若原生链未触发鲁滨逊每日结算（StoreClientManager.OnNewDay Postfix），blood_rest 未递减 → 显式结算一次
+                try
+                {
+                    int rest = PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0);
+                    if (rest > 0 && rest == 3 - i) PostfixOnNewDay();
+                }
+                catch { }
+                if (_gameOverTriggered) return; // 跳天中死亡（三死/失血）→ 立即停止
+            }
+            try { ps.SaveGame(); } catch { } // 3 天无死亡才存档
+            RefreshStatusPanel();
+        }
+        catch (Exception ex) { Core.LogMsg("[鲁滨逊] 昏迷跳天异常: " + ex.Message); }
+    }
     private static void ExecuteGameOverBy(string ending)
     {
         try
         {
+            _gameOverTriggered = true; // 09-20 昏迷跳天循环检测：任何死亡事件（三死/失血）立即置标志停止跳天
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.ExecuteGameOver(ending);  }
         }
