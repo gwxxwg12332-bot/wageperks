@@ -139,23 +139,39 @@ internal static class ManualPatcher
         }
     }
 
-    // 统一挂载：前置日志（崩溃时最后一条 = 真凶）→ 主动让路（ModCompat 已知冲突表）→ 冲突检测 → Patch
+    // 统一挂载：前置日志 → 冲突检测 → 抢回（卸载对方 patch 后我们上）→ Patch
+    // 09-21 拍板：不让我们让位——遇到抢同一方法的其他 mod，卸载其 patch，我们的改动必须体现（兼容=不崩；不再降级跳过）
     private static void ApplyPatch(MethodBase method, Type host, string prefix, string postfix, string label)
     {
         Core.LogMsg($"[Patch] {label} 开始");
-        // 09-19 主动让路：已知冲突表命中 + 对方 mod 已加载 → 提前跳过（防"我们先挂、对方后挂"崩；不等运行时 GetPatchInfo）
-        if (ModCompat.ShouldYield(method.DeclaringType, method.Name, out string compatMod))
-        {
-            Core.LogMsg($"[Patch让路-兼容] {label} 检测到「{compatMod}」已加载，主动让路（功能降级回原生，防 Harmony 双 detour 崩溃）");
-            return;
-        }
+        // 冲突抢回：对方已 patch 同一方法 → 卸载对方（白名单 owner 共存不动），我们照常挂
         if (IsConflictOwned(method, out string owners))
         {
-            Core.LogMsg($"[Patch跳过-冲突] {label} 已被其他mod patch（owner: {owners}），跳过避免 Harmony 双 detour 崩溃");
-            return;
+            UnpatchOtherOwners(method);
+            Core.LogMsg($"[Patch抢回] {label} 已卸载冲突 owner（{owners}）的 patch，本 mod 生效");
         }
         _harmony.Patch(method,
             prefix: prefix == null ? null : new HarmonyMethod(host, prefix),
             postfix: postfix == null ? null : new HarmonyMethod(host, postfix));
+    }
+
+    // 卸载非本 mod、非白名单 owner 的全部 patch（对方 mod 的方法级禁用——本 mod 独占生效）
+    private static void UnpatchOtherOwners(MethodBase method)
+    {
+        try
+        {
+            HarmonyLib.Patches info = HarmonyLib.PatchProcessor.GetPatchInfo(method);
+            if (info == null) return;
+            string mine = _harmony.Id;
+            if (info.Prefixes != null)
+                foreach (var p in info.Prefixes)
+                    if (!string.Equals(p.owner, mine, StringComparison.OrdinalIgnoreCase) && !ModCompat.IsSafeCoexistOwner(p.owner))
+                        { try { _harmony.Unpatch(method, p.PatchMethod); } catch { } }
+            if (info.Postfixes != null)
+                foreach (var p in info.Postfixes)
+                    if (!string.Equals(p.owner, mine, StringComparison.OrdinalIgnoreCase) && !ModCompat.IsSafeCoexistOwner(p.owner))
+                        { try { _harmony.Unpatch(method, p.PatchMethod); } catch { } }
+        }
+        catch { }
     }
 }
