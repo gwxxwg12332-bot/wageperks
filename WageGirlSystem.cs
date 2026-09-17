@@ -191,12 +191,10 @@ public static class WageGirlSystem
         {
             EmporiumEntry em = EmporiumEntry.Instance;
             if (em == null) return false;
-            // 4 网格（话术 v9）：frontInv(0x88) / backInv(0x98) / backCounter(0xA0) / showcase(0x40)
+            // 2 网格（用户拍板 09-21：只查柜台+展示柜——backInv 背包/backCounter 不查）
             var invs = new GameInventory[] {
-                (GameInventory)em.frontInvinvElement,
-                (GameInventory)em.backInvinvElement,
-                (GameInventory)em.backInvinvElementCounter,
-                (GameInventory)em.showcaseElement
+                (GameInventory)em.frontInvinvElement,   // 柜台（前台 0x88）
+                (GameInventory)em.showcaseElement       // 展示柜（0x40）
             };
             foreach (var inv in invs)
             {
