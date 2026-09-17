@@ -806,9 +806,9 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixStoreClientApplyBudgetModifier", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：客户预算 x4（+300%）
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价 +50（GetDealMakerBonus=显示+实际判定共用，拆包二次实锤）
-			// 09-21 蛙娘阶段4：自动叫客（交易完成挂点——拆包实锤 OnItemsSold/OnItemBought；先治安预判）
-			ManualPatcher.TryPatchByName(typeof(PlayerStore), "OnItemsSold", null, "PostfixOnItemsSold", typeof(WageGirlSystem)); // Il2CppInterop 下 List 参数类型比较失败——拆包实锤改用按名匹配
-			ManualPatcher.TryPatchByName(typeof(PlayerStore), "OnItemBought", null, "PostfixOnItemBought", typeof(WageGirlSystem));
+			
+			
+			
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", null, "PostfixStoreClientManagerPickClient", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferBuyingMarkup", "PrefixBargainUIManagerOfferBuyingMarkup", null, null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(Patches));
