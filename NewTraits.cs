@@ -521,7 +521,7 @@ internal sealed class WandererPerk : CustomStartingPerk
             int idx = Core.Rng.Next(list.Count);
             string id = list[idx];
             list.RemoveAt(idx);
-            try { if (DirectoryMaster.Has<GameItem>(id)) return id; } catch { }
+            try { var _it = DirectoryMaster.Item(id); if (_it != null) return id; } catch { } // 09-20 拆包：Has 只查已初始化字典（Tool/Amenities/Misc 懒加载未初始化→false 漏判）；Item 触发目录初始化
         }
         return null;
     }
@@ -560,8 +560,7 @@ internal sealed class WandererPerk : CustomStartingPerk
     {
         try
         {
-            if (!DirectoryMaster.Has<GameItem>(id)) return null;
-            GameItem item = DirectoryMaster.Item(id, true);
+            GameItem item = DirectoryMaster.Item(id, true); // 09-20 拆包：Item 触发目录懒加载（Has 只查已初始化字典）
             if (item == null) return null;
             var em = EmporiumEntry.Instance;
             if (em == null || em.backInvinvElement == null) return null;
