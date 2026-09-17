@@ -163,6 +163,56 @@ public static class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }
 
+    // ===================== 阶段 4：自动叫客 + 治安预判（拆包 09-21：交易完成权威挂点 = OnItemsSold/OnItemBought） =====================
+    public static void PostfixOnItemsSold()
+    {
+        TryAutoCallNext();
+    }
+    public static void PostfixOnItemBought()
+    {
+        TryAutoCallNext();
+    }
+    private static void TryAutoCallNext()
+    {
+        try
+        {
+            if (!Exists()) return;
+            if (Patches.CurrentUITradeMode != 0) return;
+            if (HasContrabandOnDisplay()) return; // 治安预判：店里有违禁品不叫客
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null) return;
+            ps.TryCallNextClient();
+        }
+        catch { }
+    }
+    private static bool HasContrabandOnDisplay()
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null) return false;
+            // 4 网格（话术 v9）：frontInv(0x88) / backInv(0x98) / backCounter(0xA0) / showcase(0x40)
+            var invs = new GameInventory[] {
+                (GameInventory)em.frontInvinvElement,
+                (GameInventory)em.backInvinvElement,
+                (GameInventory)em.backInvinvElementCounter,
+                (GameInventory)em.showcaseElement
+            };
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    try { if (ContrabandHelper.GetContrabandLevel(it) > 0) return true; } catch { }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
     // ===================== 阶段 3：在场增益-议价 +50（GetBargainSuccessChance Postfix——拆包 09-21 实锤：int(BargainType,int)，原生先 clamp 0-100） =====================
     public static void PostfixGetBargainSuccessChance(ref int __result)
     {
