@@ -718,6 +718,10 @@ public class Core : MelonMod
 				typeof(GameItem),
 				typeof(Vector2)
 			});
+			// 09-21 蛙娘阶段 2：拖放喂食/喝水/照顾（照命运骰子拖放吸收链；多 Prefix 共存——只认蛙娘目标）
+			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(WageGirlSystem));
+			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(WageGirlSystem));
+			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(WageGirlSystem));
 			// C 卖血（09-17）：双击采血包 → 抽血 Prefix（先于原生双击）
 			ManualPatcher.TryPatch(typeof(StoreClient), "CanClientExposeAnyFeature", "PrefixCanClientExposeAnyFeature", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(HusbandryHelper), "CreateItemTooltip", null, "PostfixCreateItemTooltip", null, typeof(RobinCrusoePerk));

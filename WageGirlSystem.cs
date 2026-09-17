@@ -163,6 +163,66 @@ public static class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }
 
+    // ===================== 阶段 2：拖放喂食/喝水/照顾（照命运骰子拖放吸收链） =====================
+    public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)
+    {
+        try
+        {
+            if (__instance == null || targetItem == null) return true;
+            if (IsGirl(targetItem) && CanFeed(__instance)) { __result = true; return false; } // hover 可拖
+        }
+        catch { }
+        return true;
+    }
+    public static bool PrefixCanTarget(GameItem __instance, GameItem targetItem, ref bool __result)
+    {
+        return PrefixMayTarget(__instance, targetItem, ref __result);
+    }
+    public static bool PrefixTarget(GameItem __instance, GameItem targetItem)
+    {
+        try
+        {
+            if (__instance == null || targetItem == null) return true;
+            if (!IsGirl(targetItem)) return true;
+            if (!IsDragRelease()) return true;
+            if (TryFeed(__instance, targetItem)) return false; // 喂食成功：拦截原生放入
+        }
+        catch { }
+        return true;
+    }
+    private static bool IsDragRelease()
+    {
+        try { var h = Il2Cpp.ItemMouseDragHandler.current; return h != null && h.IsDraggingItem; } catch { return false; }
+    }
+    private static bool IsGirl(GameItem it)
+    {
+        try { return it != null && it.identifier == ENTITY_ID; } catch { return false; }
+    }
+    private static bool CanFeed(GameItem item)
+    {
+        try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item); } catch { return false; }
+    }
+    private static bool TryFeed(GameItem item, GameItem girl)
+    {
+        try
+        {
+            if (item == null) return false;
+            if (Patches.CurrentUITradeMode != 0) return false;
+            int gain = 0; int aff = 1; string msg = "";
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净！清洁 +20（照顾）", "Wage Girl cleaned up! Cleanliness +20 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); }
+            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); }
+            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); }
+            else return false;
+            SetAffection(GetAffection() + aff);
+            // 消耗源物品（吃掉）：Destroy → Expel 兜底（照命运骰子吸收）
+            try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
+            try { StoreUIManager.Instance.Notify(msg, "green"); } catch { }
+            try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
+            return true;
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 喂食异常: " + ex.Message); return false; }
+    }
+
     // ===================== 双击（全局——不依赖任何特性） =====================
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {

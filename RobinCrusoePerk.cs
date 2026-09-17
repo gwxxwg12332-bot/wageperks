@@ -3313,7 +3313,7 @@ internal static class RobinCrusoePerk
         { "shampoo", BuildConfig.CleanShampoo },
         { "paper_towel", BuildConfig.CleanPaperTowel },
     };
-    private static bool IsDailyNeed(GameItem item)
+    internal static bool IsDailyNeed(GameItem item) // 09-21 改 internal：蛙娘喂食照顾共用判定
     {
         try { return item != null && DAILY_NEED_CLEAN.ContainsKey((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
     }
