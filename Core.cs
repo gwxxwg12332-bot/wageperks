@@ -805,6 +805,7 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "InitPanel", null, "PostfixStartOfDayInitPanel", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixStoreClientApplyBudgetModifier", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：客户预算 x4（+300%）
+			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetBargainSuccessChance", null, "PostfixGetBargainSuccessChance", new System.Type[2] { typeof(Il2Cpp.BargainType), typeof(int) }, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价成功率 +50（封顶100）
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", null, "PostfixStoreClientManagerPickClient", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferBuyingMarkup", "PrefixBargainUIManagerOfferBuyingMarkup", null, null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(Patches));

@@ -163,6 +163,18 @@ public static class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }
 
+    // ===================== 阶段 3：在场增益-议价 +50（GetBargainSuccessChance Postfix——拆包 09-21 实锤：int(BargainType,int)，原生先 clamp 0-100） =====================
+    public static void PostfixGetBargainSuccessChance(ref int __result)
+    {
+        try
+        {
+            if (!Exists()) return; // 蛙娘未出现 → 无增益
+            __result += 50;
+            if (__result > 100) __result = 100;
+        }
+        catch { }
+    }
+
     // ===================== 阶段 3：在场增益-预算 ×4（ApplyBudgetModifier Postfix——照鲁滨逊预算联动先例） =====================
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
