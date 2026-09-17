@@ -163,6 +163,25 @@ public static class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }
 
+    // ===================== 阶段 3：在场增益-预算 ×4（ApplyBudgetModifier Postfix——照鲁滨逊预算联动先例） =====================
+    public static void PostfixApplyBudgetModifier(StoreClient __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            if (!Exists()) return; // 蛙娘未出现 → 无增益
+            if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
+            // 预算 ×4（+300%，话术 v9：OverrideBudget(GetBudget()*4)）
+            int budget = __instance.GetBudget();
+            long newBudget = (long)budget * 4;
+            if (newBudget > 2147483646L) newBudget = 2147483646L;
+            __instance.OverrideBudget((int)newBudget);
+            __instance.clientCash = (int)newBudget;
+            __instance.useClientBudget = true;
+        }
+        catch { }
+    }
+
     // ===================== 阶段 2：拖放喂食/喝水/照顾（照命运骰子拖放吸收链） =====================
     public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)
     {
