@@ -386,7 +386,7 @@ public class Core : MelonMod
 		ManualPatcher.Init(base.HarmonyInstance);
 		try
 		{
-			ModCompat.LogLoadedConflicts();
+			
 		}
 		catch
 		{
