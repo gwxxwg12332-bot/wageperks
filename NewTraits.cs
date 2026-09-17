@@ -481,11 +481,25 @@ internal sealed class WandererPerk : CustomStartingPerk
             // 1. 现金随机：50% → 0；50% → 1~600 均匀
             if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
             else ps.playerCash = Core.Rng.Next(1, 601);
-            // 2. 清三处（dossier/invElement/backInvinvElement）+ 发 6 件（09-20 B3：抽方法供 HandleInitialItem 兜底复用）
+            // 09-21 拆包实锤：四件唯一发放点 = PlayerStore.HandleSkipIntro（EmporiumEntry.Start L7742，晚于本 Postfix）
+            // 清除 + 6 件发放已迁移到 PostfixHandleSkipIntro（L7742 后 → InitialSave 不入档）
+        }
+        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+
+    // 09-21 拆包实锤：四件（magnifier/labeler/topical_bandage_item/fanny_pack）+ 指南类唯一发放点 = PlayerStore.HandleSkipIntro
+    // 时序：L7706 StartNewGame → L7715 HandleInitialItem → L7726 newspaper → L7742 HandleSkipIntro → L7744 → L7751 InitialSave
+    // 根因：旧 Postfix（StartNewGame/HandleInitialItem）都跑在 L7742 之前——清完被 HandleSkipIntro 补发，InitialSave 写档
+    // 修复：HandleSkipIntro Postfix 清 invElement 全清（四件+指南）→ 重发 6 件——清完 InitialSave 不入档 ✓
+    public static void PostfixHandleSkipIntro()
+    {
+        try
+        {
+            if (!IsActive()) return;
             ClearBackpack();
             GiveRandomItems();
         }
-        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixStartNewGame 异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[流浪者] PostfixHandleSkipIntro 异常: " + ex.Message); }
     }
 
     // 09-20 B3：发 6 件（1 工具 + 1 日用品 + 4 随机）抽方法——PostfixStartNewGame / HandleInitialItemPostfix 兜底复用
@@ -584,15 +598,17 @@ internal sealed class WandererPerk : CustomStartingPerk
             var invs = new System.Collections.Generic.List<GameInventory>();
             try { var i = em.invElement as GameInventory; if (i != null) invs.Add(i); } catch { }
             try { var b = em.backInvinvElement as GameInventory; if (b != null) invs.Add(b); } catch { }
-            // dossier（0x178 档案夹）反射兜底（GetTabRancher 同模式，防字段名/代理差异）
+            // dossier（0x178 档案夹容器，GameItem 类型）——拆包实锤公开属性 em.dossier；内部网格走 contentWindow.inventory（AddictOfficerEvent.GetInnerInventory 先例）
             try
             {
-                var t = Il2CppSystem.Type.GetType("EmporiumEntry, Assembly-CSharp");
-                if (t != null)
+                var d = em.dossier;
+                if (d != null)
                 {
-                    var f = t.GetField("dossier");
-                    if (f != null) { var v = f.GetValue(em) as GameInventory; if (v != null) invs.Add(v); }
+                    var di = AddictOfficerEvent.GetInnerInventory(d);
+                    if (di != null) invs.Add(di);
+                    else Core.LogMsg("[CLEARDIAG] dossier 内部网格取不到");
                 }
+                else Core.LogMsg("[CLEARDIAG] em.dossier null");
             }
             catch { }
             string[] invNames = { "invElement", "backInvinvElement", "dossier" };

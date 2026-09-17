@@ -586,6 +586,8 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StartingPerkList), "InitStartingPerk", null, "PostfixInitStartingPerks");
 			ManualPatcher.TryPatch(typeof(GameMaster), "NewGame", null, "PostfixOnNewGame");
 			ManualPatcher.TryPatch(typeof(NewGameData), "HandleInitialItem", null, "HandleInitialItemPostfix");
+			// 09-21 拆包实锤：四件唯一发放点 = PlayerStore.HandleSkipIntro（EmporiumEntry.Start L7742）→ 流浪者清+发挂此处（清完 InitialSave 不入档）
+			ManualPatcher.TryPatch(typeof(PlayerStore), "HandleSkipIntro", null, "PostfixHandleSkipIntro", null, typeof(WandererPerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "OnNewDay", null, "PostfixOnNewDay");
 			ManualPatcher.TryPatch(typeof(PlayerStore), "BeginDay", null, "PostfixOnBeginDay");
 			ManualPatcher.TryPatch(typeof(PlayerStore), "AddDirectSellingItemToTable", "PrefixAddDirectSellingItemToTable", null, null, typeof(WaterMerchantPerk));
