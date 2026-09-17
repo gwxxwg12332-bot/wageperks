@@ -445,8 +445,10 @@ internal sealed class WandererPerk : CustomStartingPerk
     internal static bool IsActive() => Core.PerkActive(PerkId);
 
     // 09-17 拍板：原生 id 池（拆包给的工具/日用品）
-    private static readonly string[] TOOL_IDS = { "magnifier", "labeler", "logo_checker", "stamp_guide" };
-    private static readonly string[] HOUSEHOLD_IDS = { "cigarette_color", "cigarette_guide" };
+    // 09-20 拍板：全新工具池（全去 magnifier/labeler/logo_checker/stamp_guide——4 样已清，不再发出）
+    private static readonly string[] TOOL_IDS = { "screwdriver", "welder", "wire_cutter", "flashlight", "toolbox", "aquascan", "uv_filter", "metal_scanner", "aug_scanner", "black_lamp" };
+    // 09-20 拍板：日用品池（cigarette_color 保留 + 12 扩充；cigarette_guide 去）
+    private static readonly string[] HOUSEHOLD_IDS = { "cigarette_color", "shampoo", "toothpaste", "paper_towel", "toilet_paper", "box_tampon", "pack_condom", "packet_red_cigarette", "skincare_cream", "neuroactive_perfume", "pheromone_perfume", "salve", "rubbing_alcohol" };
     // 09-20 M1 拍板：随机池过滤文档/书/笔记/指南类（工具/日用品判定不变——仅全物品池过滤）
     private static readonly string[] DOCUMENT_IDS = {
         "tutorial_book", "wanted_paper", "joe_card",
@@ -498,7 +500,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 int idx = Core.Rng.Next(pool.Count);
                 string id = pool[idx];
                 pool.RemoveAt(idx);
-                if (GiveToBackpack(id) != null) given++;
+                if (id == "topical_bandage_item" || id == "fanny_pack" || IsDocumentId(id)) continue; // 09-20 拍板：4 随机过滤绷带/腰包/文档（局部过滤，不动 ItemPool 本体）
             }
         }
         catch { }
@@ -587,12 +589,18 @@ internal sealed class WandererPerk : CustomStartingPerk
                 }
             }
             catch { }
+            string[] invNames = { "invElement", "backInvinvElement", "dossier" };
+            int inx = 0;
             foreach (var inv in invs)
             {
-                if (inv == null || inv.childItems == null) continue;
+                if (inv == null || inv.childItems == null) { inx++; continue; }
+                string cname = inx < invNames.Length ? invNames[inx] : "inv" + inx;
+                inx++;
                 int before = inv.childItems.Count;
                 int expel = 0, destroy = 0;
                 try { inv.ExpelAll(); } catch { }   // ① 原生批量移除（RemoveAll 语义）
+                int afterAll = inv.childItems.Count;
+                Core.LogMsg("[CLEARDIAG] " + cname + " ExpelAll后 n=" + afterAll + (afterAll == 0 ? " 真清" : " 残留"));
                 var items = new System.Collections.Generic.List<GameItem>();
                 foreach (var it in inv.childItems) { if (it != null) items.Add(it); }
                 foreach (var it in items)
@@ -605,7 +613,13 @@ internal sealed class WandererPerk : CustomStartingPerk
                 {
                     try { it.Destroy(); destroy++; } catch (Exception ex) { Core.LogMsg("[CLEARDIAG] Destroy异常 id=" + SafeId(it) + " msg=" + ex.Message); }      // ③ 兜底 Destroy（绕过 parent 检查）
                 }
-                Core.LogMsg("[CLEARDIAG] as=" + (before == expel + destroy ? "OK" : "FAIL") + " n=" + before + " expel=" + expel + " destroy=" + destroy);
+                if (still.Count > 0)
+                {
+                    var ids = new System.Collections.Generic.List<string>();
+                    foreach (var it in still) { try { ids.Add(SafeId(it)); } catch { } }
+                    Core.LogMsg("[CLEARDIAG] " + cname + " 残留id: " + string.Join(",", ids.ToArray()));
+                }
+                Core.LogMsg("[CLEARDIAG] " + cname + " as=" + (before == expel + destroy ? "OK" : "FAIL") + " n=" + before + " expel=" + expel + " destroy=" + destroy);
             }
         }
         catch { }
