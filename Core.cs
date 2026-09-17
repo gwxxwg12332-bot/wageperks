@@ -354,7 +354,7 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = false; // 发布态（用户规范：电脑里永远开发状态仅用户说发布时关；v1.2.2 打包）
+	public static bool DebugMode = true; // 开发状态默认开（用户规范：电脑里永远开发状态；仅用户说发布时才关）
 
 	public static readonly System.Random Rng = new System.Random();
 
