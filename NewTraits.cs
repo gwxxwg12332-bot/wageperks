@@ -507,6 +507,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 string id = pool[idx];
                 pool.RemoveAt(idx);
                 if (id == "topical_bandage_item" || id == "fanny_pack" || IsDocumentId(id)) continue; // 09-20 拍板：4 随机过滤绷带/腰包/文档（局部过滤，不动 ItemPool 本体）
+                if (GiveToBackpack(id) != null) given++;
             }
         }
         catch { }
