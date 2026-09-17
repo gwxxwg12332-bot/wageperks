@@ -1084,14 +1084,8 @@ internal static class RobinCrusoePerk
                 else ps.playerCash = Core.Rng.Next(1, 601);
             }
 
-            if (!hard)
-            {
-                GiveToBackpack("processed_meat", 3);      // 口粮×3（三天量）
-                GiveToBackpack("raw_meat", 2);            // 大肉×2（用户拍板 09-09：另加生肉）
-                GivePureWaterToBackpack(3);               // 大瓶纯水×3（三天量）
-                GiveToBackpack("bandage_item", 5);        // 绷带×5（bandage_item 正确 id）
-                GiveToBackpack(BLOOD_DRAW_ID, 1); // 卖血：开局送 1 个采血包（09-17 用户拍板）
-            } // HardMode：无开局物资
+            // 09-21 物资发放移到 PostfixStartNewGame（StartNewGame 在原版发放之后触发：先清原版 4 件+文档再发，根治清太早）
+            // HardMode：无开局物资
 
             PerkStatePersistence.SetInt(PERK_ID, "sat", 100);        // v5.7 三状态初始
             PerkStatePersistence.SetInt(PERK_ID, "thirst", 100);
@@ -1114,6 +1108,28 @@ internal static class RobinCrusoePerk
             RefreshStatusPanel(); // 开局建常驻面板
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] TrySetupNewRun 异常: " + ex.Message); }
+    }
+
+    // ===== 09-21 开局物资：PlayerStore.StartNewGame Postfix（发放后清——原版 4 件+文档在 StartNewGame 发放，HandleInitialItem 清太早白清）=====
+    internal static void PostfixStartNewGame()  // PlayerStore.StartNewGame Postfix（Core.cs 注册）
+    {
+        try
+        {
+            if (!IsActive()) return;
+            WandererPerk.ClearBackpack(); // 清原版发放（magnifier/labeler/topical_bandage_item/fanny_pack + dossier 文档）
+            bool hard = PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1; // TrySetupNewRun 已存（HandleInitialItem 先于 StartNewGame）
+            if (!hard) GiveStartingGoods();
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+
+    private static void GiveStartingGoods()
+    {
+        GiveToBackpack("processed_meat", 3);      // 口粮×3（三天量）
+        GiveToBackpack("raw_meat", 2);            // 大肉×2（用户拍板 09-09：另加生肉）
+        GivePureWaterToBackpack(3);               // 大瓶纯水×3（三天量）
+        GiveToBackpack("bandage_item", 5);        // 绷带×5（bandage_item 正确 id）
+        GiveToBackpack(BLOOD_DRAW_ID, 1); // 卖血：开局送 1 个采血包（09-17 用户拍板）
     }
 
     private static void GiveToBackpack(string id, int count)
@@ -1272,6 +1288,14 @@ internal static class RobinCrusoePerk
                 return false;
             }
             AddBlood(-500);
+            // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）
+            if (IsBloodWeak())
+            {
+                PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("抽血过多，昏迷 3 天", "Blood loss too severe - 3-day coma"), "red"); } catch { }
+                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 抽血过多，昏迷 3 天", "[Robinson] Blood loss too severe - 3-day coma"));
+                try { RefreshStatusPanel(); } catch { }
+            }
             bool bag = false;
             try
             {

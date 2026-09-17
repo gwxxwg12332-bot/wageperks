@@ -541,6 +541,13 @@ internal sealed class WandererPerk : CustomStartingPerk
         return ids;
     }
 
+    private static string SafeId(GameItem it)
+    {
+        try { if (it == null) return "null"; var s = it.identifier; if (!string.IsNullOrEmpty(s)) return s; } catch { }
+        try { var n = it.name; if (!string.IsNullOrEmpty(n)) return n; } catch { }
+        return "?";
+    }
+
     private static GameItem GiveToBackpack(string id)
     {
         try
@@ -596,7 +603,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 foreach (var it in inv.childItems) { if (it != null) still.Add(it); }
                 foreach (var it in still)
                 {
-                    try { it.Destroy(); destroy++; } catch { }      // ③ 兜底 Destroy（绕过 parent 检查）
+                    try { it.Destroy(); destroy++; } catch (Exception ex) { Core.LogMsg("[CLEARDIAG] Destroy异常 id=" + SafeId(it) + " msg=" + ex.Message); }      // ③ 兜底 Destroy（绕过 parent 检查）
                 }
                 Core.LogMsg("[CLEARDIAG] as=" + (before == expel + destroy ? "OK" : "FAIL") + " n=" + before + " expel=" + expel + " destroy=" + destroy);
             }
