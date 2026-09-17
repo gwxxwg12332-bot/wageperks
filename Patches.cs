@@ -2875,6 +2875,7 @@ internal static class Patches
 		try
 		{
 			GuMachineSystem.RegisterToDirectory(__instance);
+			WageGirlSystem.RegisterToDirectory(__instance); // 09-21 蛙娘实体
 		}
 		catch (System.Exception ex3)
 		{

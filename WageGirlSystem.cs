@@ -1,0 +1,255 @@
+using System;
+using Il2Cpp;
+using Il2CppInterop.Runtime;
+using UnityEngine;
+
+namespace JacksonPerks;
+
+// ============================================================
+// 蛙娘系统（09-21 开工，话术 v9 拆包回填 9 项）
+// 拍板：实体占地 2×3，全局常驻（不选任何特性也出现）
+// 阶段 1：实体注册 + 六维状态 + 常驻面板 + 每日衰减 + 双击面板
+// 阶段 2+：喂食/照顾好感、在场增益（预算×4+议价+50）、自动叫客+治安预判、
+//          偷钱循环+自主偷拿、好物+销赃+跑路回归（后续迭代）
+// ============================================================
+public static class WageGirlSystem
+{
+    public const string ENTITY_ID = "wage_girl";
+    public const string ICON_ATLAS = "custom_atlas";
+    public const string ICON = "wage_girl_icon";
+    public const string TAG = "WAGE_GIRL_TAG";
+    private const string NS = "wage_girl";
+    private const int STAT_MAX = 100;
+    private const int STAT_INIT = 60;
+    private const int DAILY_DECAY = 3;   // 每日六维衰减（未照顾）
+    private const int AFF_MAX = 100;
+    private const int AFF_DAILY_DROP = 1; // 好感每日回落（不照顾）
+
+    private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep";
+    private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
+    private const string K_EXIST = "exists";
+
+    private static Sprite _sprite;
+
+    static WageGirlSystem()
+    {
+        try { _sprite = SpriteFromPixels(WageGirlIcons.Pixels(), 32, 32); }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 图标加载异常: " + ex.Message); }
+    }
+
+    // ===================== 状态读写（全局 NS 随档） =====================
+    internal static int GetStat(string k) { try { return PerkStatePersistence.GetInt(NS, k, STAT_INIT); } catch { return STAT_INIT; } }
+    internal static void SetStat(string k, int v)
+    {
+        try { PerkStatePersistence.SetInt(NS, k, Math.Max(0, Math.Min(STAT_MAX, v))); } catch { }
+    }
+    internal static int GetAffection() { try { return PerkStatePersistence.GetInt(NS, K_AFF, 0); } catch { return 0; } }
+    internal static void SetAffection(int v) { try { PerkStatePersistence.SetInt(NS, K_AFF, Math.Max(0, Math.Min(AFF_MAX, v))); } catch { } }
+    internal static bool Exists() { try { return PerkStatePersistence.GetInt(NS, K_EXIST, 0) == 1; } catch { return false; } }
+    internal static void SetExists(bool v) { try { PerkStatePersistence.SetInt(NS, K_EXIST, v ? 1 : 0); } catch { } }
+
+    // ===================== 实体注册（Patches.PostfixInitDirectory 调） =====================
+    public static void RegisterToDirectory(ItemDirectory dir)
+    {
+        try
+        {
+            if (dir == null) return;
+            ((Directory<GameItem>)(object)dir).Add(ENTITY_ID, (Il2CppSystem.Func<GameItem>)(() => CreateWageGirl()));
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 注册失败: " + ex.Message); }
+    }
+
+    private static GameItem CreateWageGirl()
+    {
+        try
+        {
+            GameItem it = ItemDirectory.CreateEmptyItem(null);
+            if (it == null) return null;
+            ApplyIcon(it);
+            it.EnableTag(TAG);
+            it.SetName(LangHelper.T("蛙娘", "Wage Girl"));
+            SetField(it, "_identifier_k__BackingField", ENTITY_ID);
+            SetField(it, "_identifierName_k__BackingField", "TYPE-STRING_" + ENTITY_ID);
+            it.shortDescription = LangHelper.T("蛙娘——蛙哥（Wage）留下的仿生女仆实体：会自己吃喝、干活，心情不好还会偷拿你的钱和货。照顾好她，她会帮你叫客、抬价、销赃。双击打开状态面板。", "Wage Girl - a biomimetic maid entity left by Wage: she eats and works on her own, and when moody she steals your money and goods. Take care of her and she'll call customers, boost prices and fence for you. Double-click to open her status panel.");
+            it.longDescription = it.shortDescription;
+            it.unitValue = 3000; it.unitBaseValue = 3000;
+            // 2×3 占地（09-21 用户拍板）
+            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); it.SetShape(gsb.Build()); } catch { }
+            return it;
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 创建失败: " + ex.Message); return null; }
+    }
+
+    private static void ApplyIcon(GameItem it)
+    {
+        try { it.SetSpriteAndShape(ICON_ATLAS, ICON); }
+        catch { try { it.SetSpriteAndShape("custom_atlas", "custom_storage_box_sprite"); } catch { } }
+    }
+
+    // 像素数组 → Texture2D → Sprite（照 GuMachineSystem.SpriteFromPixels；ppu=100）
+    private static Sprite SpriteFromPixels(Color[] pixels, int w, int h)
+    {
+        try
+        {
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.hideFlags = HideFlags.DontSave;
+            tex.SetPixels(pixels);
+            tex.Apply();
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            sp.hideFlags = HideFlags.DontSave;
+            return sp;
+        }
+        catch { return null; }
+    }
+
+    // 拦截 RenderHandler.LoadFromAtlas：custom_atlas + 蛙娘图标 → 自定义 sprite
+    public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
+    {
+        try { if (atlasPath == ICON_ATLAS && name == ICON && _sprite != null) { __result = _sprite; return false; } } catch { }
+        return true;
+    }
+
+    // 反射设字段（照 GuMachineSystem.SetField）
+    private static void SetField(GameItem it, string field, object val)
+    {
+        try
+        {
+            var f = typeof(GameItem).GetField(field,
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (f != null) f.SetValue(it, val);
+        }
+        catch { }
+    }
+
+    // ===================== 常驻面板（照鲁滨逊 RefreshStatusPanel） =====================
+    internal static void ShowPanel()
+    {
+        try
+        {
+            var mgr = Il2Cpp.CustomUIManager.Instance;
+            if (mgr == null) return;
+            if (mgr.IsOpen("wage_girl_panel")) mgr.CloseWindow("wage_girl_panel");
+            var b = mgr.CreateWindow("wage_girl_panel", LangHelper.T("蛙娘 · 状态", "Wage Girl · Status"), "overlay");
+            if (b == null) return;
+            b.SetSize(300, 460).SetPosition(Vector2.zero);
+            try
+            {
+                var w = mgr.GetWindow("wage_girl_panel");
+                if (w != null)
+                {
+                    var rt = w.Rect;
+                    rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 1);
+                    rt.anchoredPosition = new Vector2(-16, -16);
+                }
+            }
+            catch { }
+            b.BeginColumn(4f);
+            b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100", "wg_sat_l");
+            b.AddProgressBar(GetStat(K_SAT) / 100f, "wg_sat");
+            b.AddLabel(LangHelper.T("口渴 ", "Thirst ") + GetStat(K_TH) + "/100", "wg_th_l");
+            b.AddProgressBar(GetStat(K_TH) / 100f, "wg_th");
+            b.AddLabel(LangHelper.T("健康 ", "Health ") + GetStat(K_HEALTH) + "/100", "wg_h_l");
+            b.AddProgressBar(GetStat(K_HEALTH) / 100f, "wg_h");
+            b.AddLabel(LangHelper.T("心情 ", "Mood ") + GetStat(K_MOOD) + "/100", "wg_m_l");
+            b.AddProgressBar(GetStat(K_MOOD) / 100f, "wg_m");
+            b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + GetStat(K_CLEAN) + "/100", "wg_c_l");
+            b.AddProgressBar(GetStat(K_CLEAN) / 100f, "wg_c");
+            b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
+            b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
+            b.AddLabel(LangHelper.T("（喂食/照顾提升状态与好感——后续开放）", "(Feed & care to raise stats & affection - coming soon)"), "wg_note");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
+    }
+
+    // ===================== 双击（全局——不依赖任何特性） =====================
+    public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
+    {
+        try
+        {
+            if (newItem == null) return;
+            if (newItem.identifier != ENTITY_ID) return;
+            if (Patches.CurrentUITradeMode != 0) return;
+            ShowPanel();
+        }
+        catch { }
+    }
+
+    // ===================== 每日结算（OnDayStart Postfix——同养蛊机挂点） =====================
+    public static void PostfixOnDayStart()
+    {
+        try
+        {
+            // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
+            if (!Exists())
+            {
+                TryGiveToBackpack();
+                SetExists(true);
+            }
+            // 六维每日衰减
+            foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP })
+                SetStat(k, GetStat(k) - DAILY_DECAY);
+            // 好感每日回落（不照顾）
+            SetAffection(GetAffection() - AFF_DAILY_DROP);
+        }
+        catch { }
+    }
+
+    private static void TryGiveToBackpack()
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            var inv = (GameInventory)em.backInvinvElement;
+            GameItem item = DirectoryMaster.Item(ENTITY_ID, true);
+            if (item == null) return;
+            // 照 GiveToBackpack 先例：TryFindOneValidInventorySlot → TryAcceptOnce（防同格重叠）；失败 UncheckedAccept 兜底
+            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
+            if (slot != null) { try { slot.TryAcceptOnce(); return; } catch { } }
+            inv.UncheckedAccept(item);
+            Core.LogMsg("[蛙娘] 已发放实体到背包（全局常驻）");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 发放失败: " + ex.Message); }
+    }
+}
+
+// ===================== 蛙娘占位像素图标（32×32 透明底，绿色蛙身+眼睛+腮红） =====================
+internal static class WageGirlIcons
+{
+    public static Color[] Pixels()
+    {
+        const int S = 32;
+        var px = new Color[S * S];
+        // 透明底
+        for (int i = 0; i < px.Length; i++) px[i] = new Color(0, 0, 0, 0);
+        Color body = new Color(0.36f, 0.72f, 0.42f, 1f);   // 蛙绿
+        Color dark = new Color(0.12f, 0.34f, 0.20f, 1f);   // 深描边
+        Color eyeW = new Color(0.95f, 0.98f, 0.95f, 1f);   // 眼白
+        Color eyeB = new Color(0.10f, 0.10f, 0.12f, 1f);   // 瞳孔
+        Color blush = new Color(0.95f, 0.55f, 0.60f, 1f);  // 腮红
+
+        void Set(int x, int y, Color c) { if (x >= 0 && x < S && y >= 0 && y < S) px[y * S + x] = c; }
+        // 身体（圆头 + 方身）：中心 16, 行 6-25
+        for (int y = 5; y <= 25; y++)
+        {
+            int half = (y < 14) ? 9 : 8; // 头圆身方
+            int x0 = 16 - half, x1 = 16 + half;
+            if (y >= 14) { x0 = 7; x1 = 24; }
+            for (int x = x0; x <= x1; x++) Set(x, y, body);
+        }
+        // 深色描边：左右各 1 列 + 底边
+        for (int y = 5; y <= 25; y++) { Set(6, y, dark); Set(25, y, dark); }
+        for (int x = 6; x <= 25; x++) { Set(x, 25, dark); Set(x, 5, dark); }
+        // 眼睛（两枚 3×3 白 + 1px 瞳孔）
+        for (int y = 10; y <= 12; y++) { for (int x = 11; x <= 13; x++) Set(x, y, eyeW); for (int x = 19; x <= 21; x++) Set(x, y, eyeW); }
+        Set(12, 11, eyeB); Set(20, 11, eyeB);
+        // 腮红（两枚 2×2）
+        Set(9, 17, blush); Set(10, 17, blush); Set(9, 18, blush); Set(10, 18, blush);
+        Set(21, 17, blush); Set(22, 17, blush); Set(21, 18, blush); Set(22, 18, blush);
+        // 嘴（微笑 3px）
+        Set(15, 20, dark); Set(16, 21, dark); Set(17, 20, dark);
+        return px;
+    }
+}
