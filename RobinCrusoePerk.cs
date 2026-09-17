@@ -2776,7 +2776,22 @@ internal static class RobinCrusoePerk
         try
         {
             if (PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1) return; // 困难模式：无救助（濒渴直接 GameOver）
-            GiveToBackpack("bottled_water", 2);
+            // 09-20 用户拍板：送水参照开局——带水瓶子（普通瓶 bottled_water + 普通质量水 grade=2；原 GiveToBackpack 是空瓶）
+            EmporiumEntry em2 = EmporiumEntry.Instance;
+            if (em2 != null && em2.backInvinvElement != null)
+            {
+                var inv2 = (GameInventory)em2.backInvinvElement;
+                for (int wi = 0; wi < 2; wi++)
+                {
+                    GameItem witem = DirectoryMaster.Item("bottled_water", true); // 09-20 用户拍板：普通瓶+普通质量水（grade=2 基准）；不用大瓶/高质水
+                    if (witem == null) witem = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("bottled_water"); // 兜底：至少带水普通瓶
+                    else { try { Il2Cpp.WaterHelper.AddWater(witem, 2, -1, false, 0, 1, true); } catch { } }
+                    try { witem.DisableTag("stolen", true); } catch { }
+                    var wslot = em2.backInvinvElement.TryFindOneValidInventorySlot(witem, false);
+                    if (wslot != null) { try { wslot.TryAcceptOnce(); continue; } catch { } }
+                    inv2.UncheckedAccept(witem);
+                }
+            }
             try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了 2 份水，先撑住", "A kind customer sent 2 waters — hang in there"), "green"); } catch { }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] RescueWater 异常: " + ex.Message); }
