@@ -211,8 +211,8 @@ public static class WageGirlSystem
         return false;
     }
 
-    // ===================== 阶段 3：在场增益-议价 +50（GetBargainSuccessChance Postfix——拆包 09-21 实锤：int(BargainType,int)，原生先 clamp 0-100） =====================
-    public static void PostfixGetBargainSuccessChance(ref int __result)
+    // ===================== 阶段 3：在场增益-议价 +50（GetDealMakerBonus Postfix——拆包 09-21 二次实锤：GetBargainSuccessChance 只被 tooltip 调用=纯显示；GetDealMakerBonus 是显示+实际判定共用唯一加成项，7 调用点覆盖 OfferMarkup/OfferBuyingMarkup/Blackmail） =====================
+    public static void PostfixGetDealMakerBonus(ref int __result)
     {
         try
         {
