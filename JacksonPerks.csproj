@@ -137,6 +137,7 @@
 
     <EmbeddedResource Include="Icons\14_命运之骰.png" />
     <EmbeddedResource Include="Icons\15_治安部眼线.png" />
+    <EmbeddedResource Include="Icons\16_流浪者.png" />
 
   </ItemGroup>
 
