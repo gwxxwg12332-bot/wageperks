@@ -2881,7 +2881,6 @@ internal static class Patches
 		}
 		try
 		{
-			RobinCrusoePerk.RegisterBloodDrawToDirectory(__instance);
 		}
 		catch (System.Exception ex4)
 		{

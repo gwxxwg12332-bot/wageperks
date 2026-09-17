@@ -709,7 +709,6 @@ public class Core : MelonMod
 				typeof(Vector2)
 			});
 			// C 卖血（09-17）：双击采血包 → 抽血 Prefix（先于原生双击）
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickBloodDraw", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClient), "CanClientExposeAnyFeature", "PrefixCanClientExposeAnyFeature", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(HusbandryHelper), "CreateItemTooltip", null, "PostfixCreateItemTooltip", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatchByName(typeof(FoodItemHelper), "CreateFoodItemTooltip", "PrefixFoodTooltip", "PostfixFoodTooltip", typeof(RobinCrusoePerk));

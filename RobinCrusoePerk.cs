@@ -888,7 +888,7 @@ internal static class RobinCrusoePerk
             // 显示具体单位：饱食 100%=2200 kcal（v5.7 锁定）、口渴 100%=2000 ml（与喝水 200ml=10% 自洽）
             int satCal = (int)(sat * 22f);
             int thMl = (int)(th * 20f);
-            b.SetSize(300, 460).SetPosition(Vector2.zero);
+            b.SetSize(300, 500).SetPosition(Vector2.zero);
             // 固定右上角（09-10 用户拍板：锚点(1,1) pivot(1,1) 右上角内侧 16px，不随分辨率变化）
             try
             {
@@ -910,6 +910,10 @@ internal static class RobinCrusoePerk
             b.AddProgressBar(h / 100f, "h");
             b.AddLabel(LangHelper.T("血量 ", "Blood ") + GetBlood() + "/6000", "blood_l");
             b.AddProgressBar(GetBlood() / (float)BLOOD_MAX, "blood");
+            var sellBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TrySellBlood(); } catch (Exception ex) { Core.LogMsg("[鲁滨逊] 面板卖血异常: " + ex.Message); } }));
+            b.AddButton(LangHelper.T("卖血 -500ml", "Sell Blood -500ml"), sellBtnOnClick, "sell_blood_btn"); // 09-20 用户拍板：面板按钮为唯一采血入口（替代采血包）
+            if (IsForcedRest()) b.AddLabel(LangHelper.T("昏迷中 · 剩余 " + PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0) + " 天", "Coma - " + PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0) + "d left"), "blood_rest_l");
+            else if (IsBloodWeak()) b.AddLabel(LangHelper.T("虚弱（血量过低）", "Too weak (low blood)"), "blood_weak_l");
             // 新三状态（v5.7+ 用户拍板）：清洁/睡眠/社交 进度条+数值
             int clean = GetClean(), sleep = GetSleep(), social = GetSocial();
             b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + clean + "/100", "clean_l");
@@ -1129,7 +1133,6 @@ internal static class RobinCrusoePerk
         GiveToBackpack("raw_meat", 2);            // 大肉×2（用户拍板 09-09：另加生肉）
         GivePureWaterToBackpack(3);               // 大瓶纯水×3（三天量）
         GiveToBackpack("bandage_item", 5);        // 绷带×5（bandage_item 正确 id）
-        GiveToBackpack(BLOOD_DRAW_ID, 1); // 卖血：开局送 1 个采血包（09-17 用户拍板）
     }
 
     private static void GiveToBackpack(string id, int count)
@@ -1266,16 +1269,13 @@ internal static class RobinCrusoePerk
         catch { }
         return false;
     }
-    // ===== 双击采血包（09-17 用户拍板：500cc → 蓝血袋 + 轻伤）=====
-    public static bool PrefixDoubleClickBloodDraw(GameItem newItem, Vector2 mousePosition)
+    // ===== 面板卖血按钮（09-20 用户拍板：替代采血包双击——唯一采血入口；删采血包物品+双击链）=====
+    public static bool TrySellBlood()
     {
         try
         {
-            if (!IsActive() || newItem == null) return true;
-            string id = ""; try { id = newItem.identifier ?? ""; } catch { }
-            if (id != BLOOD_DRAW_ID) return true;
-            if (Patches.CurrentUITradeMode != 0) return true;          // 交易模式不抽
-            if (IsInDoctorNightInventory(newItem)) return true;        // 博士夜晚商店未买不抽
+            if (!IsActive()) return false;
+            if (Patches.CurrentUITradeMode != 0) return false;          // 交易模式不抽
             if (IsBloodWeak() || IsForcedRest())
             {
                 try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱/恢复期，无法抽血", "Too weak - cannot draw blood"), "red"); } catch { }
@@ -1288,7 +1288,7 @@ internal static class RobinCrusoePerk
                 return false;
             }
             AddBlood(-500);
-            // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）
+            // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）；昏迷当天立即禁出门/禁采血（IsForcedRest 即时生效）
             if (IsBloodWeak())
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
@@ -1318,12 +1318,11 @@ internal static class RobinCrusoePerk
             try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000)"), "green"); } catch { }
             RefreshStatusPanel();
-            return false; // 拦截原生双击
+            return true;
         }
         catch { }
-        return true;
+        return false;
     }
-
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {
         try
@@ -1837,9 +1836,8 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
-    // ===== 卖血系统（09-17 用户拍板：双击采血包 500cc→蓝血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
+    // ===== 卖血系统（09-17 用户拍板：面板卖血按钮 500cc→血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
     internal const int BLOOD_MAX = 6000;
-    internal const string BLOOD_DRAW_ID = "wage_blood_draw";
     internal static int GetBlood() { try { return PerkStatePersistence.GetInt(PERK_ID, "blood", BLOOD_MAX); } catch { return BLOOD_MAX; } }
     internal static void SetBlood(int v) { try { PerkStatePersistence.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
     internal static int AddBlood(int delta) { int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta)); SetBlood(b); return b; }
@@ -3962,47 +3960,4 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
-    // ===== 采血包物品注册（09-17：双击抽血消耗品，照 DestinyDice RegisterToDirectory 模板）=====
-    private static Il2CppSystem.Func<GameItem> _bloodDrawFactory = null;
-    public static void RegisterBloodDrawToDirectory(ItemDirectory dir)
-    {
-        try
-        {
-            if (dir == null) return;
-            if (((Directory<GameItem>)(object)dir).Has(BLOOD_DRAW_ID)) return;
-            if (_bloodDrawFactory == null)
-            {
-                System.Func<GameItem> systemFactory = () => CreateBloodDraw();
-                _bloodDrawFactory = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<GameItem>>((System.Delegate)systemFactory);
-            }
-            bool ok = ((Directory<GameItem>)(object)dir).Add(BLOOD_DRAW_ID, _bloodDrawFactory);
-            if (!ok) Core.LogMsg("[采血包] 注册失败");
-        }
-        catch (Exception ex) { Core.LogMsg("[采血包] 注册异常: " + ex.Message); }
-    }
-
-    private static GameItem CreateBloodDraw()
-    {
-        try
-        {
-            var item = ItemDirectory.CreateEmptyItem(null);
-            if (item == null) return null;
-            item.identifier = BLOOD_DRAW_ID;
-            item.EnableTag("wage_blood_draw_tag");
-            item.SetName(LangHelper.T("采血包", "Blood Draw Kit"));
-            try { item.shortDescription = LangHelper.T("双击采血：抽出 500cc 血液制成蓝血袋（医疗品可卖），同时受一点轻伤。", "Double-click to draw 500cc of blood into a blood bag (medical item, sellable), at the cost of a minor wound."); } catch { }
-            try { item.flavorText = LangHelper.T("鲁滨逊的自救工具——血是硬通货，命也是。", "Robinson's self-help kit - blood is currency, and so is life."); } catch { }
-            try { item.SetSprite("Items/items_backpack2", "simple_backpack"); } catch { }
-            try
-            {
-                var gsb = new GridShapeBuilder();
-                gsb.SetDataFill(1, 1);
-                GridShape shape = gsb.Build();
-                item.SetShape(shape);
-            }
-            catch { }
-            return item;
-        }
-        catch { return null; }
-    }
 }
