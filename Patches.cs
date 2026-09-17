@@ -3124,6 +3124,17 @@ internal static class Patches
 	public static void PostfixOnPointerClick(StartingPerkElement __instance)
 	{
 	}
+	public static void PrefixModReputation(ref double modValue)
+	{
+		try
+		{
+			if (modValue < 0) modValue = modValue / 2.0; // 精确减半：-3→-1.5、-5→-2.5、-7→-3.5、-10→-5
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[信誉减半] Prefix异常: " + ex.Message);
+		}
+	}
 }
 internal static class ModCannibalism
 {

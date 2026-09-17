@@ -647,7 +647,6 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(GameItem), "GetDisplayName", null, "PostfixGameItemGetDisplayName");
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixDealMakerBonus", new System.Type[0]);
 			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultiplier", null, "PostfixTradeRepMultiplier");
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferMarkup", "PrefixOfferMarkup", "PostfixOfferMarkup", new System.Type[1] { typeof(int) });
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferDiscount", "PrefixOfferDiscount", "PostfixOfferDiscount", new System.Type[1] { typeof(int) });
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "RecomputeTradeRepMultiplier", "PrefixRecomputeTradeRepMultiplier", null, new System.Type[0]);
 			ManualPatcher.TryPatch(typeof(StoreClient), "ModBudget", "PrefixStoreClientModBudget", null, new System.Type[1] { typeof(int) });
@@ -806,6 +805,8 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixStoreClientApplyBudgetModifier", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：客户预算 x4（+300%）
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价 +50（GetDealMakerBonus=显示+实际判定共用，拆包二次实锤）
+			// 09-21 信誉扣减减半（用户拍板：减信誉少50%）——实例版 ModReputation(double)，议价 5 处入口
+			ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputation", null, new System.Type[1] { typeof(double) }, typeof(Patches));
 			
 			
 			
