@@ -588,7 +588,7 @@ internal sealed class WandererPerk : CustomStartingPerk
     }
 
     // 09-20 B3 修复：清三处（dossier 0x178 / invElement 0x30 / backInvinvElement 0x98）全清——原版物品+其他特性物资兜底清除
-    // 09-20 设计稿双保险：ExpelAll（批量 RemoveAll）→ 残留逐个 Expel（parent 检查不过的失败）→ 残留 Destroy 兜底 + CLEARDIAG 日志
+    // 09-20 设计稿双保险：ExpelAll（批量 RemoveAll）→ 残留逐个 Expel（parent 检查不过的失败）→ 残留 Destroy 兜底
     internal static void ClearBackpack()
     {
         try
@@ -606,20 +606,12 @@ internal sealed class WandererPerk : CustomStartingPerk
                 {
                     var di = AddictOfficerEvent.GetInnerInventory(d);
                     if (di != null) invs.Add(di);
-                    else Core.LogMsg("[CLEARDIAG] dossier 内部网格取不到");
                 }
-                else Core.LogMsg("[CLEARDIAG] em.dossier null");
             }
             catch { }
-            string[] invNames = { "invElement", "backInvinvElement", "dossier" };
-            int inx = 0;
             foreach (var inv in invs)
             {
-                if (inv == null || inv.childItems == null) { inx++; continue; }
-                string cname = inx < invNames.Length ? invNames[inx] : "inv" + inx;
-                inx++;
-                int before = inv.childItems.Count;
-                int destroy = 0;
+                if (inv == null || inv.childItems == null) { continue; }
                 // 09-20 拆包实锤：ExpelAll/Expel 的 parent(0x190) 检查失败只清引用不清对象（对象悬空仍显示）→ 倒序遍历先 Destroy 再清列表（DebugPanel.ClearMainInv L1819 先例）
                 for (int di = inv.childItems.Count - 1; di >= 0; di--)
                 {
@@ -627,20 +619,11 @@ internal sealed class WandererPerk : CustomStartingPerk
                     {
                         var dit = inv.childItems[di];
                         if (dit == null) { try { inv.childItems.RemoveAt(di); } catch { } continue; }
-                        try { dit.Destroy(); } catch (Exception ex) { Core.LogMsg("[CLEARDIAG] Destroy异常 id=" + SafeId(dit) + " msg=" + ex.Message); }
-                        destroy++;
+                        try { dit.Destroy(); } catch { }
                     }
                     catch { }
                 }
                 try { inv.childItems.Clear(); } catch { }   // 清引用兜底
-                int after = inv.childItems.Count;
-                Core.LogMsg("[CLEARDIAG] " + cname + " n=" + before + " destroy=" + destroy + " 后=" + after + (after == 0 ? " 真清" : " 残留"));
-                if (after > 0)
-                {
-                    var ids = new System.Collections.Generic.List<string>();
-                    foreach (var it in inv.childItems) { try { ids.Add(SafeId(it)); } catch { } }
-                    Core.LogMsg("[CLEARDIAG] " + cname + " 残留id: " + string.Join(",", ids.ToArray()));
-                }
             }
         }
         catch { }

@@ -354,7 +354,7 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = true; // B2DIAG 临时开启（用完必关）
+	public static bool DebugMode = false; // 发布版关闭（开发时手动开）
 
 	public static readonly System.Random Rng = new System.Random();
 
