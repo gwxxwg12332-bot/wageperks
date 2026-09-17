@@ -108,7 +108,8 @@ internal static class ManualPatcher
     // MonoMod 复制已被替换的原方法 → CLR fatal（try/catch 拦不住，进程级崩溃）。
     // 方案：patch 前查 Harmony.GetPatchInfo，若该方法已被其他 owner patch → 跳过（功能降级不崩）。
 
-    // 冲突检测：目标方法 patch 列表里是否存在非本 mod 的 owner（有 → 跳过，返回 true）
+    // 09-21 策略更新：不再用于通用拦截——标准 Harmony 与其他标准 mod 共存（多 patch 链表互不干扰）；
+    // 仅保留作为"崩溃源接管"时的 owner 收集参考（ModCompat.ShouldYield 命中时统一 UnpatchOtherOwners）
     private static bool IsConflictOwned(MethodBase method, out string owners)
     {
         owners = "";
@@ -139,16 +140,16 @@ internal static class ManualPatcher
         }
     }
 
-    // 统一挂载：前置日志 → 冲突检测 → 抢回（卸载对方 patch 后我们上）→ Patch
-    // 09-21 拍板：不让我们让位——遇到抢同一方法的其他 mod，卸载其 patch，我们的改动必须体现（兼容=不崩；不再降级跳过）
+    // 统一挂载：前置日志 → 崩溃源接管（卸载对方 detour patch 后我们上）→ Patch
+    // 09-21 拍板（功能可见性优先）：标准 Harmony 不与任何标准 mod 互斥（多 patch 链表共存，不卸载不让位）；
+    // 只处理崩溃源（已知 detour 冲突表命中）→ 卸载对方 patch 后我们生效；不牺牲任何正常功能
     private static void ApplyPatch(MethodBase method, Type host, string prefix, string postfix, string label)
     {
         Core.LogMsg($"[Patch] {label} 开始");
-        // 冲突抢回：对方已 patch 同一方法 → 卸载对方（白名单 owner 共存不动），我们照常挂
-        if (IsConflictOwned(method, out string owners))
+        if (ModCompat.ShouldYield(method.DeclaringType, method.Name, out string compatMod))
         {
             UnpatchOtherOwners(method);
-            Core.LogMsg($"[Patch抢回] {label} 已卸载冲突 owner（{owners}）的 patch，本 mod 生效");
+            Core.LogMsg($"[Patch接管] {label} 崩溃源「{compatMod}」已接管（卸载其 detour patch），本 mod 生效");
         }
         _harmony.Patch(method,
             prefix: prefix == null ? null : new HarmonyMethod(host, prefix),
