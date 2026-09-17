@@ -19,7 +19,7 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
     internal override string DisplayName => LangHelper.T("刀尖舔血", "Blood Blade");
     internal override string Description => LangHelper.T("高风险高回报的赌徒特性（2点）。违禁品买卖价+20%，利润丰厚；代价是治安部永远盯着你——每天强制检查，连满信誉豁免也无效。吞噬季每 10 天降临：机器里的模组会互相吞噬融合，产出高级违禁品。利润越高，越可能翻车。", "High-risk high-reward gambler (2 points). Contraband price +20 percent, but Security is always watching: mandatory inspection every day — even max reputation won't spare you. Every 10 days, Cannibalism Season strikes: modules in machines devour each other, yielding high-grade contraband. Higher profit, higher risk.");
     internal override int Cost => 2; // 09-16 用户拍板：需要 2 特性点
-    internal override int Type => 2; // 混合特性显示为黄色
+    internal override int Type => 0; // 09-17 用户拍板：正面特性（绿色）；违禁品收益是主要面向，强制检查为伴随代价
 
     internal override void OnNewGame()
     {
@@ -444,7 +444,7 @@ internal sealed class WandererPerk : CustomStartingPerk
         "你两手空空地来到空间站——开局现金随机（可能一文不名，也可能小有积蓄），随身只有 6 件随机物品（必含 1 件工具 + 1 件日用品），原版开局物资不会给你。",
         "You arrive at the station empty-handed - starting cash is random (maybe nothing, maybe a little), and you carry only 6 random items (1 tool + 1 household item included). Original starting supplies are not given.");
     internal override int Cost => 0;   // 免费不占点
-    internal override int Type => 0;   // 中立
+    internal override int Type => 2;   // 09-17 用户拍板：中立特性（黄色）
 
     internal override void OnNewGame() { }
 
