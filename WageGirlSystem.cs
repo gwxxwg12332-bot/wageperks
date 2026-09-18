@@ -368,6 +368,7 @@ public static class WageGirlSystem
             {
                 TryGiveToBackpack();
             }
+            if (!Exists() && !WageGirlPerk.IsActive()) return; // 09-23 Perk 化：没选「蛙娘」且从未出现 → 跳过全部结算（修复未选也扣钱）
             SetExists(true); // 09-22 每天幂等写——防 default_run 残留（exists 只在首次分支写会永久残留，跨档污染）
             // 六维每日衰减（睡眠除外——仿生女仆夜间自然恢复睡眠）
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
@@ -408,6 +409,7 @@ public static class WageGirlSystem
     {
         try
         {
+            if (!Exists()) return; // 09-23 Perk 化：未出现不活动（双保险，修复没选 Perk 也偷钱）
             int day = CurrentDay();
             int leaveDay = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
             // 1) 回归（到达回归日）→ 按原因分支 → 实体重新发放
