@@ -32,6 +32,7 @@ public static class WageGirlSystem
     private const string K_LAST_GIFT = "lastGiftDay";     // 好物周期（阶段 6）
     private const string K_FENCE_AMT = "fenceAmount";     // 待销赃累计价值（喂入违禁品累加，点「销赃」才带走）
     private const string K_FENCE_PENDING = "fencePending"; // 本次销赃额（点击销赃时锁定，回归后 FenceReturn 读）
+    private const string K_FENCE_CAT = "fenceCat";         // 销赃带回类别 0=随机 1=食物饮品 2=日用品 3=武器工具（面板按钮循环切换）
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
     private const int STEAL_INTERVAL = 7; // 偷钱周期（天）
 
@@ -139,7 +140,7 @@ public static class WageGirlSystem
             if (mgr.IsOpen("wage_girl_panel")) mgr.CloseWindow("wage_girl_panel");
             var b = mgr.CreateWindow("wage_girl_panel", LangHelper.T("蛙娘 · 状态", "Wage Girl · Status"), "overlay");
             if (b == null) return;
-            b.SetSize(300, 500).SetPosition(Vector2.zero);
+            b.SetSize(300, 560).SetPosition(Vector2.zero);
             try
             {
                 var w = mgr.GetWindow("wage_girl_panel");
@@ -164,6 +165,15 @@ public static class WageGirlSystem
             b.AddProgressBar(GetStat(K_CLEAN) / 100f, "wg_c");
             b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
+            // 销赃类别按钮（09-22 用户拍板：可选项，点击循环切换：随机/食物饮品/日用品/武器工具）
+            try
+            {
+                string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool") };
+                int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
+                var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 3) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
+                b.AddButton(LangHelper.T("销赃类别：" + cats[curCat], "Fence type: " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
+            }
+            catch { }
             // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
             try
             {
@@ -727,7 +737,7 @@ public static class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); }
     }
 
-    // 销赃回归：带回价值 ≥ 本次销赃额×(1-跑腿费) 的普通物品（跑腿费 10% 起，每+10好感-1%，最低 0%）
+    // 销赃回归：按所选类别拆成多件带回（每件 ≤ 单件目标、最接近；总价值 ≤ 目标×1.3；跑腿费 10% 起随好感降）
     private static void FenceReturn()
     {
         try
@@ -740,10 +750,25 @@ public static class WageGirlSystem
             if (fee < 0f) fee = 0f;
             long target = (long)(amt * (1f - fee));
             if (target < 1) target = 1;
-            GameItem it = FindItemNearValue(target, true); // ≥ target，尽量接近
-            if (it == null) { ReportLine(LangHelper.T("蛙娘销赃回来了（没找到合适的货）", "Wage Girl is back (no good goods found)")); return; }
-            AddToFront(it);
-            ReportLine(LangHelper.T("蛙娘销赃回来了，带了件干净货！", "Wage Girl fenced your contraband and brought clean goods!"));
+            int cat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
+            // 拆件：每 500 价值 1 件（1-5 件）；单件目标 = 总目标/件数
+            int n = (int)Math.Max(1, Math.Min(5, target / 500));
+            long perTarget = target / n;
+            long spent = 0;
+            var names = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < n && spent < target; i++)
+            {
+                long itemTarget = Math.Min(perTarget, target - spent);
+                GameItem it = FindItemNearValue(itemTarget, cat, false); // 单件 ≤ 单件目标、最接近
+                if (it == null) break;
+                long v = it.unitValue;
+                if (spent + v > target * 1.3) break; // 累计防超
+                AddToFront(it);
+                spent += v;
+                names.Add(it.identifier);
+            }
+            if (names.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names), "Wage Girl fenced and brought: " + string.Join(", ", names)));
+            else ReportLine(LangHelper.T("蛙娘销赃回来了（没找到合适的货）", "Wage Girl is back (no good goods found)"));
         }
         catch { }
     }
@@ -809,50 +834,89 @@ public static class WageGirlSystem
         catch { return null; }
     }
 
-    // 找价值接近 target 的普通物品（geq=true 要求 ≥ target；false 要求 ≤ target）
-    private static GameItem FindItemNearValue(long target, bool geq)
+    // ===================== 物品信息缓存（销赃精确匹配用；首次销赃回归时构建一次，此后复用） =====================
+    private class ItemInfo
+    {
+        public long Value;
+        public bool FoodDrink;
+        public bool Daily;
+        public bool WeaponTool;
+    }
+    private static System.Collections.Generic.Dictionary<string, ItemInfo> _itemInfoCache;
+    private static void EnsureItemCache()
+    {
+        if (_itemInfoCache != null) return;
+        try
+        {
+            _itemInfoCache = new System.Collections.Generic.Dictionary<string, ItemInfo>();
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null) return;
+            foreach (var id in ids)
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(id) || id == ENTITY_ID) continue;
+                    if (System.Array.IndexOf(Core.ExcludedItemIds, id) >= 0) continue;
+                    var g = DirectoryMaster.Item(id, true);
+                    if (g == null) continue;
+                    var info = new ItemInfo();
+                    info.Value = g.unitValue;
+                    info.FoodDrink = RobinCrusoePerk.IsFood(g) || RobinCrusoePerk.IsDrink(g);
+                    info.Daily = RobinCrusoePerk.IsDailyNeed(g);
+                    info.WeaponTool = IsWeaponOrTool(id);
+                    _itemInfoCache[id] = info;
+                    try { g.Destroy(); } catch { }
+                }
+                catch { }
+            }
+        }
+        catch { }
+    }
+
+    // 武器/工具类别判定（id 关键词匹配，照 IsToolOrKeyOrContainer 先例）
+    private static bool IsWeaponOrTool(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        string i = id.ToLowerInvariant();
+        return i.Contains("weapon") || i.Contains("tool") || i.Contains("knife") || i.Contains("gun")
+            || i.Contains("pistol") || i.Contains("shotgun") || i.Contains("smg") || i.Contains("rifle")
+            || i.Contains("tazer") || i.Contains("stun") || i.Contains("grenade") || i.Contains("baton")
+            || i.Contains("machete") || i.Contains("sword") || i.Contains("axe") || i.Contains("c4")
+            || i.Contains("screwdriver") || i.Contains("welder") || i.Contains("flashlight") || i.Contains("scanner")
+            || i.Contains("hammer") || i.Contains("wrench") || i.Contains("surgery") || i.Contains("combat");
+    }
+
+    // 类别匹配（cat 0=随机 1=食物饮品 2=日用品 3=武器工具）
+    private static bool CategoryMatch(ItemInfo info, int cat)
+    {
+        if (info == null) return false;
+        if (cat == 0) return true;
+        if (cat == 1) return info.FoodDrink;
+        if (cat == 2) return info.Daily;
+        if (cat == 3) return info.WeaponTool;
+        return true;
+    }
+
+    // 找价值最接近 target 的普通物品（精确遍历缓存；geq=true 要求 ≥ target；false 要求 ≤ target）
+    private static GameItem FindItemNearValue(long target, int cat, bool geq)
     {
         try
         {
-            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
-            if (ids == null || ids.Count == 0) return null;
-            var pool = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < ids.Count; i++)
+            EnsureItemCache();
+            if (_itemInfoCache == null) return null;
+            string bestId = null; long bestDiff = long.MaxValue;
+            foreach (var kv in _itemInfoCache)
             {
-                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
-                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue;
-                pool.Add(ids[i]);
+                var info = kv.Value;
+                if (info == null || info.Value <= 0) continue;
+                if (!CategoryMatch(info, cat)) continue;
+                if (geq && info.Value < target) continue;
+                if (!geq && info.Value > target) continue;
+                long diff = Math.Abs(info.Value - target);
+                if (diff < bestDiff) { bestDiff = diff; bestId = kv.Key; }
             }
-            GameItem best = null; long bestDiff = long.MaxValue;
-            int tries = 0;
-            while (tries < 15 && pool.Count > 0)
-            {
-                int idx = Core.Rng.Next(pool.Count);
-                string id = pool[idx];
-                try
-                {
-                    var g = DirectoryMaster.Item(id, true);
-                    if (g == null) { pool.RemoveAt(idx); tries++; continue; }
-                    if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
-                    long v = g.unitValue;
-                    if (v <= 0) { pool.RemoveAt(idx); tries++; continue; }
-                    if (geq && v >= target)
-                    {
-                        long diff = v - target;
-                        if (diff < bestDiff) { best = g; bestDiff = diff; }
-                        if (diff <= target / 2) return g; // 命中合理区间
-                    }
-                    else if (!geq && v <= target)
-                    {
-                        long diff = target - v;
-                        if (diff < bestDiff) { best = g; bestDiff = diff; }
-                        if (diff <= target / 2) return g;
-                    }
-                    pool.RemoveAt(idx); tries++;
-                }
-                catch { pool.RemoveAt(idx); tries++; }
-            }
-            return best;
+            if (bestId == null) return null;
+            return DirectoryMaster.Item(bestId, true);
         }
         catch { return null; }
     }
