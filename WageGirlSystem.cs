@@ -1180,6 +1180,16 @@ public static class WageGirlSystem
             GameItemElement el = null;
             try { el = _cachedGirlItem as GameItemElement; } catch { }
             if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
+            if (el == null)
+            {
+                // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
+                _cachedGirlItem = FindGirlItem();
+                if (_cachedGirlItem != null)
+                {
+                    try { el = _cachedGirlItem as GameItemElement; } catch { }
+                    if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
+                }
+            }
             if (el == null) return;
             Sprite f = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
             if (f == null) return;
