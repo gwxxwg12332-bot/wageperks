@@ -1,10 +1,1 @@
-# 编译产物
-bin/
-obj/
-*.user
-
-# 旧备份文件（Git 接管后冗余，不入库）
-*.bak*
-*.bak_before_*
-
-# push 免密验证测试（2026-09-11）
+﻿_gitdiff.txt`n_gitstatus.txt`n_tmp_search.txt`n*.tmp

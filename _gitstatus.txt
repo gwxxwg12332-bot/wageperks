@@ -1,2 +1,0 @@
-﻿ M NewStartTypeUI.cs
-?? _gitstatus.txt
