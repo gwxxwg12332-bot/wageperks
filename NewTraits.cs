@@ -556,6 +556,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                     if (System.Array.IndexOf(TOOL_IDS, id) >= 0) continue;
                     if (System.Array.IndexOf(HOUSEHOLD_IDS, id) >= 0) continue;
                     if (IsDocumentId(id)) continue; // 09-20 M1：随机池排除文档/书/笔记/指南类
+                    if (System.Array.IndexOf(Core.ExcludedItemIds, id) >= 0) continue; // 09-22：全局黑名单（rare_electronic 等）不进任何我们的池子
                     ids.Add(id);
                 }
             }

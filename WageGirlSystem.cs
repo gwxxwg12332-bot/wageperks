@@ -329,13 +329,14 @@ public static class WageGirlSystem
         {
             int day = CurrentDay();
             int leaveDay = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
-            // 1) 回归：消失期已过 → 带物品回来
+            // 1) 回归：消失期已过 → 带物品回来 + 实体重新发放
             if (leaveDay > 0 && day > leaveDay)
             {
                 PerkStatePersistence.SetInt(NS, K_LEAVE, 0);
                 int amt = PerkStatePersistence.GetInt(NS, K_STEAL_AMT, 0);
                 if (amt > 0) { GiveBackItem(amt); PerkStatePersistence.SetInt(NS, K_STEAL_AMT, 0); }
                 else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
+                TryGiveToBackpack(); // 实体重新发放（消失期实体已移除）
             }
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day <= leaveDay) return;
@@ -360,6 +361,7 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_STEAL_AMT, steal);
                 PerkStatePersistence.SetInt(NS, K_LEAVE, day); // 当天消失（明天回归）
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+                RemoveGirlFromScene(); // 实体真消失（回归时重发）
                 ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
             }
         }
@@ -455,29 +457,48 @@ public static class WageGirlSystem
         catch { return 0; }
     }
 
-    // 回归带物：按偷钱额 × 好感比例预算，随机生成 1-2 件放入柜台
+    // 回归带物：按偷钱额 × 好感比例预算，随机生成物品（单件/累计价值 ≤ 预算）放入柜台
     private static void GiveBackItem(int stealAmt)
     {
         try
         {
             int aff = GetAffection();
             float ratio = 0.2f + (aff / 100f) * 0.6f; // 好感 0→20%、100→80%
+            long budget = Math.Max(1, (int)(stealAmt * ratio));
             EmporiumEntry em = EmporiumEntry.Instance;
             var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
-            if (ids == null || ids.Count == 0) { ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back")); return; }
+            if (ids == null || ids.Count == 0) { ReportLine(LangHelper.T("蛙娘回来了（没带什么值钱的东西）", "Wage Girl is back (empty-handed)")); return; }
             var pool = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < ids.Count; i++) { if (!string.IsNullOrEmpty(ids[i]) && ids[i] != ENTITY_ID) pool.Add(ids[i]); }
-            int n = Math.Min(2, pool.Count);
-            var names = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < n && pool.Count > 0; i++)
+            for (int i = 0; i < ids.Count; i++)
             {
-                int idx = Core.Rng.Next(pool.Count);
-                string id = pool[idx]; pool.RemoveAt(idx);
+                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
+                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue; // 全局黑名单（rare_electronic 等）
+                pool.Add(ids[i]);
+            }
+            long spent = 0;
+            var names = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < 2 && pool.Count > 0 && spent < budget; i++)
+            {
+                GameItem it = null; string id = null; int tries = 0;
+                while (tries < 12 && pool.Count > 0)
+                {
+                    int idx = Core.Rng.Next(pool.Count);
+                    id = pool[idx];
+                    try
+                    {
+                        it = DirectoryMaster.Item(id, true);
+                        if (it == null) { pool.RemoveAt(idx); tries++; continue; }
+                        if (it.IsTag("STANDARD_MACHINE_TAG") || it.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
+                        long v = it.unitValue;
+                        if (v <= 0 || v > budget - spent) { pool.RemoveAt(idx); tries++; continue; } // 超预算/无价值 → 换
+                        break;
+                    }
+                    catch { pool.RemoveAt(idx); tries++; }
+                }
+                if (it == null) continue;
+                spent += it.unitValue;
                 try
                 {
-                    GameItem it = DirectoryMaster.Item(id, true);
-                    if (it == null) continue;
-                    if (it.IsTag("STANDARD_MACHINE_TAG") || it.IsTag("CONTAINER_TAG")) continue;
                     if (em != null && em.frontInvinvElement != null)
                     {
                         var inv = (GameInventory)em.frontInvinvElement;
@@ -490,7 +511,42 @@ public static class WageGirlSystem
                 catch { }
             }
             if (names.Count > 0) ReportLine(LangHelper.T("蛙娘回来了，带了点东西回来：" + string.Join("、", names), "Wage Girl is back with: " + string.Join(", ", names)));
-            else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
+            else ReportLine(LangHelper.T("蛙娘回来了（没带什么值钱的东西）", "Wage Girl is back (empty-handed)"));
+        }
+        catch { }
+    }
+
+    // 偷钱消失：从场景主要网格移除蛙娘实体（回归时 TryGiveToBackpack 重发）
+    private static void RemoveGirlFromScene()
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null) return;
+            var invs = new GameInventory[] {
+                (GameInventory)em.invElement,
+                (GameInventory)em.backInvinvElement,
+                (GameInventory)em.frontInvinvElement,
+                (GameInventory)em.showcaseElement
+            };
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = inv.childItems.Count - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        var it = inv.childItems[i];
+                        if (it == null) continue;
+                        if (it.identifier == ENTITY_ID)
+                        {
+                            try { it.Destroy(); } catch { }
+                            try { inv.childItems.RemoveAt(i); } catch { }
+                        }
+                    }
+                    catch { }
+                }
+            }
         }
         catch { }
     }
