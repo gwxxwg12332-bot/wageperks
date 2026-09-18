@@ -355,6 +355,18 @@ public static class WageGirlSystem
         catch { }
     }
 
+    // ===================== 新档开局立即发放（HandleSkipIntro Postfix——已实锤新档触发；OnDayStart 新档第一天不触发） =====================
+    public static void PostfixHandleSkipIntroWageGirl()
+    {
+        try
+        {
+            TryGiveToBackpack();
+            SetExists(true);
+            Core.LogMsg("[蛙娘] 开局已发放实体到背包（HandleSkipIntro）");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 开局发放异常: " + ex.Message); }
+    }
+
     // ===================== 每日结算（OnDayStart Postfix——同养蛊机挂点） =====================
     public static void PostfixOnDayStart()
     {
