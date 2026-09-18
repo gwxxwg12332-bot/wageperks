@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Il2Cpp;
@@ -1076,7 +1076,6 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
-            try { var _ps = Il2Cpp.PlayerStore.Instance; Core.LogMsg("[RUNDIAG] 开局: runID='" + (_ps != null ? (_ps.runID ?? "") : "ps=null") + "'"); } catch { }
             WandererPerk.ClearBackpack(); // 09-20 设计稿：清原版发放（invElement+dossier）——先清后发，防误清自己物资
             bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 原生困难模式开关（开局界面）
             PerkStatePersistence.SetInt(PERK_ID, "robinson_hard", hard ? 1 : 0); // 随档（原生 hardMode 退出重进重置，存 mod 状态）
@@ -1121,7 +1120,6 @@ internal static class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
-            try { var _ps = Il2Cpp.PlayerStore.Instance; Core.LogMsg("[RUNDIAG] 开局: runID='" + (_ps != null ? (_ps.runID ?? "") : "ps=null") + "'"); } catch { }
             WandererPerk.ClearBackpack(); // 清原版发放（magnifier/labeler/topical_bandage_item/fanny_pack + dossier 文档）
             bool hard = PerkStatePersistence.GetInt(PERK_ID, "robinson_hard", 0) == 1; // TrySetupNewRun 已存（HandleInitialItem 先于 StartNewGame）
             if (!hard) GiveStartingGoods();

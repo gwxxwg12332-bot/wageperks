@@ -37,10 +37,22 @@ internal static class NewStartTypeUI
     private static string MarkerKey(string runId) => NEW_START_MARKER_PREFIX + runId;
     internal static bool IsMarkedRun(string runId)
     {
-        try { UnityEngine.PlayerPrefs.SetString("WAGES_PROBE_RUN_20260917", "1"); } catch { } // 编译源探针（验证后删除）
-        if (string.IsNullOrEmpty(runId)) return false;
+        if (string.IsNullOrEmpty(runId)) { _pendingRecheck = true; return false; } // 09-22 读档早期 runID 未恢复：不判定 + 待重判
         try { if (UnityEngine.PlayerPrefs.GetString(MarkerKey(runId), "") == "1") return true; } catch { }
         return UnityEngine.PlayerPrefs.GetString(NEW_START_MARKER_KEY, "") == runId; // 老 key 兜底（旧档迁移）
+    }
+    // 09-22 runID时序修复：读档早期 runID 未恢复时 IsMarkedRun 挂起，runID 恢复后重判一次
+    private static bool _pendingRecheck = false;
+    internal static void RecheckIfPending()
+    {
+        try
+        {
+            if (!_pendingRecheck) return;
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null || string.IsNullOrEmpty(ps.runID ?? "")) return; // runID 仍未恢复，保持挂起
+            _pendingRecheck = false; // 已恢复，后续 IsMarkedRun(runID) 自然重判
+        }
+        catch { }
     }
     // 双语：const 无法运行时切换 → static readonly（LangHelper.IsEnglish 延迟求值）。职业英文名先拟 Space Station Robinson，可改。
     private static readonly string START_NAME = LangHelper.T("空间站鲁滨逊", "Space Station Robinson");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -2812,7 +2812,6 @@ internal static class Patches
 	{
 		try
 		{
-			try { var _ps = Il2Cpp.PlayerStore.Instance; Core.LogMsg("[RUNDIAG] 读档: runID='" + (_ps != null ? (_ps.runID ?? "") : "ps=null") + "'"); } catch { }
 			_pendingLoadGameRestore = true;
 			_loadGameRestoreDelayFrames = 30;
 		}
@@ -2836,6 +2835,7 @@ internal static class Patches
 		_pendingLoadGameRestore = false;
 		try
 		{
+			NewStartTypeUI.RecheckIfPending(); // 09-22 runID 已恢复：清 IsMarkedRun 挂起标记（后续判定自然重判）
 			if (FrogPowerPerk.IsActive())
 			{
 				FrogPowerPerk.LoadState();

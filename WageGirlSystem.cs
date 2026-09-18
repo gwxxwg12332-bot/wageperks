@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
@@ -30,7 +30,8 @@ public static class WageGirlSystem
     private const string K_EXIST = "exists";
     private const string K_STEAL_AMT = "lastStealAmount"; // 上次偷钱额（回归带物比例用）
     private const string K_LAST_GIFT = "lastGiftDay";     // 好物周期（阶段 6）
-    private const string K_FENCE_AMT = "fenceAmount";     // 销赃价值（阶段 6）
+    private const string K_FENCE_AMT = "fenceAmount";     // 待销赃累计价值（喂入违禁品累加，点「销赃」才带走）
+    private const string K_FENCE_PENDING = "fencePending"; // 本次销赃额（点击销赃时锁定，回归后 FenceReturn 读）
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
     private const int STEAL_INTERVAL = 7; // 偷钱周期（天）
 
@@ -138,7 +139,7 @@ public static class WageGirlSystem
             if (mgr.IsOpen("wage_girl_panel")) mgr.CloseWindow("wage_girl_panel");
             var b = mgr.CreateWindow("wage_girl_panel", LangHelper.T("蛙娘 · 状态", "Wage Girl · Status"), "overlay");
             if (b == null) return;
-            b.SetSize(300, 460).SetPosition(Vector2.zero);
+            b.SetSize(300, 500).SetPosition(Vector2.zero);
             try
             {
                 var w = mgr.GetWindow("wage_girl_panel");
@@ -163,6 +164,14 @@ public static class WageGirlSystem
             b.AddProgressBar(GetStat(K_CLEAN) / 100f, "wg_c");
             b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
+            // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
+            try
+            {
+                int famt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+                var fenceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryFence(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); } }));
+                b.AddButton(LangHelper.T("销赃（待销 " + famt + "）", "Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
+            }
+            catch { }
             b.AddLabel(LangHelper.T("（喂食/照顾提升状态与好感——后续开放）", "(Feed & care to raise stats & affection - coming soon)"), "wg_note");
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
@@ -263,17 +272,17 @@ public static class WageGirlSystem
         {
             if (item == null) return false;
             if (Patches.CurrentUITradeMode != 0) return false;
-            // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 拿出去销赃：第 2 天整天消失、第 3 天回来带干净货
+            // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 累计待销赃（点面板「销赃」才出发）
             if (IsContraband(item))
             {
                 long v = item.unitValue;
                 if (v <= 0) return false;
                 try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
-                PerkStatePersistence.SetInt(NS, K_FENCE_AMT, (int)v);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2); // 回归日 = 后天（第 2 天消失、第 3 天回）
-                PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
-                RemoveGirlFromScene();
-                ReportLine(LangHelper.T("蛙娘把违禁品吃下去了，拿出去销赃（后天带干净货回来）", "Wage Girl devoured the contraband to fence it (clean goods back in 2 days)"));
+                int cur = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+                int total = cur + (int)v;
+                PerkStatePersistence.SetInt(NS, K_FENCE_AMT, total);
+                ReportLine(LangHelper.T("蛙娘吃下了违禁品（累计 " + total + " 价值待销赃——点面板「销赃」出发）", "Wage Girl devoured contraband (" + total + " to fence - press Fence)"));
+                try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
@@ -309,7 +318,6 @@ public static class WageGirlSystem
     {
         try
         {
-            try { var _ps = Il2Cpp.PlayerStore.Instance; string _rid = (_ps != null ? (_ps.runID ?? "") : ""); string _k = "WagesPerks_" + (_rid == "" ? "default_run" : _rid) + "_wage_girl_sat"; bool _hit = UnityEngine.PlayerPrefs.HasKey(_k); Core.LogMsg("[RUNDIAG] 每日: runID='" + _rid + "' key=" + _k + " 命中=" + _hit); } catch { }
             // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
             if (!Exists())
             {
@@ -697,13 +705,35 @@ public static class WageGirlSystem
         catch { }
     }
 
-    // 销赃回归：带回价值 ≥ 违禁品×(1-跑腿费) 的普通物品（跑腿费 10% 起，每+10好感-1%，最低 0%）
+    // 面板「销赃」按钮：带走当前累计待销赃价值，消失 2 天（第 2 天整天消失、第 3 天回）
+    private static void TryFence()
+    {
+        try
+        {
+            if (!Exists()) return;
+            if (Patches.CurrentUITradeMode != 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("交易模式下不能销赃", "Can't fence while trading"), "orange"); } catch { } return; }
+            int leave = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            if (leave > 0 && CurrentDay() < leave) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("蛙娘不在店里", "Wage Girl is out"), "orange"); } catch { } return; }
+            int amt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+            if (amt <= 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("没有违禁品可销——先拖违禁品给蛙娘吃掉", "No contraband to fence - feed her contraband first"), "orange"); } catch { } return; }
+            PerkStatePersistence.SetInt(NS, K_FENCE_PENDING, amt);
+            PerkStatePersistence.SetInt(NS, K_FENCE_AMT, 0);
+            PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
+            PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
+            RemoveGirlFromScene();
+            ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
+            try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); }
+    }
+
+    // 销赃回归：带回价值 ≥ 本次销赃额×(1-跑腿费) 的普通物品（跑腿费 10% 起，每+10好感-1%，最低 0%）
     private static void FenceReturn()
     {
         try
         {
-            int amt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
-            PerkStatePersistence.SetInt(NS, K_FENCE_AMT, 0);
+            int amt = PerkStatePersistence.GetInt(NS, K_FENCE_PENDING, 0);
+            PerkStatePersistence.SetInt(NS, K_FENCE_PENDING, 0);
             if (amt <= 0) { ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back from fencing")); return; }
             int aff = GetAffection();
             float fee = 0.10f - (aff / 1000f);

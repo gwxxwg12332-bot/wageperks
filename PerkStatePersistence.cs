@@ -43,12 +43,25 @@ internal static class PerkStatePersistence
     {
         return "WagesPerks_" + GetRunId() + "_" + perkId + "_" + key;
     }
+    // 09-22 runID时序修复：开局(runID空)时状态落 default_run，读档后真 key miss → 回退 default_run（惰性迁移，搬完删旧键）
+    private static string DefaultKey(string perkId, string key)
+    {
+        return "WagesPerks_default_run_" + perkId + "_" + key;
+    }
     // 存储int
     internal static void SetInt(string perkId, string key, int value)
     {
         try
         {
-            PlayerPrefs.SetInt(MakeKey(perkId, key), value);
+            string rid = GetRunId();
+            string fullKey = MakeKey(perkId, key);
+            PlayerPrefs.SetInt(fullKey, value);
+            // 档归属明确(runID非空)时删 default_run 残留同 key——防旧档污染
+            if (rid != "default_run")
+            {
+                string defKey = DefaultKey(perkId, key);
+                if (PlayerPrefs.HasKey(defKey)) PlayerPrefs.DeleteKey(defKey);
+            }
             PlayerPrefs.Save();
         }
         catch { }
@@ -63,6 +76,14 @@ internal static class PerkStatePersistence
             {
                 return PlayerPrefs.GetInt(fullKey, defaultValue);
             }
+            // 回退 default_run + 惰性迁移（搬进真 key，删旧键——幂等）
+            string defKey = DefaultKey(perkId, key);
+            if (PlayerPrefs.HasKey(defKey))
+            {
+                int v = PlayerPrefs.GetInt(defKey, defaultValue);
+                try { PlayerPrefs.SetInt(fullKey, v); PlayerPrefs.DeleteKey(defKey); PlayerPrefs.Save(); } catch { }
+                return v;
+            }
         }
         catch { }
         return defaultValue;
@@ -72,7 +93,14 @@ internal static class PerkStatePersistence
     {
         try
         {
-            PlayerPrefs.SetFloat(MakeKey(perkId, key), value);
+            string rid = GetRunId();
+            string fullKey = MakeKey(perkId, key);
+            PlayerPrefs.SetFloat(fullKey, value);
+            if (rid != "default_run")
+            {
+                string defKey = DefaultKey(perkId, key);
+                if (PlayerPrefs.HasKey(defKey)) PlayerPrefs.DeleteKey(defKey);
+            }
             PlayerPrefs.Save();
         }
         catch { }
@@ -86,6 +114,13 @@ internal static class PerkStatePersistence
             if (PlayerPrefs.HasKey(fullKey))
             {
                 return PlayerPrefs.GetFloat(fullKey, defaultValue);
+            }
+            string defKey = DefaultKey(perkId, key);
+            if (PlayerPrefs.HasKey(defKey))
+            {
+                float v = PlayerPrefs.GetFloat(defKey, defaultValue);
+                try { PlayerPrefs.SetFloat(fullKey, v); PlayerPrefs.DeleteKey(defKey); PlayerPrefs.Save(); } catch { }
+                return v;
             }
         }
         catch { }
@@ -106,7 +141,14 @@ internal static class PerkStatePersistence
     {
         try
         {
-            PlayerPrefs.SetString(MakeKey(perkId, key), value ?? "");
+            string rid = GetRunId();
+            string fullKey = MakeKey(perkId, key);
+            PlayerPrefs.SetString(fullKey, value ?? "");
+            if (rid != "default_run")
+            {
+                string defKey = DefaultKey(perkId, key);
+                if (PlayerPrefs.HasKey(defKey)) PlayerPrefs.DeleteKey(defKey);
+            }
             PlayerPrefs.Save();
         }
         catch { }
@@ -121,6 +163,13 @@ internal static class PerkStatePersistence
             {
                 return PlayerPrefs.GetString(fullKey, defaultValue);
             }
+            string defKey = DefaultKey(perkId, key);
+            if (PlayerPrefs.HasKey(defKey))
+            {
+                string v = PlayerPrefs.GetString(defKey, defaultValue);
+                try { PlayerPrefs.SetString(fullKey, v ?? ""); PlayerPrefs.DeleteKey(defKey); PlayerPrefs.Save(); } catch { }
+                return v;
+            }
         }
         catch { }
         return defaultValue;
@@ -130,7 +179,8 @@ internal static class PerkStatePersistence
     {
         try
         {
-            return PlayerPrefs.HasKey(MakeKey(perkId, key));
+            if (PlayerPrefs.HasKey(MakeKey(perkId, key))) return true;
+            return PlayerPrefs.HasKey(DefaultKey(perkId, key)); // 回退：default_run 残留也算有
         }
         catch { }
         return false;
