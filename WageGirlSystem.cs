@@ -174,7 +174,9 @@ public static class WageGirlSystem
                     int reason = PerkStatePersistence.GetInt(NS, K_LEAVE_REASON, 0);
                     string st = reason == 2
                         ? LangHelper.T("（离家出走了——" + (leave - today) + " 天后回）", "(Ran away - back in " + (leave - today) + " days)")
-                        : LangHelper.T("（外出中——明天回）", "(Out - back tomorrow)");
+                        : reason == 1
+                            ? LangHelper.T("（外出销赃——" + (leave - today) + " 天后回）", "(Out fencing - back in " + (leave - today) + " days)")
+                            : LangHelper.T("（外出中——明天回）", "(Out - back tomorrow)");
                     b.AddLabel(st, "wg_leave");
                 }
             }
@@ -253,7 +255,7 @@ public static class WageGirlSystem
     }
     private static bool CanFeed(GameItem item)
     {
-        try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item); } catch { return false; }
+        try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item) || IsContraband(item); } catch { return false; }
     }
     private static bool TryFeed(GameItem item, GameItem girl)
     {
@@ -261,17 +263,17 @@ public static class WageGirlSystem
         {
             if (item == null) return false;
             if (Patches.CurrentUITradeMode != 0) return false;
-            // 09-22 阶段 6：违禁品 → 销赃（拿货出去 1 天，次日带回等价普通物品）
+            // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 拿出去销赃：第 2 天整天消失、第 3 天回来带干净货
             if (IsContraband(item))
             {
                 long v = item.unitValue;
                 if (v <= 0) return false;
                 try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
                 PerkStatePersistence.SetInt(NS, K_FENCE_AMT, (int)v);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 1);
+                PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2); // 回归日 = 后天（第 2 天消失、第 3 天回）
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
                 RemoveGirlFromScene();
-                ReportLine(LangHelper.T("蛙娘收下了你的违禁品，拿出去销赃了（明天带干净货回来）", "Wage Girl took your contraband to fence (clean goods back tomorrow)"));
+                ReportLine(LangHelper.T("蛙娘把违禁品吃下去了，拿出去销赃（后天带干净货回来）", "Wage Girl devoured the contraband to fence it (clean goods back in 2 days)"));
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
