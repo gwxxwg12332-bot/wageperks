@@ -1,1 +1,10 @@
-﻿_gitdiff.txt`n_gitstatus.txt`n_tmp_search.txt`n*.tmp
+﻿_gitdiff.txt
+_gitstatus.txt
+tmp_search.txt
+*.tmp
+bin/
+obj/
+*.bak
+*.bak_before_*
+*.takeover.bak
+_*.ps1
