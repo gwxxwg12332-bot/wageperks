@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +33,8 @@ internal static class PerkIconLoader
         { "王尔德之手", "13_王尔德之手.png" },
         { "命运之骰", "14_命运之骰.png" },
         { "治安部眼线", "15_治安部眼线.png" },
-        { "流浪者", "16_流浪者.png" },
+        { "流浪者", "16_流浪者.png" },
+        { "蛙娘", "17_蛙娘.png" },
         // 兼容旧ID
         { "势利眼", "09_笑面虎.png" },
         { "丑陋店铺", "02_博士之友.png" },
