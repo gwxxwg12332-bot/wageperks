@@ -987,6 +987,11 @@ public static class WageGirlSystem
     private static int _moveTarget = -1;
     private static int _moveDir = 1;
     private static bool _lastMoveOk = false; // 09-22 诊断（用完删）：上次移动是否成功
+    private static bool _walking = false;    // 09-22 走停状态机：是否在走动
+    private static int _stepsTaken = 0;      // 本轮已走步数
+    private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）
+    private static float _pauseTimer = 0f;   // 停顿计时
+    private static float _pauseDuration = 4f;// 停顿时长（随机 3-6 秒）
     private static GridShape _girlShape;
     private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
 
@@ -1125,13 +1130,32 @@ public static class WageGirlSystem
                 TryApplyAnimFrame();
             }
 
-            // 移动：每 2.5 秒尝试一步（成功→走动帧，失败→回待机）——不依赖 sprite
-            _moveTimer += dt;
-            if (_moveTimer >= 2.5f)
+            // 移动状态机（09-22 走一会停一会）：走动 3-7 步（每 2.5s 一步）→ 停 3-6 秒 → 再走；不依赖 sprite
+            if (_walking)
             {
-                _moveTimer = 0f;
-                if (TryMoveStep()) { _lastMoveOk = true; SetAnimMode(1, true); }
-                else { _lastMoveOk = false; SetAnimMode(0); }
+                _moveTimer += dt;
+                if (_moveTimer >= 2.5f)
+                {
+                    _moveTimer = 0f;
+                    _stepsTaken++;
+                    if (TryMoveStep()) { _lastMoveOk = true; SetAnimMode(1, true); }
+                    else { _lastMoveOk = false; SetAnimMode(0); }
+                    if (_stepsTaken >= _walkSteps)
+                    {
+                        _walking = false; _pauseTimer = 0f; SetAnimMode(0);
+                    }
+                }
+            }
+            else
+            {
+                _pauseTimer += dt;
+                if (_pauseTimer >= _pauseDuration)
+                {
+                    _walking = true;
+                    _stepsTaken = 0;
+                    _walkSteps = 3 + Core.Rng.Next(0, 5);            // 走 3-7 步
+                    _pauseDuration = 3f + (float)Core.Rng.Next(0, 4); // 停 3-6 秒
+                }
             }
         }
         catch { }
@@ -1228,16 +1252,26 @@ public static class WageGirlSystem
                 _girlShape = gsb.Build();
             }
 
-            // 09-22 重写：对已放置物品 TryFindOneValidInventorySlot 返回 null（取不到基准）——先 Expel 移出网格再找空位放回（跳格移动）
+            // 09-22 随机移动：Expel 后盲试随机格子编号（2×3 可容纳+空位）——避免 TryFindOneValidInventorySlot 总返回左上角
             if (!inv.Expel(g)) return false;
-            var slot = inv.TryFindOneValidInventorySlot(g, false);
-            if (slot == null || !slot.IsValid())
+            for (int t = 0; t < 10; t++)
             {
-                inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
-                return false;
+                int rnd = Core.Rng.Next(0, 100);
+                var s = inv.TryInventorySlot(g, rnd, _girlShape, null);
+                if (s != null && s.IsValid() && s.item == null)
+                {
+                    s.TryAcceptOnce();
+                    return true;
+                }
             }
-            slot.TryAcceptOnce();
-            return true;
+            var slot = inv.TryFindOneValidInventorySlot(g, false);
+            if (slot != null && slot.IsValid())
+            {
+                slot.TryAcceptOnce();
+                return true;
+            }
+            inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
+            return false;
         }
         catch { return false; }
     }
