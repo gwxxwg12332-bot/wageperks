@@ -2949,10 +2949,6 @@ internal static class Patches
 				return;
 			}
 			Core.NightReportQueue.Clear();
-			{
-				Core.LogMsg("[夜间报告] 报告UI未就绪，无法追加");
-				return;
-			}
 			GameObject gameObject = UnityEngine.Object.Instantiate(__instance.startOfDayTMPPrefab, __instance.contentGroupObject.transform);
 			if (!(gameObject != null))
 			{

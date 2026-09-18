@@ -362,7 +362,6 @@ public static class WageGirlSystem
     {
         try
         {
-            Core.LogMsg("[蛙娘诊断] OnDayStart触发 exists=" + (Exists() ? "true" : "false") + " day=" + CurrentDay());
             // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
             if (!Exists() && WageGirlPerk.IsActive()) // 09-23 Perk 化：选了「蛙娘」特性才发放（旧档已存在保留）
             {
@@ -674,14 +673,14 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
         try
         {
             EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null) { Core.LogMsg("[蛙娘诊断] 发放失败: EmporiumEntry null"); return; }
-            if (em.backInvinvElement == null) { Core.LogMsg("[蛙娘诊断] 发放失败: backInvinvElement null"); return; }
+            if (em == null) { return; }
+            if (em.backInvinvElement == null) { return; }
             var inv = (GameInventory)em.backInvinvElement;
             GameItem item = DirectoryMaster.Item(ENTITY_ID, true);
-            if (item == null) { Core.LogMsg("[蛙娘诊断] 发放失败: DirectoryMaster.Item(" + ENTITY_ID + ") null"); return; }
+            if (item == null) { return; }
             // 照 GiveToBackpack 先例：TryFindOneValidInventorySlot → TryAcceptOnce（防同格重叠）；失败 UncheckedAccept 兜底
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
-            if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception ex) { Core.LogMsg("[蛙娘诊断] 发放失败: TryAcceptOnce: " + ex.Message); } }
+            if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception) { } }
             inv.UncheckedAccept(item);
             Core.LogMsg("[蛙娘] 已发放实体到背包（全局常驻）");
         }
@@ -994,9 +993,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f; // 09-22 动态诊断节流（用完删）
     private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
-    private static int _moveTarget = -1;
-    private static int _moveDir = 1;
-    private static bool _lastMoveOk = false; // 09-22 诊断（用完删）：上次移动是否成功
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
     private static int _stepsTaken = 0;      // 本轮已走步数
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）
@@ -1109,7 +1105,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                     }
                 }
                 catch { }
-                Core.LogMsg("[蛙娘诊断] tick exists=" + (Exists() ? "1" : "0") + " trade=" + Patches.CurrentUITradeMode + " sprites=" + (_curAnimSprites != null ? _curAnimSprites.Length : 0) + " el=" + elState + " move=" + (_lastMoveOk ? "ok" : "fail"));
             }
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
@@ -1148,8 +1143,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 {
                     _moveTimer = 0f;
                     _stepsTaken++;
-                    if (TryMoveStep()) { _lastMoveOk = true; SetAnimMode(1, true); }
-                    else { _lastMoveOk = false; SetAnimMode(0); }
+                    if (TryMoveStep()) { SetAnimMode(1, true); }
+                    else { SetAnimMode(0); }
                     if (_stepsTaken >= _walkSteps)
                     {
                         _walking = false; _pauseTimer = 0f; SetAnimMode(0);
@@ -1293,7 +1288,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (Time.time - _lastMoveDiagTime > 5f)
             {
                 _lastMoveDiagTime = Time.time;
-                Core.LogMsg("[蛙娘诊断] move shape=" + (shape != null ? "1" : "0") + " invShape=" + (invShape != null ? "1" : "0") + " gw=" + gw + " gh=" + gh + " inv=" + (inv != null ? "y" : "null"));
             }
             if (gw > 0 && gh > 0)
             {
@@ -1322,7 +1316,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 if (Time.time - _lastMoveDiagTime > 5f)
                 {
                     _lastMoveDiagTime = Time.time;
-                    Core.LogMsg("[蛙娘诊断] moveRnd trys=" + tryCount + " hits=" + hitCount + " gw=" + gw + " gh=" + gh);
                 }
             }
             // 兜底：Expel + TryFindOneValidInventorySlot（至少能动，可能左上角）
@@ -1352,7 +1345,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 if (Time.time - _lastDiagTime > 5f)
                 {
                     _lastDiagTime = Time.time;
-                    Core.LogMsg("[蛙娘诊断] OnUpdateTick早退: 帧未加载 idle=" + (_spritesIdle != null ? _spritesIdle.Length : -1) + " walk=" + (_spritesWalk != null ? _spritesWalk.Length : -1) + " steal=" + (_spritesSteal != null ? _spritesSteal.Length : -1) + " loadMethod=" + (_loadImageMethod != null ? "ok" : "null"));
                 }
                 return;
             }
