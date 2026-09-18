@@ -360,6 +360,7 @@ public static class WageGirlSystem
     {
         try
         {
+            Core.LogMsg("[蛙娘诊断] OnDayStart触发 exists=" + (Exists() ? "true" : "false") + " day=" + CurrentDay());
             // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
             if (!Exists())
             {
@@ -1074,6 +1075,14 @@ public static class WageGirlSystem
     {
         try
         {
+            // 09-22 诊断（用完删）：5秒节流看 OnUpdateTick 状态
+            if (Time.time - _lastDiagTime > 5f)
+            {
+                _lastDiagTime = Time.time;
+                string elState = "n/a";
+                try { var it = _cachedGirlItem != null ? _cachedGirlItem : FindGirlItem(); elState = (it != null ? (it as GameItemElement != null ? "element-ok" : "not-element") : "not-found"); } catch { }
+                Core.LogMsg("[蛙娘诊断] tick exists=" + (Exists() ? "1" : "0") + " trade=" + Patches.CurrentUITradeMode + " sprites=" + (_curAnimSprites != null ? _curAnimSprites.Length : 0) + " el=" + elState + " target=" + _moveTarget);
+            }
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
             float dt = Time.deltaTime;
