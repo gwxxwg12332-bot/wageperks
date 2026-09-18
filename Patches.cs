@@ -2812,6 +2812,7 @@ internal static class Patches
 	{
 		try
 		{
+			try { var _ps = Il2Cpp.PlayerStore.Instance; Core.LogMsg("[RUNDIAG] 读档: runID='" + (_ps != null ? (_ps.runID ?? "") : "ps=null") + "'"); } catch { }
 			_pendingLoadGameRestore = true;
 			_loadGameRestoreDelayFrames = 30;
 		}
