@@ -1253,7 +1253,7 @@ public static class WageGirlSystem
             }
 
             // 09-22 随机落格（拆包正确姿势）：requestedNum=数量(1) 不是格子号；随机格中心像素点(每格16px,+8中心)
-            // → TryInventorySlot(item, 1, Vector2像素点, shape, null) 自动换算格位 → UncheckedAccept(item, marker) 精确落位
+            // → TryInventorySlot(item, 1, Vector2像素点, shape, null) 自动换算格位 → TryAcceptOnce 落位
             GridShape shape = null;
             try { shape = g.shape; } catch { }
             if (shape == null)
@@ -1261,36 +1261,44 @@ public static class WageGirlSystem
                 if (_girlShape == null) { try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } catch { } }
                 shape = _girlShape;
             }
-            if (shape != null)
+            // 网格宽高（拆包权威：inv.inventoryShape.width/height——格子数；兜底物品 shape）
+            int gw = 0, gh = 0;
+            GridShape invShape = null;
+            try { invShape = inv.inventoryShape; if (invShape != null) { gw = invShape.width; gh = invShape.height; } } catch { }
+            if (gw <= 0 || gh <= 0)
             {
-                int gw = 0, gh = 0;
-                try { gw = shape.width; gh = shape.height; } catch { }
-                if (gw > 0 && gh > 0)
+                if (shape != null) { try { gw = shape.width; gh = shape.height; } catch { } }
+            }
+            // 09-22 诊断（用完删）：任何情况都打——区分 shape 为空 / 宽高为 0 / 盲试结果
+            if (Time.time - _lastDiagTime > 5f)
+            {
+                _lastDiagTime = Time.time;
+                Core.LogMsg("[蛙娘诊断] move shape=" + (shape != null ? "1" : "0") + " invShape=" + (invShape != null ? "1" : "0") + " gw=" + gw + " gh=" + gh + " inv=" + (inv != null ? "y" : "null"));
+            }
+            if (gw > 0 && gh > 0)
+            {
+                int tryCount = 0, hitCount = 0;
+                for (int t = 0; t < 8; t++)
                 {
-                    int tryCount = 0, hitCount = 0;
-                    for (int t = 0; t < 8; t++)
+                    try
                     {
-                        try
+                        tryCount++;
+                        float px = Core.Rng.Next(0, gw) * 16f + 8f;
+                        float py = Core.Rng.Next(0, gh) * 16f + 8f;
+                        var m = inv.TryInventorySlot(g, 1, new Vector2(px, py), shape, null);
+                        if (m != null && m.IsValid())
                         {
-                            tryCount++;
-                            float px = Core.Rng.Next(0, gw) * 16f + 8f;
-                            float py = Core.Rng.Next(0, gh) * 16f + 8f;
-                            var m = inv.TryInventorySlot(g, 1, new Vector2(px, py), shape, null);
-                            if (m != null && m.IsValid())
-                            {
-                                hitCount++;
-                                m.TryAcceptOnce(); // 落位（mod 先例 slot.TryAcceptOnce——Il2Cpp 层无 UncheckedAccept(item,marker) 2参重载）
-                                return true;
-                            }
+                            hitCount++;
+                            m.TryAcceptOnce(); // 落位（mod 先例 slot.TryAcceptOnce——Il2Cpp 层无 UncheckedAccept(item,marker) 2参重载）
+                            return true;
                         }
-                        catch { }
                     }
-                    // 09-22 诊断（用完删）：随机盲试结果——定位失败点
-                    if (Time.time - _lastDiagTime > 5f)
-                    {
-                        _lastDiagTime = Time.time;
-                        Core.LogMsg("[蛙娘诊断] move shape=" + (shape != null ? "1" : "0") + " gw=" + gw + " gh=" + gh + " trys=" + tryCount + " hits=" + hitCount + " inv=" + (inv != null ? inv.ToString() : "null"));
-                    }
+                    catch { }
+                }
+                if (Time.time - _lastDiagTime > 5f)
+                {
+                    _lastDiagTime = Time.time;
+                    Core.LogMsg("[蛙娘诊断] moveRnd trys=" + tryCount + " hits=" + hitCount + " gw=" + gw + " gh=" + gh);
                 }
             }
             // 兜底：Expel + TryFindOneValidInventorySlot（至少能动，可能左上角）
