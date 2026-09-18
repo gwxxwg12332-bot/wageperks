@@ -191,11 +191,18 @@ public static class WageGirlSystem
                 if (leave > 0 && today < leave)
                 {
                     int reason = PerkStatePersistence.GetInt(NS, K_LEAVE_REASON, 0);
-                    string st = reason == 2
-                        ? LangHelper.T("（离家出走了——" + (leave - today) + " 天后回）", "(Ran away - back in " + (leave - today) + " days)")
-                        : reason == 1
-                            ? LangHelper.T("（外出销赃——" + (leave - today) + " 天后回）", "(Out fencing - back in " + (leave - today) + " days)")
-                            : LangHelper.T("（外出中——明天回）", "(Out - back tomorrow)");
+                    int daysLeft = leave - today;
+                    string st;
+                    if (reason == 2)
+                        st = daysLeft <= 1
+                            ? LangHelper.T("（离家出走中——明天归来）", "(Ran away - back tomorrow)")
+                            : LangHelper.T("（离家出走了——" + daysLeft + " 天后归来）", "(Ran away - back in " + daysLeft + " days)");
+                    else if (reason == 1)
+                        st = daysLeft <= 1
+                            ? LangHelper.T("（外出销赃——明天归来）", "(Out fencing - back tomorrow)")
+                            : LangHelper.T("（外出销赃——" + daysLeft + " 天后归来）", "(Out fencing - back in " + daysLeft + " days)");
+                    else
+                        st = LangHelper.T("（外出中——明天归来）", "(Out - back tomorrow)");
                     b.AddLabel(st, "wg_leave");
                 }
             }
