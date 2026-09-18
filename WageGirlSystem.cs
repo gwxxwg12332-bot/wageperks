@@ -25,7 +25,7 @@ public static class WageGirlSystem
     private const int AFF_MAX = 100;
     private const int AFF_DAILY_DROP = 1; // 好感每日回落（不照顾）
 
-    private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep";
+    private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep", K_SLEEP_DEBT = "sleepDebt";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
     private const string K_EXIST = "exists";
     private const string K_STEAL_AMT = "lastStealAmount"; // 上次偷钱额（回归带物比例用）
@@ -50,6 +50,8 @@ public static class WageGirlSystem
     {
         try { PerkStatePersistence.SetInt(NS, k, Math.Max(0, Math.Min(STAT_MAX, v))); } catch { }
     }
+    internal static int GetSleepDebt() { try { return PerkStatePersistence.GetInt(NS, K_SLEEP_DEBT, 0); } catch { return 0; } }
+    internal static void SetSleepDebt(int v) { try { PerkStatePersistence.SetInt(NS, K_SLEEP_DEBT, Math.Max(0, v)); } catch { } }
     internal static int GetAffection() { try { return PerkStatePersistence.GetInt(NS, K_AFF, 0); } catch { return 0; } }
     internal static void SetAffection(int v) { try { PerkStatePersistence.SetInt(NS, K_AFF, Math.Max(0, Math.Min(AFF_MAX, v))); } catch { } }
     internal static bool Exists() { try { return PerkStatePersistence.GetInt(NS, K_EXIST, 0) == 1; } catch { return false; } }
@@ -59,7 +61,7 @@ public static class WageGirlSystem
     // 蛙娘全部持久化 key（清 default_run 残留用）
     private static readonly string[] ALL_KEYS = new string[]
     {
-        K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_AFF, K_LAST_STEAL, K_LEAVE,
+        K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_SLEEP_DEBT, K_AFF, K_LAST_STEAL, K_LEAVE,
         K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON
     };
 
@@ -327,9 +329,9 @@ public static class WageGirlSystem
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); }
-            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); }
-            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); }
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
+            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
+            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
             else return false;
             SetAffection(GetAffection() + aff);
             // 消耗源物品（吃掉）：Destroy → Expel 兜底（照命运骰子吸收）
@@ -371,7 +373,9 @@ public static class WageGirlSystem
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
                 SetStat(k, GetStat(k) - DAILY_DECAY);
             // 睡眠自然增长（过夜充电/睡觉恢复）
-            SetStat(K_SLEEP, GetStat(K_SLEEP) + 15);
+                        // 09-23 睡眠 debt 机制：先扣债（偷钱/销赃/偷拿熬夜）再自然恢复
+            int sleepDebt = GetSleepDebt(); SetSleepDebt(0);
+            SetStat(K_SLEEP, GetStat(K_SLEEP) - sleepDebt + 15);
             // 好感每日回落（不照顾）
             SetAffection(GetAffection() - AFF_DAILY_DROP);
             // 阶段 5：回归 / 自主偷拿 / 偷钱循环
@@ -468,7 +472,8 @@ public static class WageGirlSystem
                 int steal = 50 + (int)((aff / 100f) * 450f); // 好感 0→50、100→500
                 ModCashN(-steal);
                 PerkStatePersistence.SetInt(NS, K_STEAL_AMT, steal);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
+                                SetSleepDebt(GetSleepDebt() + 20); // 偷钱外出熬夜 -20 睡眠（次日结算）
+PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 0);
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
                 RemoveGirlFromScene(); // 实体真消失（回归时重发）
@@ -496,6 +501,7 @@ public static class WageGirlSystem
             int stolen = StealItems(mode, count, valueMode);
             if (stolen > 0)
             {
+                SetSleepDebt(GetSleepDebt() + 10); // 偷拿熬夜 -10 睡眠（次日结算）
                 if (mode == "food") SetStat(K_SAT, GetStat(K_SAT) + 30);
                 else if (mode == "drink") SetStat(K_TH, GetStat(K_TH) + 30);
                 else if (mode == "care") { SetStat(K_MOOD, GetStat(K_MOOD) + 20); SetStat(K_CLEAN, GetStat(K_CLEAN) + 10); }
@@ -762,7 +768,8 @@ public static class WageGirlSystem
             if (amt <= 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("没有违禁品可销——先拖违禁品给蛙娘吃掉", "No contraband to fence - feed her contraband first"), "orange"); } catch { } return; }
             PerkStatePersistence.SetInt(NS, K_FENCE_PENDING, amt);
             PerkStatePersistence.SetInt(NS, K_FENCE_AMT, 0);
-            PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
+                        SetSleepDebt(GetSleepDebt() + 20); // 销赃外出熬夜 -20 睡眠（次日结算）
+PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
             RemoveGirlFromScene();
             ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
