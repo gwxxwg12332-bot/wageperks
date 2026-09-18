@@ -309,6 +309,7 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_FENCE_AMT, total);
                 ReportLine(LangHelper.T("蛙娘吃下了违禁品（累计 " + total + " 价值待销赃——点面板「销赃」出发）", "Wage Girl devoured contraband (" + total + " to fence - press Fence)"));
                 try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
+                SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
@@ -321,6 +322,7 @@ public static class WageGirlSystem
             try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
             try { StoreUIManager.Instance.Notify(msg, "green"); } catch { }
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
+            SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
             return true;
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 喂食异常: " + ex.Message); return false; }
@@ -951,6 +953,221 @@ public static class WageGirlSystem
             var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
             if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
             else inv.UncheckedAccept(it);
+        }
+        catch { }
+    }
+
+    // ===================== 动画系统（09-22 蛙娘动画帧集成，用户拍板 B：真移动+走动帧） =====================
+    // 12 帧 base64（WageGirlAnimFrames.cs）→ 运行时解码 Texture2D → Sprite[]（64×96 超采样，Point 缩回 32×48）
+    private static Sprite[] _spritesIdle, _spritesWalk, _spritesSteal;
+    private static Sprite[] _curAnimSprites;
+    private static int _frameIndex = 0;
+    private static float _frameTimer = 0f;
+    private static int _animMode = 0; // 0=待机 1=走动 2=偷
+    private static float _animModeTimer = 0f;
+    private static float _moveTimer = 0f;
+    private static int _moveTarget = -1;
+    private static int _moveDir = 1;
+    private static GridShape _girlShape;
+    private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
+
+    private static void EnsureSprites()
+    {
+        if (_spritesIdle != null) return;
+        try
+        {
+            _spritesIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
+            _spritesWalk = LoadSpriteGroup(WageGirlAnimFrames.Walk);
+            _spritesSteal = LoadSpriteGroup(WageGirlAnimFrames.Steal);
+            _curAnimSprites = _spritesIdle;
+        }
+        catch { }
+    }
+
+    private static System.Reflection.MethodInfo _loadImageMethod; // ImageConversion.LoadImage（IL2CPP 反射查找，DestinyDice 先例）
+
+    private static Sprite[] LoadSpriteGroup(string[] b64s)
+    {
+        var arr = new Sprite[b64s.Length];
+        // 反射查找 ImageConversion.LoadImage（IL2CPP 不在标准命名空间——DestinyDice L175-213 先例；只找一次）
+        if (_loadImageMethod == null)
+        {
+            try
+            {
+                Type icType = null;
+                foreach (System.Reflection.Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    Type[] types;
+                    try { types = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
+                    foreach (Type t in types)
+                    {
+                        if (t != null && t.Name == "ImageConversion") { icType = t; break; }
+                    }
+                    if (icType != null) break;
+                }
+                if (icType != null)
+                    _loadImageMethod = icType.GetMethod("LoadImage",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                        null, new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }, null);
+            }
+            catch { }
+        }
+        for (int i = 0; i < b64s.Length; i++)
+        {
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(b64s[i]);
+                var tex = new Texture2D(64, 96, TextureFormat.RGBA32, false);
+                tex.filterMode = FilterMode.Point;
+                if (_loadImageMethod != null)
+                {
+                    try
+                    {
+                        _loadImageMethod.Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)bytes });
+                        tex.wrapMode = TextureWrapMode.Clamp;
+                        arr[i] = Sprite.Create(tex, new Rect(0, 0, 64, 96), new Vector2(0.5f, 0.5f), 100f);
+                        continue;
+                    }
+                    catch { }
+                }
+                try { UnityEngine.Object.Destroy(tex); } catch { }
+            }
+            catch { }
+        }
+        return arr;
+    }
+
+    // 动作切换（0 待机 / 1 走动 / 2 偷）
+    private static void SetAnimMode(int mode, bool force = false)
+    {
+        try
+        {
+            if (_animMode == mode && !force) return;
+            _animMode = mode;
+            _frameIndex = 0;
+            _frameTimer = 0f;
+            _animModeTimer = 0f;
+            _curAnimSprites = mode == 1 ? _spritesWalk : mode == 2 ? _spritesSteal : _spritesIdle;
+        }
+        catch { }
+    }
+
+    // 每帧驱动（Core.OnUpdate 调用；轻量 + 全异常防护 + 交易模式暂停——用户规范：OnUpdate 不做重操作）
+    public static void OnUpdateTick()
+    {
+        try
+        {
+            if (!Exists()) return;
+            if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
+            float dt = Time.deltaTime;
+            if (dt <= 0f) return; // 游戏暂停
+            EnsureSprites();
+            if (_curAnimSprites == null || _curAnimSprites.Length == 0) return;
+
+            // 偷动作：播完自动回待机
+            if (_animMode == 2)
+            {
+                _animModeTimer += dt;
+                if (_animModeTimer >= _frameMs[2] * _curAnimSprites.Length)
+                    SetAnimMode(0);
+            }
+            // 帧索引推进（按当前动作帧率）
+            _frameTimer += dt;
+            if (_frameTimer >= _frameMs[_animMode])
+            {
+                _frameTimer = 0f;
+                if (_curAnimSprites.Length > 1)
+                    _frameIndex = (_frameIndex + 1) % _curAnimSprites.Length;
+            }
+
+            // 移动：每 2.5 秒尝试一步（成功→走动帧，失败→回待机）
+            _moveTimer += dt;
+            if (_moveTimer >= 2.5f)
+            {
+                _moveTimer = 0f;
+                if (TryMoveStep()) SetAnimMode(1, true);
+                else SetAnimMode(0);
+            }
+        }
+        catch { }
+    }
+
+    // 尝试移动一步：Expel + TryInventorySlot(目标格子编号) 落格（边界回弹 + 兜底放回，绝不丢实体）
+    private static bool TryMoveStep()
+    {
+        try
+        {
+            var em = EmporiumEntry.Instance;
+            if (em == null) return false;
+            GameInventory inv = null;
+            GameItem g = null;
+            GameInventory[] grids = new GameInventory[]
+            {
+                em.invElement as GameInventory,
+                em.frontInvinvElement as GameInventory,
+                em.showcaseElement as GameInventory,
+                em.backInvinvElement as GameInventory
+            };
+            foreach (var gi in grids)
+            {
+                if (gi == null || gi.childItems == null) continue;
+                for (int i = 0; i < gi.childItems.Count; i++)
+                {
+                    var c = gi.childItems[i];
+                    if (c == null) continue;
+                    if (c.identifier == ENTITY_ID) { inv = gi; g = c; break; }
+                }
+                if (g != null) break;
+            }
+            if (inv == null || g == null) return false;
+
+            if (_girlShape == null)
+            {
+                var gsb = new GridShapeBuilder();
+                gsb.SetDataFill(2, 3);
+                _girlShape = gsb.Build();
+            }
+
+            if (_moveTarget < 0)
+            {
+                var first = inv.TryFindOneValidInventorySlot(g);
+                if (first == null || !first.IsValid()) return false;
+                _moveTarget = first.index;
+                return false; // 首次只记录基准位
+            }
+
+            if (!inv.Expel(g)) return false;
+            int target = _moveTarget + _moveDir;
+            var slot = inv.TryInventorySlot(g, target, _girlShape, null);
+            if (slot == null || !slot.IsValid() || slot.item != null)
+            {
+                _moveDir = -_moveDir;
+                target = _moveTarget + _moveDir;
+                slot = inv.TryInventorySlot(g, target, _girlShape, null);
+            }
+            if (slot != null && slot.IsValid() && slot.item == null)
+            {
+                slot.TryAcceptOnce();
+                _moveTarget = slot.index;
+                return true;
+            }
+            inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
+            return false;
+        }
+        catch { return false; }
+    }
+
+    // ApplyAnimationFrame Prefix：蛙娘替换帧（美术方案——原生 Tick 调此方法时替换；帧索引由 OnUpdateTick 推进）
+    public static void PrefixApplyAnimationFrame(GameItemElement __instance, ref Sprite frame)
+    {
+        try
+        {
+            if (__instance == null) return;
+            if (__instance.identifier != ENTITY_ID) return;
+            EnsureSprites();
+            if (_curAnimSprites == null || _curAnimSprites.Length == 0) return;
+            Sprite s = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
+            if (s != null) frame = s;
         }
         catch { }
     }
