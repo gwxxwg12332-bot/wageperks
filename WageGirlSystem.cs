@@ -1252,8 +1252,8 @@ public static class WageGirlSystem
                 _girlShape = gsb.Build();
             }
 
-            // 09-22 随机移动：Expel 后盲试随机格子编号（2×3 可容纳+空位）——避免 TryFindOneValidInventorySlot 总返回左上角
-            if (!inv.Expel(g)) return false;
+            // 09-22 随机移动 v2：不 Expel——物品在网格中直接 TryInventorySlot 试随机格（requestedNum=格子编号）
+            // （Expel 后调用会失败——TryInventorySlot 可能要求 item 在网格内；兜底才 Expel+TryFindOneValidInventorySlot 左上角）
             for (int t = 0; t < 10; t++)
             {
                 int rnd = Core.Rng.Next(0, 100);
@@ -1264,6 +1264,7 @@ public static class WageGirlSystem
                     return true;
                 }
             }
+            if (!inv.Expel(g)) return false;
             var slot = inv.TryFindOneValidInventorySlot(g, false);
             if (slot != null && slot.IsValid())
             {
