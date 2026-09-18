@@ -28,6 +28,8 @@ public static class WageGirlSystem
     private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
     private const string K_EXIST = "exists";
+    private const string K_STEAL_AMT = "lastStealAmount"; // 上次偷钱额（回归带物比例用）
+    private const int STEAL_INTERVAL = 7; // 偷钱周期（天）
 
     private static Sprite _sprite;
 
@@ -159,6 +161,14 @@ public static class WageGirlSystem
             b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
             b.AddLabel(LangHelper.T("（喂食/照顾提升状态与好感——后续开放）", "(Feed & care to raise stats & affection - coming soon)"), "wg_note");
+            // 外出状态（阶段 5：偷钱消失期）
+            try
+            {
+                int leave = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+                if (leave > 0 && CurrentDay() <= leave)
+                    b.AddLabel(LangHelper.T("（外出中——躲债去了，明天回）", "(Out - dodging debts, back tomorrow)"), "wg_leave");
+            }
+            catch { }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }
@@ -287,6 +297,200 @@ public static class WageGirlSystem
             SetStat(K_SLEEP, GetStat(K_SLEEP) + 15);
             // 好感每日回落（不照顾）
             SetAffection(GetAffection() - AFF_DAILY_DROP);
+            // 阶段 5：回归 / 自主偷拿 / 偷钱循环
+            RunDayEvents();
+        }
+        catch { }
+    }
+
+    // ===================== 阶段 5：偷钱循环 + 自主偷拿 + 回归（话术 v9） =====================
+    private static int CurrentDay()
+    {
+        try { return Il2Cpp.StoreStation.GetDayCounter(); } catch { return 1; }
+    }
+
+    // 夜报三件套（09-17 统一规范：原生 AddNightLog + mod 队列 + 弹窗）
+    private static void ReportLine(string line)
+    {
+        try { var ps = Il2Cpp.PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#E2B93B"); } catch { }
+        try { Core.AddNightReportLine(line); } catch { }
+        try { Il2Cpp.StoreUIManager.Instance.Notify(line); } catch { }
+    }
+
+    private static void ModCashN(int n)
+    {
+        try { var ps = Il2Cpp.PlayerStore.Instance; if (ps != null) ps.ModCash(n); } catch { }
+    }
+
+    // 每日事件：回归 →（消失期不活动）→ 初次偷拿 → 日常偷拿 → 偷钱循环
+    private static void RunDayEvents()
+    {
+        try
+        {
+            int day = CurrentDay();
+            int leaveDay = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            // 1) 回归：消失期已过 → 带物品回来
+            if (leaveDay > 0 && day > leaveDay)
+            {
+                PerkStatePersistence.SetInt(NS, K_LEAVE, 0);
+                int amt = PerkStatePersistence.GetInt(NS, K_STEAL_AMT, 0);
+                if (amt > 0) { GiveBackItem(amt); PerkStatePersistence.SetInt(NS, K_STEAL_AMT, 0); }
+                else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
+            }
+            // 2) 消失期：不偷拿不偷钱
+            if (leaveDay > 0 && day <= leaveDay) return;
+            int lastSteal = PerkStatePersistence.GetInt(NS, K_LAST_STEAL, 0);
+            // 3) 初次偷拿（lastSteal==0 → 初次偷 1 件 + 50 钱，然后设 today）
+            if (lastSteal <= 0)
+            {
+                int stolen = StealItems("random", 1, "highest");
+                if (stolen > 0) ModCashN(-50);
+                ReportLine(LangHelper.T("蛙娘初次见面就偷偷拿走了你的东西，还顺走了 50 块钱……", "On first meeting Wage Girl swiped something and pocketed 50 credits..."));
+                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+                return;
+            }
+            // 4) 日常自主偷拿（状态触发）
+            TrySnatch();
+            // 5) 偷钱循环（≥7 天）
+            if (day - lastSteal >= STEAL_INTERVAL)
+            {
+                int aff = GetAffection();
+                int steal = 50 + (int)((aff / 100f) * 450f); // 好感 0→50、100→500
+                ModCashN(-steal);
+                PerkStatePersistence.SetInt(NS, K_STEAL_AMT, steal);
+                PerkStatePersistence.SetInt(NS, K_LEAVE, day); // 当天消失（明天回归）
+                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+                ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
+            }
+        }
+        catch { }
+    }
+
+    // 日常自主偷拿：饥饿/口渴/心情差自拿对应类恢复；心情好随机顺走（件数/价值按好感）
+    private static void TrySnatch()
+    {
+        try
+        {
+            int sat = GetStat(K_SAT), th = GetStat(K_TH), mood = GetStat(K_MOOD);
+            string mode = null; string msg = null;
+            if (sat < 30) { mode = "food"; msg = "蛙娘饿坏了，偷吃了你的食物"; }
+            else if (th < 30) { mode = "drink"; msg = "蛙娘渴坏了，偷喝了你的饮品"; }
+            else if (mood < 30) { mode = "care"; msg = "蛙娘心情很差，拿走了你的日用品"; }
+            else if (mood >= 60) { mode = "random"; msg = "蛙娘心情不错，顺走了你点小东西"; }
+            else return;
+            int aff = GetAffection();
+            int count = aff < 30 ? 1 : (aff < 70 ? 2 : 3);
+            string valueMode = aff < 30 ? "highest" : (aff < 70 ? "random" : "low");
+            int stolen = StealItems(mode, count, valueMode);
+            if (stolen > 0)
+            {
+                if (mode == "food") SetStat(K_SAT, GetStat(K_SAT) + 30);
+                else if (mode == "drink") SetStat(K_TH, GetStat(K_TH) + 30);
+                else if (mode == "care") { SetStat(K_MOOD, GetStat(K_MOOD) + 20); SetStat(K_CLEAN, GetStat(K_CLEAN) + 10); }
+                ReportLine(LangHelper.T(msg + "（" + stolen + " 件）", msg + " (" + stolen + " items)"));
+            }
+        }
+        catch { }
+    }
+
+    // 从店里找目标偷拿：mode 限定类别；count 件数；valueMode highest/random/low
+    private static int StealItems(string mode, int count, string valueMode)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null) return 0;
+            var invs = new GameInventory[] {
+                (GameInventory)em.frontInvinvElement,
+                (GameInventory)em.showcaseElement,
+                (GameInventory)em.invElement
+            };
+            var candidates = new System.Collections.Generic.List<GameItem>();
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    if (it.identifier == ENTITY_ID) continue;
+                    if (it.IsTag("STANDARD_MACHINE_TAG") || it.IsTag("CONTAINER_TAG")) continue;
+                    if (mode == "food" && !RobinCrusoePerk.IsFood(it)) continue;
+                    if (mode == "drink" && !RobinCrusoePerk.IsDrink(it)) continue;
+                    if (mode == "care" && !RobinCrusoePerk.IsDailyNeed(it)) continue;
+                    candidates.Add(it);
+                }
+            }
+            if (candidates.Count == 0) return 0;
+            var picked = new System.Collections.Generic.List<GameItem>();
+            if (valueMode == "highest")
+            {
+                GameItem best = candidates[0];
+                foreach (var c in candidates) if (c.unitValue > best.unitValue) best = c;
+                picked.Add(best);
+            }
+            else if (valueMode == "low")
+            {
+                var pool = new System.Collections.Generic.List<GameItem>(candidates);
+                pool.Sort((a, b) => a.unitValue.CompareTo(b.unitValue));
+                for (int i = 0; i < Math.Min(count, pool.Count); i++) picked.Add(pool[i]);
+            }
+            else
+            {
+                var pool = new System.Collections.Generic.List<GameItem>(candidates);
+                for (int i = 0; i < Math.Min(count, pool.Count); i++)
+                {
+                    int idx = Core.Rng.Next(pool.Count);
+                    picked.Add(pool[idx]);
+                    pool.RemoveAt(idx);
+                }
+            }
+            int stolen = 0;
+            foreach (var p in picked)
+            {
+                try { p.Destroy(); stolen++; } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; } } catch { } }
+            }
+            return stolen;
+        }
+        catch { return 0; }
+    }
+
+    // 回归带物：按偷钱额 × 好感比例预算，随机生成 1-2 件放入柜台
+    private static void GiveBackItem(int stealAmt)
+    {
+        try
+        {
+            int aff = GetAffection();
+            float ratio = 0.2f + (aff / 100f) * 0.6f; // 好感 0→20%、100→80%
+            EmporiumEntry em = EmporiumEntry.Instance;
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null || ids.Count == 0) { ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back")); return; }
+            var pool = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < ids.Count; i++) { if (!string.IsNullOrEmpty(ids[i]) && ids[i] != ENTITY_ID) pool.Add(ids[i]); }
+            int n = Math.Min(2, pool.Count);
+            var names = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < n && pool.Count > 0; i++)
+            {
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx]; pool.RemoveAt(idx);
+                try
+                {
+                    GameItem it = DirectoryMaster.Item(id, true);
+                    if (it == null) continue;
+                    if (it.IsTag("STANDARD_MACHINE_TAG") || it.IsTag("CONTAINER_TAG")) continue;
+                    if (em != null && em.frontInvinvElement != null)
+                    {
+                        var inv = (GameInventory)em.frontInvinvElement;
+                        var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
+                        if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
+                        else inv.UncheckedAccept(it);
+                        names.Add(id);
+                    }
+                }
+                catch { }
+            }
+            if (names.Count > 0) ReportLine(LangHelper.T("蛙娘回来了，带了点东西回来：" + string.Join("、", names), "Wage Girl is back with: " + string.Join(", ", names)));
+            else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
         }
         catch { }
     }
