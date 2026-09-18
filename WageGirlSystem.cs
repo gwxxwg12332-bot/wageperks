@@ -1294,13 +1294,17 @@ public static class WageGirlSystem
                     try
                     {
                         tryCount++;
-                        float px = Core.Rng.Next(0, gw) * 16f + 8f;
-                        float py = Core.Rng.Next(0, gh) * 16f + 8f;
-                        var m = inv.TryInventorySlot(g, 1, new Vector2(px, py), shape, null);
+                        int cx = Core.Rng.Next(0, gw);
+                        int cy = Core.Rng.Next(0, gh);
+                        // 09-23 拆包正确姿势：GridShapeBuilder(item.shape) + SetPosition(cx,cy) + 3参 TryInventorySlot + TryAcceptOnce
+                        // （5参 Vector2 像素点版是陷阱——GetGridPosition 换算后 clamp 0 → 总左上角）
+                        var b = new GridShapeBuilder(shape);
+                        b.SetPosition(cx, cy);
+                        var m = inv.TryInventorySlot(g, b.shape, null);
                         if (m != null && m.IsValid())
                         {
                             hitCount++;
-                            m.TryAcceptOnce(); // 落位（mod 先例 slot.TryAcceptOnce——Il2Cpp 层无 UncheckedAccept(item,marker) 2参重载）
+                            m.TryAcceptOnce();
                             return true;
                         }
                     }
