@@ -587,8 +587,23 @@ internal sealed class WandererPerk : CustomStartingPerk
         catch { return null; }
     }
 
+    // 09-22 精确黑名单：只清原版开局四件 + 文档/指南类，其他 mod 赠品保留（误伤根因修复）
+    private static bool ShouldClear(GameItem it)
+    {
+        try
+        {
+            var id = it.identifier;
+            if (string.IsNullOrEmpty(id)) return false;
+            if (id == "magnifier" || id == "labeler" || id == "topical_bandage_item" || id == "fanny_pack") return true;
+            if (System.Array.IndexOf(DOCUMENT_IDS, id) >= 0) return true;
+            return false;
+        }
+        catch { return false; }
+    }
+
     // 09-20 B3 修复：清三处（dossier 0x178 / invElement 0x30 / backInvinvElement 0x98）全清——原版物品+其他特性物资兜底清除
     // 09-20 设计稿双保险：ExpelAll（批量 RemoveAll）→ 残留逐个 Expel（parent 检查不过的失败）→ 残留 Destroy 兜底
+    // 09-22 精确黑名单：只清四件+文档/指南（ShouldClear），其他 mod 赠品保留——不再全量 Clear
     internal static void ClearBackpack()
     {
         try
@@ -612,18 +627,19 @@ internal sealed class WandererPerk : CustomStartingPerk
             foreach (var inv in invs)
             {
                 if (inv == null || inv.childItems == null) { continue; }
-                // 09-20 拆包实锤：ExpelAll/Expel 的 parent(0x190) 检查失败只清引用不清对象（对象悬空仍显示）→ 倒序遍历先 Destroy 再清列表（DebugPanel.ClearMainInv L1819 先例）
+                // 09-22 精确黑名单：目标（四件/文档）Destroy+移除；非目标（其他 mod 赠品）保留——不再全量 Clear 防误清
                 for (int di = inv.childItems.Count - 1; di >= 0; di--)
                 {
                     try
                     {
                         var dit = inv.childItems[di];
                         if (dit == null) { try { inv.childItems.RemoveAt(di); } catch { } continue; }
+                        if (!ShouldClear(dit)) continue;
                         try { dit.Destroy(); } catch { }
+                        try { inv.childItems.RemoveAt(di); } catch { }
                     }
                     catch { }
                 }
-                try { inv.childItems.Clear(); } catch { }   // 清引用兜底
             }
         }
         catch { }
