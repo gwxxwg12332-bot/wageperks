@@ -1043,7 +1043,7 @@ public static class WageGirlSystem
                     {
                         _loadImageMethod.Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)bytes });
                         tex.wrapMode = TextureWrapMode.Clamp;
-                        arr[i] = Sprite.Create(tex, new Rect(0, 0, 64, 96), new Vector2(0.5f, 0.5f), 100f);
+                        arr[i] = Sprite.Create(tex, new Rect(0, 0, 64, 96), new Vector2(0.5f, 0.5f), 200f); // 09-22 回缩1倍：64×96 超采样 → 显示 32×48
                         continue;
                     }
                     catch { }
