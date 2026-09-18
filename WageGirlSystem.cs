@@ -1267,20 +1267,29 @@ public static class WageGirlSystem
                 try { gw = shape.width; gh = shape.height; } catch { }
                 if (gw > 0 && gh > 0)
                 {
+                    int tryCount = 0, hitCount = 0;
                     for (int t = 0; t < 8; t++)
                     {
                         try
                         {
+                            tryCount++;
                             float px = Core.Rng.Next(0, gw) * 16f + 8f;
                             float py = Core.Rng.Next(0, gh) * 16f + 8f;
                             var m = inv.TryInventorySlot(g, 1, new Vector2(px, py), shape, null);
                             if (m != null && m.IsValid())
                             {
+                                hitCount++;
                                 m.TryAcceptOnce(); // 落位（mod 先例 slot.TryAcceptOnce——Il2Cpp 层无 UncheckedAccept(item,marker) 2参重载）
                                 return true;
                             }
                         }
                         catch { }
+                    }
+                    // 09-22 诊断（用完删）：随机盲试结果——定位失败点
+                    if (Time.time - _lastDiagTime > 5f)
+                    {
+                        _lastDiagTime = Time.time;
+                        Core.LogMsg("[蛙娘诊断] move shape=" + (shape != null ? "1" : "0") + " gw=" + gw + " gh=" + gh + " trys=" + tryCount + " hits=" + hitCount + " inv=" + (inv != null ? inv.ToString() : "null"));
                     }
                 }
             }
