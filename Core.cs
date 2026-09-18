@@ -672,7 +672,6 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(DarkGridInspectorPerk)); // 09-20 设计稿：眼线独立挂（不依赖 AddictOfficerEvent 链）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)); // 09-21 蛙娘：全局常驻——每日六维衰减+首次发放（方法名 PostfixOnDayStart）
-			ManualPatcher.TryPatch(typeof(PlayerStore), "HandleSkipIntro", null, "PostfixHandleSkipIntroWageGirl", null, typeof(WageGirlSystem)); // 09-22 蛙娘：新档开局立即发放（OnDayStart 新档第一天不触发——实测无日志）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism));

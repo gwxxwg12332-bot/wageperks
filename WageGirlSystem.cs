@@ -355,18 +355,6 @@ public static class WageGirlSystem
         catch { }
     }
 
-    // ===================== 新档开局立即发放（HandleSkipIntro Postfix——已实锤新档触发；OnDayStart 新档第一天不触发） =====================
-    public static void PostfixHandleSkipIntroWageGirl()
-    {
-        try
-        {
-            TryGiveToBackpack();
-            SetExists(true);
-            Core.LogMsg("[蛙娘] 开局已发放实体到背包（HandleSkipIntro）");
-        }
-        catch (Exception ex) { Core.LogMsg("[蛙娘] 开局发放异常: " + ex.Message); }
-    }
-
     // ===================== 每日结算（OnDayStart Postfix——同养蛊机挂点） =====================
     public static void PostfixOnDayStart()
     {
@@ -994,6 +982,7 @@ public static class WageGirlSystem
     private static int _animMode = 0; // 0=待机 1=走动 2=偷
     private static float _animModeTimer = 0f;
     private static float _moveTimer = 0f;
+    private static float _lastDiagTime = 0f; // 09-22 动态诊断节流（用完删）
     private static int _moveTarget = -1;
     private static int _moveDir = 1;
     private static GridShape _girlShape;
@@ -1252,7 +1241,15 @@ public static class WageGirlSystem
             if (__instance == null) return;
             if (__instance.identifier != ENTITY_ID) return;
             EnsureSprites();
-            if (_curAnimSprites == null || _curAnimSprites.Length == 0) return;
+            if (_curAnimSprites == null || _curAnimSprites.Length == 0)
+            {
+                if (Time.time - _lastDiagTime > 5f)
+                {
+                    _lastDiagTime = Time.time;
+                    Core.LogMsg("[蛙娘诊断] OnUpdateTick早退: 帧未加载 idle=" + (_spritesIdle != null ? _spritesIdle.Length : -1) + " walk=" + (_spritesWalk != null ? _spritesWalk.Length : -1) + " steal=" + (_spritesSteal != null ? _spritesSteal.Length : -1) + " loadMethod=" + (_loadImageMethod != null ? "ok" : "null"));
+                }
+                return;
+            }
             Sprite s = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
             if (s != null) frame = s;
         }
