@@ -285,7 +285,10 @@ public static class WageGirlSystem
             // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 累计待销赃（点面板「销赃」才出发）
             if (IsContraband(item))
             {
-                long v = item.unitValue;
+                // 09-22 用户拍板：按"预估价值"累计（GetCurrentValue 优先——命运骰子吃物品同读口；失败退 unitValue）
+                long v = 0;
+                try { v = (int)item.GetCurrentValue(); } catch { }
+                if (v <= 0) { try { v = item.unitValue; } catch { } }
                 if (v <= 0) return false;
                 try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
                 int cur = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
@@ -860,7 +863,9 @@ public static class WageGirlSystem
                     var g = DirectoryMaster.Item(id, true);
                     if (g == null) continue;
                     var info = new ItemInfo();
-                    info.Value = g.unitValue;
+                    // 预估价值（GetCurrentValue 优先——与销赃累计口径一致；失败退 unitValue）
+                    try { info.Value = (int)g.GetCurrentValue(); } catch { }
+                    if (info.Value <= 0) { try { info.Value = g.unitValue; } catch { } }
                     info.FoodDrink = RobinCrusoePerk.IsFood(g) || RobinCrusoePerk.IsDrink(g);
                     info.Daily = RobinCrusoePerk.IsDailyNeed(g);
                     info.WeaponTool = IsWeaponOrTool(id);
