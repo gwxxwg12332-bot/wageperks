@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using UnityEngine;
@@ -173,6 +173,22 @@ internal static class PerkStatePersistence
         }
         catch { }
         return defaultValue;
+    }
+
+    // 09-22 新档防 default_run 残留污染：清指定特性的 default_run 旧 key（新档开局 runID 空窗口防误读旧档残留）
+    internal static void CleanDefaultRun(string perkId, string[] keys)
+    {
+        try
+        {
+            if (keys == null) return;
+            foreach (var k in keys)
+            {
+                string dk = DefaultKey(perkId, k);
+                if (PlayerPrefs.HasKey(dk)) PlayerPrefs.DeleteKey(dk);
+            }
+            PlayerPrefs.Save();
+        }
+        catch { }
     }
     // 检查key是否存在
     internal static bool HasKey(string perkId, string key)

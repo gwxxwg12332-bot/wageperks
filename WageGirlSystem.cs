@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
@@ -53,7 +53,21 @@ public static class WageGirlSystem
     internal static int GetAffection() { try { return PerkStatePersistence.GetInt(NS, K_AFF, 0); } catch { return 0; } }
     internal static void SetAffection(int v) { try { PerkStatePersistence.SetInt(NS, K_AFF, Math.Max(0, Math.Min(AFF_MAX, v))); } catch { } }
     internal static bool Exists() { try { return PerkStatePersistence.GetInt(NS, K_EXIST, 0) == 1; } catch { return false; } }
+
     internal static void SetExists(bool v) { try { PerkStatePersistence.SetInt(NS, K_EXIST, v ? 1 : 0); } catch { } }
+
+    // 蛙娘全部持久化 key（清 default_run 残留用）
+    private static readonly string[] ALL_KEYS = new string[]
+    {
+        K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_AFF, K_LAST_STEAL, K_LEAVE,
+        K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON
+    };
+
+    // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
+    internal static void CleanDefaultRunOnNewGame()
+    {
+        try { PerkStatePersistence.CleanDefaultRun(NS, ALL_KEYS); } catch { }
+    }
 
     // ===================== 实体注册（Patches.PostfixInitDirectory 调） =====================
     public static void RegisterToDirectory(ItemDirectory dir)
@@ -350,8 +364,8 @@ public static class WageGirlSystem
             if (!Exists())
             {
                 TryGiveToBackpack();
-                SetExists(true);
             }
+            SetExists(true); // 09-22 每天幂等写——防 default_run 残留（exists 只在首次分支写会永久残留，跨档污染）
             // 六维每日衰减（睡眠除外——仿生女仆夜间自然恢复睡眠）
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
                 SetStat(k, GetStat(k) - DAILY_DECAY);
@@ -600,7 +614,7 @@ public static class WageGirlSystem
                         var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
                         if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
                         else inv.UncheckedAccept(it);
-                        names.Add(id);
+                        names.Add(ModCannibalism.GetName(it));
                     }
                 }
                 catch { }
@@ -651,13 +665,14 @@ public static class WageGirlSystem
         try
         {
             EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null || em.backInvinvElement == null) return;
+            if (em == null) { Core.LogMsg("[蛙娘诊断] 发放失败: EmporiumEntry null"); return; }
+            if (em.backInvinvElement == null) { Core.LogMsg("[蛙娘诊断] 发放失败: backInvinvElement null"); return; }
             var inv = (GameInventory)em.backInvinvElement;
             GameItem item = DirectoryMaster.Item(ENTITY_ID, true);
-            if (item == null) return;
+            if (item == null) { Core.LogMsg("[蛙娘诊断] 发放失败: DirectoryMaster.Item(" + ENTITY_ID + ") null"); return; }
             // 照 GiveToBackpack 先例：TryFindOneValidInventorySlot → TryAcceptOnce（防同格重叠）；失败 UncheckedAccept 兜底
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
-            if (slot != null) { try { slot.TryAcceptOnce(); return; } catch { } }
+            if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception ex) { Core.LogMsg("[蛙娘诊断] 发放失败: TryAcceptOnce: " + ex.Message); } }
             inv.UncheckedAccept(item);
             Core.LogMsg("[蛙娘] 已发放实体到背包（全局常驻）");
         }
@@ -783,7 +798,7 @@ public static class WageGirlSystem
                 if (spent + v > target * 1.3) break; // 累计防超
                 AddToFront(it);
                 spent += v;
-                names.Add(it.identifier);
+                names.Add(ModCannibalism.GetName(it));
             }
             if (names.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names), "Wage Girl fenced and brought: " + string.Join(", ", names)));
             else ReportLine(LangHelper.T("蛙娘销赃回来了（没找到合适的货）", "Wage Girl is back (no good goods found)"));
@@ -877,6 +892,7 @@ public static class WageGirlSystem
                     if (System.Array.IndexOf(Core.ExcludedItemIds, id) >= 0) continue;
                     var g = DirectoryMaster.Item(id, true);
                     if (g == null) continue;
+                    if (IsContraband(g)) continue; // 09-22 销赃带回过滤违禁品（只带合法货）
                     var info = new ItemInfo();
                     // 预估价值（GetCurrentValue 优先——与销赃累计口径一致；失败退 unitValue）
                     try { info.Value = (int)g.GetCurrentValue(); } catch { }
@@ -1062,25 +1078,31 @@ public static class WageGirlSystem
             float dt = Time.deltaTime;
             if (dt <= 0f) return; // 游戏暂停
             EnsureSprites();
-            if (_curAnimSprites == null || _curAnimSprites.Length == 0) return;
+            bool hasSprites = _curAnimSprites != null && _curAnimSprites.Length > 0;
 
-            // 偷动作：播完自动回待机
-            if (_animMode == 2)
+            // 帧相关（sprite 加载失败时跳过帧应用，不影响移动）
+            if (hasSprites)
             {
-                _animModeTimer += dt;
-                if (_animModeTimer >= _frameMs[2] * _curAnimSprites.Length)
-                    SetAnimMode(0);
-            }
-            // 帧索引推进（按当前动作帧率）
-            _frameTimer += dt;
-            if (_frameTimer >= _frameMs[_animMode])
-            {
-                _frameTimer = 0f;
-                if (_curAnimSprites.Length > 1)
-                    _frameIndex = (_frameIndex + 1) % _curAnimSprites.Length;
+                // 偷动作：播完自动回待机
+                if (_animMode == 2)
+                {
+                    _animModeTimer += dt;
+                    if (_animModeTimer >= _frameMs[2] * _curAnimSprites.Length)
+                        SetAnimMode(0);
+                }
+                // 帧索引推进（按当前动作帧率）
+                _frameTimer += dt;
+                if (_frameTimer >= _frameMs[_animMode])
+                {
+                    _frameTimer = 0f;
+                    if (_curAnimSprites.Length > 1)
+                        _frameIndex = (_frameIndex + 1) % _curAnimSprites.Length;
+                }
+                // 09-22 帧应用：ApplyAnimationFrame 原生零调用方（拆包实锤）——mod 必须自己调；Prefix 会替换成 mod 帧
+                TryApplyAnimFrame();
             }
 
-            // 移动：每 2.5 秒尝试一步（成功→走动帧，失败→回待机）
+            // 移动：每 2.5 秒尝试一步（成功→走动帧，失败→回待机）——不依赖 sprite
             _moveTimer += dt;
             if (_moveTimer >= 2.5f)
             {
@@ -1090,6 +1112,59 @@ public static class WageGirlSystem
             }
         }
         catch { }
+    }
+
+    // 09-22 帧应用：从网格找蛙娘实体 → Cast GameItemElement → 调 ApplyAnimationFrame（触发 Prefix 替换帧）
+    // ApplyAnimationFrame 在原生无调用方（ISIL 全库 0 call），必须 mod 主动调用；实体每 2 秒重找（玩家可能移动/收起）
+    private static GameItem _cachedGirlItem;
+    private static int _cacheRefreshFrames = 0;
+    private static void TryApplyAnimFrame()
+    {
+        try
+        {
+            if (_cachedGirlItem == null || _cacheRefreshFrames <= 0)
+            {
+                _cacheRefreshFrames = 120;
+                _cachedGirlItem = FindGirlItem();
+            }
+            else _cacheRefreshFrames--;
+            if (_cachedGirlItem == null) return;
+            var el = _cachedGirlItem as GameItemElement;
+            if (el == null) return;
+            Sprite f = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
+            if (f == null) return;
+            el.ApplyAnimationFrame(f);
+        }
+        catch { }
+    }
+
+    // 网格中查找蛙娘实体（4 货架；同 TryMoveStep 遍历源）
+    private static GameItem FindGirlItem()
+    {
+        try
+        {
+            var em = EmporiumEntry.Instance;
+            if (em == null) return null;
+            GameInventory[] grids = new GameInventory[]
+            {
+                em.invElement as GameInventory,
+                em.frontInvinvElement as GameInventory,
+                em.showcaseElement as GameInventory,
+                em.backInvinvElement as GameInventory
+            };
+            foreach (var gi in grids)
+            {
+                if (gi == null || gi.childItems == null) continue;
+                for (int i = 0; i < gi.childItems.Count; i++)
+                {
+                    var c = gi.childItems[i];
+                    if (c == null) continue;
+                    if (c.identifier == ENTITY_ID) return c;
+                }
+            }
+        }
+        catch { }
+        return null;
     }
 
     // 尝试移动一步：Expel + TryInventorySlot(目标格子编号) 落格（边界回弹 + 兜底放回，绝不丢实体）

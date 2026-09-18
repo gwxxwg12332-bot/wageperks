@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -470,6 +470,7 @@ internal static class Patches
 			catch
 			{
 			}
+			WageGirlSystem.CleanDefaultRunOnNewGame(); // 09-22 蛙娘：新档清 default_run 残留（防串档/新档误判已存在）
 			FrogPowerPerk.ResetState();
 			CustomStartingPerks.NotifyNewGame();
 		}
@@ -3136,8 +3137,38 @@ internal static class Patches
 			Core.LogMsg("[信誉减半] Prefix异常: " + ex.Message);
 		}
 	}
-}
-internal static class ModCannibalism
+
+
+	// 09-22 制卡降上城区声望根因修复：mod 违禁品跳过"客户曝光"链（ClientExposeFeature）
+	// 曝光链（拆包实锤）：PlacedItemForBuying → CanClientExposeAnyFeature → ClientExposeFeature →
+	//   CanClientExposeThisFeature → 对话 + StoreReputation.ModReputation(客户faction, -4, true) + ExposeFeature(词条移除)
+	// mod 违禁品（wage_ 前缀 / 吞噬融合 CANNIBALISM_VALUE / 电池融合 BREEDER_POWER_SOURCE_ITEM_TAG）
+	// 被客户浏览即曝光 → 扣该客户 faction 声望 -4 + 词条划掉。跳过曝光：不扣声望、词条保留、违禁品打标保留。
+	public static bool PrefixClientExposeFeature(GameItem gameItem)
+	{
+		try
+		{
+			if (gameItem == null) return true;
+			string id = "";
+			try { id = gameItem.identifier ?? ""; } catch { }
+			bool isWage = id.StartsWith("wage_") || gameItem.IsTag("CANNIBALISM_VALUE") || gameItem.IsTag("BREEDER_POWER_SOURCE_ITEM_TAG");
+			if (isWage)
+			{
+				Core.LogMsg("[声望修复] " + id + " 是 mod 物品，跳过客户曝光（不再扣声望/划词条）");
+				return false;
+			}
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[声望修复] Prefix异常: " + ex.Message);
+		}
+		return true;
+	}
+	// 诊断（用完删）：static ModReputation(String,int,bool) 日志——验证曝光扣声望走 static 版（value=-4）
+	public static void PrefixModReputationStatic(string factionId, int value)
+	{
+		try { Core.LogMsg("[声望诊断] ModReputationStatic faction=" + factionId + " value=" + value); } catch { }
+	}}internal static class ModCannibalism
 {
 	private static readonly string[] MOD_TAGS = new string[3] { "BONUS_PERCENTAGE_PERFORMANCE_INT", "BONUS_PERCENTAGE_EFFICIENCY_INT", "BONUS_PERCENTAGE_QUALITY_INT" };
 

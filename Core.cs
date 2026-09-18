@@ -813,6 +813,10 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ApplyAnimationFrame", "PrefixApplyAnimationFrame", null, null, typeof(WageGirlSystem)); // 09-22 蛙娘动画帧（GoFishing CustomItemAnimationPatch 先例模式）
 			// 09-21 信誉扣减减半（用户拍板：减信誉少50%）——实例版 ModReputation(double)，议价 5 处入口
 			ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputation", null, new System.Type[1] { typeof(double) }, typeof(Patches));
+				// 09-22 制卡降上城区声望：mod 违禁品跳过客户曝光链（ClientExposeFeature，曝光=扣声望-4+划词条+对话）
+				ManualPatcher.TryPatchByName(typeof(StoreClient), "ClientExposeFeature", "PrefixClientExposeFeature", null, typeof(Patches));
+				// 诊断（用完删）：static ModReputation(String,int,bool) 日志——确认曝光扣声望走 static 版（-4）
+				ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputationStatic", null, new System.Type[3] { typeof(string), typeof(int), typeof(bool) }, typeof(Patches));
 			
 			
 			
