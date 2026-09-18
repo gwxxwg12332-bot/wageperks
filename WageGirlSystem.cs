@@ -1252,18 +1252,39 @@ public static class WageGirlSystem
                 _girlShape = gsb.Build();
             }
 
-            // 09-22 随机移动 v2：不 Expel——物品在网格中直接 TryInventorySlot 试随机格（requestedNum=格子编号）
-            // （Expel 后调用会失败——TryInventorySlot 可能要求 item 在网格内；兜底才 Expel+TryFindOneValidInventorySlot 左上角）
-            for (int t = 0; t < 10; t++)
+            // 09-22 随机落格（拆包正确姿势）：requestedNum=数量(1) 不是格子号；随机格中心像素点(每格16px,+8中心)
+            // → TryInventorySlot(item, 1, Vector2像素点, shape, null) 自动换算格位 → UncheckedAccept(item, marker) 精确落位
+            GridShape shape = null;
+            try { shape = g.shape; } catch { }
+            if (shape == null)
             {
-                int rnd = Core.Rng.Next(0, 100);
-                var s = inv.TryInventorySlot(g, rnd, _girlShape, null);
-                if (s != null && s.IsValid() && s.item == null)
+                if (_girlShape == null) { try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } catch { } }
+                shape = _girlShape;
+            }
+            if (shape != null)
+            {
+                int gw = 0, gh = 0;
+                try { gw = shape.width; gh = shape.height; } catch { }
+                if (gw > 0 && gh > 0)
                 {
-                    s.TryAcceptOnce();
-                    return true;
+                    for (int t = 0; t < 8; t++)
+                    {
+                        try
+                        {
+                            float px = Core.Rng.Next(0, gw) * 16f + 8f;
+                            float py = Core.Rng.Next(0, gh) * 16f + 8f;
+                            var m = inv.TryInventorySlot(g, 1, new Vector2(px, py), shape, null);
+                            if (m != null && m.IsValid())
+                            {
+                                m.TryAcceptOnce(); // 落位（mod 先例 slot.TryAcceptOnce——Il2Cpp 层无 UncheckedAccept(item,marker) 2参重载）
+                                return true;
+                            }
+                        }
+                        catch { }
+                    }
                 }
             }
+            // 兜底：Expel + TryFindOneValidInventorySlot（至少能动，可能左上角）
             if (!inv.Expel(g)) return false;
             var slot = inv.TryFindOneValidInventorySlot(g, false);
             if (slot != null && slot.IsValid())
