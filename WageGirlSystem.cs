@@ -986,6 +986,7 @@ public static class WageGirlSystem
     private static float _lastDiagTime = 0f; // 09-22 动态诊断节流（用完删）
     private static int _moveTarget = -1;
     private static int _moveDir = 1;
+    private static bool _lastMoveOk = false; // 09-22 诊断（用完删）：上次移动是否成功
     private static GridShape _girlShape;
     private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
 
@@ -1093,7 +1094,7 @@ public static class WageGirlSystem
                     }
                 }
                 catch { }
-                Core.LogMsg("[蛙娘诊断] tick exists=" + (Exists() ? "1" : "0") + " trade=" + Patches.CurrentUITradeMode + " sprites=" + (_curAnimSprites != null ? _curAnimSprites.Length : 0) + " el=" + elState + " target=" + _moveTarget);
+                Core.LogMsg("[蛙娘诊断] tick exists=" + (Exists() ? "1" : "0") + " trade=" + Patches.CurrentUITradeMode + " sprites=" + (_curAnimSprites != null ? _curAnimSprites.Length : 0) + " el=" + elState + " move=" + (_lastMoveOk ? "ok" : "fail"));
             }
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
@@ -1129,8 +1130,8 @@ public static class WageGirlSystem
             if (_moveTimer >= 2.5f)
             {
                 _moveTimer = 0f;
-                if (TryMoveStep()) SetAnimMode(1, true);
-                else SetAnimMode(0);
+                if (TryMoveStep()) { _lastMoveOk = true; SetAnimMode(1, true); }
+                else { _lastMoveOk = false; SetAnimMode(0); }
             }
         }
         catch { }
@@ -1227,31 +1228,16 @@ public static class WageGirlSystem
                 _girlShape = gsb.Build();
             }
 
-            if (_moveTarget < 0)
-            {
-                var first = inv.TryFindOneValidInventorySlot(g, false);
-                if (first == null || !first.IsValid()) return false;
-                _moveTarget = first.index;
-                return false; // 首次只记录基准位
-            }
-
+            // 09-22 重写：对已放置物品 TryFindOneValidInventorySlot 返回 null（取不到基准）——先 Expel 移出网格再找空位放回（跳格移动）
             if (!inv.Expel(g)) return false;
-            int target = _moveTarget + _moveDir;
-            var slot = inv.TryInventorySlot(g, target, _girlShape, null);
-            if (slot == null || !slot.IsValid() || slot.item != null)
+            var slot = inv.TryFindOneValidInventorySlot(g, false);
+            if (slot == null || !slot.IsValid())
             {
-                _moveDir = -_moveDir;
-                target = _moveTarget + _moveDir;
-                slot = inv.TryInventorySlot(g, target, _girlShape, null);
+                inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
+                return false;
             }
-            if (slot != null && slot.IsValid() && slot.item == null)
-            {
-                slot.TryAcceptOnce();
-                _moveTarget = slot.index;
-                return true;
-            }
-            inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
-            return false;
+            slot.TryAcceptOnce();
+            return true;
         }
         catch { return false; }
     }
