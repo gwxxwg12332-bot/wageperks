@@ -1080,7 +1080,19 @@ public static class WageGirlSystem
             {
                 _lastDiagTime = Time.time;
                 string elState = "n/a";
-                try { var it = _cachedGirlItem != null ? _cachedGirlItem : FindGirlItem(); elState = (it != null ? (it as GameItemElement != null ? "element-ok" : "not-element") : "not-found"); } catch { }
+                try
+                {
+                    var it = _cachedGirlItem != null ? _cachedGirlItem : FindGirlItem();
+                    if (it == null) elState = "not-found";
+                    else
+                    {
+                        GameItemElement te = null;
+                        try { te = it as GameItemElement; } catch { }
+                        if (te == null) { try { te = it.Cast<GameItemElement>(); } catch { } }
+                        elState = te != null ? "element-cast-ok" : "not-element";
+                    }
+                }
+                catch { }
                 Core.LogMsg("[蛙娘诊断] tick exists=" + (Exists() ? "1" : "0") + " trade=" + Patches.CurrentUITradeMode + " sprites=" + (_curAnimSprites != null ? _curAnimSprites.Length : 0) + " el=" + elState + " target=" + _moveTarget);
             }
             if (!Exists()) return;
@@ -1139,7 +1151,9 @@ public static class WageGirlSystem
             }
             else _cacheRefreshFrames--;
             if (_cachedGirlItem == null) return;
-            var el = _cachedGirlItem as GameItemElement;
+            GameItemElement el = null;
+            try { el = _cachedGirlItem as GameItemElement; } catch { }
+            if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
             if (el == null) return;
             Sprite f = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
             if (f == null) return;
@@ -1184,14 +1198,14 @@ public static class WageGirlSystem
         {
             var em = EmporiumEntry.Instance;
             if (em == null) return false;
-            GameInventory inv = null;
+            GameGridInventory inv = null;
             GameItem g = null;
-            GameInventory[] grids = new GameInventory[]
+            GameGridInventory[] grids = new GameGridInventory[]
             {
-                em.invElement as GameInventory,
-                em.frontInvinvElement as GameInventory,
-                em.showcaseElement as GameInventory,
-                em.backInvinvElement as GameInventory
+                em.invElement as GameGridInventory,
+                em.frontInvinvElement as GameGridInventory,
+                em.showcaseElement as GameGridInventory,
+                em.backInvinvElement as GameGridInventory
             };
             foreach (var gi in grids)
             {
@@ -1215,7 +1229,7 @@ public static class WageGirlSystem
 
             if (_moveTarget < 0)
             {
-                var first = inv.TryFindOneValidInventorySlot(g);
+                var first = inv.TryFindOneValidInventorySlot(g, false);
                 if (first == null || !first.IsValid()) return false;
                 _moveTarget = first.index;
                 return false; // 首次只记录基准位
