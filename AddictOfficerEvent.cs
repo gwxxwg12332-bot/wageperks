@@ -175,7 +175,7 @@ internal static class AddictOfficerEvent
 
         try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T(
             "例行公务巡查！执勤警官严格检查了所有隐秘区域，从你的暗格中查获并没收了 " + seized.Count + " 件违禁品。",
-            "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."), "#FF8A8A"); } catch { } // ① 原生夜报
+            "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
         Core.AddNightReportLine(LangHelper.T(
             "例行公务巡查！执勤警官严格检查了所有隐秘区域，从你的暗格中查获并没收了 " + seized.Count + " 件违禁品。",
             "Routine inspection! Officers searched hidden compartments and confiscated " + seized.Count + " contraband items."));

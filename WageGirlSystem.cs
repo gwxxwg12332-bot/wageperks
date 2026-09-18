@@ -165,23 +165,29 @@ public static class WageGirlSystem
             b.AddProgressBar(GetStat(K_CLEAN) / 100f, "wg_c");
             b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
-            // 销赃类别按钮（09-22 用户拍板：可选项，点击循环切换：随机/食物饮品/日用品/武器工具）
-            try
+            // 外出/离家中：不显示销赃按钮（人不在店里——09-22 用户拍板）
+            int leaveChk = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            bool isOutChk = leaveChk > 0 && CurrentDay() < leaveChk;
+            if (!isOutChk)
             {
-                string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool") };
-                int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
-                var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 3) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
-                b.AddButton(LangHelper.T("销赃类别：" + cats[curCat], "Fence type: " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
+                // 销赃类别按钮（09-22 用户拍板：可选项，点击循环切换：随机/食物饮品/日用品/武器工具）
+                try
+                {
+                    string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool") };
+                    int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
+                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 3) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
+                    b.AddButton(LangHelper.T("销赃类别：" + cats[curCat], "Fence type: " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
+                }
+                catch { }
+                // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
+                try
+                {
+                    int famt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+                    var fenceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryFence(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); } }));
+                    b.AddButton(LangHelper.T("销赃（待销 " + famt + "）", "Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
+                }
+                catch { }
             }
-            catch { }
-            // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
-            try
-            {
-                int famt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
-                var fenceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryFence(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); } }));
-                b.AddButton(LangHelper.T("销赃（待销 " + famt + "）", "Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
-            }
-            catch { }
             b.AddLabel(LangHelper.T("（喂食/照顾提升状态与好感——后续开放）", "(Feed & care to raise stats & affection - coming soon)"), "wg_note");
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
@@ -366,7 +372,7 @@ public static class WageGirlSystem
     // 夜报三件套（09-17 统一规范：原生 AddNightLog + mod 队列 + 弹窗）
     private static void ReportLine(string line)
     {
-        try { var ps = Il2Cpp.PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#E2B93B"); } catch { }
+        try { var ps = Il2Cpp.PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#7FC97F"); } catch { } // 09-22 统一柔和绿
         try { Core.AddNightReportLine(line); } catch { }
         try { Il2Cpp.StoreUIManager.Instance.Notify(line); } catch { }
     }

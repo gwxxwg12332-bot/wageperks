@@ -461,7 +461,7 @@ public static class GuMachineSystem
                 }
                 string fline = LangHelper.T("养蛊机炼蛊失败：投入模组报废", "Swarm Forge forging failed: input modules scrapped");
                 try { StoreUIManager.Instance.Notify(fline); } catch { }
-                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(fline, "#FF0000"); } catch { }
+                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(fline, "#7FC97F"); } catch { } // 09-22 统一柔和绿
                 Core.AddNightReportLine(fline);
                 RobinCrusoePerk.AddTagInt(gu, GU_CHARGE_TAG, -3);
                 return;
@@ -633,7 +633,7 @@ public static class GuMachineSystem
                     "AI 生成器不稳定爆发：投入模组报废",
                     "Neural Generator unstable burst: input modules scrapped");
                 try { StoreUIManager.Instance.Notify(line); } catch { }
-                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#FF0000"); } catch { }
+                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#7FC97F"); } catch { } // 09-22 统一柔和绿
                 Core.AddNightReportLine(line);
             }
             RobinCrusoePerk.AddTagInt(gen, AI_LAST_DAY_TAG, day);

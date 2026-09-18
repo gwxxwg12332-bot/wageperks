@@ -1,0 +1,28 @@
+﻿diff --git a/NewStartTypeUI.cs b/NewStartTypeUI.cs
+index 09bb221..6ddd77f 100644
+--- a/NewStartTypeUI.cs
++++ b/NewStartTypeUI.cs
+@@ -51,6 +51,8 @@ internal static class NewStartTypeUI
+             var ps = Il2Cpp.PlayerStore.Instance;
+             if (ps == null || string.IsNullOrEmpty(ps.runID ?? "")) return; // runID 仍未恢复，保持挂起
+             _pendingRecheck = false; // 已恢复，后续 IsMarkedRun(runID) 自然重判
++            if (IsMarkedRun(ps.runID))
++                ps.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE; // 兜底：PostfixLoadGame 若因 runID 空未恢复，这里补恢复
+         }
+         catch { }
+     }
+@@ -401,11 +403,13 @@ internal static class NewStartTypeUI
+     }
+ 
+     // 【核心修复】LoadGame 后：若存档是 12（被我们合法化的新职业档）且 runID 标记匹配 → 恢复 14
++    // 09-22 修正：v1.2.2 发布清理(098c49e)误删恢复逻辑只留空壳 → 旧档读档 startType 不恢复 → IsActive false → 状态栏消失
+     public static void PostfixLoadGame(Il2Cpp.PlayerStore __instance)
+     {
+         try
+         {
+-            // 09-21 发布版已删 B2DIAG 日志（读档恢复已验收）
++            if (__instance != null && IsMarkedRun(__instance.runID ?? ""))
++                __instance.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE;
+         }
+         catch (Exception ex) { Core.LogMsg("[新职业] PostfixLoadGame 异常: " + ex.Message); }
+     }

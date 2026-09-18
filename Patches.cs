@@ -909,7 +909,7 @@ internal static class Patches
 			if (flag)
 			{
 				PlayerPrefs.SetInt(key, dayCounter);
-				try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."), "#FF8A8A"); } catch { } // ① 原生夜报
+				try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
 				Core.AddNightReportLine("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."));
 			}
 			else
@@ -3873,7 +3873,7 @@ internal static class BatteryCannibalism
 					}
 					foreach (string item in list2)
 					{
-						instance.AddNightLog(item, "#00BFFF");
+						instance.AddNightLog(item, "#7FC97F"); // 09-22 统一柔和绿
 					}
 				}
 				catch

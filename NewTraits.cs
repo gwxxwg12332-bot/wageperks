@@ -421,7 +421,7 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
 
         try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T(
             "治安部突击检查！眼线翻出了所有隐秘角落，没收了 " + seized + " 件违禁品" + (listStr.Length > 0 ? "：" + listStr : "") + "。",
-            "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."), "#FF8A8A"); } catch { } // ① 原生夜报
+            "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
         Core.AddNightReportLine(LangHelper.T(
             "治安部突击检查！眼线翻出了所有隐秘角落，没收了 " + seized + " 件违禁品" + (listStr.Length > 0 ? "：" + listStr : "") + "。",
             "Security raid! Informants confiscated " + seized + " contraband items" + (listStr.Length > 0 ? ": " + listStr : "") + " from hidden compartments."));

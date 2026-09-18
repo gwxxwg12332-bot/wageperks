@@ -1293,7 +1293,7 @@ internal static class RobinCrusoePerk
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("你因为失血过多昏迷了三天", "You passed out from blood loss - 3-day coma"), "red"); } catch { }
-                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"), "#FF8A8A"); } catch { } // ① 原生夜报
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
                 Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"));
                 ForceComaSkip(); // 09-20 拍板：昏迷当天立刻强制过夜 ×3（跳过 3 天）
                 try { RefreshStatusPanel(); } catch { }
@@ -1883,7 +1883,7 @@ internal static class RobinCrusoePerk
             {
                 PerkStatePersistence.SetInt(PERK_ID, "blood_rest", 3);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱到极限，强制休息 3 天", "At your limit - forced 3-day rest"), "red"); } catch { }
-                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"), "#FF8A8A"); } catch { } // ① 原生夜报
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
                 Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"));
                 RefreshStatusPanel();
             }
@@ -3129,9 +3129,9 @@ internal static class RobinCrusoePerk
                 var ps = PlayerStore.Instance;
                 if (ps != null)
                 {
-                    ps.AddNightLog(LangHelper.T("—— 鲁滨逊的账本 · 第 " + day + " 天 ——", "-- Robinson's Ledger · Day " + day + " --"), "#E8C99B");
-                    ps.AddNightLog(nodeTxt + "｜" + moodTxt + granaryTxt, badNode ? "#FF8A8A" : "#FFFFFF");
-                    ps.AddNightLog(LangHelper.T("口粮：新鲜 " + fresh + "｜变质 " + stale + "｜腐烂 " + rotten + "（共" + foodCount + "份可吃）", "Rations: fresh " + fresh + " | stale " + stale + " | rotten " + rotten + " (" + foodCount + " edible)"), "#FFFFFF");
+                    ps.AddNightLog(LangHelper.T("—— 鲁滨逊的账本 · 第 " + day + " 天 ——", "-- Robinson's Ledger · Day " + day + " --"), "#7FC97F"); // 09-22 统一柔和绿
+                    ps.AddNightLog(nodeTxt + "｜" + moodTxt + granaryTxt, "#7FC97F"); // 09-22 统一柔和绿
+                    ps.AddNightLog(LangHelper.T("口粮：新鲜 " + fresh + "｜变质 " + stale + "｜腐烂 " + rotten + "（共" + foodCount + "份可吃）", "Rations: fresh " + fresh + " | stale " + stale + " | rotten " + rotten + " (" + foodCount + " edible)"), "#7FC97F"); // 09-22 统一柔和绿
                 }
             }
             catch { }
