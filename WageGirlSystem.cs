@@ -984,6 +984,7 @@ public static class WageGirlSystem
     private static float _animModeTimer = 0f;
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f; // 09-22 动态诊断节流（用完删）
+    private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
     private static int _moveTarget = -1;
     private static int _moveDir = 1;
     private static bool _lastMoveOk = false; // 09-22 诊断（用完删）：上次移动是否成功
@@ -1269,10 +1270,10 @@ public static class WageGirlSystem
             {
                 if (shape != null) { try { gw = shape.width; gh = shape.height; } catch { } }
             }
-            // 09-22 诊断（用完删）：任何情况都打——区分 shape 为空 / 宽高为 0 / 盲试结果
-            if (Time.time - _lastDiagTime > 5f)
+            // 09-22 诊断（用完删）：任何情况都打——区分 shape 为空 / 宽高为 0 / 盲试结果（独立节流防被 tick 诊断挡）
+            if (Time.time - _lastMoveDiagTime > 5f)
             {
-                _lastDiagTime = Time.time;
+                _lastMoveDiagTime = Time.time;
                 Core.LogMsg("[蛙娘诊断] move shape=" + (shape != null ? "1" : "0") + " invShape=" + (invShape != null ? "1" : "0") + " gw=" + gw + " gh=" + gh + " inv=" + (inv != null ? "y" : "null"));
             }
             if (gw > 0 && gh > 0)
@@ -1295,9 +1296,9 @@ public static class WageGirlSystem
                     }
                     catch { }
                 }
-                if (Time.time - _lastDiagTime > 5f)
+                if (Time.time - _lastMoveDiagTime > 5f)
                 {
-                    _lastDiagTime = Time.time;
+                    _lastMoveDiagTime = Time.time;
                     Core.LogMsg("[蛙娘诊断] moveRnd trys=" + tryCount + " hits=" + hitCount + " gw=" + gw + " gh=" + gh);
                 }
             }
