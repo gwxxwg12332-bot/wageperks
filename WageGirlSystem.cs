@@ -35,7 +35,7 @@ public static class WageGirlSystem
 
     static WageGirlSystem()
     {
-        try { _sprite = SpriteFromPixels(WageGirlIcons.Pixels(), 32, 32); }
+        try { _sprite = SpriteFromPixels(WageGirlIconsArt.Pixels(), 32, 48); } // 09-22 外部生成 32×48（2×3 格）
         catch (Exception ex) { Core.LogMsg("[蛙娘] 图标加载异常: " + ex.Message); }
     }
 
