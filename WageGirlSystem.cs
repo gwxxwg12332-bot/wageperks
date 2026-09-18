@@ -204,7 +204,7 @@ public static class WageGirlSystem
                 }
                 catch { }
             }
-            b.AddLabel(LangHelper.T("（喂食/照顾提升状态与好感——后续开放）", "(Feed & care to raise stats & affection - coming soon)"), "wg_note");
+            b.AddLabel(LangHelper.T("蛙娘特性（3点）：喂食/照顾提升六维与好感；状态低会偷钱偷拿，连续不佳跑路14天。在场：客户预算×4、议价+50。", "Wage Girl perk (3 pts): feed & care raise stats & affection; low stats trigger stealing, neglect triggers 14-day leave. Present: budget x4, bargain +50."), "wg_note");
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
             {
@@ -364,7 +364,7 @@ public static class WageGirlSystem
         {
             Core.LogMsg("[蛙娘诊断] OnDayStart触发 exists=" + (Exists() ? "true" : "false") + " day=" + CurrentDay());
             // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
-            if (!Exists())
+            if (!Exists() && WageGirlPerk.IsActive()) // 09-23 Perk 化：选了「蛙娘」特性才发放（旧档已存在保留）
             {
                 TryGiveToBackpack();
             }

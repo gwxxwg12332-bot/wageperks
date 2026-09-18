@@ -24,7 +24,8 @@ internal static class CustomStartingPerks
         new DarkGridInspectorPerk(),
         new WildeEvidencePerk(),
         new DestinyDicePerk(),
-        new WandererPerk()
+        new WandererPerk(),
+        new WageGirlPerk()
     };
 
     private static readonly System.Collections.Generic.Dictionary<string, StartingPerk> Created =

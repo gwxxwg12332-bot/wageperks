@@ -645,4 +645,30 @@ internal sealed class WandererPerk : CustomStartingPerk
         }
         catch { }
     }
+
+
+}
+
+// ============================================================
+// 伙伴型特性：蛙娘（09-23 Perk 化——Cost 3 用户拍板）
+// 喂食/照顾提升六维与好感；在场客户预算×4、议价+50；销赃；偷钱/跑路
+// ============================================================
+internal sealed class WageGirlPerk : CustomStartingPerk
+{
+    internal const string PerkId = "蛙娘";
+
+    internal override string Id => PerkId;
+    internal override string DisplayName => LangHelper.T("蛙娘", "Wage Girl");
+    internal override string Description => LangHelper.T("伙伴型特性（3点）。蛙哥留下的仿生女仆实体：喂食/照顾提升她的饱食、口渴、健康、心情、清洁、睡眠六维。她在店时客户预算×4、议价成功率+50%；喂她违禁品可点面板「销赃」外出两天带回干净货。但心情差会偷你的钱和货，连续不照顾会跑路14天。收益与风险并存。", "Partner perk (3 points). A biomimetic maid left by Wage: feed & care raise her 6 stats. While present, customer budget x4 & bargain +50 percent; feed her contraband then Fence to bring back clean goods in 2 days. But bad mood makes her steal your money and goods, and neglect makes her leave for 14 days. High reward, real risk.");
+    internal override int Cost => 3; // 09-23 用户拍板：综合考量 3 点
+    internal override int Type => 0; // 正面特性（收益为主，偷钱为伴随代价）
+
+    internal override void OnNewGame()
+    {
+    }
+
+    internal static bool IsActive()
+    {
+        return Core.PerkActive(PerkId);
+    }
 }
