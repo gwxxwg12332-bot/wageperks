@@ -1073,7 +1073,15 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                     info.FoodDrink = RobinCrusoePerk.IsFood(g) || RobinCrusoePerk.IsDrink(g);
                     info.Daily = RobinCrusoePerk.IsDailyNeed(g);
                     info.WeaponTool = IsWeaponOrTool(id);
-            try { info.Module = g.IsTag("MODULE_TAG"); } catch { }
+            try {
+                info.Module = false;
+                if (g.IsTag("MODULE_TAG") && id != "system_module_ruined" && id != GuMachineSystem.AI_MODULE_ID) {
+                    int p = RobinCrusoePerk.GetTagIntSafe(g, "BONUS_PERCENTAGE_PERFORMANCE_INT");
+                    int e = RobinCrusoePerk.GetTagIntSafe(g, "BONUS_PERCENTAGE_EFFICIENCY_INT");
+                    int q = RobinCrusoePerk.GetTagIntSafe(g, "BONUS_PERCENTAGE_QUALITY_INT");
+                    info.Module = (p + e + q) > 0; // 三维至少一个>0
+                }
+            } catch { }
                     _itemInfoCache[id] = info;
                     try { g.Destroy(); } catch { }
                 }
