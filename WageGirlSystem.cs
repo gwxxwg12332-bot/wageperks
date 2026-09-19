@@ -1304,6 +1304,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try {
             if (_animMode == 2) return "angry";
             if (_animMode == 1) return "walk";
+            try { if (_walking) return "walk"; } catch { } // 平时走动用walk帧
             try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > 0) return "away"; } catch { }
             int mood = GetStat(K_MOOD), health = GetStat(K_HEALTH), sat = GetStat(K_SAT), th = GetStat(K_TH), clean = GetStat(K_CLEAN), sleep = GetStat(K_SLEEP);
             int aff = GetAffection();
