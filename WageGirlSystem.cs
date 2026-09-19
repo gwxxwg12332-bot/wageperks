@@ -36,7 +36,6 @@ public static class WageGirlSystem
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
     private const int STEAL_INTERVAL = 7; // 偷钱周期（天）
 
-    private static Sprite _sprite;
 
     static WageGirlSystem()
     {
@@ -124,13 +123,6 @@ public static class WageGirlSystem
             return sp;
         }
         catch { return null; }
-    }
-
-    // 拦截 RenderHandler.LoadFromAtlas：custom_atlas + 蛙娘图标 → 自定义 sprite
-    public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
-    {
-        try { if (atlasPath == ICON_ATLAS && name == ICON && _sprite != null) { __result = _sprite; return false; } } catch { }
-        return true;
     }
 
     // 反射设字段（照 GuMachineSystem.SetField）
@@ -454,7 +446,11 @@ public static class WageGirlSystem
                 System.Collections.Generic.List<string> stolenNames0 = null;
                 int stolen = StealItems("random", 1, "highest", out stolenNames0);
                 ModCashN(-50); // 09-19 新档第一天必偷50（不管有没有东西）
-                string sn0 = (stolenNames0 != null && stolenNames0.Count > 0) ? string.Join("、", stolenNames0) : LangHelper.T("你的东西", "something");
+                // 09-19 修：初次偷拿补夜报（原分支扣钱偷物后直接 return，无 ReportLine → 初次见面夜报缺失）
+                if (stolen > 0 && stolenNames0 != null && stolenNames0.Count > 0)
+                    ReportLine(LangHelper.T("蛙娘偷走了 50 块钱和" + string.Join("、", stolenNames0), "Wage Girl stole 50 credits and " + string.Join(", ", stolenNames0)));
+                else
+                    ReportLine(LangHelper.T("蛙娘偷走了 50 块钱", "Wage Girl stole 50 credits"));
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
                 return;
             }
@@ -1212,7 +1208,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static float _animModeTimer = 0f;
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f;
-    private static float _lastGDiagTime = 0f; // [GDIAG] 节流 // 09-22 动态诊断节流（用完删）
     private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
     private static int _stepsTaken = 0;      // 本轮已走步数
