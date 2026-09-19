@@ -1632,6 +1632,19 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         } catch { }
     }
 
+    // Validate Postfix：对 wage_girl 强制 spritePath = ICON_ATLAS/ICON（拆包实锤：Validate 链从 spritePath 解析 sprite，不设正确就出旧图）
+    public static void PostfixValidate(GameItemElement __instance)
+    {
+        try {
+            if (__instance == null) return;
+            if (__instance.identifier != ENTITY_ID) return;
+            GameItem it = __instance.GetComponent<GameItem>();
+            if (it == null) return;
+            // 只在 spritePath 不对时设（轻量，不卡）
+            try { if (it.spritePath != ICON) it.SetSpriteAndShape(ICON_ATLAS, ICON); } catch { }
+        } catch { }
+    }
+
     public static void PrefixApplyAnimationFrame(GameItemElement __instance, ref Sprite frame)
     {
         try
