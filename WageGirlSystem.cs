@@ -1638,10 +1638,10 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try {
             if (__instance == null) return;
-            bool hit = (__instance.identifier == ENTITY_ID || name == ICON);
-            if (Time.time - _lastGDiagTime > 3f) { _lastGDiagTime = Time.time; Core.LogMsg("[GDIAG] Resolve: id=" + __instance.identifier + " name=" + name + " hit=" + hit + " sprite=" + (__result != null ? __result.name : "null")); }
-            if (!hit) return;
-            if (_sprite != null) __result = _sprite;
+            if (__instance.identifier != ENTITY_ID && name != ICON) return;
+            // 设成当前动画帧（和 ApplyAnimationFrame 一致）——不再设静态占位图标避免交替
+            try { if (_curAnimSprites != null && _curAnimSprites.Length > 0) { var f = _curAnimSprites[_frameIndex % _curAnimSprites.Length]; if (f != null) { __result = f; return; } } } catch { }
+            if (_sprite != null) __result = _sprite; // 兜底：动画帧未就绪用占位图标
         } catch { }
     }
 
