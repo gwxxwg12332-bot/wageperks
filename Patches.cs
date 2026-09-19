@@ -1714,9 +1714,15 @@ internal static class Patches
 			}
 			// 笑面虎/童叟无欺：卖出价 ±25%（互斥保证不同时生效；面板+成交+预算全通）
 			double faceMult = 1.0;
-			if (SmilingFacePerk.IsActive()) faceMult = 1.25;
-			else if (SmilingTigerPerk.IsActive()) faceMult = 0.75;
-			if (faceMult != 1.0) result = (long)((double)result * faceMult);
+			string faceLabelId = null;
+			string faceLabel = null;
+			if (SmilingFacePerk.IsActive()) { faceMult = 1.25; faceLabelId = "smiling_face_markup"; faceLabel = LangHelper.T("笑面虎加价", "Smiling Face Markup"); }
+			else if (SmilingTigerPerk.IsActive()) { faceMult = 0.75; faceLabelId = "honest_dealer_discount"; faceLabel = LangHelper.T("童叟无欺折让", "Honest Dealer Discount"); }
+			if (faceMult != 1.0)
+			{
+				result = (long)((double)result * faceMult);
+				AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling);
+			}
 		}
 		catch
 		{
@@ -2263,6 +2269,38 @@ internal static class Patches
 		{
 			Core.LogMsg("[标签-添加] 失败: " + ex.Message);
 		}
+	}
+
+	// 通用价格标签：面板"市场与商人"区显示原因行（仿 TryAddTradeFeature/TryAddRobinsonBuyMarkup）
+	private static void AddTradeLabel(GameItem item, string labelId, string display, ItemFeature.FeatureType ft)
+	{
+		try
+		{
+			if (item == null || string.IsNullOrEmpty(labelId) || item.itemFeatures == null) return;
+			for (int i = 0; i < item.itemFeatures.Count; i++)
+			{
+				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == labelId)
+				{
+					item.itemFeatures[i].publicDisplay = display;
+					item.itemFeatures[i].actualDisplay = display;
+					return;
+				}
+			}
+			ItemFeature f = new ItemFeature();
+			f.identifier = labelId;
+			f.featureType = ft;
+			f.valueStage = ItemFeature.ValueStage.Market;
+			f.valueModifier = 0;
+			f.preExposeValueModifier = 0;
+			f.usePreExposeValue = false;
+			f.isFeatureExposed = false;
+			f.isExposable = false;
+			f.isFeatureDiscovered = false;
+			f.publicDisplay = display;
+			f.actualDisplay = display;
+			item.itemFeatures.Add(f);
+		}
+		catch { }
 	}
 
 	private static void TryAddRobinsonBuyMarkup(GameItem item)
