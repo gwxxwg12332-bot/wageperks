@@ -310,6 +310,7 @@ public static class WageGirlSystem
         try
         {
             if (item == null) return false;
+            try { if (item.IsTag("TAG_NOT_PURCHASED") || item.IsTag("not_purchased")) return false; } catch { } // 未拥有物品不吃
             if (Patches.CurrentUITradeMode != 0) return false;
             // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 累计待销赃（点面板「销赃」才出发）
             if (IsContraband(item))
@@ -329,9 +330,9 @@ public static class WageGirlSystem
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
-            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
-            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 5); }
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
+            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
+            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
             else return false;
             SetAffection(GetAffection() + aff);
             // 消耗源物品（吃掉）：Destroy → Expel 兜底（照命运骰子吸收）
