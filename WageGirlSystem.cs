@@ -1632,14 +1632,13 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         } catch { }
     }
 
-    // Validate Postfix：对 wage_girl 强制 spritePath = ICON_ATLAS/ICON（拆包实锤：Validate 链从 spritePath 解析 sprite，不设正确就出旧图）
-    public static void PostfixValidate(GameItemElement __instance)
+    // ResolveSpriteByName Postfix：对蛙娘永远返回 mod 图标（拆包实锤：Validate 链从 spritePath 解析 sprite，拦截此入口根治旧图）
+    public static void PostfixResolveSpriteByName(GameItemElement __instance, ref Sprite __result)
     {
         try {
             if (__instance == null) return;
             if (__instance.identifier != ENTITY_ID) return;
-            // GameItemElement 继承 GameItem，直接用 __instance
-            try { if (__instance.spritePath != ICON) __instance.SetSpriteAndShape(ICON_ATLAS, ICON); } catch { }
+            if (_sprite != null) __result = _sprite; // 永远给 mod 图标
         } catch { }
     }
 
