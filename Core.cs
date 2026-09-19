@@ -504,7 +504,8 @@ public class Core : MelonMod
 			{
 				LogMsg("[ModHook] OnGameLoaded霉运失败: " + ex2.Message);
 			}
-			if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
+			try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓存
+		if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				Patches.ScheduleJacksonToday();
 			}
@@ -806,7 +807,6 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：客户预算 x4（+300%）
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价 +50（GetDealMakerBonus=显示+实际判定共用，拆包二次实锤）
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ApplyAnimationFrame", "PrefixApplyAnimationFrame", null, null, typeof(WageGirlSystem)); // 09-22 蛙娘动画帧（GoFishing CustomItemAnimationPatch 先例模式）
-			ManualPatcher.TryPatch(typeof(GameItemElement), "Validate", "PostfixValidate", null, null, typeof(WageGirlSystem)); // 读档修蛙娘sprite（MWB先例）
 			// 09-21 信誉扣减减半（用户拍板：减信誉少50%）——实例版 ModReputation(double)，议价 5 处入口
 			ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputation", null, new System.Type[1] { typeof(double) }, typeof(Patches));
 				// 09-22 制卡降上城区声望：mod 违禁品跳过客户曝光链（ClientExposeFeature，曝光=扣声望-4+划词条+对话）

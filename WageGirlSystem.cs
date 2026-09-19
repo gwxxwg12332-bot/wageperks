@@ -1624,14 +1624,11 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     }
 
     // ApplyAnimationFrame Prefix：蛙娘替换帧（美术方案——原生 Tick 调此方法时替换；帧索引由 OnUpdateTick 推进）
-    // 读档恢复：GameItemElement.Validate Postfix → 蛙娘实体重置缓存（经验文档 MWB 先例）
-    public static void PostfixValidate(GameItemElement __instance)
+    // 读档后一次性重置（OnGameLoadedNormal hook）——不每帧调，避免闪烁/拖不动
+    public static void OnGameLoadedReset()
     {
         try {
-            if (__instance == null) return;
-            if (__instance.identifier != ENTITY_ID) return;
-            // 只在对象变化时重置（读档后新实体 ≠ 旧缓存）——不每帧重置避免闪烁/拖不动
-            if (_cachedGirlItem != null && _cachedGirlItem != __instance) { _cachedGirlItem = null; _cacheRefreshFrames = 0; }
+            _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
         } catch { }
     }
 
