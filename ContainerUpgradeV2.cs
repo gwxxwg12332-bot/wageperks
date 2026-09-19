@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
@@ -221,29 +221,76 @@ public static class ContainerUpgradeV2
             if (ConsumedThisFrame(box.Pointer)) return true; // 同帧已消耗：防双计数
             int stage = GetTagIntSafe(box, "wb_stage");
             if (stage >= MAX_STAGE) return false; // 满级：nuts 正常放入（不再消耗）
-            ConsumeOne(nuts); // 逐颗消耗：每拖 1 颗立即扣 1
-            int progress = GetTagIntSafe(box, "wb_progress") + 1;
-            int need = UPGRADE_COSTS[stage];
-            if (progress < need)
-            {
-                SetTagIntValue(box, "wb_progress", progress);
-                try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱 升级进度 " + progress + "/" + need, "Wage Box progress " + progress + "/" + need), "white"); } catch { }
-                return true; // 已消耗，拦截放入
-            }
-            var grid = GetContainerGrid(box);
-            if (grid == null) { Core.LogMsg("[容器v2] 蛙哥箱子升段失败：取不到内部库存"); return true; }
-            int targetW = WAGE_BOX_W[stage + 1], targetH = WAGE_BOX_H[stage + 1];
-            SetFullRect(grid, targetW, targetH);
-            AddTagInt(box, "wb_stage", 1);
-            SetTagIntValue(box, "wb_progress", 0); // 达标升段，进度清零重计
-            try { SetTagIntValue(box, "wage_box_type", 1); } catch { } // 09-14 带值类型标记（随档；布尔 tag 不随档，带值 tag 随档——wb_stage 先例）
-            try { int _hidx = FindBoxInHidden(box); SetHiddenStageByIndex(_hidx, stage + 1); } catch { } // 09-14 海报后边位置关联
-            try { PerkStatePersistence.SetInt("RobinCrusoe", "wage_stage_u" + box.uniqueId, stage + 1); } catch { }
-            if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box); // 满级：发第二个妙妙箱（两个箱子方案，天然存档）
-            try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5（" + targetW + "×" + targetH + "）", "Wage Box upgraded! Stage " + (stage + 1) + "/5 (" + targetW + "×" + targetH + ")"), "white"); } catch { }
-            return true;
+            // 09-20 优化：拖螺丝不立即消耗，正常放入妙妙箱；打烊时统一消耗叠加进度
+            return false; // 不拦截，正常放入
         }
         catch (Exception ex) { Core.LogMsg("[容器v2] 蛙哥箱子升级异常: " + ex.Message); return false; }
+    }
+
+    // 09-20 优化：打烊批量消耗螺丝（SaveGame Postfix）
+    public static void PostfixSaveGame(PlayerStore __instance) { try { ConsumeNutsAtClose(); } catch { } }
+
+    // 09-20 优化：打烊批量消耗螺丝（遍历妙妙箱内部库存，吃掉全部螺丝叠加升级进度）
+    public static void ConsumeNutsAtClose()
+    {
+        try
+        {
+            var emporium = EmporiumEntry.Instance;
+            if (emporium == null) return;
+            var allInvs = new System.Collections.Generic.List<GameInventory>();
+            try { var v = emporium.backInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            foreach (var inv in allInvs) {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++) {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    if (!IsWageBox(it)) continue;
+                    ConsumeNutsInBox(it);
+                }
+            }
+        }
+        catch { }
+    }
+
+    // 妙妙箱内部库存螺丝批量消耗
+    private static void ConsumeNutsInBox(GameItem box)
+    {
+        try
+        {
+            int stage = GetTagIntSafe(box, "wb_stage");
+            if (stage >= MAX_STAGE) return;
+            var grid = GetContainerGrid(box);
+            if (grid == null || grid.childItems == null) return;
+            var nutsList = new System.Collections.Generic.List<GameItem>();
+            for (int i = 0; i < grid.childItems.Count; i++) {
+                var it = grid.childItems[i];
+                if (it == null) continue;
+                if (IsNuts(it)) nutsList.Add(it);
+            }
+            if (nutsList.Count == 0) return;
+            int progress = GetTagIntSafe(box, "wb_progress");
+            int need = UPGRADE_COSTS[stage];
+            int consumed = 0;
+            for (int i = 0; i < nutsList.Count; i++) {
+                try { ConsumeOne(nutsList[i]); consumed++; } catch { }
+            }
+            progress += consumed;
+            while (progress >= need && stage < MAX_STAGE) {
+                int targetW = WAGE_BOX_W[stage + 1], targetH = WAGE_BOX_H[stage + 1];
+                SetFullRect(grid, targetW, targetH);
+                AddTagInt(box, "wb_stage", 1);
+                progress -= need;
+                stage++;
+                need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
+                try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage) + "/5", "Wage Box upgraded! Stage " + stage + "/5"), "white"); } catch { }
+            }
+            SetTagIntValue(box, "wb_progress", progress);
+            if (stage >= MAX_STAGE) TryGiveSecondWageBox(box);
+        }
+        catch { }
     }
 
     // 满级奖励第二个妙妙箱（09-12 用户拍板两个箱子方案：替代翻页，天然存档/读档/睡眠零冲突）

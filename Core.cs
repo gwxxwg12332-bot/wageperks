@@ -29,7 +29,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.2", "gwxxwg12332", null)]
+[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.4", "gwxxwg12332", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace JacksonPerks;
@@ -42,7 +42,7 @@ public static class BuildConfig
 
 	public static int[] BoxHeightsArr = new int[6] { 3, 10, 10, 10, 10, 10 };
 
-	public static int[] UpgradeCostsArr = new int[5] { 5, 10, 20, 40, 80 };
+	public static int[] UpgradeCostsArr = new int[5] { 5, 10, 20, 40, 50 }; // 09-20 优化：80→50
 
 	public static bool HardMode
 	{
@@ -385,7 +385,7 @@ public class Core : MelonMod
 	{
 		BuildConfig.InitPrefs();
 		Log = base.LoggerInstance;
-		Log.Msg("Wage's Perks v1.2.2 已加载 - 手动Patch模式");
+		Log.Msg("Wage's Perks v1.2.4 已加载 - 手动Patch模式");
 		Log.Msg("【深空当铺】Wage's Perks QQ群：1109707341");
 		ManualPatcher.Init(base.HarmonyInstance);
 		try
@@ -666,6 +666,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘打烊落盘内存缓存
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘新档硬重置
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk)); // 09-20 鲁滨逊打烊落盘血量
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(ContainerUpgradeV2)); // 09-20 妙妙箱打烊批量吃螺丝
 
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));

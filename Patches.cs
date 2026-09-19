@@ -2806,7 +2806,6 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
-			Core.LogMsg("[蛙诊] PostfixOnLoadGame 触发"); // 诊断
 			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
 			try { RobinCrusoePerk.ClearMemBlood(); } catch { } // 09-20 修：读档清鲁滨逊血量缓存
 			try { RobinCrusoePerk.ClearWantedQueued(); } catch { } // 09-20 修：读档清供应商排期标记

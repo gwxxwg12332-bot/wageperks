@@ -1524,7 +1524,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                     } catch { }
                     string aLen = _curAnimSprites == null ? "-1" : _curAnimSprites.Length.ToString();
                     string a0null = (_curAnimSprites == null || _curAnimSprites.Length == 0 || _curAnimSprites[0] == null) ? "Y" : "N";
-                    Core.LogMsg("[蛙娘诊断] grid=" + gridName + " " + gw2 + "x" + gh2 + " walk=" + _walking + " steps=" + _stepsTaken + " state=" + _curState + " animLen=" + aLen + " anim0null=" + a0null + " frameIdx=" + _frameIndex + " girlNull=" + (_cachedGirlItem == null));
                 } catch { }
             }
             if (!Exists()) return;
@@ -1804,7 +1803,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         public static void PostfixStartNewGame()
         {
             try {
-                Core.LogMsg("[蛙诊] PostfixStartNewGame 触发"); // 诊断
                 CleanDefaultRunOnNewGame();
                 ResetForNewGame();
                 _memStats.Clear(); // 防连续开新档进程内残留
@@ -1845,7 +1843,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     public static void OnGameLoadedReset()
     {
         try {
-            Core.LogMsg("[蛙诊] OnGameLoadedReset 触发"); // 诊断
             _memStats.Clear(); // 09-20 修：读档清内存缓存——下次GetStat自动从Prefs重载存档值
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
             try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
