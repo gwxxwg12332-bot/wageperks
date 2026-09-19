@@ -1561,13 +1561,9 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
             // 09-22 随机落格（拆包正确姿势）：requestedNum=数量(1) 不是格子号；随机格中心像素点(每格16px,+8中心)
             // → TryInventorySlot(item, 1, Vector2像素点, shape, null) 自动换算格位 → TryAcceptOnce 落位
-            GridShape shape = null;
-            try { shape = g.shape; } catch { }
-            if (shape == null)
-            {
-                if (_girlShape == null) { try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } catch { } }
-                shape = _girlShape;
-            }
+            // 09-19 修：强制用 2×3（读档后 g.shape 可能变 1×1）
+            if (_girlShape == null) { try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } catch { } }
+            GridShape shape = _girlShape;
             // 网格宽高（拆包权威：inv.inventoryShape.width/height——格子数；兜底物品 shape）
             int gw = 0, gh = 0;
             GridShape invShape = null;
