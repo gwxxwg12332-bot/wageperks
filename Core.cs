@@ -661,6 +661,7 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(GuMachineSystem));
+			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageGirlSystem)); // 09-20 蛙娘图标链：wage_girl_icon → 32×48 静态图标（modifiedShape=2×3 权威来源）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(AddictOfficerEvent));

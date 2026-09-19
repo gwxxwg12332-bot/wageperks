@@ -94,8 +94,6 @@ public static class WageGirlSystem
             it.shortDescription = LangHelper.T("蛙娘——蛙哥（Wage）留下的仿生女仆实体：会自己吃喝、干活，心情不好还会偷拿你的钱和货。照顾好她，她会帮你叫客、抬价、销赃。双击打开状态面板。", "Wage Girl - a biomimetic maid entity left by Wage: she eats and works on her own, and when moody she steals your money and goods. Take care of her and she'll call customers, boost prices and fence for you. Double-click to open her status panel.");
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
-            // 2×3 占地（09-21 用户拍板）
-            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); it.SetShape(gsb.Build()); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 创建失败: " + ex.Message); return null; }
@@ -104,7 +102,7 @@ public static class WageGirlSystem
     private static void ApplyIcon(GameItem it)
     {
         try { it.SetSpriteAndShape(ICON_ATLAS, ICON); }
-        catch { try { it.SetSpriteAndShape("custom_atlas", "custom_storage_box_sprite"); } catch { } }
+        catch { }
     }
 
     // 像素数组 → Texture2D → Sprite（照 GuMachineSystem.SpriteFromPixels；ppu=100）
@@ -1215,6 +1213,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static float _pauseTimer = 0f;   // 停顿计时
     private static float _pauseDuration = 4f;// 停顿时长（随机 3-6 秒）
     private static GridShape _girlShape; // 运行时初始化（Unity就绪后）
+    private static Sprite _staticIconSprite; // 静态图标 32×48（modifiedShape=2×3 权威来源，09-20 拆包）
     private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
 
     private static void EnsureSprites()
@@ -1245,29 +1244,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static Sprite[] LoadSpriteGroup(string[] b64s)
     {
         var arr = new Sprite[b64s.Length];
-        // 反射查找 ImageConversion.LoadImage（IL2CPP 不在标准命名空间——DestinyDice L175-213 先例；只找一次）
-        if (_loadImageMethod == null)
-        {
-            try
-            {
-                Type icType = null;
-                foreach (System.Reflection.Assembly a in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    Type[] types;
-                    try { types = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
-                    foreach (Type t in types)
-                    {
-                        if (t != null && t.Name == "ImageConversion") { icType = t; break; }
-                    }
-                    if (icType != null) break;
-                }
-                if (icType != null)
-                    _loadImageMethod = icType.GetMethod("LoadImage",
-                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
-                        null, new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }, null);
-            }
-            catch { }
-        }
+        EnsureLoadImageMethod();
         for (int i = 0; i < b64s.Length; i++)
         {
             try
@@ -1291,6 +1268,82 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             catch { }
         }
         return arr;
+    }
+
+    // 反射查找 ImageConversion.LoadImage（IL2CPP 不在标准命名空间——DestinyDice L175-213 先例；只找一次）
+    private static void EnsureLoadImageMethod()
+    {
+        if (_loadImageMethod != null) return;
+        try
+        {
+            Type icType = null;
+            foreach (System.Reflection.Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type[] types;
+                try { types = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
+                foreach (Type t in types)
+                {
+                    if (t != null && t.Name == "ImageConversion") { icType = t; break; }
+                }
+                if (icType != null) break;
+            }
+            if (icType != null)
+                _loadImageMethod = icType.GetMethod("LoadImage",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                    null, new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }, null);
+        }
+        catch { }
+    }
+
+    // 静态图标（32×48，ppu100）：Idle0 帧 64×96 下采样 2:1 → SetSpriteAndShape 成功路径算 modifiedShape=2×3（09-20 拆包 L3484-3533）
+    private static void EnsureStaticIcon()
+    {
+        try
+        {
+            if (_staticIconSprite != null) return;
+            EnsureLoadImageMethod();
+            if (_loadImageMethod == null) return;
+            byte[] bytes = Convert.FromBase64String(WageGirlAnimFrames.Idle[0]);
+            var tex = new Texture2D(64, 96, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            _loadImageMethod.Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)bytes });
+            Color[] src = tex.GetPixels(); // 64×96
+            var dst = new Color[32 * 48];
+            for (int y = 0; y < 48; y++)
+            {
+                for (int x = 0; x < 32; x++)
+                {
+                    int s0 = (y * 2) * 64 + (x * 2);
+                    Color c = (src[s0] + src[s0 + 1] + src[s0 + 64] + src[s0 + 65]) * 0.25f;
+                    dst[y * 32 + x] = c;
+                }
+            }
+            try { UnityEngine.Object.Destroy(tex); } catch { }
+            var tex2 = new Texture2D(32, 48, TextureFormat.RGBA32, false);
+            tex2.filterMode = FilterMode.Point;
+            tex2.wrapMode = TextureWrapMode.Clamp;
+            tex2.SetPixels(dst);
+            tex2.Apply();
+            Sprite sp = Sprite.Create(tex2, new Rect(0, 0, 32, 48), new Vector2(0.5f, 0.5f), 100f);
+            sp.hideFlags = HideFlags.DontSave;
+            _staticIconSprite = sp;
+        }
+        catch { }
+    }
+
+    // 拦截 RenderHandler.LoadFromAtlas：wage_girl_icon → 32×48 静态图标——09-20 拆包实锤 modifiedShape 权威，SetSpriteAndShape 成功即算 2×3
+    public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
+    {
+        try
+        {
+            if (atlasPath == ICON_ATLAS && name == ICON)
+            {
+                EnsureStaticIcon();
+                if (_staticIconSprite != null) { __result = _staticIconSprite; return false; }
+            }
+        }
+        catch { }
+        return true;
     }
 
     // 动作切换（0 待机 / 1 走动 / 2 偷）
@@ -1448,8 +1501,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try
         {
-            // 确保 _girlShape 初始化（Unity就绪后）
-            try { if (_girlShape == null) { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } } catch { }
             // 读档后旧引用已销毁（parentInventory==null）→ 立即重置重找
             try { if (_cachedGirlItem != null && _cachedGirlItem.parentInventory == null) { _cachedGirlItem = null; _cacheRefreshFrames = 0; } } catch { _cachedGirlItem = null; }
             if (_cachedGirlItem == null || _cacheRefreshFrames <= 0)
@@ -1457,7 +1508,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 _cacheRefreshFrames = 120;
                 _cachedGirlItem = FindGirlItem();
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
-                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } try { if (_girlShape != null) _cachedGirlItem.SetShape(_girlShape); } catch { } } // 先ApplyIcon再SetShape(2x3)——ApplyIcon会覆盖shape
+                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } } // 09-20 图标链修复：ApplyIcon 即写 modifiedShape=2×3
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
             }
             else _cacheRefreshFrames--;
@@ -1469,7 +1520,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             {
                 // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
                 _cachedGirlItem = FindGirlItem();
-                try { if (_cachedGirlItem != null && _girlShape != null) _cachedGirlItem.SetShape(_girlShape); } catch { }
                 if (_cachedGirlItem != null) {
                     // 读档后：游戏重建的蛙娘 sprite 是存档旧版 → 强制清旧发新
                     try { RemoveGirlFromScene(); } catch { }
@@ -1514,8 +1564,6 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                     var c = gi.childItems[i];
                     if (c == null) continue;
                     if (c.identifier == ENTITY_ID) {
-                        // 09-19 修：读档后 shape 变 1×1 → 强制 2×3
-                        try { if (_girlShape == null) { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } c.SetShape(_girlShape); } catch { }
                         return c;
                     }
                 }
@@ -1563,8 +1611,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
             // 09-22 随机落格（拆包正确姿势）：requestedNum=数量(1) 不是格子号；随机格中心像素点(每格16px,+8中心)
             // → TryInventorySlot(item, 1, Vector2像素点, shape, null) 自动换算格位 → TryAcceptOnce 落位
-            // 09-19 修：强制用 2×3（读档后 g.shape 可能变 1×1）
-            if (_girlShape == null) { try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } catch { } }
+            // 09-20 图标链修复后：modifiedShape=2×3 由 SetSpriteAndShape 保证，落格直接用 _girlShape（2×3）
             GridShape shape = _girlShape;
             // 网格宽高（拆包权威：inv.inventoryShape.width/height——格子数；兜底物品 shape）
             int gw = 0, gh = 0;
