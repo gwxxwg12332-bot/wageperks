@@ -1457,6 +1457,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 _cacheRefreshFrames = 120;
                 _cachedGirlItem = FindGirlItem();
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
+                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } } // 强制刷新图标（读档后旧版颠倒）
+                    _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
             }
             else _cacheRefreshFrames--;
             if (_cachedGirlItem == null) return;
@@ -1467,6 +1469,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             {
                 // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
                 _cachedGirlItem = FindGirlItem();
+                    _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
+                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } } // 强制刷新图标（读档后旧版颠倒）
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
                 if (_cachedGirlItem != null)
                 {
