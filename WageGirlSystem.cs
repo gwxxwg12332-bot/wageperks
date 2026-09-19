@@ -444,7 +444,7 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_STARVE, 0);
                 PerkStatePersistence.SetInt(NS, K_LEAVE, day + 14);
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 2);
-                RemoveGirlFromScene();
+                SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
                 ReportLine(LangHelper.T("蛙娘连续几天没吃好没睡好，离家出走了（14 天后回来）", "Wage Girl ran away after days of neglect (back in 14 days)"));
                 return;
             }
@@ -488,7 +488,7 @@ public static class WageGirlSystem
 PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 0);
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
-                RemoveGirlFromScene(); // 实体真消失（回归时重发）
+                SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
                 ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
             }
         }
@@ -861,7 +861,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                         SetSleepDebt(GetSleepDebt() + 20); // 销赃外出熬夜 -20 睡眠（次日结算）
 PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
-            RemoveGirlFromScene();
+            SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
             ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
         }
@@ -1192,6 +1192,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static Sprite[] _spIdle, _spHappy, _spHungry, _spThirsty, _spSick, _spDirty, _spSleepy, _spAngry, _spShy, _spFull, _spAway, _spReturn, _spWalk;
     private static string _curState = "idle";
     private static float _stateFrameSec = 0.375f;
+    private static float _leavingTimer = 0f; // 外出动画延迟（walk帧播完再移除实体）
     private static Sprite[] _curAnimSprites;
     private static int _frameIndex = 0;
     private static float _frameTimer = 0f;
@@ -1351,6 +1352,11 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             EnsureSprites();
             bool hasSprites = _curAnimSprites != null && _curAnimSprites.Length > 0;
 
+            // 外出动画延迟：walk帧播完再移除实体
+            if (_leavingTimer > 0f) {
+                _leavingTimer -= dt;
+                if (_leavingTimer <= 0f) { try { RemoveGirlFromScene(); } catch { } }
+            }
             // 状态自动判定
             try {
                 string ns = EvalState();
