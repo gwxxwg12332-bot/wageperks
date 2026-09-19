@@ -1647,7 +1647,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try
         {
             if (__instance == null) return;
-            if (__instance.identifier != ENTITY_ID) return;
+            // 拆包实锤：identifier 读档后丢失 → 加 IsTag(TAG) 兜底（TAG 随档）
+            if (__instance.identifier != ENTITY_ID && !__instance.IsTag(TAG)) return;
             EnsureSprites();
             if (_curAnimSprites == null || _curAnimSprites.Length == 0)
             {
