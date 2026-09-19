@@ -1630,8 +1630,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try {
             if (__instance == null) return;
             if (__instance.identifier != ENTITY_ID) return;
-            // 读档后蛙娘实体重建 → 重置缓存，下一帧 OnUpdate 重新 FindGirlItem + EvalState
-            _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
+            // 只在对象变化时重置（读档后新实体 ≠ 旧缓存）——不每帧重置避免闪烁/拖不动
+            if (_cachedGirlItem != null && _cachedGirlItem != __instance) { _cachedGirlItem = null; _cacheRefreshFrames = 0; }
         } catch { }
     }
 
