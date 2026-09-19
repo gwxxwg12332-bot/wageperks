@@ -1210,7 +1210,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
     private static void EnsureSprites()
     {
-        if (_spritesIdle != null) return;
+        if (_spIdle != null) return;
         try
         {
             _spIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
@@ -1290,7 +1290,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try {
             if (_animMode == 2) return "angry";
             if (_animMode == 1) return "walk";
-            if (IsOut()) return "away";
+            try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > 0) return "away"; } catch { }
             int mood = GetStat(K_MOOD), health = GetStat(K_HEALTH), sat = GetStat(K_SAT), th = GetStat(K_TH), clean = GetStat(K_CLEAN), sleep = GetStat(K_SLEEP);
             int aff = GetAffection();
             if (mood <= 20) return "angry";
