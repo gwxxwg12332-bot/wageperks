@@ -665,6 +665,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageGirlSystem)); // 09-20 蛙娘图标链
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘打烊落盘内存缓存
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘新档硬重置
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk)); // 09-20 鲁滨逊打烊落盘血量
 
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));

@@ -788,6 +788,16 @@ internal static class RobinCrusoePerk
     // ===== 物品判定 =====
     // 食物判定：硬编码清单 + 原生卡路里兜底（覆盖水培莓果/营养果/异种肉等遗漏）
     // 兜底规则：有 CALORIE_VALUE_TAG/CALORIE 标签 且 非饮品/药品/酒/种子 = 食物
+    // 09-20 P2-4：熔炉模组白名单（furnace_module_ 开头不吞噬/炼蛊）
+    internal static bool IsExcludedModule(GameItem item)
+    {
+        try {
+            string id = item.identifier;
+            if (string.IsNullOrEmpty(id)) return true;
+            return id.StartsWith("furnace_module_");
+        } catch { return true; }
+    }
+
     internal static bool IsFood(GameItem item)
     {
         if (item == null) return false;
@@ -1853,8 +1863,17 @@ internal static class RobinCrusoePerk
 
     // ===== 卖血系统（09-17 用户拍板：面板卖血按钮 500cc→血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
     internal const int BLOOD_MAX = 6000;
-    internal static int GetBlood() { try { return PerkStatePersistence.GetInt(PERK_ID, "blood", BLOOD_MAX); } catch { return BLOOD_MAX; } }
-    internal static void SetBlood(int v) { try { PerkStatePersistence.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
+    private static int _memBlood = -1; // 09-20 修：血量内存缓存（打烊才落盘，防读档刷血）
+    internal static int GetBlood() {
+        try {
+            if (_memBlood >= 0) return _memBlood;
+            int saved = PerkStatePersistence.GetInt(PERK_ID, "blood", BLOOD_MAX);
+            _memBlood = saved;
+            return saved;
+        } catch { return BLOOD_MAX; }
+    }
+    internal static void SetBlood(int v) { try { _memBlood = Math.Max(0, Math.Min(BLOOD_MAX, v)); } catch { } }
+    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 读档清缓存
     internal static int AddBlood(int delta)
     {
         int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
@@ -1862,6 +1881,15 @@ internal static class RobinCrusoePerk
         if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } } // 09-20 拍板：失血归零立即死亡（日常/跳天通用）
         return b;
     }
+    // 09-20 修：打烊落盘血量内存缓存
+    public static void PostfixSaveGame(PlayerStore __instance)
+    {
+        try {
+            if (_memBlood >= 0)
+                PerkStatePersistence.SetInt(PERK_ID, "blood", _memBlood);
+        } catch { }
+    }
+
     internal static bool IsBloodWeak() { try { return GetBlood() < 3000; } catch { return false; } }
     // 09-20 M5 拍板：虚弱强化——强制休息期判定（休息中禁采血/禁出门）
     internal static bool IsForcedRest()
@@ -3572,17 +3600,31 @@ internal static class RobinCrusoePerk
     }
 
     // 每日调度：第14/21天固定排首次上门（PostfixOnBeginDay 调用）
+    // 09-20 修：day >= 首访日（错过当天补排）+ per-id 防重（查 futuredClients 列表）
     internal static void WantedSupplierSchedule(int day)
     {
         try
         {
             if (!IsActive() || PlayerStore.Instance == null) return;
-            if (day == _wantedSupplierScheduledDay) return; // 同日只排一次
-            if (day == BUTCHER_FIRST_VISIT_DAY) { QueueWantedClient("wanted7"); _wantedSupplierScheduledDay = day; }
-            else if (day == LI_BEIWEN_FIRST_VISIT_DAY) { QueueWantedClient("wanted6"); _wantedSupplierScheduledDay = day; }
+            // 胡安（wanted7）
+            if (day >= BUTCHER_FIRST_VISIT_DAY && !WantedQueued("wanted7"))
+                { QueueWantedClient("wanted7"); }
+            // 李北文（wanted6）
+            if (day >= LI_BEIWEN_FIRST_VISIT_DAY && !WantedQueued("wanted6"))
+                { QueueWantedClient("wanted6"); }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] WantedSupplierSchedule 异常: " + ex.Message); }
     }
+
+    // 09-20 修：per-id 防重（进程内标记，不写 PlayerPrefs 防 default_run 污染）
+    private static bool _wanted7Queued = false;
+    private static bool _wanted6Queued = false;
+    private static bool WantedQueued(string id)
+    {
+        try { return id == "wanted7" ? _wanted7Queued : _wanted6Queued; }
+        catch { return false; }
+    }
+    internal static void ClearWantedQueued() { _wanted7Queued = false; _wanted6Queued = false; } // 读档清
 
     private static void QueueWantedClient(string id)
     {
@@ -3592,7 +3634,8 @@ internal static class RobinCrusoePerk
             PlayerStore ps = PlayerStore.Instance;
             if (ps == null || ps.storeClientManager == null) return;
             try { ps.storeClientManager.RemoveDuplicateClientsByIdentifier(id); } catch { } // 防原版随机 wanted 同天撞车
-            ps.QueueFuturClient(id, 0);
+            if (id == "wanted7") _wanted7Queued = true; else if (id == "wanted6") _wanted6Queued = true;
+			ps.QueueFuturClient(id, 0);
             Core.LogMsg("[空间站鲁滨逊] 已预约" + (id == "wanted7" ? "胡安" : "李北文") + "当天到店（" + id + "）");
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] QueueWantedClient(" + id + ") 异常: " + ex.Message); }

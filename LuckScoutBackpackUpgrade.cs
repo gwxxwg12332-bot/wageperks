@@ -446,6 +446,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
     public static void PostfixLoadGame()
     {
+        Core.LogMsg("[虚空诊] PostfixLoadGame 触发, frames={_restoreFramesLeft}"); // 诊断
         try { PerkStatePersistence.ResetCache(); } catch { } // LoadGame 切档：清 runID 缓存，防 key 前缀串用
         try
         {
@@ -506,6 +507,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                 {
                     if (!item.IsTag(BACKPACK_TAG)) continue;
                     int slots = GetTagInt(item, SLOTS_TAG);
+                    Core.LogMsg("[虚空诊] restore bead: id=" + item.identifier + ", isBp=" + item.IsTag(BACKPACK_TAG) + ", slots=" + slots); // 诊断
                     if (slots <= 0) slots = 1;
                     var cw = item.contentWindow;
                     if (cw == null || cw.childElement == null) continue;

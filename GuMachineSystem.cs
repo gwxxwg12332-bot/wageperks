@@ -340,7 +340,7 @@ public static class GuMachineSystem
             foreach (var m in grid.childItems)
             {
                 if (m == null) continue;
-                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG"); } catch { }
+                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG") && !RobinCrusoePerk.IsExcludedModule(m); } catch { }
                 if (isMod) { try { m.EnableTag("MODULE_STUCK_TAG"); } catch { } }
             }
         }
@@ -409,7 +409,7 @@ public static class GuMachineSystem
                 // 09-19 防御性排除电池（power_source_item——若电池带 MODULE_TAG 会误入炼蛊/抽卡原料，历史反馈"炼蛊机练电池"）
                 bool isBat = false; try { isBat = m.IsTag("power_source_item"); } catch { }
                 if (isBat) continue;
-                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG"); } catch { }
+                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG") && !RobinCrusoePerk.IsExcludedModule(m); } catch { }
                 if (!isMod) continue;
                 mods.Add(m); // 09-19 修复：产出模组不再排除——练过的蛊可重复吞噬（原 FORGED 排除导致产出占舱又不算原料，凑不齐 2 个永不炼）
             }
@@ -546,7 +546,7 @@ public static class GuMachineSystem
                 if (id == "system_module_ruined") continue;
                 bool isBat = false; try { isBat = m.IsTag("power_source_item"); } catch { } // 09-19 防御性排除电池
                 if (isBat) continue;
-                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG"); } catch { }
+                bool isMod = false; try { isMod = m.IsTag("MODULE_TAG") && !RobinCrusoePerk.IsExcludedModule(m); } catch { }
                 if (isMod) mods.Add(m);
             }
             if (mods.Count < 2) return; // 模组不足不抽（不记日——补料后当天可抽；抽卡成功/失败后才记日防同日重复）

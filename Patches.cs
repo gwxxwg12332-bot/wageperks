@@ -2808,6 +2808,8 @@ itemFeature.isFeatureExposed = true;
 		{
 			Core.LogMsg("[蛙诊] PostfixOnLoadGame 触发"); // 诊断
 			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
+			try { RobinCrusoePerk.ClearMemBlood(); } catch { } // 09-20 修：读档清鲁滨逊血量缓存
+			try { RobinCrusoePerk.ClearWantedQueued(); } catch { } // 09-20 修：读档清供应商排期标记
 			_pendingLoadGameRestore = true;
 			_loadGameRestoreDelayFrames = 30;
 		}
@@ -3450,7 +3452,7 @@ itemFeature.isFeatureExposed = true;
 					{
 						try
 						{
-							flag = current3?.IsTag("MODULE_TAG") ?? false;
+							flag = (current3?.IsTag("MODULE_TAG") ?? false) && !RobinCrusoePerk.IsExcludedModule(current3); // 09-20 P2-4 排除熔炉模组
 						}
 						catch
 						{
@@ -3490,7 +3492,7 @@ itemFeature.isFeatureExposed = true;
 		}
 		try
 		{
-			if (builder != null && item != null && item.IsTag("MODULE_TAG"))
+			if (builder != null && item != null && item.IsTag("MODULE_TAG") && !RobinCrusoePerk.IsExcludedModule(item)) // 09-20 P2-4 排除熔炉模组
 			{
 				int tagIntSafe = RobinCrusoePerk.GetTagIntSafe(item, "CANNIBALISM_PERFORMANCE_INT");
 				int tagIntSafe2 = RobinCrusoePerk.GetTagIntSafe(item, "CANNIBALISM_EFFICIENCY_INT");

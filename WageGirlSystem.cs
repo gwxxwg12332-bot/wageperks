@@ -22,7 +22,7 @@ public static class WageGirlSystem
     private const string NS = "wage_girl";
     private const int STAT_MAX = 100;
     private const int STAT_INIT = 60;
-    private const int DAILY_DECAY = 3;   // 每日六维衰减（未照顾）
+    private const int DAILY_DECAY = 2;   // 每日六维衰减（未照顾）09-20 优化 3→2
     private const int AFF_MAX = 100;
     private const int AFF_DAILY_DROP = 1; // 好感每日回落（不照顾）
 
@@ -35,7 +35,7 @@ public static class WageGirlSystem
     private const string K_FENCE_PENDING = "fencePending"; // 本次销赃额（点击销赃时锁定，回归后 FenceReturn 读）
     private const string K_FENCE_CAT = "fenceCat";         // 销赃带回类别 0=随机 1=食物饮品 2=日用品 3=武器工具（面板按钮循环切换）
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
-    private const int STEAL_INTERVAL = 7; // 偷钱周期（天）
+    private const int STEAL_INTERVAL = 5; // 偷钱周期（天）09-20 优化 7→5
 
 
     static WageGirlSystem()
@@ -125,7 +125,7 @@ public static class WageGirlSystem
             it.SetName(LangHelper.T("蛙娘", "Wage Girl"));
             it.identifier = ENTITY_ID; // 公开 setter（照骰子先例）——identifier 随档
             it.identifierName = "TYPE-STRING_" + ENTITY_ID; // 公开 setter
-            it.shortDescription = LangHelper.T("蛙娘——蛙哥（Wage）留下的仿生女仆实体：会自己吃喝、干活，心情不好还会偷拿你的钱和货。照顾好她，她会帮你叫客、抬价、销赃。双击打开状态面板。", "Wage Girl - a biomimetic maid entity left by Wage: she eats and works on her own, and when moody she steals your money and goods. Take care of her and she'll call customers, boost prices and fence for you. Double-click to open her status panel.");
+            it.shortDescription = LangHelper.T("蛙娘——蛙哥留下的仿生女仆。她会自己吃喝、干活，心情不好还会偷拿你的钱和货。但只要你好好照顾她，她会越来越信任你——从刚来时偷你100块，到后来只偷你个小零食；从站在角落不理你，到粘在你身边帮你抬价、叫客、销赃。双击打开她的状态面板。", "Wage Girl — an android maid left by Wage. She eats, works, and steals when moody. But take care of her, and she'll trust you more — from stealing 100 credits on day one to just a snack later; from hiding in the corner to standing by your side, boosting prices, calling customers, and fencing goods. Double-click to open her status panel.");
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
             return it;
@@ -170,6 +170,62 @@ public static class WageGirlSystem
     }
 
     // ===================== 常驻面板（照鲁滨逊 RefreshStatusPanel） =====================
+    // 09-20 优化：好感等级文字
+    private static string GetAffLevelText() {
+        int aff = GetAffection();
+        if (aff < 20) return LangHelper.T("刚认识", "Stranger");
+        if (aff < 50) return LangHelper.T("熟了", "Familiar");
+        if (aff < 80) return LangHelper.T("信任你", "Trusts you");
+        return LangHelper.T("亲如家人", "Family");
+    }
+    // 09-20 优化：六维文字描述
+    private static string GetStatText(string key) {
+        int v = GetStat(key);
+        if (v < 20) return LangHelper.T("很差", "Poor");
+        if (v < 40) return LangHelper.T("不太好", "Bad");
+        if (v < 70) return LangHelper.T("还行", "OK");
+        if (v < 90) return LangHelper.T("不错", "Good");
+        return LangHelper.T("很好", "Great");
+    }
+    // 09-20 优化：日常随机台词（按好感分档）
+    private static string GetDailyLine() {
+        int aff = GetAffection();
+        int mood = GetStat(K_MOOD);
+        int sat = GetStat(K_SAT);
+        if (mood < 20) return new[] { LangHelper.T("她现在心情很差，好像在生气", "She is in a bad mood, seems angry"), LangHelper.T("她蹲在角落里，一脸不高兴", "She squats in the corner, looking unhappy") }[Core.Rng.Next(2)];
+        if (sat < 20) return new[] { LangHelper.T("她饿坏了，在找吃的", "She is starving, looking for food"), LangHelper.T("她一直在盯着你的食物柜", "She keeps staring at your food cabinet") }[Core.Rng.Next(2)];
+        string[] lines;
+        if (aff < 20) {
+            lines = new[] {
+                LangHelper.T("她躲在角落，好像不太敢靠近你", "She hides in the corner, seems afraid to approach you"),
+                LangHelper.T("她偷偷看了你一眼，又迅速低下头", "She glances at you secretly, then quickly looks down"),
+                LangHelper.T("她好像在提防你，不太敢说话", "She seems wary of you, afraid to speak")
+            };
+        } else if (aff < 50) {
+            lines = new[] {
+                LangHelper.T("她在柜台附近晃悠，偶尔看看你", "She wanders near the counter, glances at you occasionally"),
+                LangHelper.T("她打了个哈欠，好像有点无聊", "She yawns, seems a bit bored"),
+                LangHelper.T("她今天心情不错，冲你点了点头", "She is in a good mood today, nods at you"),
+                LangHelper.T("她好像在观察你", "She seems to be observing you")
+            };
+        } else if (aff < 80) {
+            lines = new[] {
+                LangHelper.T("她经常跑到你身边，好像很信任你", "She often comes to you, seems to trust you"),
+                LangHelper.T("她今天心情很好，冲你笑了笑", "She is in a great mood today, smiles at you"),
+                LangHelper.T("她好像在等你跟她说话", "She seems to be waiting for you to talk to her"),
+                LangHelper.T("她凑过来蹭了蹭你的胳膊", "She nuzzles up against your arm")
+            };
+        } else {
+            lines = new[] {
+                LangHelper.T("她一直粘在你身边，像只小尾巴", "She sticks to you like a little tail"),
+                LangHelper.T("她今天特别开心，一直在你身边转来转去", "She is extra happy today, spinning around you"),
+                LangHelper.T("她靠在你身边，好像很安心", "She leans against you, seems peaceful"),
+                LangHelper.T("她把脑袋靠在你肩膀上", "She rests her head on your shoulder")
+            };
+        }
+        return lines[Core.Rng.Next(lines.Length)];
+    }
+
     internal static void ShowPanel()
     {
         try
@@ -192,18 +248,21 @@ public static class WageGirlSystem
             }
             catch { }
             b.BeginColumn(4f);
-            b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100", "wg_sat_l");
+            // 09-20 优化：顶部好感度显示
+            b.AddLabel(LangHelper.T("好感度：" + GetAffection() + "/100（" + GetAffLevelText() + "）", "Affection: " + GetAffection() + "/100 (" + GetAffLevelText() + ")"), "wg_aff");
+            b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100  " + GetStatText(K_SAT), "wg_sat_l");
             b.AddProgressBar(GetStat(K_SAT) / 100f, "wg_sat");
-            b.AddLabel(LangHelper.T("口渴 ", "Thirst ") + GetStat(K_TH) + "/100", "wg_th_l");
+            b.AddLabel(LangHelper.T("口渴 ", "Thirst ") + GetStat(K_TH) + "/100  " + GetStatText(K_TH), "wg_th_l");
             b.AddProgressBar(GetStat(K_TH) / 100f, "wg_th");
-            b.AddLabel(LangHelper.T("健康 ", "Health ") + GetStat(K_HEALTH) + "/100", "wg_h_l");
+            b.AddLabel(LangHelper.T("健康 ", "Health ") + GetStat(K_HEALTH) + "/100  " + GetStatText(K_HEALTH), "wg_h_l");
             b.AddProgressBar(GetStat(K_HEALTH) / 100f, "wg_h");
-            b.AddLabel(LangHelper.T("心情 ", "Mood ") + GetStat(K_MOOD) + "/100", "wg_m_l");
+            b.AddLabel(LangHelper.T("心情 ", "Mood ") + GetStat(K_MOOD) + "/100  " + GetStatText(K_MOOD), "wg_m_l");
             b.AddProgressBar(GetStat(K_MOOD) / 100f, "wg_m");
-            b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + GetStat(K_CLEAN) + "/100", "wg_c_l");
+            b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + GetStat(K_CLEAN) + "/100  " + GetStatText(K_CLEAN), "wg_c_l");
             b.AddProgressBar(GetStat(K_CLEAN) / 100f, "wg_c");
-            b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100", "wg_s_l");
+            b.AddLabel(LangHelper.T("睡眠 ", "Sleep ") + GetStat(K_SLEEP) + "/100  " + GetStatText(K_SLEEP), "wg_s_l");
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
+            b.AddLabel(LangHelper.T("💬 " + GetDailyLine(), "💬 " + GetDailyLine()), "wg_daily_line"); // 09-20 优化：日常随机台词
             // 外出/离家中：不显示销赃按钮（人不在店里——09-22 用户拍板）
             int leaveChk = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
             bool isOutChk = leaveChk > 0 && CurrentDay() < leaveChk;
@@ -227,7 +286,7 @@ public static class WageGirlSystem
                 }
                 catch { }
             }
-            b.AddLabel(LangHelper.T("蛙娘特性（3点）：喂食/照顾提升六维与好感；状态低会偷钱偷拿，连续不佳跑路14天。在场：客户预算×4、议价+50。", "Wage Girl perk (3 pts): feed & care raise stats & affection; low stats trigger stealing, neglect triggers 14-day leave. Present: budget x4, bargain +50."), "wg_note");
+            b.AddLabel(LangHelper.T("💡 好好照顾她，她会越来越信任你", "💡 Take good care of her, and she will trust you more"), "wg_note");
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
             {
@@ -280,7 +339,10 @@ public static class WageGirlSystem
             if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
             // 预算 ×4（+300%，话术 v9：OverrideBudget(GetBudget()*4)）
             int budget = __instance.GetBudget();
-            long newBudget = (long)budget * 4;
+            // 09-20 优化：预算随好感分档（<30→1.5x、<60→2.5x、≥60→4x）
+            int affB = GetAffection();
+            float mult = affB < 30 ? 1.5f : (affB < 60 ? 2.5f : 4f);
+            long newBudget = (long)(budget * mult);
             if (newBudget > 2147483646L) newBudget = 2147483646L;
             __instance.OverrideBudget((int)newBudget);
             __instance.clientCash = (int)newBudget;
@@ -333,7 +395,7 @@ public static class WageGirlSystem
         try
         {
             if (item == null) return false;
-            try { if (item.IsTag("TAG_NOT_PURCHASED") || item.IsTag("not_purchased")) return false; } catch { } // 未拥有物品不吃
+
             if (Patches.CurrentUITradeMode != 0) return false;
             // 09-22 阶段 6：违禁品 → 像命运骰子一样吃掉（销毁）→ 累计待销赃（点面板「销赃」才出发）
             if (IsContraband(item))
@@ -353,9 +415,9 @@ public static class WageGirlSystem
                 return true;
             }
             int gain = 0; int aff = 1; string msg = "";
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 2; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
-            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
-            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 1; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = 3; msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
+            else if (RobinCrusoePerk.IsFood(item)) { gain = 25; aff = 2; msg = LangHelper.T("蛙娘吃饱了！饱食 +25", "Wage Girl ate! Satiety +25"); SetStat(K_SAT, GetStat(K_SAT) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
+            else if (RobinCrusoePerk.IsDrink(item)) { gain = 25; aff = 2; msg = LangHelper.T("蛙娘喝饱了！口渴 +25", "Wage Girl drank! Thirst +25"); SetStat(K_TH, GetStat(K_TH) + gain); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); }
             else return false;
             SetAffection(GetAffection() + aff);
             // 消耗源物品（吃掉）：Destroy → Expel 兜底（照命运骰子吸收）
@@ -401,7 +463,7 @@ public static class WageGirlSystem
             int sleepDebt = GetSleepDebt(); SetSleepDebt(0);
             SetStat(K_SLEEP, GetStat(K_SLEEP) - sleepDebt + 15);
             // 好感每日回落（不照顾）
-            SetAffection(GetAffection() - AFF_DAILY_DROP);
+            if (StoreStation.GetDayCounter() % 2 == 0) SetAffection(GetAffection() - AFF_DAILY_DROP); // 09-20 优化：每2天-1
             // 阶段 5：回归 / 自主偷拿 / 偷钱循环
             RunDayEvents();
         }
@@ -462,7 +524,7 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_STARVE, lowStreak);
             }
             else PerkStatePersistence.SetInt(NS, K_STARVE, 0);
-            if (lowStreak >= 3)
+            if (lowStreak >= 5) // 09-20 优化：3→5
             {
                 PerkStatePersistence.SetInt(NS, K_STARVE, 0);
                 PerkStatePersistence.SetInt(NS, K_LEAVE, day + 14);
@@ -508,7 +570,7 @@ public static class WageGirlSystem
             if (day - lastSteal >= STEAL_INTERVAL)
             {
                 int aff = GetAffection();
-                int steal = 50 + (int)((aff / 100f) * 450f); // 好感 0→50、100→500
+                int steal = 100 - (int)((aff / 100f) * 90f); // 09-20 优化：好感越高偷得越少（0→100、100→10）
                 ModCashN(-steal);
                 PerkStatePersistence.SetInt(NS, K_STEAL_AMT, steal);
                                 SetSleepDebt(GetSleepDebt() + 20); // 偷钱外出熬夜 -20 睡眠（次日结算）
@@ -527,6 +589,10 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
     {
         try
         {
+            // 09-20 优化：好感≥60 + 心情≥60 → 90% 概率不偷
+            if (GetAffection() >= 60 && GetStat(K_MOOD) >= 60) {
+                if (UnityEngine.Random.Range(0, 100) < 90) return;
+            }
             int sat = GetStat(K_SAT), th = GetStat(K_TH), mood = GetStat(K_MOOD);
             string mode = null; string msg = null;
             if (sat < 30) { mode = "food"; msg = "蛙娘饿坏了，偷吃了你的食物"; }
@@ -574,6 +640,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                     if (it == null) continue;
                     if (it.identifier == ENTITY_ID) continue;
                     if (it.IsTag("STANDARD_MACHINE_TAG") || it.IsTag("CONTAINER_TAG")) continue;
+                    // 09-20 优化：不偷灯牌
+                    try { if ((it.identifier ?? "").StartsWith("lamp_")) continue; } catch { }
                     if (mode == "food" && !RobinCrusoePerk.IsFood(it)) continue;
                     if (mode == "drink" && !RobinCrusoePerk.IsDrink(it)) continue;
                     if (mode == "care" && !RobinCrusoePerk.IsDailyNeed(it)) continue;
@@ -859,7 +927,9 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                         var g = DirectoryMaster.Item(id, true);
                         if (g == null) { pool.RemoveAt(idx); tries++; continue; }
                         if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
-                        if (g.unitValue < 500) { pool.RemoveAt(idx); tries++; continue; } // 好物价值 ≥500
+                        // 09-20 优化：礼物价值随好感提升（好感 0→500、100→700）
+                        int minVal = 500 + (GetAffection() / 100) * 200;
+                        if (g.unitValue < minVal) { pool.RemoveAt(idx); tries++; continue; } // 好物价值 ≥minVal
                         it = g; break;
                     }
                     catch { pool.RemoveAt(idx); tries++; }
@@ -1486,7 +1556,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 string ns = EvalState();
                 if (ns != _curState) { _curState = ns; _frameIndex = 0; _frameTimer = 0f;
                     _curAnimSprites = ns == "happy" ? _spHappy : ns == "hungry" ? _spHungry : ns == "thirsty" ? _spThirsty : ns == "sick" ? _spSick : ns == "dirty" ? _spDirty : ns == "sleepy" ? _spSleepy : ns == "angry" ? _spAngry : ns == "shy" ? _spShy : ns == "full" ? _spFull : ns == "away" ? _spAway : ns == "return" ? _spReturn : ns == "walk" ? _spWalk : _spIdle;
-                    _stateFrameSec = ns == "happy" ? 0.25f : ns == "hungry" ? 0.3f : ns == "dirty" ? 0.3f : ns == "sick" ? 0.5f : ns == "sleepy" ? 0.5f : ns == "angry" ? 0.2f : (ns == "away" || ns == "return" || ns == "walk") ? 0.125f : 0.375f;
+                    _stateFrameSec = ns == "happy" ? 0.25f : ns == "hungry" ? 0.3f : ns == "dirty" ? 0.3f : ns == "sick" ? 0.5f : ns == "sleepy" ? 0.5f : ns == "angry" ? 0.2f : (ns == "away" || ns == "return" || ns == "walk") ? 0.125f : 2f; // 09-20 优化：idle 频率 0.375→2 秒
                 }
             } catch { }
             // 帧相关（sprite 加载失败时跳过帧应用，不影响移动）
@@ -1532,6 +1602,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 _pauseTimer += dt;
                 if (_pauseTimer >= _pauseDuration)
                 {
+                    // 09-20 优化：前半好感（<50）不走动、不播放 walk 动画
+                    if (GetAffection() < 50) { _pauseDuration = 10f; return; } // 好感<50：待在角落不动
                     _walking = true;
                     _stepsTaken = 0;
                     _walkSteps = 3 + Core.Rng.Next(0, 5);            // 走 3-7 步
