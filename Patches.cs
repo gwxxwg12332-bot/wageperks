@@ -2470,12 +2470,16 @@ internal static class Patches
 	{
 		try
 		{
-			if (__0 == null || !SmilingTigerPerk.IsActive()) return;
+			if (__0 == null) return;
+			double m = 1.0;
+			if (SmilingFacePerk.IsActive()) m = 1.25;       // 笑面虎：售价 +25%
+			else if (SmilingTigerPerk.IsActive()) m = 0.75; // 童叟无欺：卖出 -25%（互斥保证不同时生效）
+			if (m == 1.0) return;
 			_honestPrevValue = __0.unitValue;
 			_honestPrevBaseValue = __0.unitBaseValue;
 			_honestValuePatched = true;
-			__0.unitValue = (long)(__0.unitValue * 0.75);
-			__0.unitBaseValue = (long)(__0.unitBaseValue * 0.75);
+			__0.unitValue = (long)(__0.unitValue * m);
+			__0.unitBaseValue = (long)(__0.unitBaseValue * m);
 		}
 		catch { }
 	}

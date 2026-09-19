@@ -18,6 +18,7 @@ internal static class CustomStartingPerks
         new RiskTakerPerk(),
         new WineLoverPerk(),
         new SmilingTigerPerk(),
+        new SmilingFacePerk(),
         new ThiefMagnetPerk(),
         new BadLuckPerk(),
         new BadReputationPerk(),

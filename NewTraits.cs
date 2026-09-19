@@ -126,13 +126,13 @@ internal sealed class WineLoverPerk : CustomStartingPerk
 internal sealed class SmilingTigerPerk : CustomStartingPerk
 {
     internal const string PerkId = "童叟无欺";
-    internal const string LegacyPerkId = "笑面虎"; // 旧 Id 兼容（旧档已选不丢）
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("童叟无欺", "Honest Dealer");
     internal override string Description => LangHelper.T("做生意童叟无欺：声誉增长速度 +25%，客户更信任你；但你的售价也得公道——卖出商品收益 -25%。", "Honest dealing: reputation gain +25 percent, but you sell at fair prices - sale income -25 percent.");
     internal override int Cost => -10;
     internal override int Type => 1; // 负面红色
+    internal override string[] IncompatibleIds => new[] { "笑面虎" }; // 与笑面虎互斥
 
     internal override void OnNewGame()
     {
@@ -140,7 +140,32 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId) || Core.PerkActive(LegacyPerkId); // 旧档"笑面虎"兼容
+        return Core.PerkActive(PerkId); // 笑面虎已是独立特性，不再双认
+    }
+}
+
+// ============================================================
+// 正面特性：笑面虎（与童叟无欺互斥）
+// 所有商品售价 +25%（正面绿色）
+// ============================================================
+internal sealed class SmilingFacePerk : CustomStartingPerk
+{
+    internal const string PerkId = "笑面虎";
+
+    internal override string Id => PerkId;
+    internal override string DisplayName => LangHelper.T("笑面虎", "Smiling Tiger");
+    internal override string Description => LangHelper.T("你总是笑脸迎人，顾客愿意为你的笑容多掏钱：所有商品售价 +25%。", "Always smiling, customers pay more for your goods: all item sale price +25 percent.");
+    internal override int Cost => 1;
+    internal override int Type => 0; // 正面绿色
+    internal override string[] IncompatibleIds => new[] { "童叟无欺" }; // 与童叟无欺互斥
+
+    internal override void OnNewGame()
+    {
+    }
+
+    internal static bool IsActive()
+    {
+        return Core.PerkActive(PerkId);
     }
 }
 
