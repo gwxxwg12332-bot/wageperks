@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
@@ -42,17 +43,50 @@ public static class WageGirlSystem
         // 09-19 删除占位图标：用 13 状态动画帧
     }
 
-    // ===================== 状态读写（全局 NS 随档） =====================
-    internal static int GetStat(string k) { try { return PerkStatePersistence.GetInt(NS, k, STAT_INIT); } catch { return STAT_INIT; } }
+    // ===================== 状态读写（内存优先 + 打烊落盘） =====================
+    // 09-20 修：内存缓存——运行时状态只写内存，打烊SaveGame时PostfixSaveGame落盘
+    private static readonly Dictionary<string, int> _memStats = new Dictionary<string, int>();
+    internal static int GetStat(string k) {
+        try {
+            if (_memStats.TryGetValue(k, out int v)) return v;
+            int saved = PerkStatePersistence.GetInt(NS, k, STAT_INIT);
+            _memStats[k] = saved;
+            return saved;
+        } catch { return STAT_INIT; }
+    }
     internal static void SetStat(string k, int v)
     {
-        try { PerkStatePersistence.SetInt(NS, k, Math.Max(0, Math.Min(STAT_MAX, v))); } catch { }
+        try { _memStats[k] = Math.Max(0, Math.Min(STAT_MAX, v)); } catch { }
     }
-    internal static int GetSleepDebt() { try { return PerkStatePersistence.GetInt(NS, K_SLEEP_DEBT, 0); } catch { return 0; } }
-    internal static void SetSleepDebt(int v) { try { PerkStatePersistence.SetInt(NS, K_SLEEP_DEBT, Math.Max(0, v)); } catch { } }
-    internal static int GetAffection() { try { return PerkStatePersistence.GetInt(NS, K_AFF, 0); } catch { return 0; } }
-    internal static void SetAffection(int v) { try { PerkStatePersistence.SetInt(NS, K_AFF, Math.Max(0, Math.Min(AFF_MAX, v))); } catch { } }
-    internal static bool Exists() { try { return PerkStatePersistence.GetInt(NS, K_EXIST, 0) == 1; } catch { return false; } }
+    internal static int GetSleepDebt() {
+        try {
+            string k = K_SLEEP_DEBT;
+            if (_memStats.TryGetValue(k, out int v)) return v;
+            int saved = PerkStatePersistence.GetInt(NS, k, 0);
+            _memStats[k] = saved;
+            return saved;
+        } catch { return 0; }
+    }
+    internal static void SetSleepDebt(int v) { try { _memStats[K_SLEEP_DEBT] = Math.Max(0, v); } catch { } }
+    internal static int GetAffection() {
+        try {
+            string k = K_AFF;
+            if (_memStats.TryGetValue(k, out int v)) return v;
+            int saved = PerkStatePersistence.GetInt(NS, k, 0);
+            _memStats[k] = saved;
+            return saved;
+        } catch { return 0; }
+    }
+    internal static void SetAffection(int v) { try { _memStats[K_AFF] = Math.Max(0, Math.Min(AFF_MAX, v)); } catch { } }
+    internal static bool Exists() {
+    // 09-20 修：实体优先——天然随档，免疫 default_run 残留（根治连续开新档不出现）
+    // 1) 实体在 → 存在
+    try { if (ExistsInScene()) return true; } catch { }
+    // 2) 跑路/离开中 → 视为存在，不补发
+    try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > CurrentDay()) return true; } catch { }
+    // 3) 其余 → 不存在（补发）——忽略 K_EXIST 残留
+    return false;
+}
 
     internal static void SetExists(bool v) { try { PerkStatePersistence.SetInt(NS, K_EXIST, v ? 1 : 0); } catch { } }
 
@@ -358,7 +392,7 @@ public static class WageGirlSystem
                 TryGiveToBackpack();
             }
             if (!Exists() && !WageGirlPerk.IsActive()) return; // 09-23 Perk 化：没选「蛙娘」且从未出现 → 跳过全部结算（修复未选也扣钱）
-            SetExists(true); // 09-22 每天幂等写——防 default_run 残留（exists 只在首次分支写会永久残留，跨档污染）
+            // 09-20 修：SetExists调用退役——Exists()改实体优先，不再写K_EXIST防default_run污染
             // 六维每日衰减（睡眠除外——仿生女仆夜间自然恢复睡眠）
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
                 SetStat(k, GetStat(k) - DAILY_DECAY);
@@ -1218,7 +1252,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
     private static void EnsureSprites()
     {
-        if (_spIdle != null) return;
+        if (_spIdle != null && _spIdle.Length > 0 && _spIdle[0] != null) return; // 09-20 修：元素级防重入
         try
         {
             _spIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
@@ -1288,9 +1322,13 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 if (icType != null) break;
             }
             if (icType != null)
-                _loadImageMethod = icType.GetMethod("LoadImage",
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
-                    null, new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }, null);
+            {
+                // 09-20 修：GetMethod 精确参数匹配失败（IL2CPP 签名是 byte[]）→ 宽松遍历
+                foreach (var m in icType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                {
+                    if (m.Name == "LoadImage") { var ps = m.GetParameters(); if (ps.Length == 2) { _loadImageMethod = m; break; } }
+                }
+            }
         }
         catch { }
     }
@@ -1393,20 +1431,31 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (Time.time - _lastDiagTime > 5f)
             {
                 _lastDiagTime = Time.time;
-                string elState = "n/a";
                 try
                 {
-                    var it = _cachedGirlItem != null ? _cachedGirlItem : FindGirlItem();
-                    if (it == null) elState = "not-found";
-                    else
-                    {
-                        GameItemElement te = null;
-                        try { te = it as GameItemElement; } catch { }
-                        if (te == null) { try { te = it.Cast<GameItemElement>(); } catch { } }
-                        elState = te != null ? "element-cast-ok" : "not-element";
-                    }
-                }
-                catch { }
+                    string gridName = "?"; int gw2 = 0, gh2 = 0;
+                    try {
+                        var em2 = EmporiumEntry.Instance;
+                        if (em2 != null) {
+                            GameGridInventory[] gs2 = new GameGridInventory[] { em2.invElement as GameGridInventory, em2.frontInvinvElement as GameGridInventory, em2.showcaseElement as GameGridInventory, em2.backInvinvElement as GameGridInventory };
+                            string[] gn2 = { "inv","front","showcase","back" };
+                            for (int gi = 0; gi < 4; gi++) {
+                                if (gs2[gi] == null || gs2[gi].childItems == null) continue;
+                                foreach (var cc in gs2[gi].childItems) {
+                                    if (cc != null && cc.identifier == ENTITY_ID) {
+                                        gridName = gn2[gi];
+                                        try { var is2 = gs2[gi].inventoryShape; if (is2 != null) { gw2 = is2.width; gh2 = is2.height; } } catch { }
+                                        break;
+                                    }
+                                }
+                                if (gridName != "?") break;
+                            }
+                        }
+                    } catch { }
+                    string aLen = _curAnimSprites == null ? "-1" : _curAnimSprites.Length.ToString();
+                    string a0null = (_curAnimSprites == null || _curAnimSprites.Length == 0 || _curAnimSprites[0] == null) ? "Y" : "N";
+                    Core.LogMsg("[蛙娘诊断] grid=" + gridName + " " + gw2 + "x" + gh2 + " walk=" + _walking + " steps=" + _stepsTaken + " state=" + _curState + " animLen=" + aLen + " anim0null=" + a0null + " frameIdx=" + _frameIndex + " girlNull=" + (_cachedGirlItem == null));
+                } catch { }
             }
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
@@ -1536,6 +1585,13 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             }
             if (el == null) return;
             Sprite f = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
+            // 09-20 修：第0帧null fallback——循环找下一个非null帧（IL2CPP首次类型延迟导致arr[0]=null）
+            if (f == null) {
+                for (int k = 1; k < _curAnimSprites.Length; k++) {
+                    int idx = (_frameIndex + k) % _curAnimSprites.Length;
+                    if (_curAnimSprites[idx] != null) { f = _curAnimSprites[idx]; break; }
+                }
+            }
             if (f == null) return;
             el.ApplyAnimationFrame(f);
         }
@@ -1671,9 +1727,54 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
     // ApplyAnimationFrame Prefix：蛙娘替换帧（美术方案——原生 Tick 调此方法时替换；帧索引由 OnUpdateTick 推进）
     // 读档后一次性重置（OnGameLoadedNormal hook）——不每帧调，避免闪烁/拖不动
+    
+            // 09-20 修：StartNewGame Postfix——GameMaster.NewGame从没执行，挪到这里
+        public static void PostfixStartNewGame()
+        {
+            try {
+                Core.LogMsg("[蛙诊] PostfixStartNewGame 触发"); // 诊断
+                CleanDefaultRunOnNewGame();
+                ResetForNewGame();
+                _memStats.Clear(); // 防连续开新档进程内残留
+            } catch { }
+        }
+
+        // 09-20 修：打烊SaveGame时把内存缓存落盘到PlayerPrefs
+        public static void PostfixSaveGame()
+        {
+            try {
+                foreach (var kv in _memStats)
+                    PerkStatePersistence.SetInt(NS, kv.Key, kv.Value);
+            } catch { }
+        }
+
+        // 09-20 修：新档硬重置蛙娘状态（根治初次偷拿不触发——lastStealDay残留）
+        internal static void ResetForNewGame()
+        {
+            try {
+                // 清 default_run 残留
+                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, 0);
+                PerkStatePersistence.SetInt(NS, K_EXIST, 0);
+                PerkStatePersistence.SetInt(NS, K_LEAVE, 0);
+                // 六维重置为初始 60
+                SetStat("sat", STAT_INIT);
+                SetStat("th", STAT_INIT);
+                SetStat("health", STAT_INIT);
+                SetStat("mood", STAT_INIT);
+                SetStat("clean", STAT_INIT);
+                SetStat("sleep", STAT_INIT);
+                // 好感重置
+                SetAffection(0);
+            } catch { }
+        }
+
+    internal static void ClearMemStats() { try { _memStats.Clear(); } catch { } }
+
     public static void OnGameLoadedReset()
     {
         try {
+            Core.LogMsg("[蛙诊] OnGameLoadedReset 触发"); // 诊断
+            _memStats.Clear(); // 09-20 修：读档清内存缓存——下次GetStat自动从Prefs重载存档值
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
             try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
         } catch { }
@@ -1708,6 +1809,12 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 return;
             }
             Sprite s = _curAnimSprites[_frameIndex % _curAnimSprites.Length];
+            if (s == null) {
+                for (int k = 1; k < _curAnimSprites.Length; k++) {
+                    int idx = (_frameIndex + k) % _curAnimSprites.Length;
+                    if (_curAnimSprites[idx] != null) { s = _curAnimSprites[idx]; break; }
+                }
+            }
             if (s != null) frame = s;
         }
         catch { }

@@ -504,7 +504,8 @@ public class Core : MelonMod
 			{
 				LogMsg("[ModHook] OnGameLoaded霉运失败: " + ex2.Message);
 			}
-			try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓存
+			
+try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓存
 		if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				Patches.ScheduleJacksonToday();
@@ -661,7 +662,10 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(GuMachineSystem));
-			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageGirlSystem)); // 09-20 蛙娘图标链：wage_girl_icon → 32×48 静态图标（modifiedShape=2×3 权威来源）
+			ManualPatcher.TryPatch(typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageGirlSystem)); // 09-20 蛙娘图标链
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘打烊落盘内存缓存
+			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘新档硬重置
+
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(AddictOfficerEvent));
