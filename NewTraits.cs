@@ -130,7 +130,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("童叟无欺", "Honest Dealer");
     internal override string Description => LangHelper.T("做生意童叟无欺：声誉增长速度 +25%，客户更信任你；但你的售价也得公道——卖出商品收益 -25%。", "Honest dealing: reputation gain +25 percent, but you sell at fair prices - sale income -25 percent.");
-    internal override int Cost => -5;
+    internal override int Cost => 1; // 09-20 用户拍板：-5→1
     internal override int Type => 1; // 负面红色
     internal override string[] IncompatibleIds => new[] { "笑面虎" }; // 与笑面虎互斥
 
@@ -229,7 +229,7 @@ internal sealed class BadLuckPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("霉运缠身", "Bad Luck");
     internal override string Description => LangHelper.T("你仿佛被诅咒了。每天新的一天开始时都会丢失一笔钱（100-1500信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 100-1500 credits every day as a new day begins.");
-    internal override int Cost => -10;   // 返还10点（每天50-200平均125/天×永久）
+    internal override int Cost => -15;   // 09-20 用户拍板：-10→-15
     internal override int Type => 1;    // 负面特性显示为红色
 
     internal override void OnNewGame() { }
@@ -250,7 +250,7 @@ internal sealed class BadReputationPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("信誉扫地", "Bad Reputation");
-    internal override string Description => LangHelper.T("你的名声很差，顾客不信任你。卖东西价格-20%，买东西价格+20%——顾客总想趁火打劫。想翻身，先挽回名声。", "Poor reputation. Sell price -20 percent, buy price +20 percent.");
+    internal override string Description => LangHelper.T("你的名声很差，顾客不信任你。卖东西价格-20%，买东西价格+20%。想翻身：提升 4 个势力好感各到一星（≥20），全部达标后负面效果自动解除。", "Poor reputation. Sell price -20%, buy price +20%. To clear: raise all 4 factions to 1-star (≥20); effect auto-disables when all met.");
     internal override int Cost => -7;   // 返还7点（实际卖-20%/买+20%，4势力好感全20才解除，50天+）
     internal override int Type => 1;    // 负面特性显示为红色
 
