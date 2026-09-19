@@ -1472,7 +1472,10 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
                 _cachedGirlItem = FindGirlItem();
                 if (_cachedGirlItem != null) {
-                    // 读档后 Sprite 缓存可能被 GC → 强制重载（不调 ApplyIcon，让动画帧自己接管）
+                    // 读档后：游戏重建的蛙娘 sprite 是存档旧版 → 强制清旧发新
+                    try { RemoveGirlFromScene(); } catch { }
+                    try { TryGiveToBackpack(); } catch { }
+                    _cachedGirlItem = FindGirlItem(); // 重新找新实体
                     _spIdle = null; _spHappy = null; _spHungry = null; _spThirsty = null; _spSick = null; _spDirty = null; _spSleepy = null; _spAngry = null; _spShy = null; _spFull = null; _spAway = null; _spReturn = null; _spWalk = null;
                     try { EnsureSprites(); } catch { }
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f;
