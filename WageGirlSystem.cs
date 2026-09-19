@@ -1638,10 +1638,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try {
             if (__instance == null) return;
             if (__instance.identifier != ENTITY_ID) return;
-            GameItem it = __instance.GetComponent<GameItem>();
-            if (it == null) return;
-            // 只在 spritePath 不对时设（轻量，不卡）
-            try { if (it.spritePath != ICON) it.SetSpriteAndShape(ICON_ATLAS, ICON); } catch { }
+            // GameItemElement 继承 GameItem，直接用 __instance
+            try { if (__instance.spritePath != ICON) __instance.SetSpriteAndShape(ICON_ATLAS, ICON); } catch { }
         } catch { }
     }
 
