@@ -826,8 +826,9 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                 }
             }
             if (it == null) return;
-            AddToFront(it);
-            ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!"));
+            GameItem giftCrate = CreateSupplyCrate(it.unitValue);
+            if (giftCrate != null) { AddToFront(giftCrate); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一只物资箱！", "Wage Girl brought a supply crate today!")); }
+            else { AddToFront(it); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!")); }
         }
         catch { }
     }
@@ -934,7 +935,12 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (clean < min) { min = clean; mode = "care"; }
             if (sleep < min) { min = sleep; mode = "sleep"; }
             GameItem gift = FindCategoryItem(mode);
-            if (gift != null) { AddToFront(gift); ReportLine(LangHelper.T("蛙娘回来了，带了份礼物补偿你", "Wage Girl is back with a gift to make up")); }
+            if (gift != null)
+                {
+                    GameItem giftBox = CreateSupplyCrate(gift.unitValue);
+                    if (giftBox != null) AddToFront(giftBox); else AddToFront(gift);
+                    ReportLine(LangHelper.T("蛙娘回来了，带了份物资箱补偿你", "Wage Girl is back with a supply crate to make up"));
+                }
             else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
             int stolen = StealItems("random", 1, "highest", out var _);
             if (stolen > 0) ReportLine(LangHelper.T("……然后顺手偷了你 1 件东西", "...then swiped one of your things"));
@@ -1111,14 +1117,18 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (inv != null)
             {
                 long spent = 0; int tries = 0;
+                bool wantContraband = Core.Rng.Next(100) < 5; // 好物95% / 违禁5%
                 var pool = new System.Collections.Generic.List<string>(FrogPowerPerk.ItemPool);
-                while (spent < targetValue && tries < 30 && pool.Count > 0)
+                while (spent < targetValue && tries < 40 && pool.Count > 0)
                 {
                     int idx = Core.Rng.Next(pool.Count);
                     string id = pool[idx]; pool.RemoveAt(idx);
                     GameItem it = null;
                     try { it = DirectoryMaster.Item(id, true); } catch { }
                     if (it == null) { tries++; continue; }
+                    bool isContra = false;
+                    try { isContra = ContrabandHelper.GetContrabandLevel(it) > 0; } catch { }
+                    if (wantContraband != isContra) { tries++; continue; } // 分流不符跳过
                     try { inv.UncheckedAccept(it); spent += it.unitValue; } catch { tries++; }
                 }
             }
