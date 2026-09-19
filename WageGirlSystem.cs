@@ -1212,7 +1212,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static int _animMode = 0; // 0=待机 1=走动 2=偷
     private static float _animModeTimer = 0f;
     private static float _moveTimer = 0f;
-    private static float _lastDiagTime = 0f; // 09-22 动态诊断节流（用完删）
+    private static float _lastDiagTime = 0f;
+    private static float _lastGDiagTime = 0f; // [GDIAG] 节流 // 09-22 动态诊断节流（用完删）
     private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
     private static int _stepsTaken = 0;      // 本轮已走步数
@@ -1637,9 +1638,10 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try {
             if (__instance == null) return;
-            // 拆包实锤：identifier 读档后丢失 → 加 name==ICON 兜底（spritePath 随档）
-            if (__instance.identifier != ENTITY_ID && name != ICON) return;
-            if (_sprite != null) __result = _sprite; // 永远给 mod 图标
+            bool hit = (__instance.identifier == ENTITY_ID || name == ICON);
+            if (Time.time - _lastGDiagTime > 3f) { _lastGDiagTime = Time.time; Core.LogMsg("[GDIAG] Resolve: id=" + __instance.identifier + " name=" + name + " hit=" + hit + " sprite=" + (__result != null ? __result.name : "null")); }
+            if (!hit) return;
+            if (_sprite != null) __result = _sprite;
         } catch { }
     }
 
