@@ -261,7 +261,7 @@ public static class GuMachineSystem
             it.SetName(LangHelper.T("不稳定AI模组", "Unstable AI Module"));
             it.shortDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（上限：阉割75% / 不稳定150%），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (cap: Stable 75% / Unstable 150%), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
             it.longDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（上限：阉割75% / 不稳定150%），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (cap: Stable 75% / Unstable 150%), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
-            it.unitValue = 1000; it.unitBaseValue = 1000; // 原生属性
+            it.unitValue = 0; it.unitBaseValue = 0; // 价值由合成时吞噬原料之和定
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
             return it;
         }
@@ -578,6 +578,7 @@ public static class GuMachineSystem
                 int newP = Math.Min(cap, perf);
                 int newE = Math.Min(cap, eff);
                 int newQ = Math.Min(cap, qual);
+                long sumVal = 0; foreach (var mv in mods) { try { sumVal += mv.unitValue; } catch { } }
                 GameItem result = null;
                 try { result = DirectoryMaster.Item(AI_MODULE_ID); } catch { }
                 if (result != null)
@@ -590,6 +591,7 @@ public static class GuMachineSystem
                     if (newE > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_EFFICIENCY_INT", newE);
                     if (newQ > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_QUALITY_INT", newQ);
                     try { result.EnableTag("MODULE_TAG"); } catch { }
+                    try { result.unitValue = (int)sumVal; result.unitBaseValue = (int)sumVal; } catch { } // 价值=吞噬原料之和
                 }
                 // 09-19 吸取养蛊机教训：先清空原料腾格子、再入产出——原"先入产出后清空"导致 2×2 产出被原料占格
                 // → TryAcceptAllMid(-1) 静默失败（catch 吞掉）→ 产出丢失（"炼蛊成功的模组消失"同根因）
