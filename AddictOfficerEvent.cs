@@ -205,15 +205,32 @@ internal static class AddictOfficerEvent
         return false;
     }
 
-    // 容器内部库存：contentWindow.inventory（CustomStorageContainer 验证过的兜底路径）
+    // 容器内部库存（09-19 拆包实锤 L1）：
+    // 原生 PixelWindow 无 inventory 字段（dump.cs L61980/L61984-62053），内部网格经
+    // PixelWindow.Attach(GameGridInventory) 挂在 childElement（DirectoryUtils.txt L66-126）；
+    // 反射 inventory 对原生暗格恒 null（升级暗格搜不到的根因）。
+    // 通道1 inventory 反射：兼容蛙哥箱等自建 contentWindow；通道2 childElement：原生容器正路
+    // （复用 ContainerUpgradeV2.GetContainerGrid，与升级系统/养蛊机/虚空珠同一已验证路径）。
     internal static GameInventory GetInnerInventory(GameItem container)
     {
         try
         {
             var w = container.contentWindow;
             if (w == null) return null;
-            var prop = w.GetType().GetProperty("inventory", BindingFlags.Public | BindingFlags.Instance);
-            return prop?.GetValue(w) as GameInventory;
+            try
+            {
+                var prop = w.GetType().GetProperty("inventory", BindingFlags.Public | BindingFlags.Instance);
+                var inv = prop?.GetValue(w) as GameInventory;
+                if (inv != null) return inv;
+            }
+            catch { }
+            try
+            {
+                var grid = ContainerUpgradeV2.GetContainerGrid(container);
+                if (grid != null) return grid;
+            }
+            catch { }
+            return null;
         }
         catch { return null; }
     }
