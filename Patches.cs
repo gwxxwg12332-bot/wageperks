@@ -1721,7 +1721,8 @@ internal static class Patches
 			if (faceMult != 1.0)
 			{
 				result = (long)((double)result * faceMult);
-				AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling);
+				int facePct = SmilingFacePerk.IsActive() ? 25 : -25;
+					AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling, facePct);
 			}
 		}
 		catch
@@ -2251,8 +2252,9 @@ itemFeature.isFeatureExposed = true;
 				itemFeature.featureType = ItemFeature.FeatureType.TemporarySelling;
 				itemFeature.valueStage = ItemFeature.ValueStage.Market;
 				itemFeature.valueModifier = 0;
-				itemFeature.preExposeValueModifier = 0;
-				itemFeature.usePreExposeValue = false;
+				int tradePct = (text == "risk_taker_markup") ? 20 : 25;
+				itemFeature.preExposeValueModifier = tradePct;
+				itemFeature.usePreExposeValue = true;
 				itemFeature.initiallyShown = true;
 itemFeature.isFeatureMatch = true;
 itemFeature.isFeatureExposed = true;
@@ -2282,7 +2284,7 @@ itemFeature.isFeatureExposed = true;
 	}
 
 	// 通用价格标签：面板"市场与商人"区显示原因行（仿 TryAddTradeFeature/TryAddRobinsonBuyMarkup）
-	private static void AddTradeLabel(GameItem item, string labelId, string display, ItemFeature.FeatureType ft)
+	private static void AddTradeLabel(GameItem item, string labelId, string display, ItemFeature.FeatureType ft, int percent = 0)
 	{
 		try
 		{
@@ -2301,8 +2303,8 @@ itemFeature.isFeatureExposed = true;
 			f.featureType = ft;
 			f.valueStage = ItemFeature.ValueStage.Market;
 			f.valueModifier = 0;
-			f.preExposeValueModifier = 0;
-			f.usePreExposeValue = false;
+			f.preExposeValueModifier = percent;
+			f.usePreExposeValue = percent != 0;
 			f.initiallyShown = true;
 f.isFeatureMatch = true;
 f.isFeatureExposed = true;
@@ -2366,8 +2368,8 @@ itemFeature.isFeatureExposed = true;
 			{
 				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "bad_reputation")
 				{
-					item.itemFeatures[i].preExposeValueModifier = 0;
-					item.itemFeatures[i].usePreExposeValue = false;
+					item.itemFeatures[i].preExposeValueModifier = modifier;
+					item.itemFeatures[i].usePreExposeValue = true;
 					return;
 				}
 			}
@@ -2376,8 +2378,8 @@ itemFeature.isFeatureExposed = true;
 			itemFeature.featureType = ((modifier < 0) ? ItemFeature.FeatureType.TemporarySelling : ItemFeature.FeatureType.TemporaryBuying);
 			itemFeature.valueStage = ItemFeature.ValueStage.Market;
 			itemFeature.valueModifier = 0;
-			itemFeature.preExposeValueModifier = 0;
-			itemFeature.usePreExposeValue = false;
+			itemFeature.preExposeValueModifier = modifier;
+			itemFeature.usePreExposeValue = true;
 			itemFeature.initiallyShown = true;
 itemFeature.isFeatureMatch = true;
 itemFeature.isFeatureExposed = true;
