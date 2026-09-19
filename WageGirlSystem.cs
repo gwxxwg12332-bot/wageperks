@@ -943,7 +943,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 long spent7 = 0; var names7 = new System.Collections.Generic.List<string>();
                 for (int i = 0; i < n7 && spent7 < target; i++)
                 {
-                    GameItem it7 = FindItemNearValue(Math.Min(per7, target - spent7), 0, false);
+                    GameItem it7 = FindItemNearValue(Math.Min(per7, target - spent7), 7, false);
                     if (it7 == null) break;
                     AddToFront(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
                 }
@@ -1046,6 +1046,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         public bool FoodDrink;
         public bool Daily;
         public bool WeaponTool;
+        public bool Module;
     }
     private static System.Collections.Generic.Dictionary<string, ItemInfo> _itemInfoCache;
     private static void EnsureItemCache()
@@ -1072,6 +1073,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                     info.FoodDrink = RobinCrusoePerk.IsFood(g) || RobinCrusoePerk.IsDrink(g);
                     info.Daily = RobinCrusoePerk.IsDailyNeed(g);
                     info.WeaponTool = IsWeaponOrTool(id);
+            try { info.Module = g.IsTag("MODULE_TAG"); } catch { }
                     _itemInfoCache[id] = info;
                     try { g.Destroy(); } catch { }
                 }
@@ -1102,6 +1104,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         if (cat == 1) return info.FoodDrink;
         if (cat == 2) return info.Daily;
         if (cat == 3) return info.WeaponTool;
+        if (cat == 7) return info.Module;
         return true;
     }
 
