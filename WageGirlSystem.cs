@@ -189,9 +189,9 @@ public static class WageGirlSystem
                 // 销赃类别按钮（09-22 用户拍板：可选项，点击循环切换：随机/食物饮品/日用品/武器工具）
                 try
                 {
-                    string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool") };
+                    string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool"), LangHelper.T("物资箱", "Supply Crate"), LangHelper.T("指挥卡", "Keycard") };
                     int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
-                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 3) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
+                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 5) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("销赃类别：" + cats[curCat], "Fence type: " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
                 }
                 catch { }
@@ -869,6 +869,36 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             long target = (long)(amt * (1f - fee));
             if (target < 1) target = 1;
             int cat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
+            // cat==4 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
+            if (cat == 4)
+            {
+                GameItem crate = CreateSupplyCrate(target);
+                if (crate != null) { AddToFront(crate); ReportLine(LangHelper.T("蛙娘销赃回来了，带了一只物资箱", "Wage Girl fenced and brought a supply crate")); }
+                else ReportLine(LangHelper.T("蛙娘销赃回来了（没弄到箱子）", "Wage Girl is back (no crate)"));
+                return;
+            }
+            // cat==5 指挥卡：cmd_keycard + 差额按随机物品补足
+            if (cat == 5)
+            {
+                GameItem kc = null;
+                try { kc = DirectoryMaster.Item("cmd_keycard", true); } catch { }
+                long kcVal = 0;
+                var names5 = new System.Collections.Generic.List<string>();
+                if (kc != null) { AddToFront(kc); kcVal = kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
+                long remain = target - kcVal;
+                int n5 = (int)Math.Max(1, Math.Min(5, remain / 500));
+                long per5 = remain / Math.Max(1, n5);
+                long spent5 = 0;
+                for (int i = 0; i < n5 && spent5 < remain; i++)
+                {
+                    GameItem it5 = FindItemNearValue(Math.Min(per5, remain - spent5), 0, false);
+                    if (it5 == null) break;
+                    AddToFront(it5); spent5 += it5.unitValue; names5.Add(ModCannibalism.GetName(it5));
+                }
+                if (names5.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names5), "Wage Girl fenced and brought: " + string.Join(", ", names5)));
+                else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
+                return;
+            }
             // 拆件：每 500 价值 1 件（1-5 件）；单件目标 = 总目标/件数
             int n = (int)Math.Max(1, Math.Min(5, target / 500));
             long perTarget = target / n;
@@ -1056,6 +1086,45 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             else inv.UncheckedAccept(it);
         }
         catch { }
+    }
+
+    // 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
+    private static GameItem CreateSupplyCrate(long targetValue)
+    {
+        try
+        {
+            string[] boxes = { "evidence_box", "med_box", "sec_box", "service_box", "eng_box" };
+            string bid = boxes[Core.Rng.Next(boxes.Length)];
+            GameItem crate = CustomStorageContainer.CreateLootCrate(bid);
+            if (crate == null) return null;
+            GameInventory inv = null;
+            try
+            {
+                var cw = crate.contentWindow;
+                if (cw != null)
+                {
+                    var prop = cw.GetType().GetProperty("inventory", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    if (prop != null) inv = prop.GetValue(cw) as GameInventory;
+                }
+            }
+            catch { }
+            if (inv != null)
+            {
+                long spent = 0; int tries = 0;
+                var pool = new System.Collections.Generic.List<string>(FrogPowerPerk.ItemPool);
+                while (spent < targetValue && tries < 30 && pool.Count > 0)
+                {
+                    int idx = Core.Rng.Next(pool.Count);
+                    string id = pool[idx]; pool.RemoveAt(idx);
+                    GameItem it = null;
+                    try { it = DirectoryMaster.Item(id, true); } catch { }
+                    if (it == null) { tries++; continue; }
+                    try { inv.UncheckedAccept(it); spent += it.unitValue; } catch { tries++; }
+                }
+            }
+            return crate;
+        }
+        catch { return null; }
     }
 
     // ===================== 动画系统（09-22 蛙娘动画帧集成，用户拍板 B：真移动+走动帧） =====================

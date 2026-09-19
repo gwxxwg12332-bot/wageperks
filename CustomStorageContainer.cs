@@ -482,7 +482,7 @@ namespace JacksonPerks
         /// <summary>
         /// 创建带原版内容的上锁箱子（用PreBuiltItemHelper.LootCrate*）
         /// </summary>
-        private static GameItem CreateLootCrate(string itemId)
+        public static GameItem CreateLootCrate(string itemId)
         {
             try
             {
