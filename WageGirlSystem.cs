@@ -189,9 +189,9 @@ public static class WageGirlSystem
                 // 销赃类别按钮（09-22 用户拍板：可选项，点击循环切换：随机/食物饮品/日用品/武器工具）
                 try
                 {
-                    string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool"), LangHelper.T("物资箱", "Supply Crate"), LangHelper.T("指挥卡", "Keycard") };
+                    string[] cats = { LangHelper.T("随机", "Random"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool"), LangHelper.T("物资箱", "Supply Crate"), LangHelper.T("指挥卡", "Keycard"), LangHelper.T("医药品", "Medicine"), LangHelper.T("模板", "Module") };
                     int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
-                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 5) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
+                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 7) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("销赃类别：" + cats[curCat], "Fence type: " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
                 }
                 catch { }
@@ -900,6 +900,49 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
+            // cat==6 医药品：必带免疫宁(large_purple_injector) + 差额补医疗物品
+            if (cat == 6)
+            {
+                GameItem im = null;
+                try { im = DirectoryMaster.Item("large_purple_injector", true); } catch { }
+                long imVal = 0;
+                var names6 = new System.Collections.Generic.List<string>();
+                if (im != null) { AddToFront(im); imVal = im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
+                long remain6 = target - imVal;
+                int n6 = (int)Math.Max(1, Math.Min(5, remain6 / 500));
+                long per6 = remain6 / Math.Max(1, n6);
+                long spent6 = 0;
+                for (int i = 0; i < n6 && spent6 < remain6; i++)
+                {
+                    GameItem it6 = FindItemNearValue(Math.Min(per6, remain6 - spent6), 0, false);
+                    if (it6 == null) break;
+                    AddToFront(it6); spent6 += it6.unitValue; names6.Add(ModCannibalism.GetName(it6));
+                }
+                if (names6.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names6), "Wage Girl fenced and brought: " + string.Join(", ", names6)));
+                else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
+                return;
+            }
+            // cat==7 模板：随机模块物品(MODULE_TAG)直到价值达标
+            if (cat == 7)
+            {
+                var ids7 = DirectoryMaster.GetIdentifierList<GameItem>(null);
+                var pool7 = new System.Collections.Generic.List<string>();
+                if (ids7 != null) { foreach (string id in ids7) { if (!string.IsNullOrEmpty(id)) pool7.Add(id); } }
+                long spent7 = 0; var names7 = new System.Collections.Generic.List<string>(); int tries7 = 0;
+                while (spent7 < target && tries7 < 30 && pool7.Count > 0)
+                {
+                    int idx7 = Core.Rng.Next(pool7.Count); string id7 = pool7[idx7]; pool7.RemoveAt(idx7);
+                    GameItem it7 = null;
+                    try { it7 = DirectoryMaster.Item(id7, true); } catch { }
+                    if (it7 == null) { tries7++; continue; }
+                    bool isMod = false; try { isMod = it7.IsTag("MODULE_TAG"); } catch { }
+                    if (!isMod) { tries7++; continue; }
+                    AddToFront(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
+                }
+                if (names7.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names7), "Wage Girl fenced and brought: " + string.Join(", ", names7)));
+                else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
+                return;
+            }
             // 拆件：每 500 价值 1 件（1-5 件）；单件目标 = 总目标/件数
             int n = (int)Math.Max(1, Math.Min(5, target / 500));
             long perTarget = target / n;
@@ -1087,9 +1130,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             EmporiumEntry em = EmporiumEntry.Instance;
             if (em == null || em.frontInvinvElement == null) return;
             var inv = (GameInventory)em.frontInvinvElement;
-            var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
-            if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
-            else inv.UncheckedAccept(it);
+            inv.UncheckedAccept(it); // 叠放：优先蛙娘站立的前台空间，不找空位
         }
         catch { }
     }
