@@ -458,6 +458,15 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
                 return;
             }
+            // 心情>=80 自动归还偷的东西
+            try {
+                int sv = PerkStatePersistence.GetInt(NS, "stolenValue", 0);
+                if (GetStat(K_MOOD) >= 80 && sv > 0) {
+                    GiveBackItem(sv);
+                    PerkStatePersistence.SetInt(NS, "stolenValue", 0);
+                    ReportLine(LangHelper.T("蛙娘心情大好，把之前偷的东西都还回来了", "Wage Girl is in a great mood and returned everything she stole"));
+                }
+            } catch { }
             // 5) 日常自主偷拿（状态触发）
             TrySnatch();
             // 6) 好物：好感 ≥50 每 7 天带 1 件
@@ -499,7 +508,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             else return;
             int aff = GetAffection();
             int count = aff < 30 ? 1 : (aff < 70 ? 2 : 3);
-            string valueMode = aff < 30 ? "highest" : (aff < 70 ? "random" : "low");
+            string valueMode = mood >= 60 ? "low" : "highest"; // 心情好偷低值/心情差偷高值
             int stolen = StealItems(mode, count, valueMode, out var stolenNames);
             if (stolen > 0)
             {
@@ -567,11 +576,13 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                     pool.RemoveAt(idx);
                 }
             }
-            int stolen = 0;
+            int stolen = 0; long stolenVal = 0;
             foreach (var p in picked)
             {
+                try { stolenVal += p.unitValue; } catch { }
                 try { p.Destroy(); stolen++; } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; } } catch { } }
             }
+            try { PerkStatePersistence.SetInt(NS, "stolenValue", PerkStatePersistence.GetInt(NS, "stolenValue", 0) + (int)Math.Min(stolenVal, int.MaxValue)); } catch { }
             return stolen;
         }
         catch { stolenNames = null; return 0; }
@@ -922,21 +933,16 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
-            // cat==7 模板：随机模块物品(MODULE_TAG)直到价值达标
+            // cat==7 模板：按价值拆件带回（复用 FindItemNearValue，模块优先）
             if (cat == 7)
             {
-                var ids7 = DirectoryMaster.GetIdentifierList<GameItem>(null);
-                var pool7 = new System.Collections.Generic.List<string>();
-                if (ids7 != null) { foreach (string id in ids7) { if (!string.IsNullOrEmpty(id)) pool7.Add(id); } }
-                long spent7 = 0; var names7 = new System.Collections.Generic.List<string>(); int tries7 = 0;
-                while (spent7 < target && tries7 < 30 && pool7.Count > 0)
+                int n7 = (int)Math.Max(1, Math.Min(5, target / 500));
+                long per7 = target / Math.Max(1, n7);
+                long spent7 = 0; var names7 = new System.Collections.Generic.List<string>();
+                for (int i = 0; i < n7 && spent7 < target; i++)
                 {
-                    int idx7 = Core.Rng.Next(pool7.Count); string id7 = pool7[idx7]; pool7.RemoveAt(idx7);
-                    GameItem it7 = null;
-                    try { it7 = DirectoryMaster.Item(id7, true); } catch { }
-                    if (it7 == null) { tries7++; continue; }
-                    bool isMod = false; try { isMod = it7.IsTag("MODULE_TAG"); } catch { }
-                    if (!isMod) { tries7++; continue; }
+                    GameItem it7 = FindItemNearValue(Math.Min(per7, target - spent7), 0, false);
+                    if (it7 == null) break;
                     AddToFront(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
                 }
                 if (names7.Count > 0) ReportLine(LangHelper.T("蛙娘销赃回来了，带了：" + string.Join("、", names7), "Wage Girl fenced and brought: " + string.Join(", ", names7)));
@@ -1128,9 +1134,9 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         {
             if (it == null) return;
             EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null || em.frontInvinvElement == null) return;
-            var inv = (GameInventory)em.frontInvinvElement;
-            inv.UncheckedAccept(it); // 叠放：优先蛙娘站立的前台空间，不找空位
+            if (em == null || em.backInvinvElement == null) return;
+            var inv = (GameInventory)em.backInvinvElement;
+            inv.UncheckedAccept(it); // 主仓库(后库)
         }
         catch { }
     }
@@ -1148,10 +1154,12 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             try
             {
                 var cw = crate.contentWindow;
+                Core.LogMsg("[箱诊] crate id=" + crate.identifier + " cw=" + (cw==null?"null":"ok"));
                 if (cw != null)
                 {
                     var prop = cw.GetType().GetProperty("inventory", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                    if (prop != null) inv = prop.GetValue(cw) as GameInventory;
+                    inv = prop != null ? (prop.GetValue(cw) as GameInventory) : null;
+                    Core.LogMsg("[箱诊] inv=" + (inv==null?"null":"ok"));
                 }
             }
             catch { }
