@@ -1515,7 +1515,11 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 {
                     var c = gi.childItems[i];
                     if (c == null) continue;
-                    if (c.identifier == ENTITY_ID) return c;
+                    if (c.identifier == ENTITY_ID) {
+                        // 09-19 修：读档后 shape 变 1×1 → 强制 2×3
+                        try { if (_girlShape == null) { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } c.SetShape(_girlShape); } catch { }
+                        return c;
+                    }
                 }
             }
         }
