@@ -1219,7 +1219,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）
     private static float _pauseTimer = 0f;   // 停顿计时
     private static float _pauseDuration = 4f;// 停顿时长（随机 3-6 秒）
-    private static GridShape _girlShape = new GridShapeBuilder().SetDataFill(2, 3).Build(); // 09-19 字段初始化保证非null
+    private static GridShape _girlShape; // 运行时初始化（Unity就绪后）
     private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
 
     private static void EnsureSprites()
@@ -1453,6 +1453,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try
         {
+            // 确保 _girlShape 初始化（Unity就绪后）
+            try { if (_girlShape == null) { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); _girlShape = gsb.Build(); } } catch { }
             // 读档后旧引用已销毁（parentInventory==null）→ 立即重置重找
             try { if (_cachedGirlItem != null && _cachedGirlItem.parentInventory == null) { _cachedGirlItem = null; _cacheRefreshFrames = 0; } } catch { _cachedGirlItem = null; }
             if (_cachedGirlItem == null || _cacheRefreshFrames <= 0)
