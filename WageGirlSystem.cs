@@ -453,7 +453,7 @@ public static class WageGirlSystem
             {
                 System.Collections.Generic.List<string> stolenNames0 = null;
                 int stolen = StealItems("random", 1, "highest", out stolenNames0);
-                if (stolen > 0) ModCashN(-50);
+                ModCashN(-50); // 09-19 新档第一天必偷50（不管有没有东西）
                 string sn0 = (stolenNames0 != null && stolenNames0.Count > 0) ? string.Join("、", stolenNames0) : LangHelper.T("你的东西", "something");
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
                 return;
