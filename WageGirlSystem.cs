@@ -1264,12 +1264,10 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             try
             {
                 var cw = crate.contentWindow;
-                Core.LogMsg("[箱诊] crate id=" + crate.identifier + " cw=" + (cw==null?"null":"ok"));
                 if (cw != null)
                 {
                     var prop = cw.GetType().GetProperty("inventory", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
                     inv = prop != null ? (prop.GetValue(cw) as GameInventory) : null;
-                    Core.LogMsg("[箱诊] inv=" + (inv==null?"null":"ok"));
                 }
             }
             catch { }

@@ -29,7 +29,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.4", "gwxxwg12332", null)]
+[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.4", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace JacksonPerks;
@@ -354,7 +354,7 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = true; // 开发状态默认开（用户规范：电脑里永远开发状态；仅用户说发布时才关）
+	public static bool DebugMode = false; // 发布版关闭
 
 	// 09-22 用户拍板：全局物品黑名单（从所有我们的池子排除——蛙娘回归带物/流浪者随机/好物销赃等）
 	// 稀有电子元件 rare_electronic（MaterialDirectory L611 实锤）不进入任何我们的池子
