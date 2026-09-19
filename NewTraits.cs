@@ -130,7 +130,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("童叟无欺", "Honest Dealer");
     internal override string Description => LangHelper.T("做生意童叟无欺：声誉增长速度 +25%，客户更信任你；但你的售价也得公道——卖出商品收益 -25%。", "Honest dealing: reputation gain +25 percent, but you sell at fair prices - sale income -25 percent.");
-    internal override int Cost => -10;
+    internal override int Cost => -5;
     internal override int Type => 1; // 负面红色
     internal override string[] IncompatibleIds => new[] { "笑面虎" }; // 与笑面虎互斥
 
@@ -154,9 +154,9 @@ internal sealed class SmilingFacePerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("笑面虎", "Smiling Tiger");
-    internal override string Description => LangHelper.T("你总是笑脸迎人，顾客愿意为你的笑容多掏钱：所有商品售价 +25%。", "Always smiling, customers pay more for your goods: all item sale price +25 percent.");
+    internal override string Description => LangHelper.T("你总是笑脸迎人，顾客愿意为你的笑容多掏钱：所有商品售价 +25%。但笑脸背后也有代价：声誉获取 -25%——你这么会做人，治安部反而觉得你可疑。", "Always smiling, customers pay more: sale price +25 percent. But too smooth: reputation gain -25 percent.");
     internal override int Cost => 1;
-    internal override int Type => 0; // 正面绿色
+    internal override int Type => 2; // 混合黄色（售价+25% / 声誉-25%）
     internal override string[] IncompatibleIds => new[] { "童叟无欺" }; // 与童叟无欺互斥
 
     internal override void OnNewGame()

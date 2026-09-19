@@ -1712,6 +1712,11 @@ internal static class Patches
 				result = (long)((float)result * num2);
 				TryAddTradeFeature(item, flag, flag2);
 			}
+			// 笑面虎/童叟无欺：卖出价 ±25%（互斥保证不同时生效；面板+成交+预算全通）
+			double faceMult = 1.0;
+			if (SmilingFacePerk.IsActive()) faceMult = 1.25;
+			else if (SmilingTigerPerk.IsActive()) faceMult = 0.75;
+			if (faceMult != 1.0) result = (long)((double)result * faceMult);
 		}
 		catch
 		{
@@ -2451,51 +2456,19 @@ internal static class Patches
 	{
 		try
 		{
-			if (SmilingTigerPerk.IsActive())
+			if (SmilingFacePerk.IsActive())
 			{
-				__result *= 1.25; // 09-19 童叟无欺：声誉 +25%
+				__result *= 0.75; // 笑面虎：声誉获取 -25%（混合特性代价）
+			}
+			else if (SmilingTigerPerk.IsActive())
+			{
+				__result *= 1.25; // 童叟无欺：声誉 +25%
 			}
 		}
 		catch (System.Exception ex)
 		{
 			Core.LogMsg("[童叟无欺] 声誉补丁失败: " + ex.Message);
 		}
-	}
-
-	private static long _honestPrevValue = 0;
-	private static long _honestPrevBaseValue = 0;
-	private static bool _honestValuePatched = false;
-
-	public static void PrefixPlayerStoreSellItem(GameItem __0)
-	{
-		try
-		{
-			if (__0 == null) return;
-			double m = 1.0;
-			if (SmilingFacePerk.IsActive()) m = 1.25;       // 笑面虎：售价 +25%
-			else if (SmilingTigerPerk.IsActive()) m = 0.75; // 童叟无欺：卖出 -25%（互斥保证不同时生效）
-			if (m == 1.0) return;
-			_honestPrevValue = __0.unitValue;
-			_honestPrevBaseValue = __0.unitBaseValue;
-			_honestValuePatched = true;
-			__0.unitValue = (long)(__0.unitValue * m);
-			__0.unitBaseValue = (long)(__0.unitBaseValue * m);
-		}
-		catch { }
-	}
-
-	public static void PostfixPlayerStoreSellItem(GameItem __0)
-	{
-		try
-		{
-			if (_honestValuePatched && __0 != null)
-			{
-				__0.unitValue = _honestPrevValue;
-				__0.unitBaseValue = _honestPrevBaseValue;
-				_honestValuePatched = false;
-			}
-		}
-		catch { }
 	}
 
 	public static void PostfixGameItemGetDisplayName(GameItem __instance, ref string __result)
