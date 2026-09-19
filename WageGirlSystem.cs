@@ -1633,6 +1633,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try {
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
+            try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
         } catch { }
     }
 
