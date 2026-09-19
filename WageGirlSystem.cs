@@ -1189,7 +1189,9 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
 
     // ===================== 动画系统（09-22 蛙娘动画帧集成，用户拍板 B：真移动+走动帧） =====================
     // 12 帧 base64（WageGirlAnimFrames.cs）→ 运行时解码 Texture2D → Sprite[]（64×96 超采样，Point 缩回 32×48）
-    private static Sprite[] _spritesIdle, _spritesWalk, _spritesSteal;
+    private static Sprite[] _spIdle, _spHappy, _spHungry, _spThirsty, _spSick, _spDirty, _spSleepy, _spAngry, _spShy, _spFull, _spAway, _spReturn, _spWalk;
+    private static string _curState = "idle";
+    private static float _stateFrameSec = 0.375f;
     private static Sprite[] _curAnimSprites;
     private static int _frameIndex = 0;
     private static float _frameTimer = 0f;
@@ -1211,10 +1213,20 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         if (_spritesIdle != null) return;
         try
         {
-            _spritesIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
-            _spritesWalk = LoadSpriteGroup(WageGirlAnimFrames.Away);
-            _spritesSteal = LoadSpriteGroup(WageGirlAnimFrames.Angry);
-            _curAnimSprites = _spritesIdle;
+            _spIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
+            _spHappy = LoadSpriteGroup(WageGirlAnimFrames.Happy);
+            _spHungry = LoadSpriteGroup(WageGirlAnimFrames.Hungry);
+            _spThirsty = LoadSpriteGroup(WageGirlAnimFrames.Thirsty);
+            _spSick = LoadSpriteGroup(WageGirlAnimFrames.Sick);
+            _spDirty = LoadSpriteGroup(WageGirlAnimFrames.Dirty);
+            _spSleepy = LoadSpriteGroup(WageGirlAnimFrames.Sleepy);
+            _spAngry = LoadSpriteGroup(WageGirlAnimFrames.Angry);
+            _spShy = LoadSpriteGroup(WageGirlAnimFrames.Shy);
+            _spFull = LoadSpriteGroup(WageGirlAnimFrames.Full);
+            _spAway = LoadSpriteGroup(WageGirlAnimFrames.Away);
+            _spReturn = LoadSpriteGroup(WageGirlAnimFrames.Return);
+            _spWalk = LoadSpriteGroup(WageGirlAnimFrames.Walk);
+            _curAnimSprites = _spIdle;
         }
         catch { }
     }
@@ -1273,6 +1285,27 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     }
 
     // 动作切换（0 待机 / 1 走动 / 2 偷）
+    private static string EvalState()
+    {
+        try {
+            if (_animMode == 2) return "angry";
+            if (_animMode == 1) return "walk";
+            if (IsOut()) return "away";
+            int mood = GetStat(K_MOOD), health = GetStat(K_HEALTH), sat = GetStat(K_SAT), th = GetStat(K_TH), clean = GetStat(K_CLEAN), sleep = GetStat(K_SLEEP);
+            int aff = GetAffection();
+            if (mood <= 20) return "angry";
+            if (health <= 30) return "sick";
+            if (sat <= 30) return "hungry";
+            if (th <= 30) return "thirsty";
+            if (clean <= 30) return "dirty";
+            if (sleep <= 30) return "sleepy";
+            if (mood >= 70) return "happy";
+            if (aff >= 80) return "shy";
+            if (sat >= 80 && mood >= 60) return "full";
+            return "idle";
+        } catch { return "idle"; }
+    }
+
     private static void SetAnimMode(int mode, bool force = false)
     {
         try
@@ -1282,7 +1315,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             _frameIndex = 0;
             _frameTimer = 0f;
             _animModeTimer = 0f;
-            _curAnimSprites = mode == 1 ? _spritesWalk : mode == 2 ? _spritesSteal : _spritesIdle;
+            _curAnimSprites = mode == 1 ? _spWalk : mode == 2 ? _spAngry : _spIdle;
         }
         catch { }
     }
@@ -1318,6 +1351,14 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             EnsureSprites();
             bool hasSprites = _curAnimSprites != null && _curAnimSprites.Length > 0;
 
+            // 状态自动判定
+            try {
+                string ns = EvalState();
+                if (ns != _curState) { _curState = ns; _frameIndex = 0; _frameTimer = 0f;
+                    _curAnimSprites = ns == "happy" ? _spHappy : ns == "hungry" ? _spHungry : ns == "thirsty" ? _spThirsty : ns == "sick" ? _spSick : ns == "dirty" ? _spDirty : ns == "sleepy" ? _spSleepy : ns == "angry" ? _spAngry : ns == "shy" ? _spShy : ns == "full" ? _spFull : ns == "away" ? _spAway : ns == "return" ? _spReturn : ns == "walk" ? _spWalk : _spIdle;
+                    _stateFrameSec = ns == "happy" ? 0.25f : ns == "hungry" ? 0.3f : ns == "dirty" ? 0.3f : ns == "sick" ? 0.5f : ns == "sleepy" ? 0.5f : ns == "angry" ? 0.2f : (ns == "away" || ns == "return" || ns == "walk") ? 0.125f : 0.375f;
+                }
+            } catch { }
             // 帧相关（sprite 加载失败时跳过帧应用，不影响移动）
             if (hasSprites)
             {
@@ -1330,7 +1371,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 }
                 // 帧索引推进（按当前动作帧率）
                 _frameTimer += dt;
-                if (_frameTimer >= _frameMs[_animMode])
+                if (_frameTimer >= _stateFrameSec)
                 {
                     _frameTimer = 0f;
                     if (_curAnimSprites.Length > 1)
