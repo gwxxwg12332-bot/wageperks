@@ -1452,6 +1452,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     {
         try
         {
+            // 读档后旧引用已销毁（parentInventory==null）→ 立即重置重找
+            try { if (_cachedGirlItem != null && _cachedGirlItem.parentInventory == null) { _cachedGirlItem = null; _cacheRefreshFrames = 0; } } catch { _cachedGirlItem = null; }
             if (_cachedGirlItem == null || _cacheRefreshFrames <= 0)
             {
                 _cacheRefreshFrames = 120;
