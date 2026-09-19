@@ -91,8 +91,8 @@ public static class WageGirlSystem
             ApplyIcon(it);
             it.EnableTag(TAG);
             it.SetName(LangHelper.T("蛙娘", "Wage Girl"));
-            SetField(it, "_identifier_k__BackingField", ENTITY_ID);
-            SetField(it, "_identifierName_k__BackingField", "TYPE-STRING_" + ENTITY_ID);
+            it.identifier = ENTITY_ID; // 公开 setter（照骰子先例）——identifier 随档
+            it.identifierName = "TYPE-STRING_" + ENTITY_ID; // 公开 setter
             it.shortDescription = LangHelper.T("蛙娘——蛙哥（Wage）留下的仿生女仆实体：会自己吃喝、干活，心情不好还会偷拿你的钱和货。照顾好她，她会帮你叫客、抬价、销赃。双击打开状态面板。", "Wage Girl - a biomimetic maid entity left by Wage: she eats and works on her own, and when moody she steals your money and goods. Take care of her and she'll call customers, boost prices and fence for you. Double-click to open her status panel.");
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
@@ -1633,11 +1633,12 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     }
 
     // ResolveSpriteByName Postfix：对蛙娘永远返回 mod 图标（拆包实锤：Validate 链从 spritePath 解析 sprite，拦截此入口根治旧图）
-    public static void PostfixResolveSpriteByName(GameItemElement __instance, ref Sprite __result)
+    public static void PostfixResolveSpriteByName(GameItemElement __instance, string name, ref Sprite __result)
     {
         try {
             if (__instance == null) return;
-            if (__instance.identifier != ENTITY_ID) return;
+            // 拆包实锤：identifier 读档后丢失 → 加 name==ICON 兜底（spritePath 随档）
+            if (__instance.identifier != ENTITY_ID && name != ICON) return;
             if (_sprite != null) __result = _sprite; // 永远给 mod 图标
         } catch { }
     }
