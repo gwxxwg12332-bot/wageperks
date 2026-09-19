@@ -40,8 +40,7 @@ public static class WageGirlSystem
 
     static WageGirlSystem()
     {
-        try { _sprite = SpriteFromPixels(WageGirlIconsArt.Pixels(), 32, 48); } // 09-22 外部生成 32×48（2×3 格）
-        catch (Exception ex) { Core.LogMsg("[蛙娘] 图标加载异常: " + ex.Message); }
+        // 09-19 删除占位图标：用 13 状态动画帧
     }
 
     // ===================== 状态读写（全局 NS 随档） =====================
@@ -1306,7 +1305,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (_animMode == 2) return "angry";
             if (_animMode == 1) return "walk";
             try { if (_walking) return "walk"; } catch { } // 平时走动用walk帧
-            try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > 0) return "away"; } catch { }
+            // 09-19 修：K_LEAVE>0 但蛙娘实体在店里（读档恢复）→ 不挥手，走正常状态
+            try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > 0 && _cachedGirlItem == null) return "away"; } catch { }
             int mood = GetStat(K_MOOD), health = GetStat(K_HEALTH), sat = GetStat(K_SAT), th = GetStat(K_TH), clean = GetStat(K_CLEAN), sleep = GetStat(K_SLEEP);
             int aff = GetAffection();
             if (mood <= 20) return "angry";
@@ -1641,7 +1641,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             if (__instance.identifier != ENTITY_ID && name != ICON) return;
             // 设成当前动画帧（和 ApplyAnimationFrame 一致）——不再设静态占位图标避免交替
             try { if (_curAnimSprites != null && _curAnimSprites.Length > 0) { var f = _curAnimSprites[_frameIndex % _curAnimSprites.Length]; if (f != null) { __result = f; return; } } } catch { }
-            if (_sprite != null) __result = _sprite; // 兜底：动画帧未就绪用占位图标
+            // 09-19 删除占位图标兜底
         } catch { }
     }
 
