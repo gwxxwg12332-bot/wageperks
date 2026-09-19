@@ -444,7 +444,7 @@ public static class WageGirlSystem
                 PerkStatePersistence.SetInt(NS, K_STARVE, 0);
                 PerkStatePersistence.SetInt(NS, K_LEAVE, day + 14);
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 2);
-                SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
+                _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
                 ReportLine(LangHelper.T("蛙娘连续几天没吃好没睡好，离家出走了（14 天后回来）", "Wage Girl ran away after days of neglect (back in 14 days)"));
                 return;
             }
@@ -488,7 +488,7 @@ public static class WageGirlSystem
 PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                 PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 0);
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
-                SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
+                _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
                 ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
             }
         }
@@ -862,7 +862,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                         SetSleepDebt(GetSleepDebt() + 20); // 销赃外出熬夜 -20 睡眠（次日结算）
 PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
-            SetAnimMode(1, true); _leavingTimer = 0.5f; // 先播walk帧再移除
+            _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
             ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
         }
