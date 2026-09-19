@@ -396,7 +396,7 @@ internal static class Patches
 				bool isContraband = false;
 				try
 				{
-					isContraband = item.IsTag("contraband");
+					try { isContraband = ContrabandHelper.GetContrabandLevel(item) > 0; } catch { isContraband = item.IsTag("contraband"); }
 				}
 				catch
 				{
@@ -1984,8 +1984,10 @@ internal static class Patches
 				itemFeature.valueModifier = 0;
 				itemFeature.preExposeValueModifier = -5;
 				itemFeature.usePreExposeValue = true;
-				itemFeature.isFeatureExposed = false;
-				itemFeature.isExposable = false;
+				itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+				itemFeature.isExposable = true;
 				itemFeature.isFeatureDiscovered = false;
 				itemFeature.publicDisplay = LangHelper.T("友情价", "Friend Price");
 				itemFeature.actualDisplay = LangHelper.T("友情价", "Friend Price");
@@ -2036,8 +2038,10 @@ internal static class Patches
 				itemFeature.valueModifier = 0;
 				itemFeature.preExposeValueModifier = -5;
 				itemFeature.usePreExposeValue = true;
-				itemFeature.isFeatureExposed = false;
-				itemFeature.isExposable = false;
+				itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+				itemFeature.isExposable = true;
 				itemFeature.isFeatureDiscovered = false;
 				itemFeature.publicDisplay = LangHelper.T("友情价", "Friend Price");
 				itemFeature.actualDisplay = LangHelper.T("友情价", "Friend Price");
@@ -2127,8 +2131,10 @@ internal static class Patches
 			itemFeature.valueModifier = 0;
 			itemFeature.preExposeValueModifier = 0;
 			itemFeature.usePreExposeValue = false;
-			itemFeature.isFeatureExposed = false;
-			itemFeature.isExposable = false;
+			itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+			itemFeature.isExposable = true;
 			itemFeature.isFeatureDiscovered = false;
 			itemFeature.publicDisplay = text;
 			itemFeature.actualDisplay = text;
@@ -2186,8 +2192,10 @@ internal static class Patches
 			itemFeature.valueModifier = 0;
 			itemFeature.preExposeValueModifier = 0;
 			itemFeature.usePreExposeValue = false;
-			itemFeature.isFeatureExposed = false;
-			itemFeature.isExposable = false;
+			itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+			itemFeature.isExposable = true;
 			itemFeature.isFeatureDiscovered = false;
 			itemFeature.publicDisplay = tradeBuffDisplay;
 			itemFeature.actualDisplay = tradeBuffDisplay;
@@ -2245,8 +2253,10 @@ internal static class Patches
 				itemFeature.valueModifier = 0;
 				itemFeature.preExposeValueModifier = 0;
 				itemFeature.usePreExposeValue = false;
-				itemFeature.isFeatureExposed = false;
-				itemFeature.isExposable = false;
+				itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+				itemFeature.isExposable = true;
 				itemFeature.isFeatureDiscovered = false;
 				itemFeature.publicDisplay = text2;
 				itemFeature.actualDisplay = text2;
@@ -2293,8 +2303,10 @@ internal static class Patches
 			f.valueModifier = 0;
 			f.preExposeValueModifier = 0;
 			f.usePreExposeValue = false;
-			f.isFeatureExposed = false;
-			f.isExposable = false;
+			f.initiallyShown = true;
+f.isFeatureMatch = true;
+f.isFeatureExposed = true;
+			f.isExposable = true;
 			f.isFeatureDiscovered = false;
 			f.publicDisplay = display;
 			f.actualDisplay = display;
@@ -2328,8 +2340,10 @@ internal static class Patches
 			itemFeature.valueModifier = 0;
 			itemFeature.preExposeValueModifier = 0;
 			itemFeature.usePreExposeValue = false;
-			itemFeature.isFeatureExposed = false;
-			itemFeature.isExposable = false;
+			itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+			itemFeature.isExposable = true;
 			itemFeature.isFeatureDiscovered = false;
 			itemFeature.publicDisplay = text;
 			itemFeature.actualDisplay = text;
@@ -2364,8 +2378,10 @@ internal static class Patches
 			itemFeature.valueModifier = 0;
 			itemFeature.preExposeValueModifier = 0;
 			itemFeature.usePreExposeValue = false;
-			itemFeature.isFeatureExposed = false;
-			itemFeature.isExposable = false;
+			itemFeature.initiallyShown = true;
+itemFeature.isFeatureMatch = true;
+itemFeature.isFeatureExposed = true;
+			itemFeature.isExposable = true;
 			itemFeature.isFeatureDiscovered = false;
 			itemFeature.publicDisplay = LangHelper.T("信誉扫地", "Bad Reputation");
 			itemFeature.actualDisplay = LangHelper.T("信誉扫地", "Bad Reputation");
