@@ -139,6 +139,7 @@
     <EmbeddedResource Include="Icons\15_治安部眼线.png" />
     <EmbeddedResource Include="Icons\16_流浪者.png" />
     <EmbeddedResource Include="Icons\17_蛙娘.png" />
+    <EmbeddedResource Include="Icons\18_童叟无欺.png" />
 
   </ItemGroup>
 

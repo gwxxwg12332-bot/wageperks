@@ -189,10 +189,6 @@ internal static class Patches
 
 	private static readonly System.Collections.Generic.Dictionary<long, GameItem> _tradeFeatureItems = new System.Collections.Generic.Dictionary<long, GameItem>();
 
-	private static bool _inBargainOffer = false;
-
-	private static bool _bargainSucceeded = false;
-
 	private static System.Reflection.PropertyInfo _negocInstanceProp;
 
 	private static System.Reflection.FieldInfo _negocInstanceField;
@@ -471,6 +467,7 @@ internal static class Patches
 			{
 			}
 			WageGirlSystem.CleanDefaultRunOnNewGame(); // 09-22 蛙娘：新档清 default_run 残留（防串档/新档误判已存在）
+			RobinCrusoePerk.CleanDefaultRunOnNewGame(); // 09-22 鲁滨逊：新档清 default_run 残留（防未保存档残留串新档）
 			FrogPowerPerk.ResetState();
 			CustomStartingPerks.NotifyNewGame();
 		}
@@ -2447,17 +2444,7 @@ internal static class Patches
 
 	public static void PostfixDealMakerBonus(ref int __result)
 	{
-		try
-		{
-			if (SmilingTigerPerk.IsActive())
-			{
-				__result += 25;
-			}
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[笑面虎] 成功率补丁失败: " + ex.Message);
-		}
+		// 09-19 童叟无欺重做：移除议价 +25 效果（蛙娘在场 +50 在 WageGirlSystem）
 	}
 
 	public static void PostfixTradeRepMultiplier(ref double __result)
@@ -2466,73 +2453,45 @@ internal static class Patches
 		{
 			if (SmilingTigerPerk.IsActive())
 			{
-				__result *= 0.75;
+				__result *= 1.25; // 09-19 童叟无欺：声誉 +25%
 			}
 		}
 		catch (System.Exception ex)
 		{
-			Core.LogMsg("[笑面虎] 好感获取补丁失败: " + ex.Message);
+			Core.LogMsg("[童叟无欺] 声誉补丁失败: " + ex.Message);
 		}
 	}
 
-	public static void PrefixOfferMarkup()
-	{
-		_inBargainOffer = true;
-	}
+	private static long _honestPrevValue = 0;
+	private static long _honestPrevBaseValue = 0;
+	private static bool _honestValuePatched = false;
 
-	public static void PostfixOfferMarkup()
-	{
-		_inBargainOffer = false;
-	}
-
-	public static void PrefixOfferDiscount()
-	{
-		_inBargainOffer = true;
-	}
-
-	public static void PostfixOfferDiscount()
-	{
-		_inBargainOffer = false;
-	}
-
-	public static void PrefixRecomputeTradeRepMultiplier()
-	{
-		_bargainSucceeded = true;
-	}
-
-	public static bool PrefixStoreClientModBudget(StoreClient __instance, int budgetMod)
+	public static void PrefixPlayerStoreSellItem(GameItem __0)
 	{
 		try
 		{
-			if (!SmilingTigerPerk.IsActive())
-			{
-				return true;
-			}
-			if (budgetMod >= 0)
-			{
-				return true;
-			}
-			if (_inBargainOffer || _bargainSucceeded)
-			{
-				return false;
-			}
+			if (__0 == null || !SmilingTigerPerk.IsActive()) return;
+			_honestPrevValue = __0.unitValue;
+			_honestPrevBaseValue = __0.unitBaseValue;
+			_honestValuePatched = true;
+			__0.unitValue = (long)(__0.unitValue * 0.75);
+			__0.unitBaseValue = (long)(__0.unitBaseValue * 0.75);
 		}
-		catch (System.Exception ex)
+		catch { }
+	}
+
+	public static void PostfixPlayerStoreSellItem(GameItem __0)
+	{
+		try
 		{
-			Core.LogMsg("[笑面虎] 预算拦截失败: " + ex.Message);
+			if (_honestValuePatched && __0 != null)
+			{
+				__0.unitValue = _honestPrevValue;
+				__0.unitBaseValue = _honestPrevBaseValue;
+				_honestValuePatched = false;
+			}
 		}
-		return true;
-	}
-
-	public static void PostfixPlayerStoreSellItem()
-	{
-		_bargainSucceeded = false;
-	}
-
-	public static void PostfixBargainCloseUI()
-	{
-		_inBargainOffer = false;
-		_bargainSucceeded = false;
+		catch { }
 	}
 
 	public static void PostfixGameItemGetDisplayName(GameItem __instance, ref string __result)

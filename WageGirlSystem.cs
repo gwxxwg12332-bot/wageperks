@@ -95,7 +95,7 @@ public static class WageGirlSystem
             SetField(it, "_identifierName_k__BackingField", "TYPE-STRING_" + ENTITY_ID);
             it.shortDescription = LangHelper.T("蛙娘——蛙哥（Wage）留下的仿生女仆实体：会自己吃喝、干活，心情不好还会偷拿你的钱和货。照顾好她，她会帮你叫客、抬价、销赃。双击打开状态面板。", "Wage Girl - a biomimetic maid entity left by Wage: she eats and works on her own, and when moody she steals your money and goods. Take care of her and she'll call customers, boost prices and fence for you. Double-click to open her status panel.");
             it.longDescription = it.shortDescription;
-            it.unitValue = 3000; it.unitBaseValue = 3000;
+            it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
             // 2×3 占地（09-21 用户拍板）
             try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 3); it.SetShape(gsb.Build()); } catch { }
             return it;
@@ -451,9 +451,10 @@ public static class WageGirlSystem
             // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + 50 钱，然后设 today）
             if (lastSteal <= 0)
             {
-                int stolen = StealItems("random", 1, "highest");
+                System.Collections.Generic.List<string> stolenNames0 = null;
+                int stolen = StealItems("random", 1, "highest", out stolenNames0);
                 if (stolen > 0) ModCashN(-50);
-                ReportLine(LangHelper.T("蛙娘初次见面就偷偷拿走了你的东西，还顺走了 50 块钱……", "On first meeting Wage Girl swiped something and pocketed 50 credits..."));
+                string sn0 = (stolenNames0 != null && stolenNames0.Count > 0) ? string.Join("、", stolenNames0) : LangHelper.T("你的东西", "something");
                 PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
                 return;
             }
@@ -499,22 +500,24 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             int aff = GetAffection();
             int count = aff < 30 ? 1 : (aff < 70 ? 2 : 3);
             string valueMode = aff < 30 ? "highest" : (aff < 70 ? "random" : "low");
-            int stolen = StealItems(mode, count, valueMode);
+            int stolen = StealItems(mode, count, valueMode, out var stolenNames);
             if (stolen > 0)
             {
                 SetSleepDebt(GetSleepDebt() + 10); // 偷拿熬夜 -10 睡眠（次日结算）
                 if (mode == "food") SetStat(K_SAT, GetStat(K_SAT) + 30);
                 else if (mode == "drink") SetStat(K_TH, GetStat(K_TH) + 30);
                 else if (mode == "care") { SetStat(K_MOOD, GetStat(K_MOOD) + 20); SetStat(K_CLEAN, GetStat(K_CLEAN) + 10); }
-                ReportLine(LangHelper.T(msg + "（" + stolen + " 件）", msg + " (" + stolen + " items)"));
+                string sn = (stolenNames != null && stolenNames.Count > 0) ? "：" + string.Join("、", stolenNames) : "";
+                ReportLine(LangHelper.T(msg + sn + "（" + stolen + " 件）", msg + " (" + (stolenNames != null ? string.Join(", ", stolenNames) : "") + ", " + stolen + " items)"));
             }
         }
         catch { }
     }
 
     // 从店里找目标偷拿：mode 限定类别；count 件数；valueMode highest/random/low
-    private static int StealItems(string mode, int count, string valueMode)
+    private static int StealItems(string mode, int count, string valueMode, out System.Collections.Generic.List<string> stolenNames)
     {
+        stolenNames = new System.Collections.Generic.List<string>();
         try
         {
             EmporiumEntry em = EmporiumEntry.Instance;
@@ -571,7 +574,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             }
             return stolen;
         }
-        catch { return 0; }
+        catch { stolenNames = null; return 0; }
     }
 
     // 回归带物：按偷钱额 × 好感比例预算，随机生成物品（单件/累计价值 ≤ 预算）放入柜台
@@ -633,7 +636,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
         catch { }
     }
 
-    // 偷钱消失：从场景主要网格移除蛙娘实体（回归时 TryGiveToBackpack 重发）
+    // 偷钱消失：从场景所有网格 + 容器内部移除蛙娘实体（回归时 TryGiveToBackpack 重发）
     private static void RemoveGirlFromScene()
     {
         try
@@ -643,29 +646,100 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             var invs = new GameInventory[] {
                 (GameInventory)em.invElement,
                 (GameInventory)em.backInvinvElement,
+                (GameInventory)em.backInvinvElementCounter,
+                (GameInventory)em.frontInvinvElement,
+                (GameInventory)em.showcaseElement
+            };
+            foreach (var inv in invs) RemoveGirlFromInv(inv);
+            // 兜底：全量找蛙娘移除（含 5 网格外/容器内部漏网）
+            try
+            {
+                var all = PlayerStore.Instance.FindAllItem();
+                if (all != null)
+                {
+                    for (int i = 0; i < all.Count; i++)
+                    {
+                        var it = all[i];
+                        if (it == null || it.identifier != ENTITY_ID) continue;
+                        try { it.parentInventory?.Expel(it); } catch { }
+                        try { it.Destroy(); } catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+        catch { }
+    }
+
+    // 单个网格内移除蛙娘（含顶层容器 contentWindow 内部递归）
+    private static void RemoveGirlFromInv(GameInventory inv)
+    {
+        if (inv == null || inv.childItems == null) return;
+        for (int i = inv.childItems.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                var it = inv.childItems[i];
+                if (it == null) continue;
+                if (it.identifier == ENTITY_ID)
+                {
+                    try { it.parentInventory?.Expel(it); } catch { }
+                    try { it.Destroy(); } catch { }
+                    try { inv.childItems.RemoveAt(i); } catch { }
+                    continue;
+                }
+                if (it.contentWindow != null)
+                {
+                    var inner = AddictOfficerEvent.GetInnerInventory(it);
+                    if (inner != null) RemoveGirlFromInv(inner);
+                }
+            }
+            catch { }
+        }
+    }
+
+    // 发放前全范围查重：5 网格 + 容器内部已有蛙娘 → true
+    private static bool ExistsInScene()
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null) return false;
+            var invs = new GameInventory[] {
+                (GameInventory)em.invElement,
+                (GameInventory)em.backInvinvElement,
+                (GameInventory)em.backInvinvElementCounter,
                 (GameInventory)em.frontInvinvElement,
                 (GameInventory)em.showcaseElement
             };
             foreach (var inv in invs)
             {
-                if (inv == null || inv.childItems == null) continue;
-                for (int i = inv.childItems.Count - 1; i >= 0; i--)
+                if (FindGirlInInv(inv)) return true;
+            }
+            return false;
+        }
+        catch { return false; }
+    }
+
+    private static bool FindGirlInInv(GameInventory inv)
+    {
+        if (inv == null || inv.childItems == null) return false;
+        for (int i = 0; i < inv.childItems.Count; i++)
+        {
+            try
+            {
+                var it = inv.childItems[i];
+                if (it == null) continue;
+                if (it.identifier == ENTITY_ID) return true;
+                if (it.contentWindow != null)
                 {
-                    try
-                    {
-                        var it = inv.childItems[i];
-                        if (it == null) continue;
-                        if (it.identifier == ENTITY_ID)
-                        {
-                            try { it.Destroy(); } catch { }
-                            try { inv.childItems.RemoveAt(i); } catch { }
-                        }
-                    }
-                    catch { }
+                    var inner = AddictOfficerEvent.GetInnerInventory(it);
+                    if (inner != null && FindGirlInInv(inner)) return true;
                 }
             }
+            catch { }
         }
-        catch { }
+        return false;
     }
 
     private static void TryGiveToBackpack()
@@ -675,6 +749,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             EmporiumEntry em = EmporiumEntry.Instance;
             if (em == null) { return; }
             if (em.backInvinvElement == null) { return; }
+            // 09-19 发放前全范围查重（5 网格+容器内部已有 → 不重复发）
+            if (ExistsInScene()) { return; }
             var inv = (GameInventory)em.backInvinvElement;
             GameItem item = DirectoryMaster.Item(ENTITY_ID, true);
             if (item == null) { return; }
@@ -830,7 +906,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             GameItem gift = FindCategoryItem(mode);
             if (gift != null) { AddToFront(gift); ReportLine(LangHelper.T("蛙娘回来了，带了份礼物补偿你", "Wage Girl is back with a gift to make up")); }
             else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
-            int stolen = StealItems("random", 1, "highest");
+            int stolen = StealItems("random", 1, "highest", out var _);
             if (stolen > 0) ReportLine(LangHelper.T("……然后顺手偷了你 1 件东西", "...then swiped one of your things"));
         }
         catch { }
@@ -1007,8 +1083,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
         try
         {
             _spritesIdle = LoadSpriteGroup(WageGirlAnimFrames.Idle);
-            _spritesWalk = LoadSpriteGroup(WageGirlAnimFrames.Walk);
-            _spritesSteal = LoadSpriteGroup(WageGirlAnimFrames.Steal);
+            _spritesWalk = LoadSpriteGroup(WageGirlAnimFrames.Away);
+            _spritesSteal = LoadSpriteGroup(WageGirlAnimFrames.Angry);
             _curAnimSprites = _spritesIdle;
         }
         catch { }

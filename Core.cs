@@ -652,11 +652,8 @@ public class Core : MelonMod
 			ManualPatcher.TryPatch(typeof(GameItem), "GetDisplayName", null, "PostfixGameItemGetDisplayName");
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixDealMakerBonus", new System.Type[0]);
 			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultiplier", null, "PostfixTradeRepMultiplier");
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferDiscount", "PrefixOfferDiscount", "PostfixOfferDiscount", new System.Type[1] { typeof(int) });
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "RecomputeTradeRepMultiplier", "PrefixRecomputeTradeRepMultiplier", null, new System.Type[0]);
-			ManualPatcher.TryPatch(typeof(StoreClient), "ModBudget", "PrefixStoreClientModBudget", null, new System.Type[1] { typeof(int) });
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SellItem", "PrefixPlayerStoreSellItem", null, new System.Type[1] { typeof(GameItem) });
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SellItem", null, "PostfixPlayerStoreSellItem", new System.Type[1] { typeof(GameItem) });
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "CloseUI", null, "PostfixBargainCloseUI");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OpenUI", null, "PostfixStartOfDayOpenUI");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "ShowMorningReport", null, "PostfixStartOfDayShowMorningReport");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OnStartDayButtonClicked", null, "PostfixStartOfDayButtonClicked");

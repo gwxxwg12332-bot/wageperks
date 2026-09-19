@@ -1070,6 +1070,19 @@ internal static class RobinCrusoePerk
         return BOTTLE_ML;
     }
 
+    // 09-22 新档防 default_run 残留污染：鲁滨逊开局全部持久化 key（TrySetupNewRun 18 + 运行期固定 3 + 补偿天数 cb_* 13）
+    private static readonly string[] ALL_KEYS = new string[]
+    {
+        "robinson_hard","sat","thirst","health","blood","mood","granary","elevStreak","elevCount",
+        "starveDays","thirstDeath","critDays","clean","sleep","social","nodeKey","nodeFxIdx","deals",
+        "revenue","blood_rest","hbuffDay",
+        "cb_eatEff","cb_thirstEff50","cb_thirstEff10","cb_wearEff","cb_drugEff","cb_antiTheft","cb_moodDamp",
+        "cb_forage20","cb_sell5","cb_mood2","cb_mood3","cb_sleepR10","cb_contraEff"
+    };
+    internal static void CleanDefaultRunOnNewGame()
+    {
+        try { PerkStatePersistence.CleanDefaultRun(PERK_ID, ALL_KEYS); } catch { }
+    }
     // ===== 开局（HandleInitialItem Postfix 调用）=====
     internal static void TrySetupNewRun()
     {

@@ -120,18 +120,19 @@ internal sealed class WineLoverPerk : CustomStartingPerk
 }
 
 // ============================================================
-// 混合特性：笑面虎
-// 议价成功率+25%，客户好感获取-25%
+// 负面特性：童叟无欺（原笑面虎重做 09-19）
+// 声誉增长速度 +25%，卖出商品收益 -25%
 // ============================================================
 internal sealed class SmilingTigerPerk : CustomStartingPerk
 {
-    internal const string PerkId = "笑面虎";
+    internal const string PerkId = "童叟无欺";
+    internal const string LegacyPerkId = "笑面虎"; // 旧 Id 兼容（旧档已选不丢）
 
     internal override string Id => PerkId;
-    internal override string DisplayName => LangHelper.T("笑面虎", "Smiling Tiger");
-    internal override string Description => LangHelper.T("微笑着宰客。议价成功率+25%，客户更容易接受你的报价；但客户好感获取-25%，他们觉得被你算计了。钱赚到了，朋友没了。", "Smile while ripping off. Negotiation +25 percent, reputation gain -25 percent.");
-    internal override int Cost => 1;
-    internal override int Type => 2; // 混合特性显示为黄色（25%声望惩罚太重，议价收益不明显）
+    internal override string DisplayName => LangHelper.T("童叟无欺", "Honest Dealer");
+    internal override string Description => LangHelper.T("做生意童叟无欺：声誉增长速度 +25%，客户更信任你；但你的售价也得公道——卖出商品收益 -25%。", "Honest dealing: reputation gain +25 percent, but you sell at fair prices - sale income -25 percent.");
+    internal override int Cost => -10;
+    internal override int Type => 1; // 负面红色
 
     internal override void OnNewGame()
     {
@@ -139,19 +140,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
-    }
-
-    // 获取议价成功率加成
-    public static float GetBargainSuccessBonus()
-    {
-        return IsActive() ? 1.25f : 1.0f;
-    }
-
-    // 获取客户好感惩罚
-    public static float GetReputationPenalty()
-    {
-        return IsActive() ? 0.75f : 1.0f;
+        return Core.PerkActive(PerkId) || Core.PerkActive(LegacyPerkId); // 旧档"笑面虎"兼容
     }
 }
 
@@ -345,16 +334,21 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
                 }
             }
 
-            // 2. 走私者暗格容器内部（smuggler_bay 前缀 / ITEM_HIDDEN_TAG+CONTAINER_TAG 双标签）
+            // 2. 容器/带舱机器内部违禁品（09-22 用户拍板"都翻"：暗格 smugger_bay + 蛙哥箱 CUSTOM_STORAGE_TAG +
+            //    通用容器 CONTAINER_TAG + 带舱机器（养蛊机/AI生成器）——凡有内部库存一律翻，不限 smugger_bay）
             foreach (GameItem shopItem in EmporiumEntry.Instance.GetAllItems())
             {
-                if (shopItem == null || !AddictOfficerEvent.IsSmugglerBay(shopItem)) continue;
+                if (shopItem == null) continue;
                 GameInventory inner = AddictOfficerEvent.GetInnerInventory(shopItem);
                 if (inner == null || inner.childItems == null) continue;
                 for (int i = 0; i < inner.childItems.Count; i++)
                 {
                     GameItem c = inner.childItems[i];
                     if (c == null) continue;
+                    // 去重：GetAllItems 递归返回容器内部物品时，同一件可能被翻两次
+                    bool dup = false;
+                    for (int d = 0; d < haul.Count; d++) { if (haul[d].item == c) { dup = true; break; } }
+                    if (dup) continue;
                     try { int lvl = ContrabandHelper.GetContrabandLevel(c); if (lvl > 0) haul.Add((c, inner, lvl)); } catch { }
                 }
             }
