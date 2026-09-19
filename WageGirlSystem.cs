@@ -771,6 +771,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
             if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception) { } }
             inv.UncheckedAccept(item);
             Core.LogMsg("[蛙娘] 已发放实体到背包（全局常驻）");
+        _returnTimer = 0.5f; _curState = ""; // 强制播return帧0.5s再切idle
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 发放失败: " + ex.Message); }
     }
@@ -1192,7 +1193,8 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static Sprite[] _spIdle, _spHappy, _spHungry, _spThirsty, _spSick, _spDirty, _spSleepy, _spAngry, _spShy, _spFull, _spAway, _spReturn, _spWalk;
     private static string _curState = "idle";
     private static float _stateFrameSec = 0.375f;
-    private static float _leavingTimer = 0f; // 外出动画延迟（walk帧播完再移除实体）
+    private static float _leavingTimer = 0f;
+    private static float _returnTimer = 0f; // 回归动画倒计时（return帧播完切idle） // 外出动画延迟（walk帧播完再移除实体）
     private static Sprite[] _curAnimSprites;
     private static int _frameIndex = 0;
     private static float _frameTimer = 0f;
@@ -1357,6 +1359,18 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 _leavingTimer -= dt;
                 if (_leavingTimer <= 0f) { try { RemoveGirlFromScene(); } catch { } }
             }
+            // 回归动画：return帧播完再切idle
+            if (_returnTimer > 0f) {
+                _returnTimer -= dt;
+                _curState = "return";
+                _curAnimSprites = _spReturn;
+                _stateFrameSec = 0.125f;
+                _frameTimer += dt;
+                if (_frameTimer >= _stateFrameSec) { _frameTimer = 0f; if (_spReturn != null && _spReturn.Length > 1) _frameIndex = (_frameIndex + 1) % _spReturn.Length; }
+                TryApplyAnimFrame();
+                if (_returnTimer <= 0f) { _curState = ""; _frameIndex = 0; _frameTimer = 0f; }
+            }
+            else
             // 状态自动判定
             try {
                 string ns = EvalState();
