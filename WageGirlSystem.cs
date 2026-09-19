@@ -1219,7 +1219,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）
     private static float _pauseTimer = 0f;   // 停顿计时
     private static float _pauseDuration = 4f;// 停顿时长（随机 3-6 秒）
-    private static GridShape _girlShape;
+    private static GridShape _girlShape = new GridShapeBuilder().SetDataFill(2, 3).Build(); // 09-19 字段初始化保证非null
     private static readonly float[] _frameMs = { 0.5f, 0.2f, 0.15f }; // 待机/走动/偷（秒/帧）
 
     private static void EnsureSprites()
@@ -1460,7 +1460,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
                 _cacheRefreshFrames = 120;
                 _cachedGirlItem = FindGirlItem();
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
-                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } } // 强制刷新图标（读档后旧版颠倒）
+                    if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } try { if (_girlShape != null) _cachedGirlItem.SetShape(_girlShape); } catch { } } // 先ApplyIcon再SetShape(2x3)——ApplyIcon会覆盖shape
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
             }
             else _cacheRefreshFrames--;
@@ -1472,6 +1472,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
             {
                 // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
                 _cachedGirlItem = FindGirlItem();
+                try { if (_cachedGirlItem != null && _girlShape != null) _cachedGirlItem.SetShape(_girlShape); } catch { }
                 if (_cachedGirlItem != null) {
                     // 读档后：游戏重建的蛙娘 sprite 是存档旧版 → 强制清旧发新
                     try { RemoveGirlFromScene(); } catch { }
