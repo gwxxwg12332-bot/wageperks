@@ -872,7 +872,7 @@ internal static class Patches
 			{
 				return;
 			}
-			int num = DeterministicRandom.Next("bad_luck", dayCounter, 100, 1501);
+			int num = DeterministicRandom.Next("bad_luck", dayCounter, 1, 201); // 09-22 改：100-1500 → 1-200
 			bool flag = false;
 			try
 			{
@@ -1233,7 +1233,7 @@ internal static class Patches
 			}
 			try
 			{
-				AddictOfficerEvent.OnClientArrived(currentClient);
+				// 09-21 封存：成瘾警官事件 OnClientArrived 关闭
 			}
 			catch
 			{
@@ -1588,14 +1588,17 @@ internal static class Patches
 	{
 		try
 		{
+			// 09-21 拆包实锤：用 IsItemOwned 判定买卖方向，替代 CurrentUITradeMode（竞态/残留）
+			bool isSell = false;
+			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); } catch { isSell = isSell; }
 			if (BadReputationPerk.IsActive() && !BadReputationPerk.IsCleared())
 			{
-				if (CurrentUITradeMode == 2)
+				if (isSell)
 				{
 					result = (long)((double)result * 0.8);
 					TryAddBadReputationFeature(item, -20);
 				}
-				else if (CurrentUITradeMode == 1)
+				else if (!isSell)
 				{
 					result = (long)((double)result * 1.2);
 					TryAddBadReputationFeature(item, 20);
@@ -1603,7 +1606,7 @@ internal static class Patches
 			}
 			if (RobinCrusoePerk.IsActive())
 			{
-				if (CurrentUITradeMode == 1)
+				if (!isSell)
 				{
 					TryAddNodeBuffFeature(item);
 					if (RobinCrusoePerk.IsFood(item))
@@ -1619,7 +1622,7 @@ internal static class Patches
 						return;
 					}
 				}
-				else if (CurrentUITradeMode == 2)
+				else if (isSell)
 				{
 					TryAddNodeBuffFeature(item);
 					if (RobinCrusoePerk.IsFood(item))
@@ -1658,7 +1661,7 @@ internal static class Patches
 					}
 				}
 			}
-			if (CurrentUITradeMode != 2)
+			if (!isSell)
 			{
 				return;
 			}
@@ -1914,6 +1917,8 @@ internal static class Patches
 	{
 		try
 		{
+			bool isSell = false;
+			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(__instance); } catch { isSell = CurrentUITradeMode == 2; }
 			try
 			{
 				if (__instance != null)
@@ -1930,7 +1935,7 @@ internal static class Patches
 			}
 			try
 			{
-				if (CurrentUITradeMode != 2)
+				if (!isSell)
 				{
 					return;
 				}
@@ -3752,6 +3757,8 @@ internal static class BatteryCannibalism
 	{
 		try
 		{
+			// 09-21 新增：mod 版自我充能（绕过原生）
+			TrySelfRecharge();
 			System.Collections.Generic.List<GameItem> list = CollectBatteries();
 			if (list == null || list.Count < 2)
 			{
@@ -4058,5 +4065,66 @@ internal static class BatteryCannibalism
 			return 2;
 		}
 		return 3;
+	}
+
+	// 09-21 新增：mod 版自我充能（绕过原生）
+	private const string RECHARGE_TAG = "BREEDER_POWER_SOURCE_ITEM_TAG";
+	private const string ENERGY_KEY = "power_source_item_energy";
+	private const string MAX_ENERGY_KEY = "power_source_item_max_energy";
+	private const string RECHARGE_KEY = "power_source_item_recharge";
+
+	private static void TrySelfRecharge()
+	{
+		try
+		{
+			var batteries = GetAllRechargeableBatteries();
+			if (batteries.Count == 0) return;
+			int totalCharged = 0;
+			foreach (var bat in batteries)
+			{
+				int charged = ChargeOneBattery(bat);
+				totalCharged += charged;
+			}
+			if (totalCharged > 0)
+			{
+				NotifyHelper.NightLogRaw("自充电：" + batteries.Count + " 块电池 +" + totalCharged + " 电量");
+				Core.LogMsg("[电池] 自充电: " + batteries.Count + " 块 +" + totalCharged + " 电量");
+			}
+		}
+		catch (System.Exception ex) { Core.LogMsg("[电池] 自充电异常: " + ex.Message); }
+	}
+
+	private static System.Collections.Generic.List<GameItem> GetAllRechargeableBatteries()
+	{
+		var list = new System.Collections.Generic.List<GameItem>();
+		try
+		{
+			var all = EmporiumEntry.Instance.GetAllItems();
+			foreach (var item in all)
+			{
+				if (item == null) continue;
+				try { if (!item.IsTag(RECHARGE_TAG)) continue; } catch { continue; }
+				list.Add(item);
+			}
+		}
+		catch { }
+		return list;
+	}
+
+	private static int ChargeOneBattery(GameItem bat)
+	{
+		try
+		{
+			int energy = TagHelper.GetInt(bat, ENERGY_KEY);
+			int max = TagHelper.GetInt(bat, MAX_ENERGY_KEY);
+			int recharge = TagHelper.GetInt(bat, RECHARGE_KEY);
+			if (recharge <= 0) return 0;
+			if (energy >= max) return 0;
+			int newEnergy = System.Math.Min(max, energy + recharge);
+			int charged = newEnergy - energy;
+			TagHelper.SetInt(bat, ENERGY_KEY, newEnergy);
+			return charged;
+		}
+		catch { return 0; }
 	}
 }

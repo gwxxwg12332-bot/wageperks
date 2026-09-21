@@ -30,30 +30,11 @@ public static class ContainerUpgradeV2
     public static int[] UPGRADE_COSTS => BuildConfig.UpgradeCostsArr;
 
     // ===================== tag 工具 =====================
-    public static int GetTagIntSafe(GameItem item, string tag)
-    {
-        try { var t = item.GetTagReadonly(tag); if (t != null) return t.valueInt; } catch { }
-        return 0;
-    }
-    public static bool HasTag(GameItem item, string tag)
-    {
-        try { return item != null && item.GetTagReadonly(tag) != null; } catch { return false; }
-    }
-    public static void SetTagIntValue(GameItem item, string tag, int value)
-    {
-        try
-        {
-            if (!item.IsTag(tag)) item.EnableTag(tag, true);
-            System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(value); };
-            var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
-            item.ModifyTag(tag, il2cppAct, false);
-        }
-        catch { }
-    }
-    public static void AddTagInt(GameItem item, string tag, int delta)
-    {
-        try { SetTagIntValue(item, tag, GetTagIntSafe(item, tag) + delta); } catch { }
-    }
+    // 09-22 门面模式：内部调 TagHelper
+    public static int GetTagIntSafe(GameItem item, string tag) => TagHelper.GetInt(item, tag);
+    public static bool HasTag(GameItem item, string tag) => TagHelper.Has(item, tag);
+    public static void SetTagIntValue(GameItem item, string tag, int value) => TagHelper.SetInt(item, tag, value);
+    public static void AddTagInt(GameItem item, string tag, int delta) => TagHelper.AddInt(item, tag, delta);
     public static void ConsumeOne(GameItem item)
     {
         try
@@ -121,7 +102,11 @@ public static class ContainerUpgradeV2
     private static readonly HashSet<string> BUILDING_CONTAINER_IDS = new HashSet<string>(new string[] {
         "storage_bay", "storage_bay_large", "machine_bay", "machine_bay_ext",
         "mini_smuggler_bay", "smuggler_bay", "smuggler_bay_mod", "smuggler_bay_mini",
-        "chemist_storage_bay", "gunsmith_storage_bay", "makeshift_storage_bay"
+        "chemist_storage_bay", "gunsmith_storage_bay", "makeshift_storage_bay",
+        // 09-20 新增：物资箱子（蛙娘带回）
+        "evidence_box", "med_box", "sec_box", "service_box", "eng_box",
+        // 09-20 新增：电池充电器（走容器升级链）
+        "recharger_base"
     });
 
     public static bool IsBuildingContainerId(string id)
@@ -139,7 +124,7 @@ public static class ContainerUpgradeV2
     // 文档箱(dossier)/工具箱(toolbox) 已拖 junk 实证命中升级；收音机=cassette_player（磁带播放器，用户提供 id）。
     // 排除后：不参与拖 junk 升级、不开局减半、不读档恢复 shape——完全回原版。
     private static readonly HashSet<string> EXCLUDED_CONTAINER_IDS = new HashSet<string>(new string[] {
-        "toolbox", "dossier", "cassette_player"
+        "toolbox", "dossier", "cassette_player", "water_bottle_printer", "bottle_printer"
     });
     public static bool IsExcludedContainer(GameItem item)
     {
@@ -166,6 +151,7 @@ public static class ContainerUpgradeV2
         try
         {
             if (item == null) return false;
+            if (!BuildConfig.ContainerUpgradeEnabled) return false; // 09-20 CFG 关 → 不升级
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false;
             if (IsVoidBeadStorage(item)) return false;
@@ -242,13 +228,22 @@ public static class ContainerUpgradeV2
             try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
             try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
             try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
-            foreach (var inv in allInvs) {
+            try { var v = emporium.frontInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.hiddenElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            // 递归遍历所有背包 + 容器内部
+            var visited = new System.Collections.Generic.HashSet<IntPtr>();
+            var stack = new System.Collections.Generic.Stack<GameInventory>(allInvs);
+            while (stack.Count > 0) {
+                var inv = stack.Pop();
                 if (inv == null || inv.childItems == null) continue;
                 for (int i = 0; i < inv.childItems.Count; i++) {
                     var it = inv.childItems[i];
                     if (it == null) continue;
-                    if (!IsWageBox(it)) continue;
-                    ConsumeNutsInBox(it);
+                    if (!visited.Contains(it.Pointer)) visited.Add(it.Pointer);
+                    if (IsWageBox(it)) ConsumeNutsInBox(it);
+                    // 递归进容器内部
+                    var inner = GetContainerGrid(it);
+                    if (inner != null && !visited.Contains(inner.Pointer)) { visited.Add(inner.Pointer); stack.Push(inner); }
                 }
             }
         }
@@ -503,7 +498,7 @@ public static class ContainerUpgradeV2
                 {
                     int progress = GetTagIntSafe(item, "wb_progress");
                     int need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
-                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need + "（拖螺丝 nuts 升级）", "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need + " (drag nuts to upgrade)"),
+                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need + "（将螺丝放箱内过夜，打烊自动消耗）", "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need + " (put nuts inside overnight, consumed at close)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 }
         }

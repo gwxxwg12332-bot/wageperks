@@ -130,7 +130,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("童叟无欺", "Honest Dealer");
     internal override string Description => LangHelper.T("做生意童叟无欺：声誉增长速度 +25%，客户更信任你；但你的售价也得公道——卖出商品收益 -25%。", "Honest dealing: reputation gain +25 percent, but you sell at fair prices - sale income -25 percent.");
-    internal override int Cost => 1; // 09-20 用户拍板：-5→1
+    internal override int Cost => -10; // 09-20 用户拍板：1→-10
     internal override int Type => 1; // 负面红色
     internal override string[] IncompatibleIds => new[] { "笑面虎" }; // 与笑面虎互斥
 
@@ -154,7 +154,7 @@ internal sealed class SmilingFacePerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("笑面虎", "Smiling Tiger");
-    internal override string Description => LangHelper.T("你总是笑脸迎人，顾客愿意为你的笑容多掏钱：所有商品售价 +25%。但笑脸背后也有代价：声誉获取 -25%——你这么会做人，治安部反而觉得你可疑。", "Always smiling, customers pay more: sale price +25 percent. But too smooth: reputation gain -25 percent.");
+    internal override string Description => LangHelper.T("你总是笑脸迎人，顾客愿意为你的笑容多掏钱：所有商品售价 +25%，客户更愿意为你的笑脸买单；但声誉获取 -25%。但笑脸背后也有代价：声誉获取 -25%——你这么会做人，治安部反而觉得你可疑。", "Always smiling, customers pay more: sale price +25 percent. But too smooth: reputation gain -25 percent.");
     internal override int Cost => 1;
     internal override int Type => 2; // 混合黄色（售价+25% / 声誉-25%）
     internal override string[] IncompatibleIds => new[] { "童叟无欺" }; // 与童叟无欺互斥
@@ -228,7 +228,7 @@ internal sealed class BadLuckPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("霉运缠身", "Bad Luck");
-    internal override string Description => LangHelper.T("你仿佛被诅咒了。每天新的一天开始时都会丢失一笔钱（100-1500信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 100-1500 credits every day as a new day begins.");
+    internal override string Description => LangHelper.T("你仿佛被诅咒了。每天打烊后丢失一笔钱（1-200信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 1-200 credits every night.");
     internal override int Cost => -15;   // 09-20 用户拍板：-10→-15
     internal override int Type => 1;    // 负面特性显示为红色
 
@@ -498,8 +498,11 @@ internal sealed class WandererPerk : CustomStartingPerk
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return;
             // 1. 现金随机：50% → 0；50% → 1~600 均匀
-            if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
-            else ps.playerCash = Core.Rng.Next(1, 601);
+            // 声名狼藉特性放行：不覆盖 playerCash
+            if (!Core.PerkActive("声名狼藉")) {
+                if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
+                else ps.playerCash = Core.Rng.Next(1, 601);
+            }
             // 09-21 拆包实锤：四件唯一发放点 = PlayerStore.HandleSkipIntro（EmporiumEntry.Start L7742，晚于本 Postfix）
             // 清除 + 6 件发放已迁移到 PostfixHandleSkipIntro（L7742 后 → InitialSave 不入档）
         }
@@ -678,7 +681,7 @@ internal sealed class WageGirlPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("蛙娘", "Wage Girl");
-    internal override string Description => LangHelper.T("伙伴型特性（3点）。蛙哥留下的仿生女仆实体：喂食/照顾提升她的饱食、口渴、健康、心情、清洁、睡眠六维。她在店时客户预算×4、议价成功率+50%；喂她违禁品可点面板「销赃」外出两天带回干净货。但心情差会偷你的钱和货，连续不照顾会跑路14天。收益与风险并存。", "Partner perk (3 points). A biomimetic maid left by Wage: feed & care raise her 6 stats. While present, customer budget x4 & bargain +50 percent; feed her contraband then Fence to bring back clean goods in 2 days. But bad mood makes her steal your money and goods, and neglect makes her leave for 14 days. High reward, real risk.");
+    internal override string Description => LangHelper.T("伙伴型特性（3点）。蛙哥留下的仿生女仆：喂食/照顾提升六维，在店时客户预算×4、议价+50%。喂她违禁品可洗白（消除标签）或销赃（带回干净货），克扣存小金库。给零花钱加好感（每日前三次）。妙妙箱放螺丝过夜自动升级。但心情差会偷钱货，连续不照顾会跑路14天。", "Partner perk (3 points). Wage's biomimetic maid: feed and care raise 6 stats; in-store budget x4 and bargain +50%. Feed her contraband to launder (remove tag) or fence (bring back clean goods), kept money goes to savings. Allowance raises affection (first 3 times daily). Put nuts in Wage Box overnight to upgrade. But bad mood steals money/goods, neglect makes her leave for 14 days.");
     internal override int Cost => 3; // 09-23 用户拍板：综合考量 3 点
     internal override int Type => 0; // 正面特性（收益为主，偷钱为伴随代价）
 
@@ -689,5 +692,73 @@ internal sealed class WageGirlPerk : CustomStartingPerk
     internal static bool IsActive()
     {
         return Core.PerkActive(PerkId);
+    }
+}
+// ============================================================
+// 负面特性：声名狼藉（极限开局）
+// 四势力声望 -99 + 开局现金 5000
+// ============================================================
+internal sealed class InfamousPerk : CustomStartingPerk
+{
+    internal const string PerkId = "声名狼藉";
+
+    internal override string Id => PerkId;
+    internal override string DisplayName => LangHelper.T("声名狼藉", "Infamous");
+    internal override string Description => LangHelper.T(
+        "你在空间站臭名昭著——五势力声望开局 -198（黑市 -99），做一点坏事就被通缉。第二天会收到 5000 信用点补偿金。高风险高回报，活着回来再说。",
+        "You are infamous across the station - factions start at -198 (black market -99). One wrong move and you are wanted. You get 5000 credits on day 2. High risk, high reward.");
+    internal override int Cost => -10;
+    internal override int Type => 1; // 负面红色
+
+    internal override void OnNewGame() { }
+
+    internal static bool IsActive() => Core.PerkActive(PerkId);
+
+    // PlayerStore.StartNewGame Postfix：声望初始化（5000 改到第二天 OnDayStart 送）
+    public static void PostfixStartNewGame()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            Core.LogMsg("[声名狼藉] PostfixStartNewGame 触发");
+            // 五势力声望绝对值（差值补法）
+            string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
+            int[] targetValues = { -198, -198, -198, -198, -99 };
+            for (int i = 0; i < factionIds.Length; i++)
+            {
+                try
+                {
+                    var rep = StoreReputation.GetStoreReputation(factionIds[i]);
+                    if (rep == null) { Core.LogMsg("[声名狼藉] " + factionIds[i] + " = null"); continue; }
+                    int cur = (int)rep.GetReputationExact();
+                    int diff = targetValues[i] - cur;
+                    rep.ModReputation(diff);
+                    int after = (int)rep.GetReputationExact();
+                    Core.LogMsg("[声名狼藉] " + factionIds[i] + " cur=" + cur + " diff=" + diff + " after=" + after);
+                }
+                catch (Exception ex) { Core.LogMsg("[声名狼藉] " + factionIds[i] + " 异常: " + ex.Message); }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[声名狼藉] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+    // 第二天 OnDayStart 送 5000
+    internal static void PostfixOnDayStart()
+    {
+        try
+        {
+            bool active = IsActive();
+            int day = StoreStation.GetDayCounter();
+            int got = PerkStatePersistence.GetInt(PerkId, "got_money", 0);
+            Core.LogMsg("[声名狼藉] OnDayStart: active=" + active + " day=" + day + " got=" + got);
+            if (!active) return;
+            if (day != 2) return;  // 第二天送5000
+            if (got > 0) return;
+            PerkStatePersistence.SetInt(PerkId, "got_money", 1);
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps != null) { ps.playerCash += 5000; }
+            NotifyHelper.NightLogRaw("声名狼藉：你收到了 5000 补偿金");
+            Core.LogMsg("[声名狼藉] 第1天送5000 OK");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
     }
 }

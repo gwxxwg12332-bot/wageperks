@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,7 +29,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.4", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.6", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace JacksonPerks;
@@ -42,7 +42,27 @@ public static class BuildConfig
 
 	public static int[] BoxHeightsArr = new int[6] { 3, 10, 10, 10, 10, 10 };
 
-	public static int[] UpgradeCostsArr = new int[5] { 5, 10, 20, 40, 50 }; // 09-20 优化：80→50
+	public static int[] UpgradeCostsArr = new int[5] { 1, 10, 20, 40, 50 }; // 09-20 用户拍板：第一级5→1
+
+	// 09-20 CFG 开关：容器/机器减半（开局宽减半）
+	public static bool ContainerHalfEnabled
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "ContainerHalfEnabled"); }
+			catch { return true; }
+		}
+	}
+
+	// 09-20 CFG 开关：容器/机器/模板升级（拖 junk 升级）
+	public static bool ContainerUpgradeEnabled
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "ContainerUpgradeEnabled"); }
+			catch { return true; }
+		}
+	}
 
 	public static bool HardMode
 	{
@@ -202,7 +222,9 @@ public static class BuildConfig
 		try
 		{
 			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
-			melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
+					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
+		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
+		melonPreferences_Category.CreateEntry("ContainerUpgradeEnabled", default_value: true, "容器/机器升级（关=不升级）");
 			melonPreferences_Category.CreateEntry("CleanDailyLoss", 2, "清洁每日衰减量");
 			melonPreferences_Category.CreateEntry("CleanScavCost", 2, "拾荒清洁消耗");
 			melonPreferences_Category.CreateEntry("CleanToothpaste", 15, "牙膏恢复清洁");
@@ -253,7 +275,7 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("ContainerMaxStage", 5, "蛙哥箱段位上限");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("BoxHeights", "3,10,10,10,10,10", "蛙哥箱每段高度(逗号分隔)");
-			melonPreferences_Category.CreateEntry("UpgradeCosts", "5,10,20,40,80", "蛙哥箱每级升级材料数(逗号分隔)");
+			melonPreferences_Category.CreateEntry("UpgradeCosts", "1,10,20,40,50", "蛙哥箱每级升级材料数(逗号分隔)");
 			melonPreferences_Category.CreateEntry("CannibalInterval", 10, "吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("CannibalAbsorbPct", 10, "吞噬吸收(%)");
 			melonPreferences_Category.CreateEntry("CannibalCap", 150, "吞噬三维属性上限");
@@ -277,7 +299,7 @@ public static class BuildConfig
 			{
 				BoxWidthsArr = PadToLast(ParseIntList(GetStr("BoxWidths", "3,10,20,32,42,52")), System.Math.Max(6, ContainerMaxStage + 1));
 				BoxHeightsArr = PadToLast(ParseIntList(GetStr("BoxHeights", "3,10,10,10,10,10")), System.Math.Max(6, ContainerMaxStage + 1));
-				UpgradeCostsArr = PadToLast(ParseIntList(GetStr("UpgradeCosts", "5,10,20,40,80")), System.Math.Max(5, ContainerMaxStage));
+				UpgradeCostsArr = PadToLast(ParseIntList(GetStr("UpgradeCosts", "1,10,20,40,50")), System.Math.Max(5, ContainerMaxStage));
 			}
 			catch (System.Exception ex)
 			{
@@ -354,7 +376,7 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = false; // 发布版关闭
+	public static bool DebugMode = true; // 09-22 开发版打开
 
 	// 09-22 用户拍板：全局物品黑名单（从所有我们的池子排除——蛙娘回归带物/流浪者随机/好物销赃等）
 	// 稀有电子元件 rare_electronic（MaterialDirectory L611 实锤）不进入任何我们的池子
@@ -385,7 +407,7 @@ public class Core : MelonMod
 	{
 		BuildConfig.InitPrefs();
 		Log = base.LoggerInstance;
-		Log.Msg("Wage's Perks v1.2.4 已加载 - 手动Patch模式");
+		Log.Msg("Wage's Perks v1.2.6 已加载 - 手动Patch模式");
 		Log.Msg("【深空当铺】Wage's Perks QQ群：1109707341");
 		ManualPatcher.Init(base.HarmonyInstance);
 		try
@@ -523,7 +545,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 		{
 			try
 			{
-				AddictOfficerEvent.OnNewDay();
+				// 09-21 封存：成瘾警官事件关闭（保留 AddictOfficerEvent.cs 全文供复用）
 			}
 			catch (System.Exception ex)
 			{
@@ -620,7 +642,8 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(TradeSheet), "GetFoundryShop", null, "PostfixTradeSheetFoundryShop");
 			ManualPatcher.TryPatch(typeof(TradeSheet), "GetEnergyFarmShop", null, "PostfixTradeSheetEnergyFarmShop");
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleContentUnlockClient", null, "PostfixOnHandleContentUnlockClient");
-			ManualPatcher.TryPatch(typeof(InputActionManager), "Update", null, "PostfixInputActionManagerUpdate");
+					ManualPatcher.TryPatch(typeof(InputActionManager), "Update", null, "PostfixInputActionManagerUpdate");
+		ManualPatcher.TryPatch(typeof(InventorySortHelper), "Sort", null, "PostfixSort", null, typeof(RobinCrusoePerk)); // 09-22 右键排列后恢复 shape
 			ManualPatcher.TryPatch(typeof(StoreUIManager), "OnNextClientArrived", null, "PostfixSpecialNpcStartDialogue");
 			ManualPatcher.TryPatch(typeof(DialogUIManager), "DisplayClientText", "PrefixDisplayClientText", null, new System.Type[1] { typeof(Dialogue) });
 			ManualPatcher.TryPatch(typeof(ScavHelper), "GetMaxScavAttempts", null, "PostfixGetMaxScavAttempts", null, typeof(LuckScoutPerk));
@@ -670,10 +693,11 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
-			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(AddictOfficerEvent));
+			// 09-21 封存：成瘾警官事件 OnDayStart 挂点关闭
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(DarkGridInspectorPerk)); // 09-20 设计稿：眼线独立挂（不依赖 AddictOfficerEvent 链）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)); // 09-21 蛙娘：全局常驻——每日六维衰减+首次发放（方法名 PostfixOnDayStart）
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(InfamousPerk)); // 09-21 声名狼藉：第1天送5000
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism));
@@ -782,6 +806,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WandererPerk));
+			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)); // 声名狼藉
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)); // 09-21 发放后清+重发（根治"清了白清"）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame_IngotContainer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(LiquidContainerHelper), "AutoSipFromContainer", "PrefixAutoSipFromContainer", null, null, typeof(RobinCrusoePerk));

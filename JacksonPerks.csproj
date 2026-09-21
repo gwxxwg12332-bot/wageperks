@@ -141,6 +141,7 @@
     <EmbeddedResource Include="Icons\17_蛙娘.png" />
     <EmbeddedResource Include="Icons\18_童叟无欺.png" />
     <EmbeddedResource Include="Icons\19_笑面虎.png" />
+    <EmbeddedResource Include="Icons\20_声名狼藉.png" />
 
   </ItemGroup>
 

@@ -1,4 +1,5 @@
 using System;
+using HarmonyLib;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Il2Cpp;
@@ -217,20 +218,19 @@ internal static class RobinCrusoePerk
     // ===== Z 键调出/关闭状态面板（用户拍板；特性界面/主菜单不响应，硬约束守护）=====
     // 09-12 实锤：InputActionManager.Update 每帧可被多次调用（多实例/多Patch）→ 必须同帧去重，否则一次按键开→关双翻转，面板打不开
     private static int _zKeyFrame = -1;
+    private static bool _autoPopup = true;  // 09-22 新增：自动弹面板开关（按 Z 切换）
     internal static void HandleHotkeys()
     {
         try
         {
+            // 09-22 改：按 Z 切换自动弹面板开关
             if (!UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Z)) return;
             int _zFrame = UnityEngine.Time.frameCount;
-            if (_zFrame == _zKeyFrame) return; // 同帧已处理（去重，防双钩子/双实例重复翻转）
+            if (_zFrame == _zKeyFrame) return;
             _zKeyFrame = _zFrame;
             if (!IsActive()) return;
-            if (Il2Cpp.EmporiumEntry.Instance == null) return; // 主菜单/未进档：纯读判空（PlayerStore getter null 时新建，禁用）
-            var mgr = Il2Cpp.CustomUIManager.Instance;
-            if (mgr == null) {  return; }
-            if (mgr.IsOpen("rc_status")) {  mgr.CloseWindow("rc_status"); }
-            else {  RefreshStatusPanel(); }
+            _autoPopup = !_autoPopup;
+            try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "鲁滨逊面板：自动弹开启" : "鲁滨逊面板：自动弹关闭", "Crusoe panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] HandleHotkeys 异常: " + ex.Message); }
     }
@@ -418,9 +418,14 @@ internal static class RobinCrusoePerk
     internal static int FxNum(string prefix)
     {
         int v = 0;
-        foreach (int n in AllActiveNodes()) // Lock 基础效果：实时
+        var activeNodes = AllActiveNodes();
+        
+        
+        
+        foreach (int n in activeNodes) // Lock 基础效果：实时
         {
             if (n < 0 || n >= NODES.Length) continue;
+            
             foreach (string f in NODES[n].Lock) v += FxVal(f, prefix);
         }
         NodeDef d = CurrentNode(); // 抽取项：仅当锁定节点仍为主导节点时生效（打烊抽、离开重抽）
@@ -461,28 +466,14 @@ internal static class RobinCrusoePerk
         try
         {
             if (_tradeBuffCache != null) return _tradeBuffCache; // BUG-001：缓存命中直接返回
+            // 09-21 Bug3：删掉前面的遍历循环，只保留总加成（tooltip 太长）
             var sb = new System.Text.StringBuilder();
-            foreach (int n in AllActiveNodes())
-            {
-                if (n < 0 || n >= NODES.Length) continue;
-                NodeDef d = NODES[n];
-                string fxDesc = "";
-                foreach (string f in d.Lock) { if (IsTradeFx(f)) { string lb = FxLabel(f); if (lb.Length > 0) fxDesc += lb + " "; } }
-                if (d.Key == GetStoredNodeKey()) // 主导节点追加抽取项（仅交易相关）
-                {
-                    string cur = GetNodeFx();
-                    if (!string.IsNullOrEmpty(cur) && IsTradeFx(cur)) { string lb = FxLabel(cur); if (lb.Length > 0) fxDesc += lb + " "; }
-                }
-                if (fxDesc.Length == 0) continue;
-                sb.Append(d.DisplayName + "·" + fxDesc.Trim() + " ");
-            }
-            // 末尾总百分比（与实际生效同源）
             int sellB = GetSellBonusPct(), bargainB = GetBargainBonusPct(), budgetB = GetBudgetBonusPct();
             string total = LangHelper.T("总：", "Total: ");
             if (sellB != 0) total += LangHelper.T("售价", "Sell ") + (sellB > 0 ? "+" : "") + sellB + "% ";
             if (bargainB != 0) total += LangHelper.T("议价", "Bargaining ") + (bargainB > 0 ? "+" : "") + bargainB + "% ";
             if (budgetB != 0) total += LangHelper.T("预算", "Budget ") + (budgetB > 0 ? "+" : "") + budgetB + "% ";
-            if (total.Length > 2) sb.Append("｜" + total.Trim());
+            if (total.Length > 2) sb.Append(total.Trim());
             _tradeBuffCache = sb.ToString().Trim(); // BUG-001：写缓存
             return _tradeBuffCache;
         }
@@ -541,12 +532,15 @@ internal static class RobinCrusoePerk
     // 售价加成：粮仓 +5% + 昂扬累计 + 节点（sell±N，如蓬头垢面锁 sell-30 / 吃饱喝足锁 sell+5）
     internal static int GetSellBonusPct()
     {
-        if (_sellBonusCache != -999) return _sellBonusCache; // BUG-001：缓存
-        int bonus = 0;
-        if (GetGranaryDays() >= GRANARY_DAYS) bonus += 5;
-        bonus += Math.Min(ELEV_MAX, GetElevCount());
-        bonus += FxNum("sell");
-        bonus += (int)GetCompBuffSellBonus(); // v5.9 精打细算：卖出+5%（肚里打鼓爆发补偿）
+        if (_sellBonusCache != -999) return _sellBonusCache;
+        int granary = (GetGranaryDays() >= GRANARY_DAYS) ? 5 : 0;
+        int elev = Math.Min(ELEV_MAX, GetElevCount());
+        int fxSell = FxNum("sell");
+        int comp = (int)GetCompBuffSellBonus();
+        // 09-21 修：心情加成（>=60 → +10, <40 → -10）
+        int moodSell = GetMood() >= 60 ? 10 : (GetMood() < 40 ? -10 : 0);
+        int bonus = granary + elev + fxSell + comp + moodSell;
+        
         _sellBonusCache = bonus;
         return bonus;
     }
@@ -889,6 +883,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
+            if (!_autoPopup) return;  // 09-22 用户拍板：自动弹关闭时不打开
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) return;
             if (mgr.IsOpen("rc_status")) mgr.CloseWindow("rc_status");
@@ -952,10 +947,25 @@ internal static class RobinCrusoePerk
                 b.AddLabel(line, "node");
             }
             int sellB = GetSellBonusPct(), budB = GetBudgetBonusPct(), moodNow = GetMood();
-            string buffs = "";
-            if (sellB > 0) buffs += LangHelper.T("售价+", "Sell +") + sellB + "% ";
-            if (budB > 0) buffs += LangHelper.T("预算+", "Budget +") + budB + "% ";
-            b.AddLabel(LangHelper.T("心情 ", "Mood ") + moodNow + (buffs.Trim().Length > 0 ? "｜" + buffs.Trim() : ""), "mood");
+            // 09-21 改：心情加成单独标识，总售价单独一行
+            int moodSell = moodNow >= 60 ? 10 : (moodNow < 40 ? -10 : 0);
+            string moodLine = LangHelper.T("心情 ", "Mood ") + moodNow;
+            if (moodSell != 0) moodLine += "｜" + LangHelper.T("售价", "Sell") + (moodSell > 0 ? "+" : "") + moodSell + "%";
+            b.AddLabel(moodLine, "mood");
+            // 总加成单独一行（列出所有分项）
+            int granaryB = (GetGranaryDays() >= GRANARY_DAYS) ? 5 : 0;
+            int elevB = Math.Min(ELEV_MAX, GetElevCount());
+            int fxSellB = FxNum("sell");
+            int compB = (int)GetCompBuffSellBonus();
+            int moodSellB = moodNow >= 60 ? 10 : (moodNow < 40 ? -10 : 0);
+            b.AddLabel(LangHelper.T("── 售价加成明细 ──", "── Sell Bonus Breakdown ──"), "sell_detail_hdr");
+            if (granaryB != 0) b.AddLabel(LangHelper.T("粮仓 ", "Granary ") + (granaryB > 0 ? "+" : "") + granaryB + "%", "sell_granary");
+            if (elevB != 0) b.AddLabel(LangHelper.T("昂扬 ", "Elevate ") + (elevB > 0 ? "+" : "") + elevB + "%", "sell_elev");
+            if (fxSellB != 0) b.AddLabel(LangHelper.T("节点 ", "Nodes ") + (fxSellB > 0 ? "+" : "") + fxSellB + "%", "sell_nodes");
+            if (compB != 0) b.AddLabel(LangHelper.T("精打细算 ", "Penny Pincher ") + (compB > 0 ? "+" : "") + compB + "%", "sell_comp");
+            if (moodSellB != 0) b.AddLabel(LangHelper.T("心情 ", "Mood ") + (moodSellB > 0 ? "+" : "") + moodSellB + "%", "sell_mood");
+            b.AddLabel(LangHelper.T("总售价 ", "Total Sell ") + (sellB > 0 ? "+" : "") + sellB + "%", "sell_total");
+            if (budB != 0) b.AddLabel(LangHelper.T("总预算 ", "Total Budget ") + (budB > 0 ? "+" : "") + budB + "%", "budget_total");
             b.End();
             b.Show();
         }
@@ -1461,7 +1471,12 @@ internal static class RobinCrusoePerk
         int cal = GetCalLeft(item);
         if (cal <= 0) { TryExpel(item); return; }
         int q = GetFoodQuality(item);
-        int bite = cal <= 100 ? cal : Math.Max(100, (cal + 1) / 2);
+        // 09-21 修：饱食满了不吃
+        if (GetSatiety() >= 100) return;
+        // 09-21 修：只吃需要的量，不吃一半
+        int need = (100 - GetSatiety()) * 22;  // 最多还需要多少卡
+        int bite = System.Math.Min(cal, need);
+        bite = System.Math.Max(bite, 50);  // 至少吃一口
         int left = cal - bite;
         int effCal = q >= 3 ? (int)(bite * 0.2) : (q == 2 ? (int)(bite * 0.5) : bite);
         effCal = (int)(effCal * GetEatEffMult()); // v5.9 饿狼代谢：吃食物效果+50%（CompBuff）
@@ -4073,4 +4088,35 @@ internal static class RobinCrusoePerk
         catch { }
     }
 
+    // 09-22 PostfixSort：右键排列后恢复升级容器 shape
+    [HarmonyPostfix]
+    static void PostfixSort(GameGridInventory inventory, bool bigFirst, bool fromEnd)
+    {
+        try
+        {
+            if (!IsActive()) return;
+            var emporium = EmporiumEntry.Instance;
+            if (emporium == null) return;
+            var allInvs = new System.Collections.Generic.List<GameInventory>();
+            try { var v = emporium.backInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.frontInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            try { var v = emporium.hiddenElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+            foreach (var inv in allInvs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                foreach (var child in inv.childItems)
+                {
+                    var item = child.TryCast<GameItem>();
+                    if (item == null) continue;
+                    if (!ContainerUpgradeV2.IsUpgradeableContainer(item)) continue;
+                    int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
+                    if (stage > 0) ContainerShapeHelper.RestoreToStage(item, stage);
+                }
+            }
+        }
+        catch { }
+    }
 }

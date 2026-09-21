@@ -880,7 +880,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
             // 更新窗口标题（升级面板）
 
-            try { if (bead.contentWindow != null) bead.contentWindow.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + newSlots + LangHelper.T("/200格)", "/200 slots)"); } catch { }
+            try { if (bead.contentWindow != null) bead.contentWindow.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + newSlots + LangHelper.T("/200格) · 拖垃圾升级", "/200 slots) · drag junk to upgrade"); } catch { }
 
 
 
