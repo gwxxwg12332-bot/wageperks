@@ -694,7 +694,10 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(NegociationUIManager), "CloseUI", null, "PostfixUIClose");
 			ManualPatcher.TryPatch(typeof(GameItem), "GetDisplayName", null, "PostfixGameItemGetDisplayName");
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixDealMakerBonus", new System.Type[0]);
-			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultiplier", null, "PostfixTradeRepMultiplier");
+			// 09-23 游戏版本适配：方法由 ComputeTradeRepMultiplier(返回 double) 改为
+			// ComputeTradeRepMultipliers(返回 ValueTuple<double,double>)，故宿主 Postfix 同步改名并改签名。
+			// 依据：_Demo_20260915_cpp2il IsilDump\Assembly-CSharp\BargainUIManager.txt:8752
+			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OpenUI", null, "PostfixStartOfDayOpenUI");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "ShowMorningReport", null, "PostfixStartOfDayShowMorningReport");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OnStartDayButtonClicked", null, "PostfixStartOfDayButtonClicked");

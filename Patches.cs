@@ -2577,17 +2577,33 @@ itemFeature.isFeatureExposed = true;
 		// 09-19 童叟无欺重做：移除议价 +25 效果（蛙娘在场 +50 在 WageGirlSystem）
 	}
 
-	public static void PostfixTradeRepMultiplier(ref double __result)
+	// 09-23 游戏版本适配：目标方法由 ComputeTradeRepMultiplier(单数, 返回 double)
+	// 变为 ComputeTradeRepMultipliers(复数, 返回 ValueTuple<double,double>)。
+	//
+	// 拆包依据（_Demo_20260915_cpp2il\IsilDump\Assembly-CSharp\BargainUIManager.txt:8752 签名 +
+	// UpdateRepGainText ISIL 180-298）：
+	//   ComputeTradeRepMultipliers 内部对「两个方向」各算一次倍率，打包成元组返回；
+	//   调用方 UpdateRepGainText 分别取 Item1/Item2 构造两条声誉收益行：
+	//     Item1 → 卖出方向（ui_nego_title_selling）
+	//     Item2 → 买入方向（ui_nego_title_buying）
+	//   → 两个元素都是"声誉倍率"，故按特性整体缩放两者 = 忠实实现「声誉获取 ±25%」。
+	public static void PostfixTradeRepMultipliers(ref System.ValueTuple<double, double> __result)
 	{
 		try
 		{
+			double factor = 1.0;
 			if (SmilingFacePerk.IsActive())
 			{
-				__result *= 0.75; // 笑面虎：声誉获取 -25%（混合特性代价）
+				factor = 0.75; // 笑面虎：声誉获取 -25%（混合特性代价）
 			}
 			else if (SmilingTigerPerk.IsActive())
 			{
-				__result *= 1.25; // 童叟无欺：声誉 +25%
+				factor = 1.25; // 童叟无欺：声誉 +25%
+			}
+			if (factor != 1.0)
+			{
+				__result = new System.ValueTuple<double, double>(
+					__result.Item1 * factor, __result.Item2 * factor);
 			}
 		}
 		catch (System.Exception ex)

@@ -99,7 +99,10 @@ internal static class ManualPatcher
     }
 
     // 按方法名精确挂载（兜底：私有带参方法 AccessTools.Method 带参重载在 Il2Cpp 互操作下
-    // 参数类型比较可能失败（如 BargainUIManager.ComputeTradeRepMultiplier），按名+首匹配直接挂；方法名须唯一）
+    // 参数类型比较可能失败（如 BargainUIManager 的议价声誉倍率方法），按名+首匹配直接挂；方法名须唯一）
+    // ⚠️ 用本方法做兜底时，方法名必须与**当前游戏版本**一致——游戏更新会改名
+    //   （实例：ComputeTradeRepMultiplier → ComputeTradeRepMultipliers）。
+    //   失效检测手段：启动后看 [Patch自检] 汇总，或用 tools/check_patches.py 离线核对。
     internal static void TryPatchByName(Type type, string name,
         string prefix = null, string postfix = null, Type patchHost = null)
     {
