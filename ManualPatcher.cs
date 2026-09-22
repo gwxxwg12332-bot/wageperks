@@ -9,10 +9,50 @@ namespace JacksonPerks;
 // 手动Patch基础类（防御性Patch模式，参考 AugPresenceGuard 27.4/27.6 经验）
 // 不用[HarmonyPatch] attribute，目标方法不存在时打日志继续，不崩溃
 // 通用化：patchHost 参数支持任意类作为 Patch 宿主（默认 Patches，不再硬编码）
-// 挂载成功/失败都有日志（开发版可见，排查挂载问题一清二楚）
+//
+// ⚠️ 设计原则（2026-09-23 明确）：本类**只负责挂载**，刻意不含任何"冲突检测/主动让路/拦截"逻辑。
+// 历史事故：旧版曾用 IsConflictOwned 无差别拦截"已被其他 mod patch"的方法，
+// 结果常驻调试工具先挂过 PlayerStore.LoadGame 后，我们自己的读档恢复链被整个跳过
+// （表现为面板/吃喝失效、房租计制失效）。Harmony 允许不同 owner 的补丁共存，
+// **拦截别人 = 同时废掉自己**。要保证功能生效，就不能让路。
 internal static class ManualPatcher
 {
     private static HarmonyLib.Harmony _harmony;
+
+    // ===== 补丁挂载自检（2026-09-23）=====
+    // 目的：保证"我们的功能确实生效"。挂载失败原本是静默的（只打零散日志），
+    // 游戏更新导致方法名变化时功能会无声失效、很难发现。这里做计数 + 收尾汇总，
+    // 让"哪些补丁没挂上"一眼可见。**纯日志，不改变任何挂载行为。**
+    internal static int PatchOkCount { get; private set; }
+    internal static int PatchFailCount { get; private set; }
+    private static readonly System.Collections.Generic.List<string> _patchFailDetails
+        = new System.Collections.Generic.List<string>();
+
+    private static void MarkOk() { PatchOkCount++; }
+
+    private static void MarkFail(string what, string why)
+    {
+        PatchFailCount++;
+        if (_patchFailDetails.Count < 60)
+            _patchFailDetails.Add(what + (string.IsNullOrEmpty(why) ? "" : "  —  " + why));
+    }
+
+    /// <summary>所有补丁注册跑完后调用一次，输出挂载汇总。失败项即"功能不会生效"的清单。</summary>
+    internal static void LogPatchSummary()
+    {
+        try
+        {
+            Core.LogMsg($"[Patch自检] 补丁挂载: 成功 {PatchOkCount} / 失败 {PatchFailCount}");
+            if (PatchFailCount == 0)
+            {
+                Core.LogMsg("[Patch自检] 全部补丁已应用 ✅");
+                return;
+            }
+            Core.LogMsg("[Patch自检] ===== 以下补丁未应用（对应功能不会生效）=====");
+            foreach (string d in _patchFailDetails) Core.LogMsg("[Patch自检]   " + d);
+        }
+        catch { }
+    }
 
     internal static void Init(HarmonyLib.Harmony harmony)
     {
@@ -36,6 +76,7 @@ internal static class ManualPatcher
             if (method == null)
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 未找到，补丁未应用");
+                MarkFail($"{type.Name}.{name}", "方法未找到");
                 return;
             }
 
@@ -48,10 +89,12 @@ internal static class ManualPatcher
             }
 
             _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix);
+            MarkOk();
         }
         catch (Exception ex)
         {
             Core.LogMsg($"[Patch失败] {type.Name}.{name}: {ex.Message}");
+            MarkFail($"{type.Name}.{name}", ex.Message);
         }
     }
 
@@ -71,15 +114,18 @@ internal static class ManualPatcher
             if (method == null)
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 按名未找到，补丁未应用");
+                MarkFail($"{type.Name}.{name}（按名）", "方法未找到");
                 return;
             }
             _harmony.Patch(method,
                 prefix: prefix == null ? null : new HarmonyMethod(host, prefix),
                 postfix: postfix == null ? null : new HarmonyMethod(host, postfix));
+            MarkOk();
         }
         catch (Exception ex)
         {
             Core.LogMsg($"[Patch失败] {type.Name}.{name}: {ex.Message}");
+            MarkFail($"{type.Name}.{name}（按名）", ex.Message);
         }
     }
 
@@ -104,15 +150,20 @@ internal static class ManualPatcher
                 catch (Exception ex)
                 {
                     Core.LogMsg($"[Patch失败] {type.Name}.{name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.Name))}): {ex.Message}");
+                    MarkFail($"{type.Name}.{name}（重载）", ex.Message);
                 }
             }
-            if (count > 0) { }
+            if (count > 0) { PatchOkCount += count; }
             else
+            {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 无匹配重载");
+                MarkFail($"{type.Name}.{name}（重载）", "无匹配重载");
+            }
         }
         catch (Exception ex)
         {
             Core.LogMsg($"[Patch失败] {type.Name}.{name}: {ex.Message}");
+            MarkFail($"{type.Name}.{name}（重载）", ex.Message);
         }
     }
 }
