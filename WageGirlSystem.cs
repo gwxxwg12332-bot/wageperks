@@ -52,61 +52,46 @@ public static class WageGirlSystem
     }
 
     // ===================== 状态读写（内存优先 + 打烊落盘） =====================
-    // 09-20 修：内存缓存——运行时状态只写内存，打烊SaveGame时PostfixSaveGame落盘
+    // ===== 09-23 统一读写层：所有蛙娘状态只走这两个方法，禁止直接调 PerkStatePersistence =====
+    // 规则：
+    //   GetStat(key)      → 优先读 _memStats，miss 读 PlayerPrefs（默认 0）
+    //   GetStat(key, def) → 同上，miss 用 def 做默认值
+    //   SetStat(key, v)   → 只写 _memStats，PostfixSaveGame 统一落盘
+    // 这样读写永远一致：写进内存，读也从内存读，不会出现"写了但读到旧值"的 bug
     private static readonly Dictionary<string, int> _memStats = new Dictionary<string, int>();
-    internal static int GetStat(string k) {
+
+    internal static int GetStat(string k) => GetStat(k, 0);
+    internal static int GetStat(string k, int def) {
         try {
             if (_memStats.TryGetValue(k, out int v)) return v;
-            int saved = PerkStatePersistence.GetInt(NS, k, STAT_INIT);
+            int saved = PerkStatePersistence.GetInt(NS, k, def);
             _memStats[k] = saved;
             return saved;
-        } catch { return STAT_INIT; }
+        } catch { return def; }
     }
-    internal static void SetStat(string k, int v)
-    {
-        try {
-    // 09-21 修：小金库不 clamp（钱可以 > 100）
-    if (k == K_SAVINGS) { _memStats[k] = Math.Max(0, v); return; }
-    _memStats[k] = Math.Max(0, Math.Min(STAT_MAX, v));
-} catch { }
+    internal static void SetStat(string k, int v) {
+        try { _memStats[k] = v; } catch { }
     }
-    internal static int GetSleepDebt() {
-        try {
-            string k = K_SLEEP_DEBT;
-            if (_memStats.TryGetValue(k, out int v)) return v;
-            int saved = PerkStatePersistence.GetInt(NS, k, 0);
-            _memStats[k] = saved;
-            return saved;
-        } catch { return 0; }
-    }
-    internal static void SetSleepDebt(int v) { try { _memStats[K_SLEEP_DEBT] = Math.Max(0, v); } catch { } }
-    internal static int GetAffection() {
-        try {
-            string k = K_AFF;
-            if (_memStats.TryGetValue(k, out int v)) return v;
-            int saved = PerkStatePersistence.GetInt(NS, k, 0);
-            _memStats[k] = saved;
-            return saved;
-        
-} catch { return 0; }
-    }
-    internal static void SetAffection(int v) { try { _memStats[K_AFF] = Math.Max(0, Math.Min(AFF_MAX, v)); } catch { } }
-            private static int GetAllowance() {
-            try { if (_memStats.TryGetValue(K_ALLOWANCE, out int v)) return v; int saved = PerkStatePersistence.GetInt(NS, K_ALLOWANCE, 0); _memStats[K_ALLOWANCE] = saved; return saved; } catch { return 0; }
-        }
-        private static void SetAllowance(int v) { try { _memStats[K_ALLOWANCE] = v; } catch { } }
-private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS, "lastFedDay", 0) == CurrentDay(); } catch { return false; } }
+
+    // 以下旧方法全部改成门面（调用点 0 改动）
+    internal static int GetSleepDebt() => GetStat(K_SLEEP_DEBT, 0);
+    internal static void SetSleepDebt(int v) => SetStat(K_SLEEP_DEBT, Math.Max(0, v));
+    internal static int GetAffection() => GetStat(K_AFF, 0);
+    internal static void SetAffection(int v) => SetStat(K_AFF, Math.Max(0, Math.Min(AFF_MAX, v)));
+    internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
+    internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
+private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == CurrentDay(); } catch { return false; } }
     internal static bool Exists() {
     // 09-20 修：实体优先——天然随档，免疫 default_run 残留（根治连续开新档不出现）
     // 1) 实体在 → 存在
     try { if (ExistsInScene()) return true; } catch { }
     // 2) 跑路/离开中 → 视为存在，不补发
-    try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > CurrentDay()) return true; } catch { }
+    try { if (GetStat(K_LEAVE) > CurrentDay()) return true; } catch { }
     // 3) 其余 → 不存在（补发）——忽略 K_EXIST 残留
     return false;
 }
 
-    internal static void SetExists(bool v) { try { PerkStatePersistence.SetInt(NS, K_EXIST, v ? 1 : 0); } catch { } }
+    internal static void SetExists(bool v) { try { SetStat(K_EXIST, v ? 1 : 0); } catch { } }
 
     // 蛙娘全部持久化 key（清 default_run 残留用）
     private static readonly string[] ALL_KEYS = new string[]
@@ -283,7 +268,7 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             b.AddProgressBar(GetStat(K_SLEEP) / 100f, "wg_s");
             b.AddLabel(LangHelper.T("💬 " + GetDailyLine(), "💬 " + GetDailyLine()), "wg_daily_line"); // 09-20 优化：日常随机台词
             // 外出/离家中：不显示销赃按钮（人不在店里——09-22 用户拍板）
-            int leaveChk = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            int leaveChk = GetStat(K_LEAVE);
             bool isOutChk = leaveChk > 0 && CurrentDay() < leaveChk;
             if (!isOutChk)
             {
@@ -291,20 +276,20 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
                 try
                 {
                     string[] cats = { LangHelper.T("物资箱", "Supply Crate"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool"), LangHelper.T("随机", "Random"), LangHelper.T("指挥卡", "Keycard"), LangHelper.T("医药品", "Medicine"), LangHelper.T("模板", "Module") };
-                    int curCat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
-                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0) + 1; if (c > 7) c = 0; PerkStatePersistence.SetInt(NS, K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
+                    int curCat = GetStat(K_FENCE_CAT);
+                    var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = GetStat(K_FENCE_CAT) + 1; if (c > 7) c = 0; SetStat(K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("销赃类别（可选择）：" + cats[curCat], "Fence type (selectable): " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
                 }
                 catch { }
                 // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
                 try
                 {
-                    int famt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+                    int famt = GetStat(K_FENCE_AMT);
                     var fenceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryFence(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("销赃（待销 " + famt + "）", "Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
                     // 09-23 改：违禁品模式切换按钮（洗白 ↔ 销赃）
-                    int wmode = PerkStatePersistence.GetInt(NS, K_WASH_MODE, 0);
-                    var modeBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int m = PerkStatePersistence.GetInt(NS, K_WASH_MODE, 0) == 0 ? 1 : 0; PerkStatePersistence.SetInt(NS, K_WASH_MODE, m); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 模式切换异常: " + ex.Message); } }));
+                    int wmode = GetStat(K_WASH_MODE);
+                    var modeBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int m = GetStat(K_WASH_MODE) == 0 ? 1 : 0; SetStat(K_WASH_MODE, m); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 模式切换异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("违禁品模式（当前：" + (wmode == 0 ? "洗白" : "销赃") + "）", "Contraband mode (current: " + (wmode == 0 ? "Launder" : "Fence") + ")"), modeBtnOnClick, "wg_mode_btn");
                     // 模式说明
                     b.AddLabel(LangHelper.T(wmode == 0 ? "拖违禁品给蛙娘 → 洗白（消除标签，按等级扣费）" : "拖违禁品给蛙娘 → 累计销赃（点「销赃」按钮出发）", wmode == 0 ? "Feed contraband → launder (remove tag, cost by level)" : "Feed contraband → accumulate fence (press Fence to go)"), "wg_mode_hint");
@@ -325,11 +310,11 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
             {
-                int leave = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+                int leave = GetStat(K_LEAVE);
                 int today = CurrentDay();
                 if (leave > 0 && today < leave)
                 {
-                    int reason = PerkStatePersistence.GetInt(NS, K_LEAVE_REASON, 0);
+                    int reason = GetStat(K_LEAVE_REASON);
                     int daysLeft = leave - today;
                     string st;
                     if (reason == 2)
@@ -435,7 +420,7 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             // 09-23 改：违禁品 → 按模式分流（洗白 / 销赃）
             if (IsContraband(item))
             {
-                int mode = PerkStatePersistence.GetInt(NS, K_WASH_MODE, 0);
+                int mode = GetStat(K_WASH_MODE);
                 if (mode == 0) {
                     // 洗白模式
                     int lvl = 0;
@@ -463,9 +448,9 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
                     if (v <= 0) { try { v = item.unitValue; } catch { } }
                     if (v <= 0) return false;
                     try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
-                    int cur = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+                    int cur = GetStat(K_FENCE_AMT);
                     int total = cur + (int)v;
-                    PerkStatePersistence.SetInt(NS, K_FENCE_AMT, total);
+                    SetStat(K_FENCE_AMT, total);
                     ReportLine(LangHelper.T("蛙娘吃下了违禁品（累计 " + total + " 价值待销赃——点面板「销赃」出发）", "Wage Girl devoured contraband (" + total + " to fence - press Fence)"));
                     try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
                     SetAnimMode(2);
@@ -511,7 +496,7 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             }
             else return false;
             SetAffection(GetAffection() + aff);
-            PerkStatePersistence.SetInt(NS, "lastFedDay", CurrentDay()); // 记录今天喂过
+            SetStat("lastFedDay", CurrentDay()); // 记录今天喂过
             try { StoreUIManager.Instance.Notify(msg, "green"); } catch { }
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
             SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
@@ -548,6 +533,7 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             // 六维每日衰减（睡眠除外——仿生女仆夜间自然恢复睡眠）
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
                 SetStat(k, GetStat(k) - DAILY_DECAY);
+            SetStat(K_ALLOWANCE_COUNT, 0); // 09-23 每天重置零花钱计数
             // 睡眠自然增长（过夜充电/睡觉恢复）
                         // 09-23 睡眠 debt 机制：先扣债（偷钱/销赃/偷拿熬夜）再自然恢复
             int sleepDebt = GetSleepDebt(); SetSleepDebt(0);
@@ -589,26 +575,26 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
         {
             if (!Exists()) return; // 09-23 Perk 化：未出现不活动（双保险，修复没选 Perk 也偷钱）
             int day = CurrentDay();
-            int leaveDay = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            int leaveDay = GetStat(K_LEAVE);
             // 1) 回归（到达回归日）→ 按原因分支 → 实体重新发放
             if (leaveDay > 0 && day >= leaveDay)
             {
-                int reason = PerkStatePersistence.GetInt(NS, K_LEAVE_REASON, 0);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, 0);
-                PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 0);
+                int reason = GetStat(K_LEAVE_REASON);
+                SetStat(K_LEAVE, 0);
+                SetStat(K_LEAVE_REASON, 0);
                 // 喂钱带物优先：零花钱池 > 0 → 走带物
-                int allow = PerkStatePersistence.GetInt(NS, K_ALLOWANCE, 0);
+                int allow = GetStat(K_ALLOWANCE);
                 if (allow > 0) {
                     GiveBackItem(allow);
-                    PerkStatePersistence.SetInt(NS, K_ALLOWANCE, 0);
+                    SetStat(K_ALLOWANCE, 0);
                     ReportLine(LangHelper.T("蛙娘逛街回来了，带了点东西", "Wage Girl is back from shopping"));
                 }
                 else if (reason == 1) FenceReturn();
                 else if (reason == 2) RunawayReturn();
                 else
                 {
-                    int amt = PerkStatePersistence.GetInt(NS, K_STEAL_AMT, 0);
-                    if (amt > 0) { GiveBackItem(amt); PerkStatePersistence.SetInt(NS, K_STEAL_AMT, 0); }
+                    int amt = GetStat(K_STEAL_AMT);
+                    if (amt > 0) { GiveBackItem(amt); SetStat(K_STEAL_AMT, 0); }
                     else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
                 }
                 TryGiveToBackpack(); // 实体重新发放（消失期实体已移除）
@@ -617,23 +603,23 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day < leaveDay) return;
             // 3) 跑路检查：连续 3 天任一六维 <20 → 离家出走 14 天
-            int lowStreak = PerkStatePersistence.GetInt(NS, K_STARVE, 0);
+            int lowStreak = GetStat(K_STARVE);
             if (IsAnyStatLow())
             {
                 lowStreak++;
-                PerkStatePersistence.SetInt(NS, K_STARVE, lowStreak);
+                SetStat(K_STARVE, lowStreak);
             }
-            else PerkStatePersistence.SetInt(NS, K_STARVE, 0);
+            else SetStat(K_STARVE, 0);
             if (lowStreak >= 5) // 09-20 优化：3→5
             {
-                PerkStatePersistence.SetInt(NS, K_STARVE, 0);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, day + 14);
-                PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 2);
+                SetStat(K_STARVE, 0);
+                SetStat(K_LEAVE, day + 14);
+                SetStat(K_LEAVE_REASON, 2);
                 _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
                 ReportLine(LangHelper.T("蛙娘连续几天没吃好没睡好，离家出走了（14 天后回来）", "Wage Girl ran away after days of neglect (back in 14 days)"));
                 return;
             }
-            int lastSteal = PerkStatePersistence.GetInt(NS, K_LAST_STEAL, 0);
+            int lastSteal = GetStat(K_LAST_STEAL);
             // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + 50 钱，然后设 today）
             if (lastSteal <= 0)
             {
@@ -645,46 +631,44 @@ private static bool WasFedToday() { try { return PerkStatePersistence.GetInt(NS,
                     ReportLine(LangHelper.T("蛙娘偷走了 50 块钱和" + string.Join("、", stolenNames0), "Wage Girl stole 50 credits and " + string.Join(", ", stolenNames0)));
                 else
                     ReportLine(LangHelper.T("蛙娘偷走了 50 块钱", "Wage Girl stole 50 credits"));
-                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+                SetStat(K_LAST_STEAL, day);
                 return;
             }
             // 心情>=80 自动归还偷的东西
-            try {
-                int sv = PerkStatePersistence.GetInt(NS, "stolenValue", 0);
+                int sv = GetStat("stolenValue", 0);
                 if (GetStat(K_MOOD) >= 80 && sv > 0) {
                     GiveBackItem(sv);
-                    PerkStatePersistence.SetInt(NS, "stolenValue", 0);
+                    SetStat("stolenValue", 0);
                     ReportLine(LangHelper.T("蛙娘心情大好，把之前偷的东西都还回来了", "Wage Girl is in a great mood and returned everything she stole"));
                 }
-            } catch { }
             // 5) 日常自主偷拿（状态触发）——给零花钱后当天不偷
-            int allowNow2 = PerkStatePersistence.GetInt(NS, K_ALLOWANCE, 0);
+            int allowNow2 = GetStat(K_ALLOWANCE);
             if (allowNow2 <= 0) {
             TrySnatch();
             } // 给零花钱后当天不偷
             // 6) 好物：好感 ≥50 每 7 天带 1 件
-            int lastGift = PerkStatePersistence.GetInt(NS, K_LAST_GIFT, 0);
+            int lastGift = GetStat(K_LAST_GIFT);
             if (GetAffection() >= 50 && day - lastGift >= 7)
             {
                 GiveGift();
-                PerkStatePersistence.SetInt(NS, K_LAST_GIFT, day);
+                SetStat(K_LAST_GIFT, day);
             }
             // 7) 偷钱循环（≥7 天）——K_LEAVE 改"回归日"语义（day+1）
             // 零花钱 ≥100 当天 50% 不偷
-            int allowNow = PerkStatePersistence.GetInt(NS, K_ALLOWANCE, 0);
+            int allowNow = GetStat(K_ALLOWANCE);
             if (allowNow >= 100 && UnityEngine.Random.Range(0, 2) == 0) {
-                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+                SetStat(K_LAST_STEAL, day);
             }
             else if (day - lastSteal >= STEAL_INTERVAL && GetAffection() < 80)
             {
                 int aff = GetAffection();
                 int steal = 100 - (int)((aff / 100f) * 90f); // 09-20 优化：好感越高偷得越少（0→100、100→10）
                 ModCashN(-steal);
-                PerkStatePersistence.SetInt(NS, K_STEAL_AMT, steal);
+                SetStat(K_STEAL_AMT, steal);
                                 SetSleepDebt(GetSleepDebt() + 20); // 偷钱外出熬夜 -20 睡眠（次日结算）
-PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
-                PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 0);
-                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, day);
+SetStat(K_LEAVE, day + 1); // 回归日 = 明天
+                SetStat(K_LEAVE_REASON, 0);
+                SetStat(K_LAST_STEAL, day);
                 _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
                 ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
             }
@@ -792,7 +776,7 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
                 try { stolenVal += p.unitValue; } catch { }
                 try { p.Destroy(); stolen++; } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; } } catch { } }
             }
-            try { PerkStatePersistence.SetInt(NS, "stolenValue", PerkStatePersistence.GetInt(NS, "stolenValue", 0) + (int)Math.Min(stolenVal, int.MaxValue)); } catch { }
+            try { SetStat("stolenValue", GetStat("stolenValue", 0) + (int)Math.Min(stolenVal, int.MaxValue)); } catch { }
             return stolen;
         }
         catch { stolenNames = null; return 0; }
@@ -968,13 +952,13 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
         try
         {
             EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null) { return; }
-            if (em.backInvinvElement == null) { return; }
+            if (em == null) { Core.LogMsg("[蛙诊] GiveToBackpack: em null"); return; }
+            if (em.backInvinvElement == null) { Core.LogMsg("[蛙诊] GiveToBackpack: backInv null"); return; }
             // 09-19 发放前全范围查重（5 网格+容器内部已有 → 不重复发）
-            if (ExistsInScene()) { return; }
+            if (ExistsInScene()) { Core.LogMsg("[蛙诊] GiveToBackpack: ExistsInScene true"); return; }
             var inv = (GameInventory)em.backInvinvElement;
             GameItem item = DirectoryMaster.Item(ENTITY_ID, true);
-            if (item == null) { return; }
+            if (item == null) { Core.LogMsg("[蛙诊] GiveToBackpack: item null"); return; }
             // 照 GiveToBackpack 先例：TryFindOneValidInventorySlot → TryAcceptOnce（防同格重叠）；失败 UncheckedAccept 兜底
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
             if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception) { } }
@@ -1069,15 +1053,15 @@ PerkStatePersistence.SetInt(NS, K_LEAVE, day + 1); // 回归日 = 明天
         {
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("交易模式下不能销赃", "Can't fence while trading"), "orange"); } catch { } return; }
-            int leave = PerkStatePersistence.GetInt(NS, K_LEAVE, 0);
+            int leave = GetStat(K_LEAVE);
             if (leave > 0 && CurrentDay() < leave) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("蛙娘不在店里", "Wage Girl is out"), "orange"); } catch { } return; }
-            int amt = PerkStatePersistence.GetInt(NS, K_FENCE_AMT, 0);
+            int amt = GetStat(K_FENCE_AMT);
             if (amt <= 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("没有违禁品可销——先拖违禁品给蛙娘吃掉", "No contraband to fence - feed her contraband first"), "orange"); } catch { } return; }
-            PerkStatePersistence.SetInt(NS, K_FENCE_PENDING, amt);
-            PerkStatePersistence.SetInt(NS, K_FENCE_AMT, 0);
+            SetStat(K_FENCE_PENDING, amt);
+            SetStat(K_FENCE_AMT, 0);
                         SetSleepDebt(GetSleepDebt() + 20); // 销赃外出熬夜 -20 睡眠（次日结算）
-PerkStatePersistence.SetInt(NS, K_LEAVE, CurrentDay() + 2);
-            PerkStatePersistence.SetInt(NS, K_LEAVE_REASON, 1);
+            SetStat(K_LEAVE, CurrentDay() + 2);
+            SetStat(K_LEAVE_REASON, 1);
             _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
             ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
@@ -1121,8 +1105,8 @@ private static void FenceReturn()
     {
         try
         {
-            int amt = PerkStatePersistence.GetInt(NS, K_FENCE_PENDING, 0);
-            PerkStatePersistence.SetInt(NS, K_FENCE_PENDING, 0);
+            int amt = GetStat(K_FENCE_PENDING);
+            SetStat(K_FENCE_PENDING, 0);
             if (amt <= 0) { ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back from fencing")); return; }
             int aff = GetAffection();
             float fee = 0.15f - (aff / 1000f);  // 15% 起步
@@ -1130,7 +1114,7 @@ private static void FenceReturn()
             // 09-23 改：不预算克扣，实际克扣 = amt - spentTotal
             long target = (long)(amt * (1f - fee));
             if (target < 1) target = 1;
-            int cat = PerkStatePersistence.GetInt(NS, K_FENCE_CAT, 0);
+            int cat = GetStat(K_FENCE_CAT);
             // cat==0 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
             if (cat == 0)
             {
@@ -1665,7 +1649,7 @@ private static void FenceReturn()
             if (_animMode == 1) return "walk";
             try { if (_walking) return "walk"; } catch { } // 平时走动用walk帧
             // 09-19 修：K_LEAVE>0 但蛙娘实体在店里（读档恢复）→ 不挥手，走正常状态
-            try { if (PerkStatePersistence.GetInt(NS, K_LEAVE, 0) > 0 && _cachedGirlItem == null) return "away"; } catch { }
+            try { if (GetStat(K_LEAVE) > 0 && _cachedGirlItem == null) return "away"; } catch { }
             int mood = GetStat(K_MOOD), health = GetStat(K_HEALTH), sat = GetStat(K_SAT), th = GetStat(K_TH), clean = GetStat(K_CLEAN), sleep = GetStat(K_SLEEP);
             int aff = GetAffection();
             if (mood <= 20) return "angry";
@@ -2019,7 +2003,7 @@ private static void FenceReturn()
         {
             try {
                 foreach (var kv in _memStats)
-                    PerkStatePersistence.SetInt(NS, kv.Key, kv.Value);
+                    PerkStatePersistence.SetInt(NS, kv.Key, kv.Value);;
             } catch { }
         }
 
@@ -2028,9 +2012,9 @@ private static void FenceReturn()
         {
             try {
                 // 清 default_run 残留
-                PerkStatePersistence.SetInt(NS, K_LAST_STEAL, 0);
-                PerkStatePersistence.SetInt(NS, K_EXIST, 0);
-                PerkStatePersistence.SetInt(NS, K_LEAVE, 0);
+                SetStat(K_LAST_STEAL, 0);
+                SetStat(K_EXIST, 0);
+                SetStat(K_LEAVE, 0);
                 // 六维重置为初始 60
                 SetStat("sat", STAT_INIT);
                 SetStat("th", STAT_INIT);
@@ -2051,6 +2035,14 @@ private static void FenceReturn()
             _memStats.Clear(); // 09-20 修：读档清内存缓存——下次GetStat自动从Prefs重载存档值
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
             try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
+            try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
+            // 09-23 修：兜底校验——K_LEAVE 未到回归日 → 强制删实体
+            try {
+                int leaveDay = GetStat(K_LEAVE);
+                if (leaveDay > 0 && CurrentDay() < leaveDay) {
+                    RemoveGirlFromScene();
+                }
+            } catch { }
         } catch { }
     }
 

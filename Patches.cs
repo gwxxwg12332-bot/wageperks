@@ -1398,6 +1398,7 @@ internal static class Patches
 	{
 		try
 		{
+			MadnessRoller.ResetLock();
 			CustomStartingPerks.EnsureRegistered();
 			Core.LogMsg("[特性UI] OpenUI时确保特性已注册");
 			CustomStartingPerks.EnsurePickerElements(__instance);
@@ -3108,6 +3109,14 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
+			// 09-22 精神错乱：锁定后不能再点
+			if (MadnessRoller.IsLocked) return;
+			// 09-22 精神错乱：点击精神错乱特性自动抽取
+			if (__instance != null && __instance.id == "精神错乱")
+			{
+				MadnessRoller.Roll(PerkUIController.Instance);
+				return;
+			}
 			NewGameData instance = NewGameData.Instance;
 			if (instance != null && !instance.isInMainMenu)
 			{

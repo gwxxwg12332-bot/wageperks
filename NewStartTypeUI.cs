@@ -304,7 +304,9 @@ internal static class NewStartTypeUI
                     "粮仓与升华：饱腹满 7 天售价 +5%；满状态每 2 天升 1 级（上限 5）\n" +
                     "8 种状态客户登门买卖；按 Z 键随时打开生存状态面板\n" +
                     "容器容量减半：腰包、储存箱与机器内嵌箱子开局容量减半（主背包除外），可拖垃圾（junk）逐格升级恢复\n" +
-                    "博士夜晚到访，出售食物与水",
+                    "博士夜晚到访，出售食物与水\n" +
+                    "水瓶打印机：电子元件升级瓶型（满级打印 6000ml 超大瓶），金属锭升级质量（100 出普通水、更高优质/纯水）\n\n" +
+                    CustomStartingPerks.CommunityNote,
                     "A brand-new starting type with its own tab on the start screen. Stranded on the station, survive like Robinson Crusoe:\n" +
                     "Daily 2200 kcal & 2000 ml water; six survival stats: satiety, thirst, health, cleanliness, sleep, social\n\n" +
                     "6 status axes, 20 nodes — from Starving/Parched to Well-Fed/Quenched, each affecting customers, prices, haggling, scavenging and wounds\n" +
@@ -313,7 +315,9 @@ internal static class NewStartTypeUI
                     "Granary: sell +5% after 7 well-fed days; Ascension levels up every 2 days\n" +
                     "8 status customers drop by with special deals; press Z for the survival panel\n" +
                     "Containers start halved: pouches, storage and machine bins (main backpack excluded); drag junk to upgrade back\n" +
-                    "The Doctor visits at night, selling food and water");
+                    "The Doctor visits at night, selling food and water\n" +
+                    "Bottle printer: electronic parts upgrade bottle type (max 6000ml jug), metal ingots upgrade quality (100 = plain water, higher = premium/pure)\n\n" +
+                    CustomStartingPerks.CommunityNote);
             }
 
         }

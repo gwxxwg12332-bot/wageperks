@@ -15,8 +15,8 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("蛙哥牛逼", "Wage Power");
-    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱）。妙妙箱可拖入螺丝升级扩容（1/10/20/40/50），打烊统一吃掉叠加进度，满级额外获得第二个妙妙箱。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage). The Wonder Box upgrades with screws (1/10/20/40/50), consumed at closing; at max level you get a second Wonder Box.");
-    internal override int Cost => 2;
+    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱），并附赠仿生女仆蛙娘：喂食/照顾提升六维，在店时客户预算×4、议价+50%。喂她违禁品可洗白或销赃，克扣存小金库。妙妙箱拖螺丝或放箱内过夜自动升级（1/10/20/40/50），满级得第二个妙妙箱。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage) and his biomimetic maid: feed/care raise 6 stats, in-store budget x4 and bargain +50%. Feed contraband to launder or fence, kept money goes to savings. Wonder Box upgrades with screws (1/10/20/40/50), max level gives a second box.");
+    internal override int Cost => BuildConfig.HardMode ? 7 : 5; // 09-23 用户拍板：普通5/硬爽7
     internal override int Type => 0;
 
     // 物品池（216个有效物品，已删除打印机/水培化学/无效模板/名片）

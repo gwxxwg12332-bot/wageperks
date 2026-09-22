@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,7 +29,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.6", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(Core), "Wage's Perks", "1.2.8", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace JacksonPerks;
@@ -51,6 +51,16 @@ public static class BuildConfig
 		{
 			try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "ContainerHalfEnabled"); }
 			catch { return true; }
+		}
+	}
+
+	// 09-22 CFG：精神错乱额外槽位数
+	public static int MadnessExtraSlots
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<int>("WagesPerks", "MadnessExtraSlots"); }
+			catch { return 3; }
 		}
 	}
 
@@ -224,6 +234,7 @@ public static class BuildConfig
 			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
 					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
 		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
+		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
 		melonPreferences_Category.CreateEntry("ContainerUpgradeEnabled", default_value: true, "容器/机器升级（关=不升级）");
 			melonPreferences_Category.CreateEntry("CleanDailyLoss", 2, "清洁每日衰减量");
 			melonPreferences_Category.CreateEntry("CleanScavCost", 2, "拾荒清洁消耗");
@@ -407,7 +418,7 @@ public class Core : MelonMod
 	{
 		BuildConfig.InitPrefs();
 		Log = base.LoggerInstance;
-		Log.Msg("Wage's Perks v1.2.6 已加载 - 手动Patch模式");
+		Log.Msg("Wage's Perks v1.2.8 已加载 - 手动Patch模式");
 		Log.Msg("【深空当铺】Wage's Perks QQ群：1109707341");
 		ManualPatcher.Init(base.HarmonyInstance);
 		try
@@ -567,6 +578,8 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			{
 				LogMsg("[ModHook] 开门霉运失败: " + ex4.Message);
 			}
+			// 09-22 信息自动显示：开门时刷新鲁滨逊面板
+			try { RobinCrusoePerk.RefreshStatusPanel(); } catch { }
 			if (!DrJacksonFriendPerk.IsActive() || PlayerStore.Instance == null)
 			{
 				return;
@@ -662,6 +675,11 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(EmporiumEntry), "GetAllAfterhourOwnedItems", null, "PostfixGetAllAfterhourOwnedItems", null, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen");
 			ManualPatcher.TryPatch(typeof(StartingPerkIconLoader), "Start", null, "PostfixIconLoaderStart");
+			ManualPatcher.TryPatch(typeof(NetworkUpgrade), "Unlock", "Prefix", "Postfix", null, typeof(DetectiveUpgradePatch));
+			ManualPatcher.TryPatch(typeof(SecData), "OnFixerUsed", "Prefix", null, null, typeof(DetectiveFixerPatch));
+			ManualPatcher.TryPatch(typeof(SecData), "CommitCrime", "Prefix", null, null, typeof(DetectiveCommitCrimePatch));
+			ManualPatcher.TryPatch(typeof(NegociationUIManager), "SellItem", null, "Postfix", null, typeof(SoldContrabandCounterPatch));
+			ManualPatcher.TryPatch(typeof(SecData), "OnNewDay", null, "Postfix", null, typeof(SoldEvidenceOnNewDayPatch));
 			ManualPatcher.TryPatch(typeof(SecData), "OnFixerUsed", null, "Postfix", null, typeof(WildeFixerPatch));
 			ManualPatcher.TryPatch(typeof(BarterHelper), "DoesTraderAcceptThisItemAsPayment", null, "Postfix", null, typeof(CounterfeitWineTradeFix));
 			ManualPatcher.TryPatchAllOverloads(typeof(LocHelper), "GetLocalizedPerkTable", null, "PostfixGetLocalizedPerkTable");
@@ -689,7 +707,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘打烊落盘内存缓存
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘新档硬重置
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk)); // 09-20 鲁滨逊打烊落盘血量
-			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(ContainerUpgradeV2)); // 09-20 妙妙箱打烊批量吃螺丝
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", "PrefixSaveGame", null, null, typeof(ContainerUpgradeV2)); // 09-23 修：妙妙箱打烊吃螺丝改 Prefix（存档前跑，否则读档回退）
 
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
@@ -698,6 +716,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)); // 09-21 蛙娘：全局常驻——每日六维衰减+首次发放（方法名 PostfixOnDayStart）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(InfamousPerk)); // 09-21 声名狼藉：第1天送5000
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(HatedByAllPerk)); // 09-22 人神共愤：每天扣声望+扣钱
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism));

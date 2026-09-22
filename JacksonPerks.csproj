@@ -142,6 +142,9 @@
     <EmbeddedResource Include="Icons\18_童叟无欺.png" />
     <EmbeddedResource Include="Icons\19_笑面虎.png" />
     <EmbeddedResource Include="Icons\20_声名狼藉.png" />
+    <EmbeddedResource Include="Icons\21_狄仁杰之手.png" />
+    <EmbeddedResource Include="Icons\22_人神共愤.png" />
+    <EmbeddedResource Include="Icons\23_精神错乱.png" />
 
   </ItemGroup>
 

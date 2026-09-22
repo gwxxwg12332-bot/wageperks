@@ -27,7 +27,7 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 
     // 获取违禁品价格加成
@@ -65,7 +65,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 
     // 获取酒类价格加成
@@ -140,7 +140,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId); // 笑面虎已是独立特性，不再双认
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘 // 笑面虎已是独立特性，不再双认
     }
 }
 
@@ -165,7 +165,7 @@ internal sealed class SmilingFacePerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 }
 
@@ -213,7 +213,7 @@ internal sealed class ThiefMagnetPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 
 }
@@ -229,7 +229,7 @@ internal sealed class BadLuckPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("霉运缠身", "Bad Luck");
     internal override string Description => LangHelper.T("你仿佛被诅咒了。每天打烊后丢失一笔钱（1-200信用点），财运尽散。命运在跟你开玩笑。", "Seems cursed. Lose 1-200 credits every night.");
-    internal override int Cost => -15;   // 09-20 用户拍板：-10→-15
+    internal override int Cost => -10;   // 09-23 用户拍板：-15→-10
     internal override int Type => 1;    // 负面特性显示为红色
 
     internal override void OnNewGame() { }
@@ -258,7 +258,7 @@ internal sealed class BadReputationPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 
     // 信誉扫地解除：每个势力好感达到一星（>=20）后，负面效果消失
@@ -316,7 +316,7 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 
     // ============ 每日调度（AddictOfficerEvent.OnDayStartPostfix 调用） ============
@@ -691,7 +691,7 @@ internal sealed class WageGirlPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return Core.PerkActive(PerkId);
+        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 }
 // ============================================================
@@ -705,8 +705,8 @@ internal sealed class InfamousPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("声名狼藉", "Infamous");
     internal override string Description => LangHelper.T(
-        "你在空间站臭名昭著——五势力声望开局 -198（黑市 -99），做一点坏事就被通缉。第二天会收到 5000 信用点补偿金。高风险高回报，活着回来再说。",
-        "You are infamous across the station - factions start at -198 (black market -99). One wrong move and you are wanted. You get 5000 credits on day 2. High risk, high reward.");
+        "你在空间站臭名昭著——五势力声望 -99，做一点坏事就被通缉。第二天会收到 5000 信用点补偿金。高风险高回报，活着回来再说。",
+        "You are infamous across the station - all five factions at -99 rep. One wrong move and you are wanted. You get 5000 credits on day 2. High risk, high reward.");
     internal override int Cost => -10;
     internal override int Type => 1; // 负面红色
 

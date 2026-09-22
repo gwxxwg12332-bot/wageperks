@@ -24,14 +24,21 @@ internal static class CustomStartingPerks
         new BadReputationPerk(),
         new DarkGridInspectorPerk(),
         new WildeEvidencePerk(),
+        new DetectivePerk(),
+        new HatedByAllPerk(),
+        new MadnessPerk(),
         new DestinyDicePerk(),
         new WandererPerk(),
-        new WageGirlPerk(),
         new InfamousPerk()
     };
 
     private static readonly System.Collections.Generic.Dictionary<string, StartingPerk> Created =
         new System.Collections.Generic.Dictionary<string, StartingPerk>();
+
+    // 09-22 所有自定义特性描述统一追加的群宣传语（群号 1109707341）
+    internal static string CommunityNote => LangHelper.T(
+        "\n\n参考了群内网友的热心建议（群号：1109707341）！快来加入，你的建议也有可能被采纳。",
+        "\n\nInspired by suggestions from our community (QQ Group: 1109707341)! Join us - your idea could be featured.");
 
     // 去掉\0字符，用于比较
     private static string CleanId(string id)
@@ -59,7 +66,7 @@ internal static class CustomStartingPerks
         if (custom == null) return false;
         // 去掉\0字符，确保UI能正常显示
         displayName = CleanId(custom.DisplayName);
-        description = CleanId(custom.Description);
+        description = CleanId(custom.Description) + CommunityNote;
         return true;
     }
 
@@ -76,6 +83,7 @@ internal static class CustomStartingPerks
 
     internal static void EnsureRegistered()
     {
+        Created.Clear();  // 09-22 每次清空缓存，确保 MaxSlot 等字段生效
         Il2CppSystem.Collections.Generic.List<StartingPerk> perks = StartingPerkList.Perks;
         if (perks == null) return;
 
@@ -97,6 +105,7 @@ internal static class CustomStartingPerks
         {
             // 对齐 20:29 能选版本：只在可选区找（首次开新档 selectedPerks 为空，等价）
             StartingPerkElement val = FindElement(ui.availablePerks, custom.Id);
+            Core.LogMsg("[特性UI] " + custom.Id + " element=" + (val != null ? "找到" : "没找到"));
             if ((UnityEngine.Object)(object)val != (UnityEngine.Object)null)
             {
                 ApplyToElement(val, custom);
@@ -206,7 +215,7 @@ internal static class CustomStartingPerks
             // 名称/描述直接写 rawName/rawDescription（对齐 XIAOWO，StartingPerk 标准字段）
             // 之前反射找 displayName/name 等字段名全都不存在 → 名称/描述根本没设上
             string cleanName = custom.DisplayName.Replace("\0", "").Trim();
-            string cleanDesc = custom.Description.Replace("\0", "").Trim();
+            string cleanDesc = custom.Description.Replace("\0", "").Trim() + CommunityNote;
             orCreate.rawName = cleanName;
             orCreate.rawDescription = cleanDesc;
 

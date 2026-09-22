@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -15,7 +15,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("水商之友", "Water Merchant Friend");
-    internal override string Description => LangHelper.T("一位走南闯北的水商听闻你的店铺名声，决定每周来你这拜访一次。他会带来海德拉净水器、水质扫描仪、高级滤水器、水瓶打印机和能量电池——在缺水的下层区，这些净水设备都是硬通货。选择此特性，水商每周到访一次，售卖净水设备和能源。", "A well-traveled water merchant heard of your shop and visits once a week, bringing Hydra purifiers, water scanners, advanced filters, bottle printers, and power cells--essential gear in the water-starved lower levels. Choose this perk: the water merchant visits weekly, selling purification gear and energy.");
+    internal override string Description => LangHelper.T("一位走南闯北的水商听闻你的店铺名声，决定每周第 3 天来你这拜访一次。他会带来海德拉净水器、水质扫描仪、高级滤水器、水瓶打印机和能量电池——在缺水的下层区，这些净水设备都是硬通货。水瓶打印机在你手上潜力无穷：用电子元件升级瓶型，满级可打印 6000ml 超大瓶；投入金属锭提升打印质量，质量达到 100 即可装出普通水，更高则优质水、纯水（鲁滨逊特性自带此功能）。选择此特性，水商每周第 3 天到访，售卖净水设备和能源。", "A well-traveled water merchant heard of your shop and visits every week on day 3, bringing Hydra purifiers, water scanners, advanced filters, bottle printers, and power cells--essential gear in the water-starved lower levels. The bottle printer is a gem in your hands: upgrade its bottle types with electronic components (max level prints 6000ml jugs), and feed it metal ingots to raise print quality - quality 100 yields regular water, higher yields premium and pure water (Robinson Crusoe perk has this built-in). Choose this perk: the water merchant arrives on day 3 of each week, selling purification gear and energy.");
     internal override int Cost => 5;
     internal override int Type => 0;
 

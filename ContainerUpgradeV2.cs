@@ -153,7 +153,7 @@ public static class ContainerUpgradeV2
             if (item == null) return false;
             if (!BuildConfig.ContainerUpgradeEnabled) return false; // 09-20 CFG 关 → 不升级
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
-            if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false;
+            if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false; // 妙妙箱走独立螺丝升级链，不走鲁滨逊 junk 升级
             if (IsVoidBeadStorage(item)) return false;
             if (item.IsTag("CONTAINER_TAG")) return true; // 普通腰包/背包（原版 CONTAINER_TAG）在此命中
             return IsBuildingContainerId(item.identifier ?? "");
@@ -207,14 +207,14 @@ public static class ContainerUpgradeV2
             if (ConsumedThisFrame(box.Pointer)) return true; // 同帧已消耗：防双计数
             int stage = GetTagIntSafe(box, "wb_stage");
             if (stage >= MAX_STAGE) return false; // 满级：nuts 正常放入（不再消耗）
-            // 09-20 优化：拖螺丝不立即消耗，正常放入妙妙箱；打烊时统一消耗叠加进度
-            return false; // 不拦截，正常放入
+            // 09-23 拖螺丝到妙妙箱松手 → 直接消耗螺丝 +1 progress（和打烊消耗共存，不重复）
+            return ConsumeNutsDirectly(box, nuts);
         }
         catch (Exception ex) { Core.LogMsg("[容器v2] 蛙哥箱子升级异常: " + ex.Message); return false; }
     }
 
     // 09-20 优化：打烊批量消耗螺丝（SaveGame Postfix）
-    public static void PostfixSaveGame(PlayerStore __instance) { try { ConsumeNutsAtClose(); } catch { } }
+    public static void PrefixSaveGame(PlayerStore __instance) { try { ConsumeNutsAtClose(); } catch { } }
 
     // 09-20 优化：打烊批量消耗螺丝（遍历妙妙箱内部库存，吃掉全部螺丝叠加升级进度）
     public static void ConsumeNutsAtClose()
@@ -222,6 +222,7 @@ public static class ContainerUpgradeV2
         try
         {
             var emporium = EmporiumEntry.Instance;
+            Core.LogMsg("[妙妙箱] ConsumeNutsAtClose Prefix 跑了, emporium=" + (emporium != null));
             if (emporium == null) return;
             var allInvs = new System.Collections.Generic.List<GameInventory>();
             try { var v = emporium.backInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
@@ -286,6 +287,35 @@ public static class ContainerUpgradeV2
             if (stage >= MAX_STAGE) TryGiveSecondWageBox(box);
         }
         catch { }
+    }
+
+    // 09-23 拖螺丝到妙妙箱松手 → 直接消耗 1 颗螺丝 +1 progress（和打烊消耗共存）
+    private static bool ConsumeNutsDirectly(GameItem box, GameItem nuts)
+    {
+        try
+        {
+            int stage = GetTagIntSafe(box, "wb_stage");
+            if (stage >= MAX_STAGE) return false; // 满级：螺丝正常放入
+            var grid = GetContainerGrid(box);
+            if (grid == null) return false;
+            ConsumeOne(nuts); // 消耗螺丝
+            int progress = GetTagIntSafe(box, "wb_progress") + 1;
+            int need = UPGRADE_COSTS[stage];
+            if (progress < need) {
+                SetTagIntValue(box, "wb_progress", progress);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级进度 " + progress + "/" + need, "Wage Box progress " + progress + "/" + need), "white"); } catch { }
+                return true; // 已消耗，拦截放入
+            }
+            // 满了升段
+            int targetW = WAGE_BOX_W[stage + 1], targetH = WAGE_BOX_H[stage + 1];
+            SetFullRect(grid, targetW, targetH);
+            AddTagInt(box, "wb_stage", 1);
+            SetTagIntValue(box, "wb_progress", progress - need);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5", "Wage Box upgraded! Stage " + (stage + 1) + "/5"), "white"); } catch { }
+            if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box);
+            return true; // 已消耗，拦截放入
+        }
+        catch { return false; }
     }
 
     // 满级奖励第二个妙妙箱（09-12 用户拍板两个箱子方案：替代翻页，天然存档/读档/睡眠零冲突）
@@ -498,7 +528,7 @@ public static class ContainerUpgradeV2
                 {
                     int progress = GetTagIntSafe(item, "wb_progress");
                     int need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
-                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need + "（将螺丝放箱内过夜，打烊自动消耗）", "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need + " (put nuts inside overnight, consumed at close)"),
+                    builder.AddLine(LangHelper.T("◆ 妙妙箱：段位 " + stage + "/5 · 升级进度 " + progress + "/" + need + "（拖螺丝到箱上直接升级，或放箱内过夜自动消耗）", "◆ Wage Box: Stage " + stage + "/5 · progress " + progress + "/" + need + " (drag nuts to box to upgrade, or leave inside overnight)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 }
         }

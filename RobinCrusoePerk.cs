@@ -223,18 +223,18 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            // 09-22 改：按 Z 切换自动弹面板开关
+            // 09-22 改：按 Z 只打开面板，不碰开关
             if (!UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Z)) return;
             int _zFrame = UnityEngine.Time.frameCount;
             if (_zFrame == _zKeyFrame) return;
             _zKeyFrame = _zFrame;
             if (!IsActive()) return;
-            _autoPopup = !_autoPopup;
-            try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "鲁滨逊面板：自动弹开启" : "鲁滨逊面板：自动弹关闭", "Crusoe panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { }
+            if (!IsActive()) return;
+            var mgr = Il2Cpp.CustomUIManager.Instance;
+            if (mgr != null && mgr.IsOpen("rc_status")) { mgr.CloseWindow("rc_status"); } else { RefreshStatusPanel(force: true); }
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] HandleHotkeys 异常: " + ex.Message); }
     }
-
     // ===== 激活判定（职业，双来源）=====
     internal static bool IsActive()
     {
@@ -879,11 +879,11 @@ internal static class RobinCrusoePerk
 
     // ===== v5.7 玩家常驻状态面板（拆包回填4：CustomUIManager overlay + 进度条，重建法最稳）=====
     // 饱食/口渴/健康进度条 + 具体数值（用户要求直观数值），心情与加成 label
-    internal static void RefreshStatusPanel()
+    internal static void RefreshStatusPanel(bool force = false)
     {
         try
         {
-            if (!_autoPopup) return;  // 09-22 用户拍板：自动弹关闭时不打开
+            if (!_autoPopup && !force) return;  // 09-22 用户拍板：自动弹关闭时不打开（Z键强制打开除外）
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) return;
             if (mgr.IsOpen("rc_status")) mgr.CloseWindow("rc_status");
@@ -916,7 +916,10 @@ internal static class RobinCrusoePerk
             b.AddLabel(LangHelper.T("血量 ", "Blood ") + GetBlood() + "/6000", "blood_l");
             b.AddProgressBar(GetBlood() / (float)BLOOD_MAX, "blood");
             var sellBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TrySellBlood(); } catch (Exception ex) { Core.LogMsg("[鲁滨逊] 面板卖血异常: " + ex.Message); } }));
-            b.AddButton(LangHelper.T("卖血 -500ml", "Sell Blood -500ml"), sellBtnOnClick, "sell_blood_btn"); // 09-20 用户拍板：面板按钮为唯一采血入口（替代采血包）
+            b.AddButton(LangHelper.T("卖血 -500ml", "Sell Blood -500ml"), sellBtnOnClick, "sell_blood_btn");
+            // 09-22 自动弹出开关
+            var autoPopupBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { _autoPopup = !_autoPopup; try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "鲁滨逊面板：自动弹开启" : "鲁滨逊面板：自动弹关闭", "Crusoe panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { } RefreshStatusPanel(); }));
+            b.AddButton(LangHelper.T("自动弹出：" + (_autoPopup ? "开" : "关"), "Auto-popup: " + (_autoPopup ? "ON" : "OFF")), autoPopupBtn, "auto_popup_btn"); // 09-20 用户拍板：面板按钮为唯一采血入口（替代采血包）
             if (IsForcedRest()) b.AddLabel(LangHelper.T("昏迷中 · 剩余 " + PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0) + " 天", "Coma - " + PerkStatePersistence.GetInt(PERK_ID, "blood_rest", 0) + "d left"), "blood_rest_l");
             else if (IsBloodWeak()) b.AddLabel(LangHelper.T("虚弱（血量过低）", "Too weak (low blood)"), "blood_weak_l");
             // 新三状态（v5.7+ 用户拍板）：清洁/睡眠/社交 进度条+数值
@@ -2304,21 +2307,26 @@ internal static class RobinCrusoePerk
                 try { StoreUIManager.Instance.Notify(LangHelper.T("储存区 升级进度 " + progress + "/" + need, "Storage progress " + progress + "/" + need), "white"); } catch { }
                 return true; // 已消耗，拦截放入
             }
-            int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
-            int targetW;
-            if (origW > 0)
-                targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1); // 减半容器：恢复语义 50%→200%
-            else
-                targetW = w + 1; // 未减半容器（玩家装备腰包 fanny_pack 等）：每段 +1 列（3→4→5...）
+            int targetW, targetH = h;
+            if (ContainerUpgradeV2.IsWageBox(container)) {
+                targetW = ContainerUpgradeV2.WAGE_BOX_W[stage + 1];
+                targetH = ContainerUpgradeV2.WAGE_BOX_H[stage + 1];
+            } else {
+                int origW = ContainerUpgradeV2.GetTagIntSafe(container, "wb_orig_w");
+                if (origW > 0)
+                    targetW = ContainerUpgradeV2.GetCrusoeTargetWidth(origW, stage + 1);
+                else
+                    targetW = w + 1;
+            }
             ContainerUpgradeV2.AddTagInt(container, "wb_stage", 1);
             ContainerUpgradeV2.SetTagIntValue(container, "wb_progress", 0); // 达标升段，进度清零重计
             try { PerkStatePersistence.SetInt(PERK_ID, "wage_stage_u" + container.uniqueId, stage + 1); } catch { } // 09-14 双写：场景位置 tags 不随档，PlayerPrefs 兜底
             try { if (ContainerUpgradeV2.IsUpgradeableContainer(container)) container.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 拆包 2.5.32：容量行显示门控
             // 字符串重载（自动 ValidateBackground，虚空珠同路径）——全开放矩形 '0'=可放
-            try { grid.SetShape(new string('0', targetW * h), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
+            try { grid.SetShape(new string('0', targetW * targetH), targetW); } catch { try { grid.SetShape("", targetW); } catch { } }
             try { grid.Validate(); } catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T((stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "储存区满级！容量翻倍（宽 " + targetW + "）" : "储存区升级！段位 " + (stage + 1) + "/" + ContainerUpgradeV2.MAX_STAGE + "（宽 " + targetW + "）", (stage + 1) >= ContainerUpgradeV2.MAX_STAGE ? "Storage MAX! 2x capacity (width " + targetW + ")" : "Storage upgraded! Stage " + (stage + 1) + "/" + ContainerUpgradeV2.MAX_STAGE + " (width " + targetW + ")"), "white"); } catch { }
-            try { Core.LogMsg("[容器v2] " + GetId(container) + " 升段 stage=" + (stage + 1) + " w=" + w + "->" + targetW + " origW=" + origW); } catch { }
+            try { Core.LogMsg("[容器v2] " + GetId(container) + " 升段 stage=" + (stage + 1) + " w=" + w + "->" + targetW + (ContainerUpgradeV2.IsWageBox(container) ? " (妙妙箱)" : "")); } catch { }
             return true;
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 容器升级异常: " + ex.Message); return false; }
@@ -2459,7 +2467,7 @@ internal static class RobinCrusoePerk
     {
         try
         {
-            if (__instance == null || !IsActive()) return;
+            if (__instance == null) return;
             // 09-14 位置方案：海报后边 hiddenElement 物品 tag 全丢 → 按索引 PlayerPrefs 强恢复（优先于 IsWageBox）
             try
             {
@@ -2474,6 +2482,7 @@ internal static class RobinCrusoePerk
                 if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
                 return;
             }
+            if (!IsActive()) return; // 普通容器恢复需要鲁滨逊激活；妙妙箱已在上面恢复
             if (!__instance.IsTag("CONTAINER_TAG") || __instance.IsTag("VOID_BEAD_TAG") || ContainerUpgradeV2.IsVoidBeadStorage(__instance) || ContainerUpgradeV2.IsExcludedContainer(__instance)) return;
             if (!ContainerUpgradeV2.HasTag(__instance, "wb_stage") && GetTagIntSafe(__instance, "wageUpgradeCap") <= 0) return; // 未升级老档不恢复
             if (!_rcRestoredContainers.Add(__instance.Pointer)) return; // 已恢复过：跳过防双加
@@ -2545,6 +2554,15 @@ internal static class RobinCrusoePerk
                 builder.AddLine(LangHelper.T(
                     "◆ 金属锭升级：质量 +" + q + "%（拖 metal_ingot 继续 +2%）",
                     "◆ Ingot upgrade: Quality +" + q + "% (drag metal_ingot +2%/each)"), bold: true);
+                // 09-22 用户拍板：100质量出普通水
+                builder.AddLine(LangHelper.T(
+                    "◆ 100 质量出普通水",
+                    "◆ 100 quality -> plain water"), bold: true);
+                // 09-22 用户拍板：电子元件升瓶型满级 6000ml
+                builder.AddLine(LangHelper.T(
+                    "◆ 电子元件升级瓶型：满级打印 6000ml 超大瓶",
+                    "◆ Electronic parts upgrade bottle type: max prints 6000ml jug"), bold: true);
+                builder.AddLine(CustomStartingPerks.CommunityNote);
                 return;
             }
             if (!IsMachine(item)) return;

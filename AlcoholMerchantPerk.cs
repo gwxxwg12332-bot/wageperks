@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -15,7 +15,7 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("酒商之友", "Alcohol Merchant Friend");
-    internal override string Description => LangHelper.T("一位精明的收酒商每周登门拜访，专门收购你自酿的各类美酒，出价公道。他同时售卖优质酿酒原料——精选葡萄、特级酵母和纯净水源，助你酿出更好的酒。下层区的酒鬼们都等着你的佳酿，而这位收酒商就是你最好的合作伙伴。选择此特性，收酒商每周到访一次，高价收购你的自酿酒并售卖酿酒原料。", "A shrewd wine buyer visits weekly, specializing in purchasing your homemade wines at fair prices. He also sells quality brewing supplies - premium grapes, super yeast, and pure water to help you craft better wines. Drunks in the lower levels are waiting for your brew, and this buyer is your best partner. Choose this perk: the wine buyer visits weekly, buying your homemade wines at good prices and selling brewing supplies.");
+    internal override string Description => LangHelper.T("一位精明的收酒商每周第 6 天准时登门，专门收购你自酿的各类美酒，出价公道。他同时售卖优质酿酒原料——精选葡萄、特级酵母和纯净水源，助你酿出更好的酒。下层区的酒鬼们都等着你的佳酿，而这位收酒商就是你最好的合作伙伴。选择此特性，收酒商每周第 6 天到访，高价收购你的自酿酒并售卖酿酒原料。", "A shrewd wine buyer visits every week on day 6, specializing in purchasing your homemade wines at fair prices. He also sells quality brewing supplies - premium grapes, super yeast, and pure water to help you craft better wines. Drunks in the lower levels are waiting for your brew, and this buyer is your best partner. Choose this perk: the wine buyer arrives on day 6 of each week, buying your homemade wines at good prices and selling brewing supplies.");
     internal override int Cost => 2;
     internal override int Type => 0;
 
