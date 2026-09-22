@@ -92,7 +92,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
 
 
-    // 懒恢复：第一次读取时从 PlayerPrefs 恢复
+    // 懒恢复：第一次读取时从统一存储层恢复（旧数据在裸 PlayerPrefs 全局键，无 runID 前缀本就串档，做一次性兼容回填）
 
     private static int GetCount(string key, ref int cache)
 
@@ -102,7 +102,15 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
         {
 
-            try { cache = PlayerPrefs.GetInt(key, 0); } catch { cache = 0; }
+            if (WageSaveStore.HasKey("LuckScout", key))
+            {
+                cache = WageSaveStore.GetInt("LuckScout", key, 0);
+            }
+            else
+            {
+                try { cache = PlayerPrefs.GetInt(key, 0); } catch { cache = 0; }
+                if (cache != 0) { try { WageSaveStore.SetInt("LuckScout", key, cache); } catch { } } // 回填新层，打烊落盘即完成迁移
+            }
 
         }
 
@@ -112,9 +120,9 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
 
 
-    // 只更新静态变量缓存，不写 PlayerPrefs——避免未保存的拾荒被持久化
+    // 只更新静态变量缓存 + 统一存储层内存（零 I/O）——避免未保存的拾荒被持久化
 
-    // 真正持久化在 SaveGame Postfix 里调用 SaveCountToPlayerPrefs()
+    // 落盘由 WageSaveStore.PostfixSaveGame 全局门面在打烊时统一 Flush
 
     private static void SetCount(string key, int val, ref int cache)
 
@@ -122,11 +130,13 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
         cache = val;
 
+        try { WageSaveStore.SetInt("LuckScout", key, val); } catch { }
+
     }
 
 
 
-    // 游戏保存时调用：把静态变量写入 PlayerPrefs 并持久化
+    // 游戏保存时调用：把静态变量同步进统一存储层内存（兜底幂等；正常路径 SetCount 已同步）
 
     private static void SaveCountToPlayerPrefs()
 
@@ -136,15 +146,13 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
         {
 
-            if (_scavCount >= 0) PlayerPrefs.SetInt(PK_SCAV, _scavCount);
+            if (_scavCount >= 0) WageSaveStore.SetInt("LuckScout", PK_SCAV, _scavCount);
 
-            if (_scavLevel >= 0) PlayerPrefs.SetInt(PK_LEVEL, _scavLevel);
+            if (_scavLevel >= 0) WageSaveStore.SetInt("LuckScout", PK_LEVEL, _scavLevel);
 
-            if (_rareCount >= 0) PlayerPrefs.SetInt(PK_RARE, _rareCount);
+            if (_rareCount >= 0) WageSaveStore.SetInt("LuckScout", PK_RARE, _rareCount);
 
-            if (_firstRareDone >= 0) PlayerPrefs.SetInt(PK_FIRST, _firstRareDone);
-
-            PlayerPrefs.Save();
+            if (_firstRareDone >= 0) WageSaveStore.SetInt("LuckScout", PK_FIRST, _firstRareDone);
 
 
         } catch (Exception ex) { Core.LogMsg("[捡漏直觉] SaveCount持久化失败: " + ex.Message); }
@@ -272,7 +280,7 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
 
 
 
-    // 开新档时调用：清除 PlayerPrefs + 重置缓存，计数从0开始
+    // 开新档时调用：清统一存储层命名空间 + 重置缓存，计数从0开始
 
     internal static void FullReset()
 
@@ -281,6 +289,10 @@ internal sealed class LuckScoutPerk : CustomStartingPerk
         _kitGiven = false;
 
         _scavCount = 0; _scavLevel = 0; _rareCount = 0; _firstRareDone = 0;
+
+        try { WageSaveStore.ClearNamespace("LuckScout"); } catch { }
+
+        // 旧层卫生：删裸 PlayerPrefs 全局键（历史遗留，无 runID 隔离，清一次永远干净）
 
         try { PlayerPrefs.DeleteKey(PK_SCAV); PlayerPrefs.DeleteKey(PK_LEVEL);
 

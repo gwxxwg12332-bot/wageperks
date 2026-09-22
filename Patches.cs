@@ -207,6 +207,15 @@ internal static class Patches
 	{
 		try
 		{
+			// 09-23 阶段1：统一存储层轮询加载（LoadGame Postfix 只设标志，延迟 N 帧后实际读文件）
+			// 必须放在 PerkUI guard 之前——加载是初始化性质，不能被"特性选择界面打开"阻塞
+			WageSaveStore.LoadIfPending();
+		}
+		catch
+		{
+		}
+		try
+		{
 			if (PerkUIController.Instance != null && PerkUIController.Instance.ui != null && PerkUIController.Instance.ui.activeSelf)
 			{
 				return;
@@ -252,7 +261,15 @@ internal static class Patches
 		}
 		try
 		{
-			FrogPowerPerk.OnUpdateBoxGiveRetry();
+			WagePowerPerk.OnUpdateBoxGiveRetry();
+		}
+		catch
+		{
+		}
+		try
+		{
+			// 09-23 阶段0：WageGirl anim+move driver 从 Core.OnUpdate 迁来（硬约束#4：每帧逻辑必须走 InputActionManager.Update Postfix）
+			WageGirlSystem.OnUpdateTick();
 		}
 		catch
 		{
@@ -469,12 +486,46 @@ internal static class Patches
 			WageGirlSystem.CleanDefaultRunOnNewGame(); // 09-22 蛙娘：新档清 default_run 残留（防串档/新档误判已存在）
 			WageGirlSystem.ResetForNewGame(); // 09-20 蛙娘：新档硬重置状态（根治初次偷拿不触发——lastStealDay残留）
 			RobinCrusoePerk.CleanDefaultRunOnNewGame(); // 09-22 鲁滨逊：新档清 default_run 残留（防未保存档残留串新档）
-			FrogPowerPerk.ResetState();
+			WagePowerPerk.ResetState();
 			CustomStartingPerks.NotifyNewGame();
 		}
 		catch (System.Exception ex)
 		{
 			Core.LogMsg("[特性] 新游戏补丁失败: " + ex.Message);
+		}
+	}
+
+	// ============================================================
+	// 阶段2 统一生命周期入口
+	// ------------------------------------------------------------
+	// PostfixUnifiedDayStart：挂 StoreEventManager.OnDayStart（唯一每日权威信号）。
+	//   拆包依据：BeginDay → StoreStation.StartDay → OnDayStart → OnNewDay → SecData → CommissaryData，
+	//   是**同一条链**；而 StoreClientManager.OnNewDay 只有 8 字节（私有计数自增），且 [rbx+0x88] 为 null 时
+	//   会被静默 return（OnDayStart 侧为 Interrupt，可靠）→ 权威信号取 OnDayStart。
+	// PostfixSaveGame：挂 PlayerStore.SaveGame，priority 用默认 400（**高于** WageSaveStore 的 0），
+	//   保证各特性先写内存、统一落盘最后执行。特性契约：OnSaveGame 只许写内存，禁止自己 Flush。
+	// ============================================================
+	public static void PostfixUnifiedDayStart()
+	{
+		try
+		{
+			CustomStartingPerks.NotifyDayStart();
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[特性] 统一每日驱动失败: " + ex.Message);
+		}
+	}
+
+	public static void PostfixSaveGame()
+	{
+		try
+		{
+			CustomStartingPerks.NotifySaveGame();
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[特性] 统一存档驱动失败: " + ex.Message);
 		}
 	}
 
@@ -484,7 +535,7 @@ internal static class Patches
 		{
 			try
 			{
-				FrogPowerPerk._storageBoxGiven = false;
+				WagePowerPerk._storageBoxGiven = false;
 			}
 			catch
 			{
@@ -503,9 +554,9 @@ internal static class Patches
 			catch
 			{
 			}
-			if (FrogPowerPerk.IsActive() && !FrogPowerPerk._storageBoxGiven)
+			if (WagePowerPerk.IsActive() && !WagePowerPerk._storageBoxGiven)
 			{
-				FrogPowerPerk.TryGiveStorageBox();
+				WagePowerPerk.TryGiveStorageBox();
 			}
 			if (LuckScoutPerk.IsActive())
 			{
@@ -623,7 +674,9 @@ internal static class Patches
 			{
 				return false;
 			}
-			if (_lastScheduledDay >= 0 && dayCounter - _lastScheduledDay < 7)
+			// CR-14 同类问题：原来硬编码 7，配置项 DoctorVisitInterval 改了不生效 → 改为读配置（默认 7，零回归）
+			int jacksonInterval = BuildConfig.DoctorVisitInterval > 0 ? BuildConfig.DoctorVisitInterval : 7;
+			if (_lastScheduledDay >= 0 && dayCounter - _lastScheduledDay < jacksonInterval)
 			{
 				return false;
 			}
@@ -645,6 +698,15 @@ internal static class Patches
 			Core.LogMsg("[博士之友] ScheduleJacksonToday失败: " + ex2.Message);
 			return false;
 		}
+	}
+
+	// 阶段2 CR-15 真凶修复（09-23 实测）：
+	// _lastScheduledDay 是 static 且从未重置 → 第一档玩到 day30 后开第二档，
+	// day1 - day30 = -29 < 间隔 → ScheduleJacksonToday 直接 return false，博士永不被排期。
+	// 必须由"开新档"权威挂点 PlayerStore.StartNewGame 触发重置。
+	internal static void ResetJacksonSchedule()
+	{
+		_lastScheduledDay = -1;
 	}
 
 	public static void PostfixOnBeginDay()
@@ -865,10 +927,10 @@ internal static class Patches
 				Core.LogMsg("[霉运缠身] PlayerStore为null");
 				return;
 			}
-			int dayCounter = StoreStation.GetDayCounter();
-			string text = instance.runID ?? "";
-			string key = "WagesBadLuckDay_Run_" + text;
-			if (PlayerPrefs.GetInt(key, -1) == dayCounter)
+		int dayCounter = StoreStation.GetDayCounter();
+		// 阶段1：防重标记入统一层——强退后标记随 ES3 一起回退，重放当天会重新扣款，
+		// 与现金回退保持一致（修"扣款后强退→读档→标记残留→当天不再扣"的逃罚漏洞）
+		if (WageSaveStore.GetInt("BadLuck", "last_day", -1) == dayCounter)
 			{
 				return;
 			}
@@ -907,7 +969,7 @@ internal static class Patches
 			}
 			if (flag)
 			{
-				PlayerPrefs.SetInt(key, dayCounter);
+				WageSaveStore.SetInt("BadLuck", "last_day", dayCounter);
 				try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
 				Core.AddNightReportLine("[霉运缠身] " + LangHelper.T("昨晚打烊时，有人趁夜色摸走了你", "Last night after closing, someone slipped in and took") + " " + num + " " + LangHelper.T("信用点。", "credits."));
 			}
@@ -1240,11 +1302,11 @@ internal static class Patches
 			}
 			if (!flag && !IsSecurityClient(currentClient) && currentClient.clientIntent == StoreClient.ClientIntent.BUY)
 			{
-				FrogPowerPerk.EnsureBuyTagsForClient(currentClient);
+				WagePowerPerk.EnsureBuyTagsForClient(currentClient);
 			}
-			if (FrogPowerPerk.IsActive() && !flag && !IsSecurityClient(currentClient) && (currentClient.clientIntent == StoreClient.ClientIntent.SELL || currentClient.clientIntent == StoreClient.ClientIntent.SELLNBUY))
+			if (WagePowerPerk.IsActive() && !flag && !IsSecurityClient(currentClient) && (currentClient.clientIntent == StoreClient.ClientIntent.SELL || currentClient.clientIntent == StoreClient.ClientIntent.SELLNBUY))
 			{
-				FrogPowerPerk.AddRandomItemsToCounter(currentClient);
+				WagePowerPerk.AddRandomItemsToCounter(currentClient);
 			}
 		}
 		catch (System.Exception ex)
@@ -1339,11 +1401,11 @@ internal static class Patches
 		switch (id)
 		{
 		case "retired_gunsmith":
-			return FrogPowerPerk.GunsmithDialogues[Core.Rng.Next(FrogPowerPerk.GunsmithDialogues.Length)];
+			return WagePowerPerk.GunsmithDialogues[Core.Rng.Next(WagePowerPerk.GunsmithDialogues.Length)];
 		case "retired_water_merchant":
-			return FrogPowerPerk.WaterMerchantDialogues[Core.Rng.Next(FrogPowerPerk.WaterMerchantDialogues.Length)];
+			return WagePowerPerk.WaterMerchantDialogues[Core.Rng.Next(WagePowerPerk.WaterMerchantDialogues.Length)];
 		case "retired_winemaker":
-			return FrogPowerPerk.AlcoholMerchantDialogues[Core.Rng.Next(FrogPowerPerk.AlcoholMerchantDialogues.Length)];
+			return WagePowerPerk.AlcoholMerchantDialogues[Core.Rng.Next(WagePowerPerk.AlcoholMerchantDialogues.Length)];
 		case "inventorStorage":
 		case "inventor_storage":
 			return DrDialogues[Core.Rng.Next(DrDialogues.Length)];
@@ -2815,6 +2877,7 @@ itemFeature.isFeatureExposed = true;
 			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
 			try { RobinCrusoePerk.ClearMemBlood(); } catch { } // 09-20 修：读档清鲁滨逊血量缓存
 			try { RobinCrusoePerk.ClearWantedQueued(); } catch { } // 09-20 修：读档清供应商排期标记
+			try { WageSaveStore.OnLoadGame(); } catch { } // 09-23 阶段1：统一存储层读档标志（实际加载走 FrameUpdate 轮询）
 			_pendingLoadGameRestore = true;
 			_loadGameRestoreDelayFrames = 30;
 		}
@@ -2839,9 +2902,9 @@ itemFeature.isFeatureExposed = true;
 		try
 		{
 			NewStartTypeUI.RecheckIfPending(); // 09-22 runID 已恢复：清 IsMarkedRun 挂起标记（后续判定自然重判）
-			if (FrogPowerPerk.IsActive())
+			if (WagePowerPerk.IsActive())
 			{
-				FrogPowerPerk.LoadState();
+				WagePowerPerk.LoadState();
 			}
 			if (WineLoverPerk.IsActive())
 			{

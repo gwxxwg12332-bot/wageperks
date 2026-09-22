@@ -27,7 +27,7 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 
     // 获取违禁品价格加成
@@ -65,7 +65,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 
     // 获取酒类价格加成
@@ -90,7 +90,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
         {
             _hungover = true;
             // 保存宿醉状态到PlayerPrefs（读档后恢复）
-            try { PerkStatePersistence.SetBool(PerkId, "hungover", true); } catch { }
+            try { WageSaveStore.SetBool(PerkId, "hungover", true); } catch { }
         }
     }
 
@@ -101,7 +101,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
         {
             _hungover = false;
             // 清除PlayerPrefs中的宿醉状态
-            try { PerkStatePersistence.SetBool(PerkId, "hungover", false); } catch { }
+            try { WageSaveStore.SetBool(PerkId, "hungover", false); } catch { }
         }
     }
 
@@ -110,9 +110,9 @@ internal sealed class WineLoverPerk : CustomStartingPerk
     {
         try
         {
-            if (PerkStatePersistence.HasKey(PerkId, "hungover"))
+            if (WageSaveStore.HasKey(PerkId, "hungover"))
             {
-                _hungover = PerkStatePersistence.GetBool(PerkId, "hungover", false);
+                _hungover = WageSaveStore.GetBool(PerkId, "hungover", false);
             }
         }
         catch { }
@@ -140,7 +140,7 @@ internal sealed class SmilingTigerPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘 // 笑面虎已是独立特性，不再双认
+        return Core.PerkActive(PerkId);
     }
 }
 
@@ -165,7 +165,7 @@ internal sealed class SmilingFacePerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 }
 
@@ -213,7 +213,7 @@ internal sealed class ThiefMagnetPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 
 }
@@ -258,7 +258,7 @@ internal sealed class BadReputationPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 
     // 信誉扫地解除：每个势力好感达到一星（>=20）后，负面效果消失
@@ -316,17 +316,14 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return Core.PerkActive(PerkId);
     }
 
-    // ============ 每日调度（AddictOfficerEvent.OnDayStartPostfix 调用） ============
-    // 09-20 设计稿：独立挂 StoreEventManager.OnDayStart Postfix（照吞噬/电池挂法，不依赖 AddictOfficerEvent 链）
-    public static void OnDayStartPostfix()
-    {
-        try { OnNewDay(); } catch (System.Exception ex) { Core.LogMsg("[治安部眼线] OnDayStart失败: " + ex.Message); }
-    }
-
-    internal static new void OnNewDay()
+    // ============ 每日调度 ============
+    // 阶段2 改造（2026-09-23）：原先这里是 `internal static new void OnNewDay()`
+    // —— static 方法用 new 隐藏了基类的实例虚方法，形成"同名两个 OnNewDay，一死一活"的认知陷阱，
+    //    且靠独立挂 OnDayStartPostfix 驱动。现改为标准 override，由 CustomStartingPerks.NotifyDayStart() 统一驱动。
+    internal override void OnDayStart()
     {
         try
         {
@@ -334,8 +331,8 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
             if (PlayerStore.Instance == null) return;
             int day = 1; try { day = StoreStation.GetDayCounter(); } catch { }
             if (day <= 0 || day % BuildConfig.InspectInterval != 0) return;
-            if (day == PerkStatePersistence.GetInt("dark_grid_inspector", "last_trigger_day", -1)) return;
-            PerkStatePersistence.SetInt("dark_grid_inspector", "last_trigger_day", day);
+            if (day == WageSaveStore.GetInt("dark_grid_inspector", "last_trigger_day", -1)) return;
+            WageSaveStore.SetInt("dark_grid_inspector", "last_trigger_day", day);
             RunInspection(day);
         }
         catch (Exception ex) { Core.LogMsg("[治安部眼线] 调度失败: " + ex.Message); }
@@ -533,8 +530,8 @@ internal sealed class WandererPerk : CustomStartingPerk
             string house = RandomFromPool(HOUSEHOLD_IDS);
             if (tool != null) GiveToBackpack(tool);
             if (house != null) GiveToBackpack(house);
-            // 09-20 设计稿：4 随机从 FrogPowerPerk.ItemPool（77 项，无文档类/机器容器占比合理）抽，不重复
-            var pool = new System.Collections.Generic.List<string>(FrogPowerPerk.ItemPool ?? new string[0]);
+            // 09-20 设计稿：4 随机从 WagePowerPerk.ItemPool（77 项，无文档类/机器容器占比合理）抽，不重复
+            var pool = new System.Collections.Generic.List<string>(WagePowerPerk.ItemPool ?? new string[0]);
             int given = 0, guard = 0;
             while (given < 4 && pool.Count > 0 && guard < 20)
             {
@@ -675,6 +672,10 @@ internal sealed class WandererPerk : CustomStartingPerk
 // 伙伴型特性：蛙娘（09-23 Perk 化——Cost 3 用户拍板）
 // 喂食/照顾提升六维与好感；在场客户预算×4、议价+50；销赃；偷钱/跑路
 // ============================================================
+// [NonSelectablePerk]：有意不登记进 CustomStartingPerks.All —— 蛙娘并入蛙哥牛逼，
+// 不单独出现在特性选择界面（IsActive 委托给 WagePowerPerk）。有此标注后，DEBUG 漏登记断言会豁免它，
+// 使断言报警真正等于"漏登记"。
+[NonSelectablePerk]
 internal sealed class WageGirlPerk : CustomStartingPerk
 {
     internal const string PerkId = "蛙娘";
@@ -691,7 +692,7 @@ internal sealed class WageGirlPerk : CustomStartingPerk
 
     internal static bool IsActive()
     {
-        return FrogPowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
+        return WagePowerPerk.IsActive(); // 09-23 蛙娘并入蛙哥牛逼：选蛙哥牛逼就有蛙娘
     }
 }
 // ============================================================
@@ -748,12 +749,12 @@ internal sealed class InfamousPerk : CustomStartingPerk
         {
             bool active = IsActive();
             int day = StoreStation.GetDayCounter();
-            int got = PerkStatePersistence.GetInt(PerkId, "got_money", 0);
+            int got = WageSaveStore.GetInt(PerkId, "got_money", 0);
             Core.LogMsg("[声名狼藉] OnDayStart: active=" + active + " day=" + day + " got=" + got);
             if (!active) return;
             if (day != 2) return;  // 第二天送5000
             if (got > 0) return;
-            PerkStatePersistence.SetInt(PerkId, "got_money", 1);
+            WageSaveStore.SetInt(PerkId, "got_money", 1);
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.playerCash += 5000; }
             NotifyHelper.NightLogRaw("声名狼藉：你收到了 5000 补偿金");

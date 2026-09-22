@@ -8,9 +8,13 @@ namespace JacksonPerks;
 
 internal static class CustomStartingPerks
 {
+    // ⚠️ 顺序契约：本数组顺序 == 特性选择界面的显示顺序（EnsurePickerElements 按序遍历生成元素）。
+    // 不要"顺手排序"，会打乱玩家看到的界面顺序（硬约束#3）。
+    // 本数组同时是白名单：不在其中的子类 = 不可选 + IsActive 恒 false。
+    // 有意排除的子类请打 [NonSelectablePerk]（见 WageGirlPerk）。
     internal static readonly CustomStartingPerk[] All = new CustomStartingPerk[]
     {
-        new FrogPowerPerk(),
+        new WagePowerPerk(),
         new DrJacksonFriendPerk(),
         new WaterMerchantPerk(),
         new AlcoholMerchantPerk(),
@@ -34,10 +38,10 @@ internal static class CustomStartingPerks
 
     private static readonly System.Collections.Generic.Dictionary<string, StartingPerk> Created =
         new System.Collections.Generic.Dictionary<string, StartingPerk>();
-
-    // 09-22 所有自定义特性描述统一追加的群宣传语（群号 1109707341）
-    internal static string CommunityNote => LangHelper.T(
-        "\n\n参考了群内网友的热心建议（群号：1109707341）！快来加入，你的建议也有可能被采纳。",
+
+    // 09-22 所有自定义特性描述统一追加的群宣传语（群号 1109707341）
+    internal static string CommunityNote => LangHelper.T(
+        "\n\n参考了群内网友的热心建议（群号：1109707341）！快来加入，你的建议也有可能被采纳。",
         "\n\nInspired by suggestions from our community (QQ Group: 1109707341)! Join us - your idea could be featured.");
 
     // 去掉\0字符，用于比较
@@ -83,6 +87,7 @@ internal static class CustomStartingPerks
 
     internal static void EnsureRegistered()
     {
+        AssertAllRegistered(); // DEBUG 期防漏登记（Release 构建自动剔除）
         Created.Clear();  // 09-22 每次清空缓存，确保 MaxSlot 等字段生效
         Il2CppSystem.Collections.Generic.List<StartingPerk> perks = StartingPerkList.Perks;
         if (perks == null) return;
@@ -133,23 +138,122 @@ internal static class CustomStartingPerks
         }
     }
 
-    internal static void NotifyNewGame()
+    // ============================================================
+    // 阶段2 统一生命周期驱动
+    // ------------------------------------------------------------
+    // 所有生命周期都走同一个 Drive() 模板，保证：① 每个特性独立 try/catch（一个崩不会吃掉后面全部）
+    // ② 异常日志必带特性 Id（否则 23 个特性里定位不到是谁）③ 门控策略集中可见
+    // 挂点对应关系见 CustomStartingPerk.cs 顶部注释。
+    // ============================================================
+
+    /// <summary>
+    /// 统一驱动模板。gateActive=true 时只驱动已激活特性。
+    /// 异常隔离是硬要求：旧版 NotifyNewDay 是裸调，任一特性抛异常会让后续全部静默不执行。
+    /// </summary>
+    private static void Drive(string hook, Action<CustomStartingPerk> call, bool gateActive)
     {
-        // 不判断 IsPerkActive：NewGame 时 StartingPerk 可能未初始化，判断会返回 false 导致 OnNewGame 不执行。
         foreach (CustomStartingPerk custom in All)
         {
-            try { custom.OnNewGame(); } catch (Exception ex) { Core.LogMsg("[特性] OnNewGame异常 " + custom.Id + ": " + ex.Message); }
+            try
+            {
+                if (gateActive && !StartingPerk.IsPerkActive(custom.Id)) continue;
+                call(custom);
+            }
+            catch (Exception ex)
+            {
+                Core.LogMsg("[特性] " + hook + "异常 " + custom.Id + ": " + ex.Message);
+            }
         }
     }
 
-    internal static void NotifyNewDay()
+    /// <summary>开新档。权威挂点 = PlayerStore.StartNewGame Postfix。</summary>
+    internal static void NotifyNewGame()
     {
-        foreach (CustomStartingPerk custom in All)
+        _lastDayKey = null; // 新档：清每日去重键（runID 已变，键本就会不同；此处显式化意图）
+        // 不判断 IsPerkActive：NewGame 时 StartingPerk 可能未初始化，判断会返回 false 导致 OnNewGame 不执行。
+        Drive("OnNewGame", p => p.OnNewGame(), gateActive: false);
+    }
+
+    // 每日幂等去重键（见 NotifyDayStart）
+    private static string _lastDayKey;
+
+    /// <summary>
+    /// 每日去重键 = runID + "|" + 权威 dayCounter。
+    /// 拆包依据：OnDayStart 回调时 dayCounter 已 `++`（StoreStation.StartDay ISIL 027`[rbx+0x30]++` → 032 Call OnDayStart），
+    /// 所以一律以 dayCounter 为准，**不要**用"本帧是否触发过"（读档补发/自造跳天会误判）。
+    /// 取不到时返回 null → 放弃去重（宁可多跑一次也不静默丢失）。
+    /// </summary>
+    private static string DayKey()
+    {
+        try
         {
-            if (StartingPerk.IsPerkActive(custom.Id))
+            string runId = "";
+            PlayerStore ps = PlayerStore.Instance;
+            if (ps != null) runId = ps.runID ?? "";
+            return runId + "|" + StoreStation.GetDayCounter();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>每天开始。权威挂点 = StoreEventManager.OnDayStart Postfix。
+    /// 同日重复调用会去重（自造跳天工具可能多次触发 BeginDay）。</summary>
+    internal static void NotifyDayStart()
+    {
+        string key = DayKey();
+        if (key != null && key == _lastDayKey)
+        {
+            Core.LogMsg("[特性] OnDayStart 同日重复调用已跳过: " + key);
+            return;
+        }
+        _lastDayKey = key;
+        Drive("OnDayStart", p => p.OnDayStart(), gateActive: true);
+    }
+
+    /// <summary>存档。挂 PlayerStore.SaveGame Postfix（priority 高于统一落盘的 0）。
+    /// 不门控：未激活的特性也可能需要清理自己的残留状态。</summary>
+    internal static void NotifySaveGame()
+    {
+        Drive("OnSaveGame", p => p.OnSaveGame(), gateActive: false);
+    }
+
+    /// <summary>读档数据就绪。由 WageSaveStore.LoadIfPending() 成功后驱动（不在 LoadGame Postfix 里）。</summary>
+    internal static void NotifyGameLoaded()
+    {
+        Drive("OnGameLoaded", p => p.OnGameLoaded(), gateActive: false);
+    }
+
+    /// <summary>
+    /// DEBUG 期防漏登记断言。All 是手工数组，历史上确实漏登记过（RetiredGunsmithPerk），
+    /// 而漏登记 = 特性不可选 + IsActive 恒 false，整条特性链路静默死掉。
+    /// 用 [Conditional("DEBUG")] 使 Release 构建自动剔除调用点。
+    /// 反射只用于此断言，**绝不**用于运行期注册（会打破 All 的顺序契约，见下）。
+    /// </summary>
+    [System.Diagnostics.Conditional("DEBUG")]
+    internal static void AssertAllRegistered()
+    {
+        try
+        {
+            var registered = new System.Collections.Generic.HashSet<Type>();
+            foreach (CustomStartingPerk custom in All) registered.Add(custom.GetType());
+
+            Type[] types;
+            try { types = typeof(CustomStartingPerk).Assembly.GetTypes(); }
+            catch (ReflectionTypeLoadException rtle) { types = rtle.Types; }
+
+            foreach (Type t in types)
             {
-                custom.OnNewDay();
+                if (t == null || t.IsAbstract || !t.IsSubclassOf(typeof(CustomStartingPerk))) continue;
+                if (registered.Contains(t)) continue;
+                if (t.GetCustomAttribute<NonSelectablePerkAttribute>() != null) continue;
+                Core.LogMsg("[特性] 未登记进 CustomStartingPerks.All（DEBUG 断言）: " + t.Name);
             }
+        }
+        catch (Exception ex)
+        {
+            Core.LogMsg("[特性] 漏登记断言自身异常: " + ex.Message);
         }
     }
 

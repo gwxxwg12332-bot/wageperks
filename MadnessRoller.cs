@@ -20,7 +20,9 @@ internal static class MadnessRoller
         { "convict", new SysDict.Dictionary<string, int> { { "SECURITY", -48 } } },
         { "model_citizen", new SysDict.Dictionary<string, int> { { "SECURITY", 48 } } },
         { "known_snitch", new SysDict.Dictionary<string, int> { { "REVOLUTION", -16 }, { "BLACK_MARKET", -16 } } },
-        { "well_connected", new SysDict.Dictionary<string, int> { { "ALL", 10 } } }
+        { "well_connected", new SysDict.Dictionary<string, int> { { "ALL", 10 } } },
+        // 09-23 修：声名狼藉绕过声望兜底 → 加进 RepEffects
+        { "声名狼藉", new SysDict.Dictionary<string, int> { { "SECURITY", -198 }, { "UPPER_LEVEL", -198 }, { "REVOLUTION", -198 }, { "LOWER_LEVEL", -198 }, { "BLACK_MARKET", -99 } } }
     };
 
     // 排除列表（不和这些特性抽）

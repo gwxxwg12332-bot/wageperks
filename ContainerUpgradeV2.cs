@@ -155,7 +155,7 @@ public static class ContainerUpgradeV2
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false; // 妙妙箱走独立螺丝升级链，不走鲁滨逊 junk 升级
             if (IsVoidBeadStorage(item)) return false;
-            if (item.IsTag("CONTAINER_TAG")) return true; // 普通腰包/背包（原版 CONTAINER_TAG）在此命中
+            try { if (item.GetTagReadonly("CONTAINER_TAG") != null) return true; } catch { } // 09-23 修：IsTag 恒 True 坑 → GetTagReadonly != null
             return IsBuildingContainerId(item.identifier ?? "");
         }
         catch { return false; }
@@ -395,13 +395,13 @@ public static class ContainerUpgradeV2
     public static int GetHiddenStageByIndex(int idx)
     {
         if (idx < 0) return -1;
-        return PerkStatePersistence.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
+        return WageSaveStore.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
     }
     // 记录 hiddenElement 索引段位
     public static void SetHiddenStageByIndex(int idx, int stage)
     {
         if (idx < 0) return;
-        PerkStatePersistence.SetInt("RobinCrusoe", "wage_stage_idx_" + idx, stage);
+        WageSaveStore.SetInt("RobinCrusoe", "wage_stage_idx_" + idx, stage);
     }
     // 按指定段位强恢复（不依赖 tag——场景物品 tag 全丢）
     public static void RestoreWageBoxToStage(GameItem box, int stage)

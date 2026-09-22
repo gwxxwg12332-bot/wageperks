@@ -21,7 +21,6 @@ internal sealed class RetiredGunsmithPerk : CustomStartingPerk
 
     // 上次枪匠来访的天数
     private static int _lastVisitDay = -1;
-    private static int VISIT_INTERVAL => BuildConfig.GunsmithVisitInterval; // 来访间隔（CFG 可调）
 
     // 枪匠售卖的物品
     internal override void OnNewGame()

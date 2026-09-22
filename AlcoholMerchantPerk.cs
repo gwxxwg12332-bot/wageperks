@@ -35,8 +35,11 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
     // 检查是否应该让酒商今天来
     internal static bool ShouldVisitToday(int currentDay)
     {
-        // 每周第6天（星期6）到访，与其他特殊NPC错开
-        return (currentDay % 7) == 6;
+        // CR-14 修复（09-23）：原来硬编码 % 7，配置项 AlcoholVisitInterval 改了不生效。
+        // 改为读配置；默认 7 → 行为与原来完全一致（零回归）。
+        // 错开偏移 6 取模，保证间隔改小（如 3）时偏移仍落在周期内，不会永远等不到。
+        int interval = VISIT_INTERVAL > 0 ? VISIT_INTERVAL : 7;
+        return (currentDay % interval) == (6 % interval);
     }
 
     // 记录酒商来访

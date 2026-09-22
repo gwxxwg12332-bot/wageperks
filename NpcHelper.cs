@@ -21,9 +21,9 @@ internal static class NpcHelper
         try
         {
             if (currentDay < firstDay) return;
-            if (PerkStatePersistence.GetInt("NpcSchedule", tagKey, 0) > 0) return;
+            if (WageSaveStore.GetInt("NpcSchedule", tagKey, 0) > 0) return;
             Schedule(npcId, 0);
-            PerkStatePersistence.SetInt("NpcSchedule", tagKey, 1);
+            WageSaveStore.SetInt("NpcSchedule", tagKey, 1);
         }
         catch { }
     }

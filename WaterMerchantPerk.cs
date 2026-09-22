@@ -52,8 +52,11 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     // 检查是否应该让水商今天来
     internal static bool ShouldVisitToday(int currentDay)
     {
-        // 每周第3天（星期3）到访，与其他特殊NPC错开
-        return (currentDay % 7) == 3;
+        // CR-14 修复（09-23）：原来硬编码 % 7，配置项 WaterVisitInterval 改了不生效。
+        // 改为读配置；默认 7 → 行为与原来完全一致（零回归）。
+        // 错开偏移 3 取模，保证间隔改小时偏移仍落在周期内，不会永远等不到。
+        int interval = VISIT_INTERVAL > 0 ? VISIT_INTERVAL : 7;
+        return (currentDay % interval) == (3 % interval);
     }
 
     // 记录水商来访

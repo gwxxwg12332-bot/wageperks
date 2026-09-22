@@ -223,8 +223,6 @@ public static class BuildConfig
 
 	public static int WaterVisitInterval => GetInt("WaterVisitInterval", 7);
 
-	public static int GunsmithVisitInterval => GetInt("GunsmithVisitInterval", 7);
-
 	public static int ContainerMaxStage => GetInt("ContainerMaxStage", 5);
 
 	public static void InitPrefs()
@@ -282,7 +280,6 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("DiceUninstallRefund", 50, "卸载返还(%)");
 			melonPreferences_Category.CreateEntry("AlcoholVisitInterval", 7, "酒商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("WaterVisitInterval", 7, "水商来访间隔(天)");
-			melonPreferences_Category.CreateEntry("GunsmithVisitInterval", 7, "枪匠来访间隔(天)");
 			melonPreferences_Category.CreateEntry("ContainerMaxStage", 5, "蛙哥箱段位上限");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("BoxHeights", "3,10,10,10,10,10", "蛙哥箱每段高度(逗号分隔)");
@@ -473,11 +470,6 @@ public class Core : MelonMod
 		Diagnostics.Register();
 	}
 
-	public override void OnUpdate()
-	{
-		try { WageGirlSystem.OnUpdateTick(); } catch { } // 09-22 WageGirl anim+move driver
-	}
-
 	public override void OnGUI()
 	{
 		try
@@ -630,12 +622,20 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(NewGameData), "HandleInitialItem", null, "HandleInitialItemPostfix");
 			// 09-21 拆包实锤：四件唯一发放点 = PlayerStore.HandleSkipIntro（EmporiumEntry.Start L7742）→ 流浪者清+发挂此处（清完 InitialSave 不入档）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "HandleSkipIntro", null, "PostfixHandleSkipIntro", null, typeof(WandererPerk));
-			ManualPatcher.TryPatch(typeof(StoreClientManager), "OnNewDay", null, "PostfixOnNewDay");
+			// 阶段2 迁移（2026-09-23）：每日权威信号从 StoreClientManager.OnNewDay 改为 StoreEventManager.OnDayStart。
+			// 拆包依据：两者同链(BeginDay→StartDay→OnDayStart→OnNewDay)，每天各 1 次，OnDayStart 先；
+			// 而 StoreClientManager.OnNewDay 方法体仅 8 字节（私有计数自增），且其宿主为 null 时会被静默 return
+			// （OnDayStart 侧为 Interrupt，可靠）→ 后者不配当权威信号。
+			// ⚠️ 顺序变化：本方法逻辑从链中段前移到链首，回归重点看跨系统一致性（如证据条与销赃额是否仍同天结算）。
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay");
+			// 阶段2 保留不动：BeginDay Postfix 是链尾（BeginDay→StartDay→OnDayStart→OnNewDay→SecData→CommissaryData→回到 BeginDay Postfix），
+			// 承载"所有日切子系统跑完后"的逻辑（TickWantedSupplierDaily）。迁到 OnDayStart 会把它从链尾挪到链首，
+			// 顺序变化面远大于收益，故**有意保留**。它与 PostfixOnNewDay 有重叠调用（ForceInspectionToday/ApplyBadLuck/ScheduleJacksonToday），
+			// 但三者各自有幂等键（_inspectionTriggeredDay / BadLuck.last_day / _lastScheduledDay），重复调用安全。
 			ManualPatcher.TryPatch(typeof(PlayerStore), "BeginDay", null, "PostfixOnBeginDay");
 			ManualPatcher.TryPatch(typeof(PlayerStore), "AddDirectSellingItemToTable", "PrefixAddDirectSellingItemToTable", null, null, typeof(WaterMerchantPerk));
 			ManualPatcher.TryPatchByName(typeof(MachineBottlePrinter.__c__DisplayClass6_0), "Method_Internal_Void_String_Int32_0", "PrefixTryPrint", "PostfixTryPrint", typeof(WaterMerchantPerk));
 			ManualPatcher.TryPatchByName(typeof(MachineFeedDispenser.__c__DisplayClass7_0), "_CreateFeedDispenser_b__3", "PrefixFeedDispenserB3", null, typeof(RobinCrusoePerk));
-			ManualPatcher.TryPatch(typeof(PlayerStore), "AddDirectSellingItemToTable", "PrefixAddDirectSellingItemToTable", null, null, typeof(RetiredGunsmithPerk));
 			try
 			{
 				System.Type type = System.Type.GetType("PreBuildChemHelper, Assembly-CSharp");
@@ -708,16 +708,21 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)); // 09-20 蛙娘新档硬重置
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk)); // 09-20 鲁滨逊打烊落盘血量
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", "PrefixSaveGame", null, null, typeof(ContainerUpgradeV2)); // 09-23 修：妙妙箱打烊吃螺丝改 Prefix（存档前跑，否则读档回退）
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageSaveStore), 0); // 阶段1：统一持久化层全局落盘门面——priority 0 保证最后跑（所有系统的 Set 先进内存再一次性原子落盘）
 
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
 			// 09-21 封存：成瘾警官事件 OnDayStart 挂点关闭
-			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(DarkGridInspectorPerk)); // 09-20 设计稿：眼线独立挂（不依赖 AddictOfficerEvent 链）
+			// 阶段2：治安部眼线不再单独占坑 —— 已改为 override CustomStartingPerk.OnDayStart()，
+			// 由统一驱动入口 PostfixUnifiedDayStart 驱动（原 static new OnNewDay 陷阱已拆除，勿再单独注册）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)); // 09-21 蛙娘：全局常驻——每日六维衰减+首次发放（方法名 PostfixOnDayStart）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(InfamousPerk)); // 09-21 声名狼藉：第1天送5000
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(HatedByAllPerk)); // 09-22 人神共愤：每天扣声望+扣钱
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
+			// 阶段2 统一生命周期入口（详见 Patches.PostfixUnifiedDayStart / PostfixSaveGame 注释）
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixUnifiedDayStart"); // 驱动全部特性 OnDayStart（幂等去重 + 逐特性异常隔离）
+			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame"); // 驱动全部特性 OnSaveGame；默认 priority(400) 高于 WageSaveStore 的 0 → 先写内存，统一层最后落盘
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(ModuleHelper), "CreateModuleTooltip", null, "PostfixCreateModuleTooltip", null, typeof(ModCannibalism));
@@ -753,7 +758,8 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleMinorClient", "PrefixHandleMinorClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", "PrefixPickClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MapUIManager), "OpenGoOutsideConfirm", "PrefixOpenGoOutsideConfirm", null, null, typeof(RobinCrusoePerk));
-			ManualPatcher.TryPatch(typeof(StoreClientManager), "OnNewDay", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk));
+			// 阶段2 迁移：鲁滨逊每日结算同迁 OnDayStart（原注释"原挂 StoreClientManager.OnNewDay 触发时机不可靠"已被拆包证实）
+			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleInspectionClient", "PrefixHandleInspectionClient", "PostfixHandleInspectionClient");
 			ManualPatcher.TryPatch(typeof(StoreReputation), "IsPerkUnlocked", null, "PostfixIsPerkUnlocked");
 			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", null, "PostfixDoubleClickAction", patchHost: typeof(RobinCrusoePerk), parameterTypes: new System.Type[2]
@@ -827,6 +833,7 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WandererPerk));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)); // 声名狼藉
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)); // 09-21 发放后清+重发（根治"清了白清"）
+			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(DrJacksonFriendPerk)); // 阶段2 CR-15：基类 OnNewGame 挂的 GameMaster.NewGame 实测从不触发，改挂此处重置来访日
 			ManualPatcher.TryPatch(typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame_IngotContainer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(LiquidContainerHelper), "AutoSipFromContainer", "PrefixAutoSipFromContainer", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientList), "PlaceSupplierInventory", null, "PostfixPlaceSupplierInventory", null, typeof(RobinCrusoePerk));

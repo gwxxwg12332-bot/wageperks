@@ -553,7 +553,7 @@ internal static class TestRunner
     // 测试：蛙哥物品池完整性
     private static void TestCase_ItemPoolIntegrity()
     {
-        var itemPool = FrogPowerPerk.ItemPool;
+        var itemPool = WagePowerPerk.ItemPool;
         if (itemPool == null || itemPool.Length == 0)
             throw new Exception("蛙哥物品池为空");
 
@@ -1580,7 +1580,7 @@ internal static class TestRunner
     // 只传 clientName 命中的特殊名（0/0.5/0.7/0.9 阶段在访问 client.identifier 之前 return，传 null client 安全）
     private static void Test_P0Dialogue(StringBuilder log)
     {
-        var t = typeof(FrogPowerPerk);
+        var t = typeof(WagePowerPerk);
         var m = t.GetMethod("GenerateStoryDialogue", BindingFlags.NonPublic | BindingFlags.Static);
         if (m == null) throw new Exception("GenerateStoryDialogue 方法未找到");
 

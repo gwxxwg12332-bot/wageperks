@@ -20,9 +20,11 @@ internal static class ManualPatcher
     }
 
     // 尝试Patch一个方法（默认宿主类 Patches，可用 patchHost 指定其他类）
+    // priority：可选 Harmony 优先级（默认 400）。postfix 高优先级先跑；
+    // 需要"所有系统写完后再执行"的全局门面（如统一落盘 Flush）应传低优先级（如 0）保证最后跑
     internal static void TryPatch(Type type, string name,
         string prefix = null, string postfix = null,
-        Type[] parameterTypes = null, Type patchHost = null)
+        Type[] parameterTypes = null, Type patchHost = null, int? priority = null)
     {
         Type host = patchHost ?? typeof(Patches);
         try
@@ -37,9 +39,15 @@ internal static class ManualPatcher
                 return;
             }
 
-            _harmony.Patch(method,
-                prefix: prefix == null ? null : new HarmonyMethod(host, prefix),
-                postfix: postfix == null ? null : new HarmonyMethod(host, postfix));
+            HarmonyMethod hmPrefix = prefix == null ? null : new HarmonyMethod(host, prefix);
+            HarmonyMethod hmPostfix = postfix == null ? null : new HarmonyMethod(host, postfix);
+            if (priority.HasValue)
+            {
+                if (hmPrefix != null) hmPrefix.priority = priority.Value;
+                if (hmPostfix != null) hmPostfix.priority = priority.Value;
+            }
+
+            _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix);
         }
         catch (Exception ex)
         {

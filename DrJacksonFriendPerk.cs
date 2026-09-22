@@ -47,6 +47,18 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
         _lastJacksonVisitDay = -1;
     }
 
+    // 阶段2 CR-15 修复（2026-09-23 实测确认）：
+    // 基类 OnNewGame() 由 GameMaster.NewGame 驱动，实测该原生方法从不触发（诊断日志零命中）
+    // → 两个 static 字段跨档都不重置 → 第二档起博士长期不来：
+    //   ① _lastJacksonVisitDay（本类）：daysSinceLastVisit 为负 → 频率控制误拦
+    //   ② Patches._lastScheduledDay（真凶）：dayCounter - _lastScheduledDay 为负 → 根本不排期
+    // 权威"开新档"信号是 PlayerStore.StartNewGame，改挂此处。
+    public static void PostfixStartNewGame()
+    {
+        try { _lastJacksonVisitDay = -1; } catch { }
+        try { Patches.ResetJacksonSchedule(); } catch { }
+    }
+
     internal static bool IsActive()
     {
         return Core.PerkActive(PerkId);

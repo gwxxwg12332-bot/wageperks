@@ -276,9 +276,9 @@ internal static class SpecialNpcManager
             else
             {
                 // 普通NPC：出随机物品（从蛙哥随机商品池调用，仅在蛙哥牛逼激活时）
-                if (FrogPowerPerk.IsActive())
+                if (WagePowerPerk.IsActive())
                 {
-                    FrogPowerPerk.AddRandomItemsToCounter(client);
+                    WagePowerPerk.AddRandomItemsToCounter(client);
                 }
             }
         }

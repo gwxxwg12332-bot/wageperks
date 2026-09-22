@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace JacksonPerks;
 
-internal sealed class FrogPowerPerk : CustomStartingPerk
+internal sealed class WagePowerPerk : CustomStartingPerk
 {
     internal const string PerkId = "蛙哥牛逼";
 
@@ -277,13 +277,13 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
         try
         {
             string perkId = "蛙哥牛逼";
-            PerkStatePersistence.SetInt(perkId, "totalPurchases", _totalPurchases);
-            PerkStatePersistence.SetInt(perkId, "totalSales", _totalSales);
-            PerkStatePersistence.SetInt(perkId, "inspectionCount", _inspectionCount);
-            PerkStatePersistence.SetInt(perkId, "contrabandSold", _contrabandSold);
-            PerkStatePersistence.SetInt(perkId, "gameDay", _gameDay);
-            PerkStatePersistence.SetBool(perkId, "hasBeenRobbed", _hasBeenRobbed);
-            PerkStatePersistence.SetBool(perkId, "hasBribed", _hasBribed);
+            WageSaveStore.SetInt(perkId, "totalPurchases", _totalPurchases);
+            WageSaveStore.SetInt(perkId, "totalSales", _totalSales);
+            WageSaveStore.SetInt(perkId, "inspectionCount", _inspectionCount);
+            WageSaveStore.SetInt(perkId, "contrabandSold", _contrabandSold);
+            WageSaveStore.SetInt(perkId, "gameDay", _gameDay);
+            WageSaveStore.SetBool(perkId, "hasBeenRobbed", _hasBeenRobbed);
+            WageSaveStore.SetBool(perkId, "hasBribed", _hasBribed);
         }
         catch (Exception ex)
         {
@@ -296,17 +296,17 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
         try
         {
             string perkId = "蛙哥牛逼";
-            if (!PerkStatePersistence.HasKey(perkId, "totalPurchases"))
+            if (!WageSaveStore.HasKey(perkId, "totalPurchases"))
             {
                 return;
             }
-            _totalPurchases = PerkStatePersistence.GetInt(perkId, "totalPurchases", 0);
-            _totalSales = PerkStatePersistence.GetInt(perkId, "totalSales", 0);
-            _inspectionCount = PerkStatePersistence.GetInt(perkId, "inspectionCount", 0);
-            _contrabandSold = PerkStatePersistence.GetInt(perkId, "contrabandSold", 0);
-            _gameDay = PerkStatePersistence.GetInt(perkId, "gameDay", 1);
-            _hasBeenRobbed = PerkStatePersistence.GetBool(perkId, "hasBeenRobbed", false);
-            _hasBribed = PerkStatePersistence.GetBool(perkId, "hasBribed", false);
+            _totalPurchases = WageSaveStore.GetInt(perkId, "totalPurchases", 0);
+            _totalSales = WageSaveStore.GetInt(perkId, "totalSales", 0);
+            _inspectionCount = WageSaveStore.GetInt(perkId, "inspectionCount", 0);
+            _contrabandSold = WageSaveStore.GetInt(perkId, "contrabandSold", 0);
+            _gameDay = WageSaveStore.GetInt(perkId, "gameDay", 1);
+            _hasBeenRobbed = WageSaveStore.GetBool(perkId, "hasBeenRobbed", false);
+            _hasBribed = WageSaveStore.GetBool(perkId, "hasBribed", false);
         }
         catch (Exception ex)
         {
@@ -319,11 +319,9 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
         try
         {
             string perkId = "蛙哥牛逼";
-            PerkStatePersistence.ClearPerkState(perkId);
-            // 新游戏：刷新 runID 缓存 + 清除蛙哥妙妙箱持久化标记，
-            // 防止新档误用旧档 runID 判定“已给过”而跳过发箱
-            try { PerkStatePersistence.ResetCache(); } catch { }
-            try { PerkStatePersistence.SetBool(perkId, "storageBoxGiven", false); } catch { }
+            WageSaveStore.ClearNamespace(perkId);
+            // 阶段1：旧层 ResetCache（清 runID 缓存）无新层等价物——新层 runID 实时解析无缓存，新档由 ResetForNewRun 全局清
+            try { WageSaveStore.SetBool(perkId, "storageBoxGiven", false); } catch { }
             _totalPurchases = 0;
             _totalSales = 0;
             _inspectionCount = 0;
@@ -2367,7 +2365,7 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
         // 这里只重置发箱标记，实际给予由 NewGameData.HandleInitialItem Postfix 完成
         //（与游戏原生开局物品同一时机，读档不触发，从根本解决多刷/补发问题）
         _storageBoxGiven = false;
-        try { PerkStatePersistence.SetBool(PerkId, "storageBoxGiven", false); } catch { }
+        try { WageSaveStore.SetBool(PerkId, "storageBoxGiven", false); } catch { }
     }
     
     
@@ -2425,7 +2423,7 @@ internal sealed class FrogPowerPerk : CustomStartingPerk
                 _storageBoxGiven = true;
                 _pendingBoxGive = false;
                 // 持久化发箱状态，读档后不再重复给（Bug2修复）
-                try { PerkStatePersistence.SetBool(PerkId, "storageBoxGiven", true); } catch { }
+                try { WageSaveStore.SetBool(PerkId, "storageBoxGiven", true); } catch { }
             }
             else
             {

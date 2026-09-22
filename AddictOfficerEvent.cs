@@ -30,21 +30,21 @@ internal static class AddictOfficerEvent
             int day = GetDay();
 
             // 1. 次日巡查：记仇 flag=true → 没收 → 清 flag → 巡查日不再伪装（防连锁）
-            if (PerkStatePersistence.GetBool(NS, KEY_GRUDGE, false))
+            if (WageSaveStore.GetBool(NS, KEY_GRUDGE, false))
             {
-                PerkStatePersistence.SetBool(NS, KEY_GRUDGE, false);
+                WageSaveStore.SetBool(NS, KEY_GRUDGE, false);
                 RunInspection(day);
                 return;
             }
 
             // 2. 伪装进店：到触发日；防同一天重复
             // 首次（next<0）自动初始化：第 3~5 天第一次来，之后每 2~4 天一次
-            int next = PerkStatePersistence.GetInt(NS, KEY_NEXT, -1);
-            if (next < 0) { next = day + 3 + Core.Rng.Next(3); PerkStatePersistence.SetInt(NS, KEY_NEXT, next); }
-            if (day >= next && day != PerkStatePersistence.GetInt(NS, KEY_LAST, -1))
+            int next = WageSaveStore.GetInt(NS, KEY_NEXT, -1);
+            if (next < 0) { next = day + 3 + Core.Rng.Next(3); WageSaveStore.SetInt(NS, KEY_NEXT, next); }
+            if (day >= next && day != WageSaveStore.GetInt(NS, KEY_LAST, -1))
             {
                 SpawnDisguisedOfficer(day);
-                PerkStatePersistence.SetInt(NS, KEY_NEXT, day + 2 + Core.Rng.Next(3)); // 间隔 2~4 天
+                WageSaveStore.SetInt(NS, KEY_NEXT, day + 2 + Core.Rng.Next(3)); // 间隔 2~4 天
             }
         }
         catch (Exception ex) { Core.LogMsg("[AddictOfficer] OnNewDay失败: " + ex.Message); }
@@ -54,13 +54,14 @@ internal static class AddictOfficerEvent
     internal static void OnDayStartPostfix()
     {
         try { OnNewDay(); } catch (Exception ex) { Core.LogMsg("[AddictOfficer] OnDayStart失败: " + ex.Message); }
-        // 09-20 设计稿：眼线独立挂 StoreEventManager.OnDayStart（DarkGridInspectorPerk.OnDayStartPostfix），此处不再代调——防双重触发
+        // 阶段2 注：治安部眼线已改为 override CustomStartingPerk.OnDayStart()，由统一驱动入口驱动，
+        // 此处仍不代调——防双重触发。（本类本身 09-21 已封存，Core.cs 里的 OnDayStart 注册为关闭状态）
     }
 
     // ============ 伪装成瘾警官进店 ============
     private static void SpawnDisguisedOfficer(int day)
     {
-        PerkStatePersistence.SetInt(NS, KEY_LAST, day);
+        WageSaveStore.SetInt(NS, KEY_LAST, day);
         try
         {
             // 【实测教训】CreateInspectionClient 是检查客户（clientIntent=INSPECTION），
@@ -106,7 +107,7 @@ internal static class AddictOfficerEvent
             else
             {
                 // 分支B：无货 → 记仇 flag=true
-                PerkStatePersistence.SetBool(NS, KEY_GRUDGE, true);
+                WageSaveStore.SetBool(NS, KEY_GRUDGE, true);
                 SetDialogue(client, LangHelper.T(
                     "对方扫视货架后一无所获，面色阴沉，默不作声离去，你隐隐感到不安。",
                     "He scans the shelves, finds nothing, and leaves in grim silence. Unease settles in."));
