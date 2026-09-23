@@ -71,3 +71,87 @@
 ## 🟢 低优先级（后续补充）
 
 > 待用户继续提交测试反馈后追加条目。
+
+### BUG-006 蛙娘带回的正品免疫宁无法使用
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）
+- 现象：蛙娘带回的免疫宁点了没反应、无法消耗生效
+- 根因（[L1] ISIL 实锤 InsInjectorHelper）：`DirectoryMaster.Item("large_purple_injector")` 等价 `Init`，只打 2 个基础标签；
+  `SetGenuine` = ModifyTag x7 写入正品数据，才是"可用正品"的必要前提（SetExpired / SetCounterfeit / SetUnused 都先调 SetGenuine）。
+  旧代码只调 DirectoryMaster.Item → 缺 7 项 → 不可用
+- 修复：`WageGirlSystem.StealAI_Fence.cs` 新增 `CreateGenuineImmunivax()` = `InsInjectorHelper.CreateRealInjector()` + `SetGenuine()`（失败回退原路径）
+- 修复版本：待发布
+
+### BUG-007 物资箱可能为空箱
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）— 作者拍板：全部物资箱（不只流浪者）非空，1% 空箱保留
+- 现象：开出来的物资箱是空的
+- 根因：`CreateSupplyCrate()` 中 targetValue<1 时填充循环一次都不跑 → 空箱；此外违禁品偏好过滤可能把候选全滤掉 / UncheckedAccept 抛异常
+- 修复：targetValue 下限 1 + 兜底循环（忽略违禁品偏好）强制至少 1 件；1% 空箱由上层概率控制
+- 修复版本：待发布
+
+### BUG-008 骰子对部分物品无法吞噬
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）
+- 现象：夜晚拾荒带回的物品拖到骰子上吞不掉
+- 根因：`IsNonPlayerOwned` 靠容器/位置推断归属，对夜间拾荒物品（afterhourInventory 混合已拥有/未拥有）判错
+- 修复：改用 `GeneralHelper.IsItemOwned` ≡ `item.IsTag("IS_OWNED_TAG")`（原版归属标记，Patches.cs:1984 已用作买卖方向判据）。
+  实锤：夜间拾荒走 `ItemSpawner.Spawn` → `DirectoryMaster.Item(id, isOwned:true)` → `SetItemOwned(true)`，确实带 IS_OWNED_TAG
+- 修复版本：待发布
+
+### BUG-009 蛙娘带回无法移动的场景物品
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）
+- 现象：蛙娘带回 storage_bay / machine_bay_ext 之类建筑模块，只能摆场景、拖不进背包
+- 根因：`FindItemNearValue` 第二轮遍历全物品缓存时只按类别 + 价值筛选，没有"场景固定物"过滤
+- 修复：`EnsureItemCache()` 增加：`ContainerUpgradeV2.IsBuildingContainerId(id)` + `STANDARD_MACHINE_TAG` / `SYSTEM_TAG` / `SYSTEM_TAG_UTILITY` / `ITEM_HIDDEN_TAG` 全部跳过
+- 修复版本：待发布
+
+### BUG-010 没有饮品时蛙娘仍会偷喝
+- 优先级：🟢 低
+- 状态：已修复（09-23，commit 3121605）
+- 现象：店里没有能喝的东西，蛙娘依然触发偷喝
+- 根因：`DRINK_IDS` 含 `empty_beer_bottle` 等空容器，且部分饮品无水量/无卡路里记录 → `IsDrink` 判成饮品但实际一口都喝不到
+- 修复：`StealItems()` drink 分支加 `HasDrinkContent()`（水量>0 或 卡路里>0）→ 候选为空则不偷不报
+- 修复版本：待发布
+
+### BUG-011 无卡路里值饮品喂蛙娘无效果
+- 优先级：🟢 低
+- 状态：已修复（09-23，commit 3121605）— 作者拍板：统一按价值恢复口渴
+- 现象：酒/代饮品喂给蛙娘 → 物品消失但口渴一点不回
+- 根因：`TryFeed()` 饮品分支 `int ml = GetWaterMl(item); if (ml <= 0) { item.Destroy(); return false; }`。
+  酒类原生不写 `LIQUID_CONTAINER_CURRENT` → ml=0 → 直接销毁且不结算
+- 修复：ml<=0 时改走"按价值恢复口渴"分支（当前价值/单位价值分档 25/18/12/6/2，与水纯度 5 档同量级），整件喝完消失。
+  注：有卡路里的饮品会被上面的 `IsFood` 分支先接走，落到饮品分支且 ml=0 的基本都是无卡路里值饮品
+- 修复版本：待发布
+
+### BUG-012 蛙娘只有在不营业时才可被照顾
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）
+- 现象：营业期间（柜台接客）无法喂食/照顾，只有打烊后才行
+- 根因：`TryFeed()` 开头 `if (Patches.CurrentUITradeMode != 0) return false;` —— 营业期几乎全程开交易 UI
+- 修复：拆成两段门禁。违禁品分支保留"交易中禁止"（原行为）；照顾分支放行，
+  但新增 `IsPlayerOwnedForCare()`（`GeneralHelper.IsItemOwned` ≡ `IS_OWNED_TAG`）→ 买入模式下不会喂掉客户的货。
+  `PostfixDoubleClickAction` 同样放行（面板内销赃/洗白按钮各自保留原有门禁）
+- 修复版本：待发布
+
+### BUG-013 吞噬季把节点也吞了
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）— 作者拍板：节点排除，不参与吞噬判定
+- 现象：吞噬季把节点模组吃掉了
+- 根因（[L1] ISIL 实锤 `ModuleDirectory.txt`）：`node_small`（:1051）/ `node_medium`（:1067）与 `system_module_*`、
+  `chem_module`、`furnace_module_*` 在同一张模组注册表 → 节点在原生定义中就是模组（带 `MODULE_TAG`），
+  会被 `ModCannibalism.CollectMachines()` 收进候选池
+- 修复：`Patches.cs` 新增 `IsNodeModule(id)`（node / node_small / node_medium / `node_` 前缀），仅作用于吞噬季。
+  刻意不改 `RobinCrusoePerk.IsExcludedModule`——那个还被炼蛊器与模组 tooltip 共用，改了会动到别的机制
+- 修复版本：待发布
+
+### BUG-014 命运骰子带有很多标签
+- 优先级：🟠 中
+- 状态：已修复（09-23，commit 3121605）
+- 现象：骰子有时会变成"带一堆标签"的容器
+- 根因：`CreateRegisteredDice()` 是 `destiny_dice` 的 DirectoryMaster 工厂（`DestinyDice.cs:2705` / `:2713`），
+  创建失败时兜底返回 `DirectoryMaster.Item("simple_backpack")` —— 背包是容器，自带 CONTAINER_TAG 等一堆原生标签。
+  读档反序列化骰子时也走这个工厂 → 拿到背包后再叠加存档里的骰子标签
+- 修复：兜底改为 `CreateMinimalDice()`（只带 `DICE_ID` + `destiny_dice_tag` + 必需计数标签），工厂永不返回非骰子物品
+- 修复版本：待发布
