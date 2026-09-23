@@ -724,7 +724,7 @@ internal sealed class InfamousPerk : CustomStartingPerk
             Core.LogMsg("[声名狼藉] PostfixStartNewGame 触发");
             // 五势力声望绝对值（差值补法）
             string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
-            int[] targetValues = { -198, -198, -198, -198, -99 };
+            int[] targetValues = { -99, -99, -99, -99, -99 };
             for (int i = 0; i < factionIds.Length; i++)
             {
                 try

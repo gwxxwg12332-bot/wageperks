@@ -8,11 +8,39 @@ public static class BuildConfig
 {
 	private static bool? _hardMode = null;
 
-	public static int[] BoxWidthsArr = new int[6] { 3, 10, 20, 32, 42, 52 };
+	// 09-23 改属性：每次访问从 CFG 读，改 CFG 不用重启
+	private static int[] _boxWidthsCache;
+	public static int[] BoxWidthsArr
+	{
+		get
+		{
+			try { _boxWidthsCache = PadToLast(ParseIntList(GetStr("BoxWidths", "3,10,20,32,42,52")), System.Math.Max(6, ContainerMaxStage + 1)); }
+			catch { _boxWidthsCache = new int[6] { 3, 10, 20, 32, 42, 52 }; }
+			return _boxWidthsCache;
+		}
+	}
 
-	public static int[] BoxHeightsArr = new int[6] { 3, 10, 10, 10, 10, 10 };
+	private static int[] _boxHeightsCache;
+	public static int[] BoxHeightsArr
+	{
+		get
+		{
+			try { _boxHeightsCache = PadToLast(ParseIntList(GetStr("BoxHeights", "3,10,10,10,10,10")), System.Math.Max(6, ContainerMaxStage + 1)); }
+			catch { _boxHeightsCache = new int[6] { 3, 10, 10, 10, 10, 10 }; }
+			return _boxHeightsCache;
+		}
+	}
 
-	public static int[] UpgradeCostsArr = new int[5] { 1, 10, 20, 40, 50 }; // 09-20 用户拍板：第一级5→1
+	private static int[] _upgradeCostsCache;
+	public static int[] UpgradeCostsArr
+	{
+		get
+		{
+			try { _upgradeCostsCache = PadToLast(ParseIntList(GetStr("UpgradeCosts", "1,10,20,40,50")), System.Math.Max(5, ContainerMaxStage)); }
+			catch { _upgradeCostsCache = new int[5] { 1, 10, 20, 40, 50 }; }
+			return _upgradeCostsCache;
+		}
+	}
 
 	// 09-20 CFG 开关：容器/机器减半（开局宽减半）
 	public static bool ContainerHalfEnabled
@@ -294,16 +322,7 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMin", 3, "博士廉价模组数量下限");
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMax", 5, "博士廉价模组数量上限");
 			melonPreferences_Category.CreateEntry("ProtectorSupplyCount", 3, "博士保护器补货数量");
-			try
-			{
-				BoxWidthsArr = PadToLast(ParseIntList(GetStr("BoxWidths", "3,10,20,32,42,52")), System.Math.Max(6, ContainerMaxStage + 1));
-				BoxHeightsArr = PadToLast(ParseIntList(GetStr("BoxHeights", "3,10,10,10,10,10")), System.Math.Max(6, ContainerMaxStage + 1));
-				UpgradeCostsArr = PadToLast(ParseIntList(GetStr("UpgradeCosts", "1,10,20,40,50")), System.Math.Max(5, ContainerMaxStage));
-			}
-			catch (System.Exception ex)
-			{
-				Core.LogMsg("[WagePerks] 容器表解析异常: " + ex.Message);
-			}
+			// 09-23 容器表改属性，InitPrefs 不再一次性赋值
 			_hardMode = null;
 		}
 		catch (System.Exception ex2)

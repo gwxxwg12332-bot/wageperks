@@ -207,7 +207,8 @@ internal static partial class Patches
 			bool isSell = false;
 			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
 			catch (System.Exception ex) { isSell = CurrentUITradeMode == 2; Core.LogMsg("[交易标记] IsItemOwned判定失败，按UI模式回退: " + ex.Message); }
-			if (BadReputationPerk.IsActive() && !BadReputationPerk.IsCleared())
+				bool _brActive = BadReputationPerk.IsActive(); bool _brCleared = BadReputationPerk.IsCleared(); Core.LogMsg("[信誉扫地] 检查: active=" + _brActive + " cleared=" + _brCleared + " item=" + (item.identifier ?? "?"));
+			if (_brActive && !_brCleared)
 			{
 				if (isSell)
 				{

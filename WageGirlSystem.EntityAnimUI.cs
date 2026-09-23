@@ -341,7 +341,9 @@ public static partial class WageGirlSystem
                     try { v = (int)item.GetCurrentValue(); } catch { }
                     if (v <= 0) { try { v = item.unitValue; } catch { } }
                     if (v <= 0) return false;
-                    try { item.Destroy(); } catch { try { item.parentInventory?.Expel(item); } catch { } }
+                    bool _destroyed = false;
+                    try { item.Destroy(); _destroyed = true; } catch (Exception _exD) { Core.LogMsg("[蛙娘销赃] Destroy失败: " + _exD.Message); try { item.parentInventory?.Expel(item); _destroyed = true; } catch (Exception _exE) { Core.LogMsg("[蛙娘销赃] Expel也失败: " + _exE.Message); } }
+                    Core.LogMsg("[蛙娘销赃] 吃掉 " + (item.identifier ?? "?") + " v=" + v + " destroyed=" + _destroyed);
                     int cur = GetStat(K_FENCE_AMT);
                     int total = cur + (int)v;
                     SetStat(K_FENCE_AMT, total);
