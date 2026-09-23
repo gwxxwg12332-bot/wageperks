@@ -240,7 +240,11 @@ public static partial class WageGirlSystem
         catch { }
     }
 
-    // ===================== 阶段 3：在场增益-预算（09-23 用户拍板：不人为变化预算，恢复原生——本 Postfix 仅诊断观测） =====================
+    // ===================== 阶段 3：在场增益-预算 ×4（09-23 用户拍板：恢复「原生预算×4」，但绝不导致 0） =====================
+    // 防御设计（依据拆包 [L1]：原生 ApplyBudgetModifier 只加不减，0 只能来自 mod 写回）：
+    //   ① 原生算完预算 ≤0 → 跳过覆盖（绝不把 0/负值写回，让原生自己处理）
+    //   ② 不再强制覆盖 clientCash（之前强制同步是归零事故的可疑点；clientCash 有独立语义）
+    //   ③ 防重入 + OverrideBudget 只写一次（不触发原生 ApplyBudgetModifier 重算链）
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
         try
@@ -248,14 +252,18 @@ public static partial class WageGirlSystem
             if (__instance == null) return;
             if (!Exists()) return; // 蛙娘未出现 → 无增益
             if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
-            if (Patches._inBudgetOverride) return; // 防重入（鲁滨逊 SetBudget 触发链）
-            // 【开发诊断 · 发布前删】仅观测：确认原生预算在蛙娘在场时是否被原生正确计算（不再覆盖任何值）
+            if (Patches._inBudgetOverride) return; // 防重入：鲁滨逊 SetBudget 会再次触发 ApplyBudgetModifier → 本条 Postfix 重入（倍率嵌套）
+            int budget = __instance.GetBudget();
+            // 【开发诊断 · 发布前删】观测 Postfix 读到的原生最终预算（节流 5s）
             if (Time.time - _budgetDiagTime > 5f)
             {
                 _budgetDiagTime = Time.time;
-                int budget = __instance.GetBudget();
-                Core.LogMsg("[预算诊断·原生] client=" + (__instance.identifier ?? "?") + " GetBudget=" + budget + " useClientBudget=" + __instance.useClientBudget + " clientCash=" + __instance.clientCash);
+                Core.LogMsg("[预算诊断] Postfix触发 client=" + (__instance.identifier ?? "?") + " GetBudget=" + budget + " useClientBudget=" + __instance.useClientBudget + " clientCash=" + __instance.clientCash);
             }
+            if (budget <= 0) return; // 防御①：原生算完 ≤0 → 不覆盖（mod 绝不写 0）
+            long newBudget = (long)budget * BuildConfig.WageGirlBudgetMult; // 原生预算 ×4
+            if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap; // 上限防溢出
+            __instance.OverrideBudget((int)newBudget); // 防御③：只写一次，不触发原生重算
         }
         catch { }
     }

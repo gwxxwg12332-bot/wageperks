@@ -85,7 +85,9 @@ public static class BuildConfig
 		}
 	}
 
-	// ===== 蛙娘在场：客户预算加成 CFG ===== (09-23) —— 09-23 用户拍板恢复原生预算后全部作废（无任何引用）已移除
+	// ===== 蛙娘在场：客户预算 ×4 CFG ===== (09-23 恢复，用户拍板：原生预算×4 且不导致0)
+	public static int WageGirlBudgetMult => GetInt("WageGirlBudgetMult", 4);
+	public static long WageGirlBudgetCap => 2147483646L;
 
 	public static bool HardMode
 	{
@@ -294,6 +296,7 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("AlcoholVisitInterval", 7, "酒商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("WaterVisitInterval", 7, "水商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("ContainerMaxStage", 5, "蛙哥箱段位上限");
+			melonPreferences_Category.CreateEntry("WageGirlBudgetMult", 4, "蛙娘在场客户预算倍率（原生预算×N）");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("BoxHeights", "3,10,10,10,10,10", "蛙哥箱每段高度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("UpgradeCosts", "1,10,20,40,50", "蛙哥箱每级升级材料数(逗号分隔)");
