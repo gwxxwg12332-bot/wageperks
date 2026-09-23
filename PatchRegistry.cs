@@ -33,7 +33,30 @@ namespace JacksonPerks;
 
 public static class PatchRegistry
 {
+
 	public static void ApplyAll()
+	{
+		try
+		{
+			RegisterCoreAndWanted();
+			RegisterUnifiedDayStart();
+			RegisterDiceNewsDrag();
+			RegisterInitDirectoryAndStartUI();
+			RegisterPerksTail();
+		}
+		catch (System.Exception ex3)
+		{
+			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
+		}
+		// 阶段3（2026-09-23）：补丁挂载自检——汇总成功/失败数，失败项即"功能不会生效"的清单。
+		// 放在 try/catch 之后，保证即使中途抛异常也能输出已挂载情况。
+		// 说明：**不引入任何冲突检测/让路逻辑** —— 拦截其他 mod 等于同时废掉我们自己的补丁（历史事故）。
+		// 阶段3：冲突防护——列出已加载的已知冲突 mod
+		ModCompat.LogLoadedConflicts();
+		ManualPatcher.LogPatchSummary();
+	}
+
+	private static void RegisterCoreAndWanted()
 	{
 		try
 		{
@@ -151,6 +174,17 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", "PrefixSaveGame", null, null, typeof(ContainerUpgradeV2)); // 09-23 修：妙妙箱打烊吃螺丝改 Prefix（存档前跑，否则读档回退）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageSaveStore), 0); // 阶段1：统一持久化层全局落盘门面——priority 0 保证最后跑（所有系统的 Set 先进内存再一次性原子落盘）
 
+		}
+		catch (System.Exception ex3)
+		{
+			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
+		}
+	}
+
+	private static void RegisterUnifiedDayStart()
+	{
+		try
+		{
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism));
 			// 09-21 封存：成瘾警官事件 OnDayStart 挂点关闭
@@ -164,6 +198,17 @@ public static class PatchRegistry
 			// 阶段2 统一生命周期入口（详见 Patches.PostfixUnifiedDayStart / PostfixSaveGame 注释）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixUnifiedDayStart"); // 驱动全部特性 OnDayStart（幂等去重 + 逐特性异常隔离）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame"); // 驱动全部特性 OnSaveGame；默认 priority(400) 高于 WageSaveStore 的 0 → 先写内存，统一层最后落盘
+		}
+		catch (System.Exception ex3)
+		{
+			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
+		}
+	}
+
+	private static void RegisterDiceNewsDrag()
+	{
+		try
+		{
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism));
 			ManualPatcher.TryPatch(typeof(ModuleHelper), "CreateModuleTooltip", null, "PostfixCreateModuleTooltip", null, typeof(ModCannibalism));
@@ -180,6 +225,17 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
 			Core.LogMsg("[Patch] 命运骰子拖放吸收已注册");
+		}
+		catch (System.Exception ex3)
+		{
+			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
+		}
+	}
+
+	private static void RegisterInitDirectoryAndStartUI()
+	{
+		try
+		{
 			ManualPatcher.TryPatch(typeof(ContainerItemDirectory), "InitDirectory", null, "PostfixInitDirectory");
 			ManualPatcher.TryPatch(typeof(AmenitiesItemDirectory), "InitDirectory", null, "PostfixInitDirectory");
 			ManualPatcher.TryPatch(typeof(ModItemDirectory), "InitDirectory", null, "PostfixInitDirectory");
@@ -196,6 +252,17 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", "PrefixSaveGame", "PostfixSaveGame", null, typeof(NewStartTypeUI));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame", null, typeof(NewStartTypeUI));
+		}
+		catch (System.Exception ex3)
+		{
+			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
+		}
+	}
+
+	private static void RegisterPerksTail()
+	{
+		try
+		{
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleMinorClient", "PrefixHandleMinorClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", "PrefixPickClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MapUIManager), "OpenGoOutsideConfirm", "PrefixOpenGoOutsideConfirm", null, null, typeof(RobinCrusoePerk));
@@ -334,11 +401,6 @@ public static class PatchRegistry
 		{
 			Core.LogMsg("[Patch] 应用补丁失败: " + ex3.Message);
 		}
-		// 阶段3（2026-09-23）：补丁挂载自检——汇总成功/失败数，失败项即"功能不会生效"的清单。
-		// 放在 try/catch 之后，保证即使中途抛异常也能输出已挂载情况。
-		// 说明：**不引入任何冲突检测/让路逻辑** —— 拦截其他 mod 等于同时废掉我们自己的补丁（历史事故）。
-		// 阶段3：冲突防护——列出已加载的已知冲突 mod
-		ModCompat.LogLoadedConflicts();
-		ManualPatcher.LogPatchSummary();
 	}
+
 }
