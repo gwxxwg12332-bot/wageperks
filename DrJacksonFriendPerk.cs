@@ -202,7 +202,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             // 4. 设置clientIntent为SELL
             try
             {
-                client.clientIntent = StoreClient.ClientIntent.SELL;
+                client.clientIntent = StoreClient.ClientIntent.SELLNBUY; // 09-23 拆包实锤：又卖又收
             }
             catch (Exception ex)
             {
@@ -332,7 +332,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             }
 
             // 意图：卖家
-            try { client.clientIntent = StoreClient.ClientIntent.SELL; } catch { }
+            try { client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } catch { } // 09-23 拆包实锤：又卖又收
         }
         catch (Exception ex)
         {

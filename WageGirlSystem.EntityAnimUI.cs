@@ -307,10 +307,13 @@ public static partial class WageGirlSystem
         {
             if (item == null) return false;
 
-            if (Patches.CurrentUITradeMode != 0) return false;
+            // 09-23 修复「蛙娘只有在不营业时才可被照顾」：旧代码在交易 UI 打开时一律 return false，
+            // 而营业期间柜台接客几乎全程开交易 UI → 照顾（喂食/喝水/清洁）实际只在打烊后可用。
+            // 改为：违禁品分支保持"交易中禁止"（与原行为一致），照顾分支放行（见下方归属校验）。
             // 09-23 改：违禁品 → 按模式分流（洗白 / 销赃）
             if (IsContraband(item))
             {
+                if (Patches.CurrentUITradeMode != 0) return false; // 交易中不洗白/不销赃（保持原行为）
                 int mode = GetStat(K_WASH_MODE);
                 if (mode == 0) {
                     // 洗白模式
@@ -348,6 +351,10 @@ public static partial class WageGirlSystem
                     return true;
                 }
             }
+            // 09-23：营业期间允许照顾，但只许使用玩家自己的物品——
+            // 依据 [L1] GeneralHelper.IsItemOwned(item) ≡ item.IsTag("IS_OWNED_TAG")（原版归属标记，Patches.cs:1984 已用它判买卖方向）。
+            // 买入模式下拖的是客户的货，喂掉会让原生交易 UI 持有已销毁物品 → 拦掉。
+            if (Patches.CurrentUITradeMode != 0 && !IsPlayerOwnedForCare(item)) return false;
             int gain = 0; int aff = 1; string msg = "";
             int curAff = GetAffection();
             // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
@@ -371,19 +378,37 @@ public static partial class WageGirlSystem
             else if (RobinCrusoePerk.IsDrink(item)) {
                 // 水：GetWaterMl → sip=min(200,ml) → purity 5 档
                 int ml = RobinCrusoePerk.GetWaterMl(item);
-                if (ml <= 0) { item.Destroy(); return false; }
-                int sip = Math.Min(200, ml);
-                int purity = -1; try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-                int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4;
-                gain = new[] { 25, 18, 12, 6, 2 }[tier];
-                int hd = new[] { 5, 2, 0, -5, -10 }[tier];
-                SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
-                if (hd != 0) SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) + hd)));
-                aff = affBase;
-                string wname = new[] { "优质", "较好", "普通", "浑浊", "脏水" }[tier];
-                msg = LangHelper.T("蛙娘喝饱了！口渴 +" + gain + "（" + wname + "）", "Wage Girl drank! Thirst +" + gain + " (" + wname + ")");
-                // 不 Destroy，瓶子留（带剩余水）
-                try { WaterHelper.Remove(item, sip * 1000); } catch { }
+                if (ml <= 0) {
+                    // 09-23 修复「无卡路里值的饮品统一按其价值恢复蛙娘的口渴值」
+                    // 根因：酒/代饮品（red_beer / nudka / galaxy_blend 等）原生不写 LIQUID_CONTAINER_CURRENT，
+                    // GetWaterMl()=0 → 旧代码 `item.Destroy(); return false;` → 物品凭空消失、口渴一点不回。
+                    // 注：有卡路里的饮品会被上面的 IsFood 分支先接走（IsFood 要求 CALORIE_VALUE_TAG/CALORIE），
+                    // 所以落到饮品分支且 ml=0 的基本都是无卡路里值的饮品 → 统一按「价值」恢复口渴。
+                    // 档位沿用水质 5 档的量级（25/18/12/6/2），既有水/纯度机制完全不动。
+                    long dval = 0;
+                    try { dval = item.GetCurrentValue(); } catch { }
+                    if (dval <= 0) { try { dval = item.unitValue; } catch { } }
+                    gain = dval >= 300 ? 25 : dval >= 150 ? 18 : dval >= 60 ? 12 : dval >= 20 ? 6 : 2;
+                    SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
+                    aff = affBase;
+                    msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
+                    // 无水量可扣 → 整件喝完消失（否则同一件可无限刷口渴）
+                    try { item.Destroy(); } catch { }
+                }
+                else {
+                    int sip = Math.Min(200, ml);
+                    int purity = -1; try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
+                    int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4;
+                    gain = new[] { 25, 18, 12, 6, 2 }[tier];
+                    int hd = new[] { 5, 2, 0, -5, -10 }[tier];
+                    SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
+                    if (hd != 0) SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) + hd)));
+                    aff = affBase;
+                    string wname = new[] { "优质", "较好", "普通", "浑浊", "脏水" }[tier];
+                    msg = LangHelper.T("蛙娘喝饱了！口渴 +" + gain + "（" + wname + "）", "Wage Girl drank! Thirst +" + gain + " (" + wname + ")");
+                    // 不 Destroy，瓶子留（带剩余水）
+                    try { WaterHelper.Remove(item, sip * 1000); } catch { }
+                }
             }
             else return false;
             SetAffection(GetAffection() + aff);
@@ -396,6 +421,16 @@ public static partial class WageGirlSystem
         catch (Exception ex) { Core.LogMsg("[蛙娘] 喂食异常: " + ex.Message); return false; }
     }
 
+    // 玩家归属判定（09-23 新增）：GeneralHelper.IsItemOwned ≡ item.IsTag("IS_OWNED_TAG")（原版归属标记 [L1]）
+    // 交易模式下只许拿玩家自己的东西照顾蛙娘；读不到时按"非玩家所有"处理（保守，避免销毁客户的货）
+    private static bool IsPlayerOwnedForCare(GameItem item)
+    {
+        try { if (item == null) return false; } catch { return false; }
+        try { return Il2Cpp.GeneralHelper.IsItemOwned(item); } catch { }
+        try { return item.IsTag("IS_OWNED_TAG"); } catch { }
+        return false;
+    }
+
     // ===================== 双击（全局——不依赖任何特性） =====================
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {
@@ -403,7 +438,8 @@ public static partial class WageGirlSystem
         {
             if (newItem == null) return;
             if (newItem.identifier != ENTITY_ID) return;
-            if (Patches.CurrentUITradeMode != 0) return;
+            // 09-23 修复「蛙娘只有在不营业时才可被照顾」：状态/照顾面板在营业期间同样可打开
+            // （面板内按钮各自保留原有门控：销赃 TryFence / 洗白 仍禁止交易中使用）
             ShowPanel();
         }
         catch { }

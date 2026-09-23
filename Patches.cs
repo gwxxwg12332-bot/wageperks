@@ -3486,6 +3486,18 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
+	// 09-23 修复「吞噬季将节点排除在吞噬范围之外」：节点不参与吞噬判定
+	// 拆包实锤 [L1]：ModuleDirectory.txt:1051 "node_small" / :1067 "node_medium" 与 system_module_*、
+	// chem_module、furnace_module_* 在同一张模组注册表里 → 节点在原生定义中就是模组（带 MODULE_TAG），
+	// 会被 CollectMachines 收进候选池并被吞掉。
+	// 只在吞噬季生效；不改 RobinCrusoePerk.IsExcludedModule（那个还被炼蛊器/模组 tooltip 共用，改了会动到别的机制）。
+	private static bool IsNodeModule(string id)
+	{
+		if (string.IsNullOrEmpty(id)) return false;
+		if (id == "node" || id == "node_small" || id == "node_medium") return true;
+		return id.StartsWith("node_");
+	}
+
 	private static System.Collections.Generic.List<System.Tuple<GameItem, System.Collections.Generic.List<GameItem>>> CollectMachines()
 	{
 		System.Collections.Generic.List<System.Tuple<GameItem, System.Collections.Generic.List<GameItem>>> list = new System.Collections.Generic.List<System.Tuple<GameItem, System.Collections.Generic.List<GameItem>>>();
@@ -3543,7 +3555,7 @@ itemFeature.isFeatureExposed = true;
 					catch
 					{
 					}
-					if (!(text == "system_module_ruined"))
+					if (!(text == "system_module_ruined") && !IsNodeModule(text))
 					{
 						try
 						{

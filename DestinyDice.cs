@@ -2993,14 +2993,58 @@ namespace JacksonPerks
 
 
 
-        // ===== 归属校验：物品是否属于非玩家库存（未购买/他人库存 → 拒绝吸收）=====
-        // 判定依据：物品是否在博士夜晚商店库存（afterhourInventory）里——该库存的物品未购买、不属于玩家。
-        // 玩家体系（背包/柜台/隐藏库存/玩家容器/地板）一律放行，防误伤。
+        // ===== 归属校验：物品是否属于非玩家所有（未购买/他人库存 → 拒绝吸收）=====
+        //
+        // 09-23 修复「夜晚拾荒时骰子无法吸收物品」：
+        //   原实现只按"物品是否在 afterhourInventory（夜晚商店/夜拾库存）里"判定，
+        //   但**该库存里的物品可能是玩家已购买的**（夜拾/博士夜买下后仍留在原库存里），
+        //   于是合法物品也被判为"非玩家所有"而拒绝吸收。
+        //   改为**优先使用游戏自带归属 API** `GeneralHelper.IsItemOwned(item)` 判真实归属
+        //   （与 RobinCrusoePerk.IsItemOwned 同源，同一反射查找方式）；
+        //   该 API 不可用时退回原容器判定，**原有的防误吸保护不丢**。
+        private static System.Reflection.MethodInfo _gameIsItemOwned;
+        private static bool _gameIsItemOwnedInited;
+
+        /// <summary>尝试用游戏自带 API 判定归属。返回 false = API 不可用（调用方自行兜底）。</summary>
+        private static bool TryGameIsItemOwned(GameItem item, out bool owned)
+        {
+            owned = false;
+            try
+            {
+                if (!_gameIsItemOwnedInited)
+                {
+                    _gameIsItemOwnedInited = true;
+                    foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (asm.GetName().Name != "Assembly-CSharp") continue;
+                        var t = asm.GetType("GeneralHelper");
+                        if (t != null)
+                        {
+                            foreach (var mi in t.GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public))
+                            {
+                                if (mi.Name == "IsItemOwned" && mi.GetParameters().Length == 1) { _gameIsItemOwned = mi; break; }
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (_gameIsItemOwned == null) return false;
+                owned = (bool)_gameIsItemOwned.Invoke(null, new object[] { item });
+                return true;
+            }
+            catch { return false; }
+        }
+
         private static bool IsNonPlayerOwned(GameItem item)
         {
             try
             {
                 if (item == null) return false;
+
+                // ① 首选：游戏自带归属判定（能正确区分"已购买"与"未购买"）
+                if (TryGameIsItemOwned(item, out bool owned)) return !owned;
+
+                // ② 兜底：API 不可用时退回原逻辑（物品在夜晚库存里 → 视为非玩家所有）
                 var em = Il2Cpp.EmporiumEntry.Instance;
                 if (em == null || em.afterhourInventory == null) return false; // 实例不可用 → 保守放行
 
@@ -3035,6 +3079,45 @@ namespace JacksonPerks
 
 
 
+        // 09-23 新增：最小骰子兜底（只带骰子身份 + 必需标签，不带任何容器/背包标签）
+        // 仅在 CreateDestinyDice() 失败时启用，保证 DirectoryMaster 工厂永不返回非骰子物品
+        private static GameItem CreateMinimalDice()
+
+        {
+
+            try
+
+            {
+
+                var it = ItemDirectory.CreateEmptyItem(null);
+
+                if (it == null) return null;
+
+                it.identifier = DICE_ID;
+
+                try { it.EnableTag("destiny_dice_tag"); } catch { }
+
+                try { SetTagInt(it, DICE_VALUE_TAG, 0); } catch { }
+
+                try { SetTagInt(it, DICE_TRIGGER_TAG, 0); } catch { }
+
+                try { SetTagInt(it, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD); } catch { }
+
+                try { SetTagInt(it, DICE_LAST_COST_TAG, 0); } catch { }
+
+                try { it.SetName(LangHelper.T("命运骰子（累计0价值 / 触发0事件）", "Dice of Fate (value 0 / triggers 0)")); } catch { }
+
+                try { it.SetSprite(DICE_ATLAS, DICE_SPRITE_KEY); } catch { }
+
+                return it;
+
+            }
+
+            catch { return null; }
+
+        }
+
+
         private static GameItem CreateRegisteredDice()
 
         {
@@ -3047,7 +3130,15 @@ namespace JacksonPerks
 
                 if (item != null) return item;
 
-                try { return DirectoryMaster.Item("simple_backpack", true); } catch { }
+                // 09-23 修复「骰子有可能会出现骰子带有很多标签」：
+                // 旧兜底返回 DirectoryMaster.Item("simple_backpack") —— 背包是容器，自带
+                // CONTAINER_TAG / 容量 / 背包专属等一堆原生标签。本方法是 destiny_dice 的
+                // DirectoryMaster 工厂（:2705/:2713），读档反序列化骰子时也走这里：
+                // 拿到背包后再叠加存档里的骰子标签 → 骰子变成"带一堆标签的容器"。
+                // 改为最小骰子兜底（只带 DICE_ID + destiny_dice_tag），绝不返回别的物品。
+                item = CreateMinimalDice();
+
+                if (item != null) return item;
 
                 return null;
 

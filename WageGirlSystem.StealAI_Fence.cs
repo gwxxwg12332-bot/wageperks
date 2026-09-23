@@ -47,6 +47,15 @@ public static partial class WageGirlSystem
         catch { }
     }
 
+    // 真饮品判定：水量 > 0 或有卡路里值才算喝得到东西（空瓶/无记录的饮品不算）
+    private static bool HasDrinkContent(GameItem it)
+    {
+        try { if (it == null) return false; } catch { return false; }
+        try { if (RobinCrusoePerk.GetWaterMl(it) > 0) return true; } catch { }
+        try { if (RobinCrusoePerk.GetCalorie(it) > 0) return true; } catch { }
+        return false;
+    }
+
     // 从店里找目标偷拿：mode 限定类别；count 件数；valueMode highest/random/low
     private static int StealItems(string mode, int count, string valueMode, out System.Collections.Generic.List<string> stolenNames)
     {
@@ -73,7 +82,10 @@ public static partial class WageGirlSystem
                     // 09-22 白名单制：只偷三个白名单内的物品（不靠排除词）
                     bool allow = false;
                     if (mode == "food") allow = RobinCrusoePerk.IsFood(it);
-                    else if (mode == "drink") allow = RobinCrusoePerk.IsDrink(it);
+                    // 09-23 修复「没有饮品的时候蛙娘依然会偷喝」：DRINK_IDS 含 empty_beer_bottle
+                    // 这类空容器、以及部分饮品无水量/无卡路里记录 → 会被 IsDrink 判成饮品而"偷喝"，
+                    // 实际一口都喝不到。加"真饮品"校验：店里没有能喝的东西 → 候选为空 → 不偷不报。
+                    else if (mode == "drink") allow = RobinCrusoePerk.IsDrink(it) && HasDrinkContent(it);
                     else if (mode == "care") allow = RobinCrusoePerk.IsDailyNeed(it);
                     else allow = RobinCrusoePerk.IsFood(it) || RobinCrusoePerk.IsDrink(it) || RobinCrusoePerk.IsDailyNeed(it);
                     if (!allow) continue;
@@ -325,8 +337,7 @@ private static void FenceReturn()
             // cat==6 医药品：必带免疫宁(large_purple_injector) + 差额补医疗物品
             if (cat == 6)
             {
-                GameItem im = null;
-                try { im = DirectoryMaster.Item("large_purple_injector", true); } catch { }
+                GameItem im = CreateGenuineImmunivax();
                 long imVal = 0;
                 var names6 = new System.Collections.Generic.List<string>();
                 if (im != null) { AddToFront(im); imVal = im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
@@ -514,6 +525,15 @@ private static void FenceReturn()
                     if (IsContraband(g)) continue; // 09-22 销赃带回过滤违禁品（只带合法货）
                     if (id.StartsWith("wage_")) continue; // 09-23 新增：mod 物品不销赃
                     if (id.Contains("book") || id.Contains("guide") || id.Contains("paper") || id.Contains("note")) continue; // 09-23 新增：文档类不销赃
+                    // 09-23 修复「蛙娘会带回无法移动的场景物品」：
+                    //   FindItemNearValue 第二轮会遍历【全物品缓存】，原实现只按类别+价值筛选，
+                    //   于是能挑出 storage_bay / machine_bay_ext 这类建筑模块——它们只能摆在场景里、
+                    //   拖不进背包（拆包：ContainerUpgradeV2.BUILDING_CONTAINER_IDS = 建筑容器清单）。
+                    //   统一在此处挡掉建筑件/场景机器/系统固定件，三个带回入口（销赃/礼物/跑路）同时生效。
+                    if (ContainerUpgradeV2.IsBuildingContainerId(id)) continue;
+                    bool fixture = false;
+                    try { fixture = g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("SYSTEM_TAG") || g.IsTag("SYSTEM_TAG_UTILITY") || g.IsTag("ITEM_HIDDEN_TAG"); } catch { }
+                    if (fixture) continue;
                     var info = new ItemInfo();
                     // 预估价值（GetCurrentValue 优先——与销赃累计口径一致；失败退 unitValue）
                     try { info.Value = (int)g.GetCurrentValue(); } catch { }
@@ -617,11 +637,30 @@ private static void FenceReturn()
         catch { }
     }
 
+    // 正品免疫宁（09-23 修复「蛙娘带回的正品免疫宁无法使用」）
+    // 根因（拆包实锤 _Demo_20260915_cpp2il / InsInjectorHelper）：
+    //   Init(item)              → 只打 2 个基础标签（不含正品数据）
+    //   SetGenuine(item)        → ModifyTag ×7，写入序列号/厂商/型号/真值等正品数据
+    //   SetExpired/SetCounterfeit/SetUnusable → 三者都【先调 SetGenuine】再叠加坏标记
+    // ⇒ SetGenuine 是"可用正品"的必要前提。而 CreateRealInjector() 与旧代码都只调了
+    //   DirectoryMaster.Item（等价 Init），缺这 7 项 → 物品不可用。
+    private static GameItem CreateGenuineImmunivax()
+    {
+        GameItem im = null;
+        try { im = Il2Cpp.InsInjectorHelper.CreateRealInjector(); } catch { }
+        if (im == null) { try { im = DirectoryMaster.Item("large_purple_injector", true); } catch { } }
+        if (im == null) return null;
+        try { Il2Cpp.InsInjectorHelper.SetGenuine(im); } catch { }
+        return im;
+    }
+
     // 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
     private static GameItem CreateSupplyCrate(long targetValue)
     {
         try
         {
+            // 09-23 修复「物资箱有 1% 概率没有物资」之一：目标价值为 0 → 主循环一次都不进 → 空箱
+            if (targetValue < 1) targetValue = 1;
             string[] boxes = { "evidence_box", "med_box", "sec_box", "service_box", "eng_box" };
             string bid = boxes[Core.Rng.Next(boxes.Length)];
             GameItem crate = CustomStorageContainer.CreateLootCrate(bid);
@@ -637,22 +676,39 @@ private static void FenceReturn()
                 }
             }
             catch { }
-            if (inv != null)
+            if (inv == null) return crate; // 取不到内部库存 → 原样返回（箱自带原版内容）
+            var basePool = WagePowerPerk.ItemPool ?? new string[0];
+            long spent = 0; int tries = 0, filled = 0;
+            bool wantContraband = Core.Rng.Next(100) < 5; // 好物95% / 违禁5%
+            var pool = new System.Collections.Generic.List<string>(basePool);
+            while (spent < targetValue && tries < 40 && pool.Count > 0)
             {
-                long spent = 0; int tries = 0;
-                bool wantContraband = Core.Rng.Next(100) < 5; // 好物95% / 违禁5%
-                var pool = new System.Collections.Generic.List<string>(WagePowerPerk.ItemPool);
-                while (spent < targetValue && tries < 40 && pool.Count > 0)
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx]; pool.RemoveAt(idx);
+                GameItem it = null;
+                try { it = DirectoryMaster.Item(id, true); } catch { }
+                if (it == null) { tries++; continue; }
+                bool isContra = false;
+                try { isContra = ContrabandHelper.GetContrabandLevel(it) > 0; } catch { }
+                if (wantContraband != isContra) { tries++; continue; } // 分流不符跳过
+                try { inv.UncheckedAccept(it); spent += it.unitValue; filled++; } catch { tries++; }
+            }
+            // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环可能因违禁分流不符（5% 分支尤甚）、
+            // 创建失败或 UncheckedAccept 抛错而一件都没塞进去 → 空箱。
+            // 兜底：忽略违禁偏好，从全池硬性塞入至少 1 件——保证物资箱永不为空。
+            if (filled == 0)
+            {
+                var fb = new System.Collections.Generic.List<string>(basePool);
+                int fbTries = 0;
+                while (filled == 0 && fbTries < 40 && fb.Count > 0)
                 {
-                    int idx = Core.Rng.Next(pool.Count);
-                    string id = pool[idx]; pool.RemoveAt(idx);
+                    int idx = Core.Rng.Next(fb.Count);
+                    string id = fb[idx]; fb.RemoveAt(idx);
+                    fbTries++;
                     GameItem it = null;
                     try { it = DirectoryMaster.Item(id, true); } catch { }
-                    if (it == null) { tries++; continue; }
-                    bool isContra = false;
-                    try { isContra = ContrabandHelper.GetContrabandLevel(it) > 0; } catch { }
-                    if (wantContraband != isContra) { tries++; continue; } // 分流不符跳过
-                    try { inv.UncheckedAccept(it); spent += it.unitValue; } catch { tries++; }
+                    if (it == null) continue;
+                    try { inv.UncheckedAccept(it); filled++; } catch { }
                 }
             }
             return crate;
