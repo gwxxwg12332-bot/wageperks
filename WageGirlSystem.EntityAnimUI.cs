@@ -459,6 +459,7 @@ public static partial class WageGirlSystem
             if (FindGirlInInv((GameInventory)em.backInvinvElementCounter)) return true;
             if (FindGirlInInv((GameInventory)em.frontInvinvElement)) return true;
             if (FindGirlInInv((GameInventory)em.showcaseElement)) return true;
+            if (FindGirlInInv((GameInventory)em.hiddenElement)) return true; // 09-23 补：海报后暗格
             return false;
         }
         catch { return false; }
