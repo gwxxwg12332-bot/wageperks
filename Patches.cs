@@ -1639,7 +1639,8 @@ internal static class Patches
 		{
 			// 09-21 拆包实锤：用 IsItemOwned 判定买卖方向，替代 CurrentUITradeMode（竞态/残留）
 			bool isSell = false;
-			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); } catch { isSell = isSell; }
+			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
+			catch (System.Exception ex) { isSell = CurrentUITradeMode == 2; Core.LogMsg("[交易标记] IsItemOwned判定失败，按UI模式回退: " + ex.Message); }
 			if (BadReputationPerk.IsActive() && !BadReputationPerk.IsCleared())
 			{
 				if (isSell)

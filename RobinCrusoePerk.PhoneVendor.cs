@@ -42,7 +42,6 @@ internal static partial class RobinCrusoePerk
     private static int LI_BEIWEN_FIRST_VISIT_DAY => BuildConfig.LiBeiwenVisitDay; // 李北文首次上门（CFG 可调）
     private static int CALL_TO_ARRIVE_DAYS => BuildConfig.CallArriveDays;        // 电话叫货到店天数（CFG 可调）
     private static int CALL_COOLDOWN_DAYS => BuildConfig.CallCooldownDays;         // 电话冷却天数（CFG 可调）
-    private static int _wantedSupplierScheduledDay = -1; // 防同日重复调度
     // 09-13 胡安货单相关：到店 SetBarterOffer 食物报价
     private static readonly string[] CHEF_FOOD_IDS = { "raw_meat", "processed_meat", "fat_meat", "small_raw_meat", "morsel", "small_morsel", "processed_cheese", "meat_scrap", "cup_noodle", "processed_juice", "energy_drink" };
 
