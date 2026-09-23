@@ -368,6 +368,9 @@ internal static class NewStartTypeUI
 
     // 【核心修复】SaveGame 前：startType=14（超枚举定义，ES3 反序列化会炸）
     // → 临时写合法值 12 存档，并存 runID 标记；Postfix 恢复 14（内存）
+    // 2026-09-24 持久化豁免声明：此处 PlayerPrefs 直写是**存档格式兼容标记**（非状态持久化）——
+    // 必须在存档文件写入【之前】立即持久，WageSaveStore 打烊落盘时序在 SaveGame Postfix（之后），
+    // 迁移会导致"存档已写 12、标记未落盘、强退丢标记 → 读档不恢复 14"。故豁免，不迁移。
     public static void PrefixSaveGame(Il2Cpp.PlayerStore __instance)
     {
         try

@@ -98,9 +98,10 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     };
 
     // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
+    // 2026-09-24 旧层门面已删：清理入口收拢至 WageSaveStore（旧档迁移通道唯一入口）
     internal static void CleanDefaultRunOnNewGame()
     {
-        try { PerkStatePersistence.CleanDefaultRun(NS, ALL_KEYS); } catch { }
+        try { WageSaveStore.CleanLegacyDefaultRun(NS, ALL_KEYS); } catch { }
     }
 
     // ===================== 阶段 5：偷钱循环 + 自主偷拿 + 回归（话术 v9） =====================

@@ -359,7 +359,7 @@ internal static partial class RobinCrusoePerk
     };
     internal static void CleanDefaultRunOnNewGame()
     {
-        try { PerkStatePersistence.CleanDefaultRun(PERK_ID, ALL_KEYS); } catch { } // 阶段1保留：清的是旧层(PlayerPrefs) default_run 残留，属旧层卫生，新层无此问题
+        try { WageSaveStore.CleanLegacyDefaultRun(PERK_ID, ALL_KEYS); } catch { } // 2026-09-24 旧层门面已删：清理入口收拢至 WageSaveStore（清旧层 default_run 残留，属旧档卫生，新层无此问题）
     }
     // ===== 开局（HandleInitialItem Postfix 调用）=====
     internal static void TrySetupNewRun()
