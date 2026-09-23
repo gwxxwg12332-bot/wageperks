@@ -192,8 +192,7 @@ public static class PatchRegistry
 			// 由统一驱动入口 PostfixUnifiedDayStart 驱动（原 static new OnNewDay 陷阱已拆除，勿再单独注册）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)); // 09-21 蛙娘：全局常驻——每日六维衰减+首次发放（方法名 PostfixOnDayStart）
-			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(InfamousPerk)); // 09-21 声名狼藉：第1天送5000
-			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(HatedByAllPerk)); // 09-22 人神共愤：每天扣声望+扣钱
+			// 阶段2 收敛：声名狼藉/人神共愤的每日逻辑已迁入 override OnDayStart（由下方 PostfixUnifiedDayStart 统一驱动），散落 Postfix 注册已删
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice));
 			// 阶段2 统一生命周期入口（详见 Patches.PostfixUnifiedDayStart / PostfixSaveGame 注释）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixUnifiedDayStart"); // 驱动全部特性 OnDayStart（幂等去重 + 逐特性异常隔离）

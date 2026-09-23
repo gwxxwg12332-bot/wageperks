@@ -54,8 +54,8 @@ internal sealed class InfamousPerk : CustomStartingPerk
         }
         catch (Exception ex) { Core.LogMsg("[声名狼藉] PostfixStartNewGame 异常: " + ex.Message); }
     }
-    // 第二天 OnDayStart 送 5000
-    internal static void PostfixOnDayStart()
+    // 第二天 OnDayStart 送 5000（阶段2 收敛：散落 Postfix 已删，由 PostfixUnifiedDayStart 统一驱动）
+    internal override void OnDayStart()
     {
         try
         {

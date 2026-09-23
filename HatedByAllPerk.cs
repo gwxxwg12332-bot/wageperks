@@ -24,7 +24,8 @@ internal sealed class HatedByAllPerk : CustomStartingPerk
 
     internal override void OnNewGame() { }
 
-    internal static void PostfixOnDayStart()
+    // 每天扣现金（阶段2 收敛：散落 Postfix 已删，由 PostfixUnifiedDayStart 统一驱动）
+    internal override void OnDayStart()
     {
         try
         {
