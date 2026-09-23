@@ -85,9 +85,53 @@ public static class BuildConfig
 		}
 	}
 
-	// ===== 蛙娘在场：客户预算 ×4 CFG ===== (09-23 恢复，用户拍板：原生预算×4 且不导致0)
-	public static int WageGirlBudgetMult => GetInt("WageGirlBudgetMult", 4);
+	// ===== 蛙娘系统 CFG（09-23 全部数值可配置，默认=原设计稿数值） =====
+	// 客户预算增益（好感分档：原生预算×倍率，≤0不覆盖防归零）
+	public static float WageGirlBudgetMultLow => GetFloat("WageGirlBudgetMultLow", 1.5f);
+	public static float WageGirlBudgetMultMid => GetFloat("WageGirlBudgetMultMid", 2.5f);
+	public static float WageGirlBudgetMultHigh => GetFloat("WageGirlBudgetMultHigh", 4f);
+	public static int WageGirlBudgetAffLow => GetInt("WageGirlBudgetAffLow", 30);
+	public static int WageGirlBudgetAffMid => GetInt("WageGirlBudgetAffMid", 60);
 	public static long WageGirlBudgetCap => 2147483646L;
+	// 六维
+	public static int WageGirlStatInit => GetInt("WageGirlStatInit", 60);
+	public static int WageGirlStatMax => GetInt("WageGirlStatMax", 100);
+	public static int WageGirlDailyDecay => GetInt("WageGirlDailyDecay", 2);
+	public static int WageGirlSleepRecover => GetInt("WageGirlSleepRecover", 15);
+	// 好感
+	public static int WageGirlAffMax => GetInt("WageGirlAffMax", 100);
+	public static int WageGirlAffDecayMin => GetInt("WageGirlAffDecayMin", 1);
+	public static int WageGirlAffDecayMax => GetInt("WageGirlAffDecayMax", 2);
+	public static int WageGirlAffDecayLowMin => GetInt("WageGirlAffDecayLowMin", 2);
+	public static int WageGirlAffDecayLowMax => GetInt("WageGirlAffDecayLowMax", 5);
+	// 偷钱
+	public static int WageGirlStealInterval => GetInt("WageGirlStealInterval", 5);
+	public static int WageGirlStealFirstAmount => GetInt("WageGirlStealFirstAmount", 50);
+	public static int WageGirlStealBaseMax => GetInt("WageGirlStealBaseMax", 100);
+	public static int WageGirlStealAffReduction => GetInt("WageGirlStealAffReduction", 90);
+	public static int WageGirlStealSleepDebt => GetInt("WageGirlStealSleepDebt", 20);
+	// 偷拿（自主偷吃偷喝）
+	public static int WageGirlSnatchValueLow => GetInt("WageGirlSnatchValueLow", 50);
+	public static int WageGirlSnatchValueMid => GetInt("WageGirlSnatchValueMid", 100);
+	public static int WageGirlSnatchValueHigh => GetInt("WageGirlSnatchValueHigh", 200);
+	public static int WageGirlSnatchSleepDebt => GetInt("WageGirlSnatchSleepDebt", 10);
+	public static int WageGirlStealNoStealAff => GetInt("WageGirlStealNoStealAff", 80);
+	// 洗白费用（每件违禁品）
+	public static int WageGirlWashCostPerItem => GetInt("WageGirlWashCostPerItem", 50);
+	// 跑路
+	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
+	public static int WageGirlRunawayStreak => GetInt("WageGirlRunawayStreak", 5);
+	public static int WageGirlRunawayDays => GetInt("WageGirlRunawayDays", 14);
+	// 销赃
+	public static int WageGirlFenceDays => GetInt("WageGirlFenceDays", 2);
+	public static int WageGirlFenceFeeBasePct => GetInt("WageGirlFenceFeeBasePct", 15);
+	public static int WageGirlFenceFeeMinPct => GetInt("WageGirlFenceFeeMinPct", 5);
+	public static int WageGirlFenceSleepDebt => GetInt("WageGirlFenceSleepDebt", 20);
+	// 零花钱档位（逗号分隔）
+	public static int[] WageGirlAllowanceSteps => ParseIntList(GetStr("WageGirlAllowanceSteps", "100,300,500"));
+	// 好物（好感达标每 N 天带 1 件）
+	public static int WageGirlGiftAff => GetInt("WageGirlGiftAff", 50);
+	public static int WageGirlGiftInterval => GetInt("WageGirlGiftInterval", 7);
 
 	public static bool HardMode
 	{
@@ -296,7 +340,42 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("AlcoholVisitInterval", 7, "酒商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("WaterVisitInterval", 7, "水商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("ContainerMaxStage", 5, "蛙哥箱段位上限");
-			melonPreferences_Category.CreateEntry("WageGirlBudgetMult", 4, "蛙娘在场客户预算倍率（原生预算×N）");
+			// ===== 蛙娘系统（09-23 全部数值可配置） =====
+			melonPreferences_Category.CreateEntry("WageGirlBudgetMultLow", 1.5f, "蛙娘预算倍率·低好感(<30)");
+			melonPreferences_Category.CreateEntry("WageGirlBudgetMultMid", 2.5f, "蛙娘预算倍率·中好感(30-60)");
+			melonPreferences_Category.CreateEntry("WageGirlBudgetMultHigh", 4f, "蛙娘预算倍率·高好感(≥60)");
+			melonPreferences_Category.CreateEntry("WageGirlBudgetAffLow", 30, "蛙娘预算倍率·低档好感阈值");
+			melonPreferences_Category.CreateEntry("WageGirlBudgetAffMid", 60, "蛙娘预算倍率·中档好感阈值");
+			melonPreferences_Category.CreateEntry("WageGirlStatInit", 60, "蛙娘六维初始值");
+			melonPreferences_Category.CreateEntry("WageGirlStatMax", 100, "蛙娘六维上限");
+			melonPreferences_Category.CreateEntry("WageGirlDailyDecay", 2, "蛙娘每日六维衰减(未照顾)");
+			melonPreferences_Category.CreateEntry("WageGirlSleepRecover", 15, "蛙娘打烊睡眠恢复");
+			melonPreferences_Category.CreateEntry("WageGirlAffMax", 100, "蛙娘好感上限");
+			melonPreferences_Category.CreateEntry("WageGirlAffDecayMin", 1, "蛙娘好感每日衰减下限(没互动)");
+			melonPreferences_Category.CreateEntry("WageGirlAffDecayMax", 2, "蛙娘好感每日衰减上限(没互动)");
+			melonPreferences_Category.CreateEntry("WageGirlAffDecayLowMin", 2, "蛙娘好感额外衰减下限(六维低)");
+			melonPreferences_Category.CreateEntry("WageGirlAffDecayLowMax", 5, "蛙娘好感额外衰减上限(六维低)");
+			melonPreferences_Category.CreateEntry("WageGirlStealInterval", 5, "蛙娘偷钱周期(天)");
+			melonPreferences_Category.CreateEntry("WageGirlStealFirstAmount", 50, "蛙娘初次偷钱额");
+			melonPreferences_Category.CreateEntry("WageGirlStealBaseMax", 100, "蛙娘偷钱基数(好感0时)");
+			melonPreferences_Category.CreateEntry("WageGirlStealAffReduction", 90, "蛙娘偷钱好感减免(好感100→减90)");
+			melonPreferences_Category.CreateEntry("WageGirlStealSleepDebt", 20, "蛙娘偷钱熬夜睡眠债");
+			melonPreferences_Category.CreateEntry("WageGirlSnatchValueLow", 50, "蛙娘偷拿价值上限·低好感(<30)");
+			melonPreferences_Category.CreateEntry("WageGirlSnatchValueMid", 100, "蛙娘偷拿价值上限·中好感(30-70)");
+			melonPreferences_Category.CreateEntry("WageGirlSnatchValueHigh", 200, "蛙娘偷拿价值上限·高好感(≥70)");
+			melonPreferences_Category.CreateEntry("WageGirlSnatchSleepDebt", 10, "蛙娘偷拿熬夜睡眠债");
+			melonPreferences_Category.CreateEntry("WageGirlStealNoStealAff", 80, "蛙娘好感≥此值不再偷钱/偷拿");
+			melonPreferences_Category.CreateEntry("WageGirlWashCostPerItem", 50, "蛙娘洗白每件违禁品费用");
+			melonPreferences_Category.CreateEntry("WageGirlRunawayLowStat", 20, "蛙娘跑路·六维低于此值计1天");
+			melonPreferences_Category.CreateEntry("WageGirlRunawayStreak", 5, "蛙娘跑路·连续天数门槛");
+			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");
+			melonPreferences_Category.CreateEntry("WageGirlFenceDays", 2, "蛙娘销赃外出天数");
+			melonPreferences_Category.CreateEntry("WageGirlFenceFeeBasePct", 15, "蛙娘销赃跑腿费起点(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceFeeMinPct", 5, "蛙娘销赃跑腿费下限(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceSleepDebt", 20, "蛙娘销赃熬夜睡眠债");
+			melonPreferences_Category.CreateEntry("WageGirlAllowanceSteps", "100,300,500", "蛙娘零花钱档位(逗号分隔)");
+			melonPreferences_Category.CreateEntry("WageGirlGiftAff", 50, "蛙娘好物·好感门槛");
+			melonPreferences_Category.CreateEntry("WageGirlGiftInterval", 7, "蛙娘好物·间隔天数");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("BoxHeights", "3,10,10,10,10,10", "蛙哥箱每段高度(逗号分隔)");
 			melonPreferences_Category.CreateEntry("UpgradeCosts", "1,10,20,40,50", "蛙哥箱每级升级材料数(逗号分隔)");

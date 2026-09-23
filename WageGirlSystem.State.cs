@@ -20,11 +20,7 @@ public static partial class WageGirlSystem
     public const string ICON = "wage_girl_icon";
     public const string TAG = "WAGE_GIRL_TAG";
     private const string NS = "wage_girl";
-    private const int STAT_MAX = 100;
-    private const int STAT_INIT = 60;
-    private const int DAILY_DECAY = 2;   // 每日六维衰减（未照顾）09-20 优化 3→2
-    private const int AFF_MAX = 100;
-    private const int AFF_DAILY_DROP = 1; // 好感每日回落（不照顾）
+    // 09-23 CFG 化：六维初始/上限/每日衰减/好感上限/偷钱周期/零花钱档位 全部移到 BuildConfig（WageGirl* 系列）
 
     private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep", K_SLEEP_DEBT = "sleepDebt";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
@@ -38,12 +34,10 @@ public static partial class WageGirlSystem
     private const string K_ALLOWANCE_COUNT = "allowanceCount";  // 09-23 新增：今天已给几次零花钱（前三次加好感）      // 09-23 新增：违禁品处理模式 0=洗白 1=销赃     // 销赃带回类别 0=随机 1=食物饮品 2=日用品 3=武器工具（面板按钮循环切换）
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
 	private const string K_SAVINGS = "savings";       // 小金库（跑腿费存起来）
-    private const int STEAL_INTERVAL = 5; // 偷钱周期（天）09-20 优化 7→5
     // v3 喂钱
     private const string K_ALLOWANCE = "allowance";       // 零花钱池（随档）
     private const int K_LEAVE_REASON_FEED = 3;             // 外出原因 3 = 喂钱逛街
-    private static int _allowanceSel = 100;                // 档位循环状态
-    private static readonly int[] ALLOWANCE_STEPS = { 100, 300, 500 };
+    private static int _allowanceSel = 100;                // 档位循环状态（初始档 = BuildConfig.WageGirlAllowanceSteps[0]）
 
 
     static WageGirlSystem()
@@ -77,9 +71,9 @@ public static partial class WageGirlSystem
     }
     internal static void SetStat(string k, int v) {
         try {
-            // 09-23 统一 clamp：六维 0-100（防止吃饭/日用品+15 超过100）
+            // 09-23 统一 clamp：六维 0-WageGirlStatMax（防止吃饭/日用品+15 超过上限；上限 CFG 可调）
             if (k == K_SAT || k == K_TH || k == K_HEALTH || k == K_MOOD || k == K_CLEAN || k == K_SLEEP)
-                v = Math.Max(0, Math.Min(100, v));
+                v = Math.Max(0, Math.Min(BuildConfig.WageGirlStatMax, v));
             _memStats[k] = v;
         } catch { }
     }
@@ -160,13 +154,13 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
                 SetStat(K_LAST_STEAL, 0);
                 SetStat(K_EXIST, 0);
                 SetStat(K_LEAVE, 0);
-                // 六维重置为初始 60
-                SetStat("sat", STAT_INIT);
-                SetStat("th", STAT_INIT);
-                SetStat("health", STAT_INIT);
-                SetStat("mood", STAT_INIT);
-                SetStat("clean", STAT_INIT);
-                SetStat("sleep", STAT_INIT);
+                // 六维重置为初始值（CFG：WageGirlStatInit）
+                SetStat("sat", BuildConfig.WageGirlStatInit);
+                SetStat("th", BuildConfig.WageGirlStatInit);
+                SetStat("health", BuildConfig.WageGirlStatInit);
+                SetStat("mood", BuildConfig.WageGirlStatInit);
+                SetStat("clean", BuildConfig.WageGirlStatInit);
+                SetStat("sleep", BuildConfig.WageGirlStatInit);
                 // 好感重置
                 SetAffection(0);
             } catch { }

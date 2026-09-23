@@ -21,8 +21,8 @@ public static partial class WageGirlSystem
     {
         try
         {
-            // 09-22 优化：好感≥80 → 100% 不偷（害羞档位）
-            if (GetAffection() >= 80) return;
+            // 09-22 优化：好感≥N → 100% 不偷（害羞档位；CFG：WageGirlStealNoStealAff）
+            if (GetAffection() >= BuildConfig.WageGirlStealNoStealAff) return;
             int sat = GetStat(K_SAT), th = GetStat(K_TH), mood = GetStat(K_MOOD);
             string mode = null; string msg = null;
             if (sat < 30) { mode = "food"; msg = "蛙娘饿坏了，偷吃了你的食物"; }
@@ -36,7 +36,7 @@ public static partial class WageGirlSystem
             int stolen = StealItems(mode, count, valueMode, out var stolenNames);
             if (stolen > 0)
             {
-                SetSleepDebt(GetSleepDebt() + 10); // 偷拿熬夜 -10 睡眠（次日结算）
+                SetSleepDebt(GetSleepDebt() + BuildConfig.WageGirlSnatchSleepDebt); // 偷拿熬夜 -N 睡眠（次日结算；CFG）
                 if (mode == "food") SetStat(K_SAT, GetStat(K_SAT) + 30);
                 else if (mode == "drink") SetStat(K_TH, GetStat(K_TH) + 30);
                 else if (mode == "care") { SetStat(K_MOOD, GetStat(K_MOOD) + 20); SetStat(K_CLEAN, GetStat(K_CLEAN) + 10); }
@@ -89,9 +89,9 @@ public static partial class WageGirlSystem
                     else if (mode == "care") allow = RobinCrusoePerk.IsDailyNeed(it);
                     else allow = RobinCrusoePerk.IsFood(it) || RobinCrusoePerk.IsDrink(it) || RobinCrusoePerk.IsDailyNeed(it);
                     if (!allow) continue;
-                    // 偷拿阈值：好感<30 偷≤50，30-70 偷≤100，>70 偷≤200
+                    // 偷拿价值上限：好感<30 偷≤Low，30-70 偷≤Mid，>70 偷≤High（CFG：WageGirlSnatchValue*）
                     int aff = GetAffection();
-                    int maxVal = aff < 30 ? 50 : (aff < 70 ? 100 : 200);
+                    int maxVal = aff < 30 ? BuildConfig.WageGirlSnatchValueLow : (aff < 70 ? BuildConfig.WageGirlSnatchValueMid : BuildConfig.WageGirlSnatchValueHigh);
                     if (it.unitValue > maxVal) continue;
                     // [蛙诊] 诊断日志（发布前删）
                     Core.LogMsg("[蛙诊] 进候选: id=" + (it.identifier ?? "?") + " val=" + it.unitValue + " isFood=" + RobinCrusoePerk.IsFood(it) + " isDrink=" + RobinCrusoePerk.IsDrink(it) + " isDaily=" + RobinCrusoePerk.IsDailyNeed(it) + " mode=" + mode);
@@ -281,11 +281,11 @@ public static partial class WageGirlSystem
             if (amt <= 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("没有违禁品可销——先拖违禁品给蛙娘吃掉", "No contraband to fence - feed her contraband first"), "orange"); } catch { } return; }
             SetStat(K_FENCE_PENDING, amt);
             SetStat(K_FENCE_AMT, 0);
-                        SetSleepDebt(GetSleepDebt() + 20); // 销赃外出熬夜 -20 睡眠（次日结算）
-            SetStat(K_LEAVE, CurrentDay() + 2);
+                        SetSleepDebt(GetSleepDebt() + BuildConfig.WageGirlFenceSleepDebt); // 销赃外出熬夜 -N 睡眠（次日结算；CFG）
+            SetStat(K_LEAVE, CurrentDay() + BuildConfig.WageGirlFenceDays);
             SetStat(K_LEAVE_REASON, 1);
             _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
-            ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（后天回来）", "Wage Girl took " + amt + " worth of goods to fence (back in 2 days)"));
+            ReportLine(LangHelper.T("蛙娘带着 " + amt + " 价值的货出去销赃了（" + BuildConfig.WageGirlFenceDays + " 天后回来）", "Wage Girl took " + amt + " worth of goods to fence (back in " + BuildConfig.WageGirlFenceDays + " days)"));
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); }
@@ -298,8 +298,9 @@ private static void FenceReturn()
             SetStat(K_FENCE_PENDING, 0);
             if (amt <= 0) { ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back from fencing")); return; }
             int aff = GetAffection();
-            float fee = 0.15f - (aff / 1000f);  // 15% 起步
-            if (fee < 0.05f) fee = 0.05f;       // 最低 5%
+            // 跑腿费：BasePct% 起步，好感满降 10 个百分点 → 最低 FeeMinPct%（CFG：WageGirlFenceFeeBasePct/MinPct）
+            float fee = BuildConfig.WageGirlFenceFeeBasePct / 100f - (aff / (10f * BuildConfig.WageGirlAffMax));
+            if (fee < BuildConfig.WageGirlFenceFeeMinPct / 100f) fee = BuildConfig.WageGirlFenceFeeMinPct / 100f;
             // 09-23 改：不预算克扣，实际克扣 = amt - spentTotal
             long target = (long)(amt * (1f - fee));
             if (target < 1) target = 1;
@@ -415,7 +416,7 @@ private static void FenceReturn()
                 try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("店里没有违禁品", "No contraband in store"), "orange"); } catch { }
                 return;
             }
-            int cost = washList.Count * 50;
+            int cost = washList.Count * BuildConfig.WageGirlWashCostPerItem;
             int savings = GetStat(K_SAVINGS);
             if (savings < cost) {
                 try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("小金库余额不足（需要 " + cost + " 块）", "Not enough savings (need " + cost + ")"), "orange"); } catch { }

@@ -240,11 +240,13 @@ public static partial class WageGirlSystem
         catch { }
     }
 
-    // ===================== 阶段 3：在场增益-预算 ×4（09-23 用户拍板：恢复「原生预算×4」，但绝不导致 0） =====================
+    // ===================== 阶段 3：在场增益-预算（09-23 用户拍板：原生预算×好感分档倍率，但绝不导致 0） =====================
     // 防御设计（依据拆包 [L1]：原生 ApplyBudgetModifier 只加不减，0 只能来自 mod 写回）：
     //   ① 原生算完预算 ≤0 → 跳过覆盖（绝不把 0/负值写回，让原生自己处理）
     //   ② 不再强制覆盖 clientCash（之前强制同步是归零事故的可疑点；clientCash 有独立语义）
     //   ③ 防重入 + OverrideBudget 只写一次（不触发原生 ApplyBudgetModifier 重算链）
+    // 倍率分档（CFG：WageGirlBudgetMultLow/Mid/High × WageGirlBudgetAffLow/Mid）：
+    //   好感 < AffLow → ×MultLow(1.5)；< AffMid → ×MultMid(2.5)；≥ AffMid → ×MultHigh(4)
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
         try
@@ -261,7 +263,10 @@ public static partial class WageGirlSystem
                 Core.LogMsg("[预算诊断] Postfix触发 client=" + (__instance.identifier ?? "?") + " GetBudget=" + budget + " useClientBudget=" + __instance.useClientBudget + " clientCash=" + __instance.clientCash);
             }
             if (budget <= 0) return; // 防御①：原生算完 ≤0 → 不覆盖（mod 绝不写 0）
-            long newBudget = (long)budget * BuildConfig.WageGirlBudgetMult; // 原生预算 ×4
+            int affB = GetAffection();
+            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
+                : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
+            long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap; // 上限防溢出
             __instance.OverrideBudget((int)newBudget); // 防御③：只写一次，不触发原生重算
         }

@@ -20,7 +20,7 @@ public static partial class WageGirlSystem
     internal static int GetSleepDebt() => GetStat(K_SLEEP_DEBT, 0);
     internal static void SetSleepDebt(int v) => SetStat(K_SLEEP_DEBT, Math.Max(0, v));
     internal static int GetAffection() => GetStat(K_AFF, 0);
-    internal static void SetAffection(int v) => SetStat(K_AFF, Math.Max(0, Math.Min(AFF_MAX, v)));
+    internal static void SetAffection(int v) => SetStat(K_AFF, Math.Max(0, Math.Min(BuildConfig.WageGirlAffMax, v)));
     internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
     internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
 
@@ -97,19 +97,19 @@ public static partial class WageGirlSystem
             foreach (var k in new[] { K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN })
             {
                 int v = GetStat(k);
-                if (v <= 0) v = STAT_INIT;
-                SetStat(k, v - DAILY_DECAY);
+                if (v <= 0) v = BuildConfig.WageGirlStatInit;
+                SetStat(k, v - BuildConfig.WageGirlDailyDecay);
             }
             SetStat(K_ALLOWANCE_COUNT, 0); // 09-23 每天重置零花钱计数
             // 睡眠自然增长（过夜充电/睡觉恢复）
                         // 09-23 睡眠 debt 机制：先扣债（偷钱/销赃/偷拿熬夜）再自然恢复
             int sleepDebt = GetSleepDebt(); SetSleepDebt(0);
-            SetStat(K_SLEEP, GetStat(K_SLEEP) - sleepDebt + 15);
+            SetStat(K_SLEEP, GetStat(K_SLEEP) - sleepDebt + BuildConfig.WageGirlSleepRecover);
             // 好感每日回落（不照顾）
-            // 好感衰减：当天没互动 -1~2，六维低额外 -2~5
+            // 好感衰减：当天没互动 -1~2，六维低额外 -2~5（范围 CFG：WageGirlAffDecay*）
             int decay = 0;
-            if (!WasFedToday()) decay += UnityEngine.Random.Range(1, 3); // 完全没互动
-            if (IsAnyStatLow()) decay += UnityEngine.Random.Range(2, 6); // 六维低额外
+            if (!WasFedToday()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayMin, BuildConfig.WageGirlAffDecayMax + 1); // 完全没互动
+            if (IsAnyStatLow()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayLowMin, BuildConfig.WageGirlAffDecayLowMax + 1); // 六维低额外
             if (decay > 0) SetAffection(GetAffection() - decay);
             // 阶段 5：回归 / 自主偷拿 / 偷钱循环
             RunDayEvents();
@@ -151,7 +151,7 @@ public static partial class WageGirlSystem
             }
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day < leaveDay) return;
-            // 3) 跑路检查：连续 3 天任一六维 <20 → 离家出走 14 天
+            // 3) 跑路检查：连续 N 天任一六维 <阈值 → 离家出走 M 天（CFG：WageGirlRunaway*）
             int lowStreak = GetStat(K_STARVE);
             if (IsAnyStatLow())
             {
@@ -159,27 +159,28 @@ public static partial class WageGirlSystem
                 SetStat(K_STARVE, lowStreak);
             }
             else SetStat(K_STARVE, 0);
-            if (lowStreak >= 5) // 09-20 优化：3→5
+            if (lowStreak >= BuildConfig.WageGirlRunawayStreak)
             {
                 SetStat(K_STARVE, 0);
-                SetStat(K_LEAVE, day + 14);
+                SetStat(K_LEAVE, day + BuildConfig.WageGirlRunawayDays);
                 SetStat(K_LEAVE_REASON, 2);
                 _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f; // 播away挥手帧再移除
-                ReportLine(LangHelper.T("蛙娘连续几天没吃好没睡好，离家出走了（14 天后回来）", "Wage Girl ran away after days of neglect (back in 14 days)"));
+                ReportLine(LangHelper.T("蛙娘连续几天没吃好没睡好，离家出走了（" + BuildConfig.WageGirlRunawayDays + " 天后回来）", "Wage Girl ran away after days of neglect (back in " + BuildConfig.WageGirlRunawayDays + " days)"));
                 return;
             }
             int lastSteal = GetStat(K_LAST_STEAL);
-            // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + 50 钱，然后设 today）
+            // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + N 钱，然后设 today；N=CFG WageGirlStealFirstAmount）
             if (lastSteal <= 0)
             {
+                int firstAmt = BuildConfig.WageGirlStealFirstAmount;
                 System.Collections.Generic.List<string> stolenNames0 = null;
                 int stolen = StealItems("food", 1, "highest", out stolenNames0);
-                ModCashN(-50); // 09-19 新档第一天必偷50（不管有没有东西）
+                ModCashN(-firstAmt);
                 // 09-19 修：初次偷拿补夜报（原分支扣钱偷物后直接 return，无 ReportLine → 初次见面夜报缺失）
                 if (stolen > 0 && stolenNames0 != null && stolenNames0.Count > 0)
-                    ReportLine(LangHelper.T("蛙娘偷走了 50 块钱和" + string.Join("、", stolenNames0), "Wage Girl stole 50 credits and " + string.Join(", ", stolenNames0)));
+                    ReportLine(LangHelper.T("蛙娘偷走了 " + firstAmt + " 块钱和" + string.Join("、", stolenNames0), "Wage Girl stole " + firstAmt + " credits and " + string.Join(", ", stolenNames0)));
                 else
-                    ReportLine(LangHelper.T("蛙娘偷走了 50 块钱", "Wage Girl stole 50 credits"));
+                    ReportLine(LangHelper.T("蛙娘偷走了 " + firstAmt + " 块钱", "Wage Girl stole " + firstAmt + " credits"));
                 SetStat(K_LAST_STEAL, day);
                 return;
             }
@@ -195,26 +196,27 @@ public static partial class WageGirlSystem
             if (allowNow2 <= 0) {
             TrySnatch();
             } // 给零花钱后当天不偷
-            // 6) 好物：好感 ≥50 每 7 天带 1 件
+            // 6) 好物：好感 ≥N 每 M 天带 1 件（CFG：WageGirlGiftAff/Interval）
             int lastGift = GetStat(K_LAST_GIFT);
-            if (GetAffection() >= 50 && day - lastGift >= 7)
+            if (GetAffection() >= BuildConfig.WageGirlGiftAff && day - lastGift >= BuildConfig.WageGirlGiftInterval)
             {
                 GiveGift();
                 SetStat(K_LAST_GIFT, day);
             }
-            // 7) 偷钱循环（≥7 天）——K_LEAVE 改"回归日"语义（day+1）
-            // 零花钱 ≥100 当天 50% 不偷
+            // 7) 偷钱循环——K_LEAVE 改"回归日"语义（day+1）
+            // 零花钱 ≥ 第一档 当天 50% 不偷（档位 CFG：WageGirlAllowanceSteps）
             int allowNow = GetStat(K_ALLOWANCE);
-            if (allowNow >= 100 && UnityEngine.Random.Range(0, 2) == 0) {
+            int allowanceFloor = BuildConfig.WageGirlAllowanceSteps.Length > 0 ? BuildConfig.WageGirlAllowanceSteps[0] : 100;
+            if (allowNow >= allowanceFloor && UnityEngine.Random.Range(0, 2) == 0) {
                 SetStat(K_LAST_STEAL, day);
             }
-            else if (day - lastSteal >= STEAL_INTERVAL && GetAffection() < 80)
+            else if (day - lastSteal >= BuildConfig.WageGirlStealInterval && GetAffection() < BuildConfig.WageGirlStealNoStealAff)
             {
                 int aff = GetAffection();
-                int steal = 100 - (int)((aff / 100f) * 90f); // 09-20 优化：好感越高偷得越少（0→100、100→10）
+                int steal = BuildConfig.WageGirlStealBaseMax - (int)((aff / (float)BuildConfig.WageGirlAffMax) * BuildConfig.WageGirlStealAffReduction); // 好感越高偷得越少（0→100、100→10；CFG 可调）
                 ModCashN(-steal);
                 SetStat(K_STEAL_AMT, steal);
-                                SetSleepDebt(GetSleepDebt() + 20); // 偷钱外出熬夜 -20 睡眠（次日结算）
+                                SetSleepDebt(GetSleepDebt() + BuildConfig.WageGirlStealSleepDebt); // 偷钱外出熬夜 -N 睡眠（次日结算）
 SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 SetStat(K_LEAVE_REASON, 0);
                 SetStat(K_LAST_STEAL, day);
@@ -225,13 +227,14 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
         catch { }
     }
 
-    // 任一六维 <20（跑路判定）
+    // 任一六维 <阈值（跑路判定；CFG：WageGirlRunawayLowStat）
     private static bool IsAnyStatLow()
     {
         try
         {
-            return GetStat(K_SAT) < 20 || GetStat(K_TH) < 20 || GetStat(K_HEALTH) < 20
-                || GetStat(K_MOOD) < 20 || GetStat(K_CLEAN) < 20 || GetStat(K_SLEEP) < 20;
+            int low = BuildConfig.WageGirlRunawayLowStat;
+            return GetStat(K_SAT) < low || GetStat(K_TH) < low || GetStat(K_HEALTH) < low
+                || GetStat(K_MOOD) < low || GetStat(K_CLEAN) < low || GetStat(K_SLEEP) < low;
         }
         catch { return false; }
     }
@@ -300,10 +303,12 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 ps.playerCash -= amt;
                 // 09-23 改：零花钱进小金库（不出去逛街）
                 SetStat(K_SAVINGS, GetStat(K_SAVINGS) + amt);
-                // 09-23 新增：前三次加好感（按档位）
+                // 09-23 新增：前三次加好感（好感 = 档位序数，CFG 改档位自动适配）
                 int allowCount = GetStat(K_ALLOWANCE_COUNT);
                 if (allowCount < 3) {
-                    int affGain = _allowanceSel == 100 ? 1 : (_allowanceSel == 300 ? 2 : 3);
+                    int[] steps = BuildConfig.WageGirlAllowanceSteps;
+                    int idx = System.Array.IndexOf(steps, _allowanceSel);
+                    int affGain = idx >= 0 ? idx + 1 : 1;
                     SetAffection(GetAffection() + affGain);
                     SetStat(K_ALLOWANCE_COUNT, allowCount + 1);
                     ReportLine(LangHelper.T("蛙娘把 " + amt + " 块零花钱存进小金库（好感 +" + affGain + "，今日第 " + (allowCount+1) + "/3 次）", "Wage Girl saved " + amt + " credits (affection +" + affGain + ", today " + (allowCount+1) + "/3)"));
@@ -317,8 +322,11 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
         private static void CycleAllowanceSel()
         {
             try {
-                int idx = System.Array.IndexOf(ALLOWANCE_STEPS, _allowanceSel);
-                _allowanceSel = ALLOWANCE_STEPS[(idx + 1) % ALLOWANCE_STEPS.Length];
+                int[] steps = BuildConfig.WageGirlAllowanceSteps;
+                if (steps.Length == 0) return;
+                int idx = System.Array.IndexOf(steps, _allowanceSel);
+                if (idx < 0) idx = 0;
+                _allowanceSel = steps[(idx + 1) % steps.Length];
             } catch { }
         }
 }
