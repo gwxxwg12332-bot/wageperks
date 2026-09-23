@@ -196,6 +196,13 @@ internal static partial class RobinCrusoePerk
     }
 
     // 店内日历（墙上日历 StoreCalendar.Update，拆包：原生用 GetRentDayCounter 每周显示）→ 覆盖为100天制（dayTMP@0x18）
+    //
+    // 09-23 性能：StoreCalendar.Update 是**每帧**调用的 Unity Update。原先每帧都要走
+    //   NextRentDay / RentForDay / 多次 LangHelper.T / 4 次字符串拼接 —— 只为了最后那个
+    //   "text 是否变化"的判空（每次 set 前先比较）。等于每帧白做一遍文案构造 + GC。
+    // 处理：文案只依赖 day（nextDay/due/rent 都由 day 推出），故按 day 缓存；day 未变则直接复用。
+    private static int _calTxtDay = int.MinValue;
+    private static string _calTxt;
     public static void PostfixStoreCalendarUpdate(Il2Cpp.StoreCalendar __instance)
     {
         try
@@ -205,13 +212,18 @@ internal static partial class RobinCrusoePerk
             if (ps == null) return;
             if (ps.IsPropertyPaid) return;
             int day = DeterministicSchedule.CurrentDay;
-            int nextDay = NextRentDay(day);
-            int due = nextDay - day;
-            int rent = RentForDay(nextDay);
-            string dueTxt = due == 0 ? LangHelper.T("今天", "today") : (due == 1 ? LangHelper.T("明天", "tomorrow") : LangHelper.T(due + "天后", "in " + due + " days"));
-            string txt = LangHelper.T("房租 " + rent + " " + dueTxt + "收取", "Rent " + rent + " due " + dueTxt);
-            if (__instance.dayTMP != null && __instance.dayTMP.text != txt) // 防每帧重复 set
-                __instance.dayTMP.text = txt;
+            // 同一天内文案恒定 → 只在跨天时重建（跨天/读档切换都会自然失效）
+            if (day != _calTxtDay || _calTxt == null)
+            {
+                int nextDay = NextRentDay(day);
+                int due = nextDay - day;
+                int rent = RentForDay(nextDay);
+                string dueTxt = due == 0 ? LangHelper.T("今天", "today") : (due == 1 ? LangHelper.T("明天", "tomorrow") : LangHelper.T(due + "天后", "in " + due + " days"));
+                _calTxt = LangHelper.T("房租 " + rent + " " + dueTxt + "收取", "Rent " + rent + " due " + dueTxt);
+                _calTxtDay = day;
+            }
+            if (__instance.dayTMP != null && __instance.dayTMP.text != _calTxt) // 防每帧重复 set
+                __instance.dayTMP.text = _calTxt;
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixStoreCalendarUpdate 异常: " + ex.Message); }
     }

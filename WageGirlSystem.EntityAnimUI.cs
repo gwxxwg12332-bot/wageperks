@@ -416,17 +416,13 @@ public static partial class WageGirlSystem
         {
             EmporiumEntry em = EmporiumEntry.Instance;
             if (em == null) return false;
-            var invs = new GameInventory[] {
-                (GameInventory)em.invElement,
-                (GameInventory)em.backInvinvElement,
-                (GameInventory)em.backInvinvElementCounter,
-                (GameInventory)em.frontInvinvElement,
-                (GameInventory)em.showcaseElement
-            };
-            foreach (var inv in invs)
-            {
-                if (FindGirlInInv(inv)) return true;
-            }
+            // 09-23 性能：原先每次调用都 new GameInventory[5] + foreach——本方法在热路径上（见 ExistsCached），
+            // 每秒几十次分配纯属 GC 压力。改为 5 次直调，语义完全一致（短路顺序也保持原样）。
+            if (FindGirlInInv((GameInventory)em.invElement)) return true;
+            if (FindGirlInInv((GameInventory)em.backInvinvElement)) return true;
+            if (FindGirlInInv((GameInventory)em.backInvinvElementCounter)) return true;
+            if (FindGirlInInv((GameInventory)em.frontInvinvElement)) return true;
+            if (FindGirlInInv((GameInventory)em.showcaseElement)) return true;
             return false;
         }
         catch { return false; }
@@ -671,6 +667,28 @@ public static partial class WageGirlSystem
         catch { }
     }
 
+    // 09-23 性能：实体存在性检查的节流缓存（**只用于动画驱动**）
+    // 问题：Exists() → ExistsInScene() 要遍历 5 个背包的全部物品，且 FindGirlInInv 会向
+    //       contentWindow 内部背包**递归下钻** → 开销随物品总数线性（甚至更高）增长。
+    //       后期背包/货架塞满时，每帧全量扫描 = 明显卡顿。
+    // 处理：动画启停不需要每帧精度 → 每 15 帧（60fps 下 0.25s）重算一次，其余帧读缓存。
+    // ⚠️ 仅在**动画驱动**这一条路径上用缓存；偷拿/补发等业务判定仍调 Exists()，保证精确语义不受影响。
+    private const int EXISTS_CACHE_FRAMES = 15;
+    private static bool _existsCache;
+    private static int _existsCacheFrame = -100000;
+    private static bool ExistsCached()
+    {
+        try
+        {
+            int f = Time.frameCount;
+            if (f - _existsCacheFrame < EXISTS_CACHE_FRAMES) return _existsCache;
+            _existsCacheFrame = f;
+            _existsCache = Exists();
+            return _existsCache;
+        }
+        catch { return Exists(); }
+    }
+
     // 每帧驱动（09-23 阶段0：Patches.FrameUpdate 调用 ← InputActionManager.Update Postfix，禁用 MelonLoader OnUpdate）
     // 轻量 + 全异常防护 + 交易模式暂停——用户规范：每帧逻辑不做重操作
     private static int _lastTickFrame = -1;
@@ -686,7 +704,7 @@ public static partial class WageGirlSystem
         catch { }
         try
         {
-            if (!Exists()) return;
+            if (!ExistsCached()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
             float dt = Time.deltaTime;
             if (dt <= 0f) return; // 游戏暂停
@@ -777,6 +795,9 @@ public static partial class WageGirlSystem
     // ApplyAnimationFrame 在原生无调用方（ISIL 全库 0 call），必须 mod 主动调用；实体每 2 秒重找（玩家可能移动/收起）
     private static GameItem _cachedGirlItem;
     private static int _cacheRefreshFrames = 0;
+    // 09-23 性能：缓存 Cast 结果。原先每帧都做一次 `as` + `Cast<GameItemElement>()`（IL2CPP 互操作类型检查，
+    // 每帧一次纯浪费）——元素引用只在 _cachedGirlItem 变化时才会变，故与它同步刷新。
+    private static GameItemElement _cachedEl;
     private static void TryApplyAnimFrame()
     {
         try
@@ -784,24 +805,31 @@ public static partial class WageGirlSystem
             // 09-21 修：拖拽时跳过蛙娘动画（避免干扰正在拖拽的物品）
             try { var drg = Il2Cpp.ItemMouseDragHandler.current; if (drg != null && drg.IsDraggingItem) return; } catch { }
             // 读档后旧引用已销毁（parentInventory==null）→ 立即重置重找
-            try { if (_cachedGirlItem != null && _cachedGirlItem.parentInventory == null) { _cachedGirlItem = null; _cacheRefreshFrames = 0; } } catch { _cachedGirlItem = null; }
+            try { if (_cachedGirlItem != null && _cachedGirlItem.parentInventory == null) { _cachedGirlItem = null; _cachedEl = null; _cacheRefreshFrames = 0; } } catch { _cachedGirlItem = null; _cachedEl = null; }
             if (_cachedGirlItem == null || _cacheRefreshFrames <= 0)
             {
                 _cacheRefreshFrames = 120;
                 _cachedGirlItem = FindGirlItem();
+                _cachedEl = null; // 实体可能是新对象 → 丢掉旧 Cast 结果
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
                     if (_cachedGirlItem != null) { try { ApplyIcon(_cachedGirlItem); } catch { } } // 09-20 图标链修复：ApplyIcon 即写 modifiedShape=2×3
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f; // 读档后强制重新判定状态
             }
             else _cacheRefreshFrames--;
             if (_cachedGirlItem == null) return;
-            GameItemElement el = null;
-            try { el = _cachedGirlItem as GameItemElement; } catch { }
-            if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
+            // 09-23 性能：Cast 只在 _cachedEl 为空时做（正常帧直接命中缓存）
+            GameItemElement el = _cachedEl;
+            if (el == null)
+            {
+                try { el = _cachedGirlItem as GameItemElement; } catch { }
+                if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
+                if (el != null) _cachedEl = el;
+            }
             if (el == null)
             {
                 // 09-23 读档/过天后物品重建——旧缓存 Cast 失败立即重找（不等 120 帧）——根治掉动态
                 _cachedGirlItem = FindGirlItem();
+                _cachedEl = null;
                 if (_cachedGirlItem != null) {
                     // 读档后：游戏重建的蛙娘 sprite 是存档旧版 → 强制清旧发新
                     try { RemoveGirlFromScene(); } catch { }
@@ -814,6 +842,7 @@ public static partial class WageGirlSystem
                 {
                     try { el = _cachedGirlItem as GameItemElement; } catch { }
                     if (el == null) { try { el = _cachedGirlItem.Cast<GameItemElement>(); } catch { } }
+                    if (el != null) _cachedEl = el;
                 }
             }
             if (el == null) return;
