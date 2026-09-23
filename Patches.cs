@@ -2916,6 +2916,7 @@ itemFeature.isFeatureExposed = true;
 			{
 				WineLoverPerk.LoadHangoverState();
 			}
+			try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 09-23 恢复：ModHook 禁用后此逻辑未随迁（蛙娘实体/动画帧缓存读档重置 + Leave 兜底校验）
 			if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				ScheduleJacksonToday();

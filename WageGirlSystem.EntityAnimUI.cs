@@ -252,9 +252,9 @@ public static partial class WageGirlSystem
             int budget = __instance.GetBudget();
             // 09-20 优化：预算随好感分档（<30→1.5x、<60→2.5x、≥60→4x）
             int affB = GetAffection();
-            float mult = affB < 30 ? 1.5f : (affB < 60 ? 2.5f : 4f);
+            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
             long newBudget = (long)(budget * mult);
-            if (newBudget > 2147483646L) newBudget = 2147483646L;
+            if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
             __instance.OverrideBudget((int)newBudget);
             __instance.clientCash = (int)newBudget;
             __instance.useClientBudget = true;
@@ -931,6 +931,7 @@ public static partial class WageGirlSystem
     // 尝试移动一步：Expel + TryInventorySlot(目标格子编号) 落格（边界回弹 + 兜底放回，绝不丢实体）
     private static bool TryMoveStep()
     {
+        if (!BuildConfig.WageGirlAutoMove) return false; // 09-23 自动移动开关
         try
         {
             var em = EmporiumEntry.Instance;

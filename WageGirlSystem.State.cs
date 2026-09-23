@@ -76,7 +76,12 @@ public static partial class WageGirlSystem
         } catch { return def; }
     }
     internal static void SetStat(string k, int v) {
-        try { _memStats[k] = v; } catch { }
+        try {
+            // 09-23 统一 clamp：六维 0-100（防止吃饭/日用品+15 超过100）
+            if (k == K_SAT || k == K_TH || k == K_HEALTH || k == K_MOOD || k == K_CLEAN || k == K_SLEEP)
+                v = Math.Max(0, Math.Min(100, v));
+            _memStats[k] = v;
+        } catch { }
     }
 private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == CurrentDay(); } catch { return false; } }
     internal static bool Exists() {
@@ -174,7 +179,6 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
         try {
             _memStats.Clear(); // 09-20 修：读档清内存缓存——下次GetStat自动从Prefs重载存档值
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
-            try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
             try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
             // 09-23 修：兜底校验——K_LEAVE 未到回归日 → 强制删实体
             try {
