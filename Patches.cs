@@ -2587,7 +2587,10 @@ itemFeature.isFeatureExposed = true;
 	//     Item1 → 卖出方向（ui_nego_title_selling）
 	//     Item2 → 买入方向（ui_nego_title_buying）
 	//   → 两个元素都是"声誉倍率"，故按特性整体缩放两者 = 忠实实现「声誉获取 ±25%」。
-	public static void PostfixTradeRepMultipliers(ref System.ValueTuple<double, double> __result)
+	// ⚠️ __result 必须用 Il2CppSystem.ValueTuple（IL2CPP 镜像类型），**不能用** System.ValueTuple（BCL 类型）。
+	// 实测报错：Cannot assign method return type Il2CppSystem.ValueTuple`2 to __result type System.ValueTuple`2
+	// —— 两者同名但分属不同程序集，Harmony 无法互赋。
+	public static void PostfixTradeRepMultipliers(ref Il2CppSystem.ValueTuple<double, double> __result)
 	{
 		try
 		{
@@ -2602,7 +2605,7 @@ itemFeature.isFeatureExposed = true;
 			}
 			if (factor != 1.0)
 			{
-				__result = new System.ValueTuple<double, double>(
+				__result = new Il2CppSystem.ValueTuple<double, double>(
 					__result.Item1 * factor, __result.Item2 * factor);
 			}
 		}
