@@ -312,6 +312,25 @@ internal static partial class Patches
 		}
 		try
 		{
+			// 09-23 奥丁（wanted4）：声望低时压价更狠
+			if (storeClient.identifier == "wanted4")
+			{
+				try
+				{
+					var rep = StoreReputation.GetStoreReputation("FACTION_REVOLUTION");
+					int revRep = rep != null ? (int)rep.GetReputationExact() : 0;
+					if (revRep <= -99)
+					{
+						storeClient.sellPriceModifier = -50;
+						Core.LogMsg("[奥丁] 声望" + revRep + " → 压价 -50%");
+					}
+				}
+				catch { }
+			}
+		}
+		catch { }
+		try
+		{
 			if (!(storeClient.identifier == "retired_winemaker"))
 			{
 				return;

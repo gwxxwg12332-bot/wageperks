@@ -408,6 +408,21 @@ internal static partial class RobinCrusoePerk
         catch { return true; }
     }
 
+    // 09-23 奥丁电话：声望-99 也能接（声名狼藉/人神共愤激活时覆盖原版拒绝）
+    public static void PostfixWillAnswerCall(long number, ref bool __result)
+    {
+        try
+        {
+            if (number != 51189) return; // 奥丁号码
+            if (Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))
+            {
+                __result = true; // 强制接听
+                Core.LogMsg("[奥丁] 声望低但声名狼藉激活 → 强制接听");
+            }
+        }
+        catch { }
+    }
+
     // 拨号即叫货（Core 注册 Prefix PhoneUIManager.StartPhoneDialog）：接通瞬间自动排期 + 冷却，拦掉原版对话
     public static bool PrefixStartPhoneDialog(long currentNumber)
     {

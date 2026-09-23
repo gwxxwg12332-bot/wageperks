@@ -290,6 +290,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleNormalClient", null, "PostfixHandleNormalClient", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StorePhoneClient), "InitPhoneClientDict", null, "PostfixInitPhoneClientDict", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(PhoneUIManager), "WillAnswerCall", "PrefixWillAnswerCall", null, null, typeof(RobinCrusoePerk));
+			ManualPatcher.TryPatch(typeof(PhoneUIManager), "WillAnswerCall", null, "PostfixWillAnswerCall", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(PhoneUIManager), "StartPhoneDialog", "PrefixStartPhoneDialog", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(ContactElement), "OnInit", null, "PostfixOnContactInit", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientListWanted), "CreateWanted6", null, "PostfixCreateWanted6", null, typeof(RobinCrusoePerk));
