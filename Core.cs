@@ -9,7 +9,11 @@ public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();
 
-	public static bool DebugMode = true; // 09-22 开发版打开
+#if DEBUG
+	public static bool DebugMode = true; // 开发版：日志开
+#else
+	public static bool DebugMode = false; // 发布版：日志关
+#endif
 
 	// 09-22 用户拍板：全局物品黑名单（从所有我们的池子排除——蛙娘回归带物/流浪者随机/好物销赃等）
 	// 稀有电子元件 rare_electronic（MaterialDirectory L611 实锤）不进入任何我们的池子

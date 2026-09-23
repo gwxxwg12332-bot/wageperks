@@ -95,152 +95,187 @@ internal static partial class Patches
 			bool isSell = false;
 			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
 			catch (System.Exception ex) { isSell = CurrentUITradeMode == 2; Core.LogMsg("[交易标记] IsItemOwned判定失败，按UI模式回退: " + ex.Message); }
-				bool _brActive = BadReputationPerk.IsActive(); bool _brCleared = BadReputationPerk.IsCleared(); Core.LogMsg("[信誉扫地] 检查: active=" + _brActive + " cleared=" + _brCleared + " item=" + (item.identifier ?? "?"));
-			if (_brActive && !_brCleared)
-			{
-				if (isSell)
-				{
-					result = (long)((double)result * 0.8);
-					TryAddBadReputationFeature(item, -20);
-				}
-				else if (!isSell)
-				{
-					result = (long)((double)result * 1.2);
-					TryAddBadReputationFeature(item, 20);
-				}
-			}
-			if (RobinCrusoePerk.IsActive())
-			{
-				if (!isSell)
-				{
-					TryAddNodeBuffFeature(item);
-					if (RobinCrusoePerk.IsFood(item))
-					{
-						result = (long)((double)result * 2.0);
-						TryAddRobinsonBuyMarkup(item);
-						return;
-					}
-					if (RobinCrusoePerk.IsMedicine(item))
-					{
-						result = (long)((double)result * 2.0);
-						TryAddRobinsonBuyMarkup(item);
-						return;
-					}
-				}
-				else if (isSell)
-				{
-					TryAddNodeBuffFeature(item);
-					if (RobinCrusoePerk.IsFood(item))
-					{
-						int foodQuality = RobinCrusoePerk.GetFoodQuality(item);
-						switch (foodQuality)
-						{
-						case 3:
-							result = 0L;
-							break;
-						case 2:
-							result = (long)((double)result * 0.1);
-							break;
-						default:
-							if (RobinCrusoePerk.IsEaten(item))
-							{
-								result = (long)((double)result * 0.2);
-							}
-							else if (foodQuality <= 0)
-							{
-								result = (long)((double)result * 1.3);
-							}
-							break;
-						}
-						TryAddFoodQualityFeature(item, foodQuality);
-					}
-					double num = 1.0 + (double)RobinCrusoePerk.GetSellBonusPct() / 100.0;
-					if (num > 1.0)
-					{
-						result = (long)((double)result * num);
-					}
-					double contraEffMult = RobinCrusoePerk.GetContraEffMult();
-					if (contraEffMult > 1.0 && RobinCrusoePerk.IsContrabandItem(item))
-					{
-						result = (long)((double)result * contraEffMult);
-					}
-				}
-			}
+			ApplyBadReputationMarkup(item, isSell, ref result);
+			if (ApplyRobinsonMarkup(item, isSell, ref result)) return;
 			if (!isSell)
 			{
 				return;
 			}
-			bool flag = false;
-			try
-			{
-				flag = ContrabandHelper.IsContraband(item);
-			}
-			catch
-			{
-				// 交易防御：违禁品判定失败降级（flag 保持默认）
-			}
-			if (!flag)
-			{
-				try
-				{
-					flag = item.IsTag("CONTRABAND");
-				}
-				catch
-				{
-					// 交易防御：违禁品标签判定失败降级
-				}
-			}
-			if (!flag)
-			{
-				try
-				{
-					flag = item.IsTag("CONTRABAND_ITEM_TAG");
-				}
-				catch
-				{
-					// 交易防御：违禁品标签判定失败降级
-				}
-			}
-			bool flag2 = TraitEffects.IsAlcohol(item);
-			float num2 = 1f;
-			bool flag3 = false;
-			try
-			{
-				flag3 = RiskTakerPerk.IsActive();
-			}
-			catch
-			{
-				// 交易防御：风险特性激活判定失败降级
-			}
-			if (flag3 && flag)
-			{
-				num2 *= 1.2f;
-			}
-			if (WineLoverPerk.IsActive() && flag2)
-			{
-				num2 *= 1.25f;
-			}
-			if (num2 > 1f)
-			{
-				result = (long)((float)result * num2);
-				TryAddTradeFeature(item, flag, flag2);
-			}
-			// 笑面虎/童叟无欺：卖出价 ±25%（互斥保证不同时生效；面板+成交+预算全通）
-			double faceMult = 1.0;
-			string faceLabelId = null;
-			string faceLabel = null;
-			if (SmilingFacePerk.IsActive()) { faceMult = 1.25; faceLabelId = "smiling_face_markup"; faceLabel = LangHelper.T("笑面虎加价", "Smiling Face Markup"); }
-			else if (SmilingTigerPerk.IsActive()) { faceMult = 0.75; faceLabelId = "honest_dealer_discount"; faceLabel = LangHelper.T("童叟无欺折让", "Honest Dealer Discount"); }
-			if (faceMult != 1.0)
-			{
-				result = (long)((double)result * faceMult);
-				int facePct = SmilingFacePerk.IsActive() ? 25 : -25;
-					AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling, facePct);
-			}
+			bool flag = IsContrabandSafe(item);
+			ApplyRiskWineMarkup(item, ref result, flag);
+			ApplyFaceMarkup(item, ref result);
 		}
 		catch
 		{
 			// 交易防御：风险特性激活判定失败降级（同一判定链）
+		}
+	}
+
+	// ===================== 09-24 架构拆解：TryApplyTradeMarkup 按特性提取（行为零变化） =====================
+	// 提取原则：不带新 try（异常上抛到主方法 catch，与原逻辑一致）；仅鲁滨逊 buy 命中 return 用 bool 承接。
+
+	// ① 信誉扫地：卖出 ×0.8 / 买入 ×1.2 + 标签（-20/+20）
+	private static void ApplyBadReputationMarkup(GameItem item, bool isSell, ref long result)
+	{
+		bool _brActive = BadReputationPerk.IsActive(); bool _brCleared = BadReputationPerk.IsCleared(); Core.LogMsg("[信誉扫地] 检查: active=" + _brActive + " cleared=" + _brCleared + " item=" + (item.identifier ?? "?"));
+		if (_brActive && !_brCleared)
+		{
+			if (isSell)
+			{
+				result = (long)((double)result * 0.8);
+				TryAddBadReputationFeature(item, -20);
+			}
+			else if (!isSell)
+			{
+				result = (long)((double)result * 1.2);
+				TryAddBadReputationFeature(item, 20);
+			}
+		}
+	}
+
+	// ② 鲁滨逊：buy 食物/药品 ×2（命中 return true 结束整链）；sell 食物品质分档 + 卖出加成 + 违禁加成
+	private static bool ApplyRobinsonMarkup(GameItem item, bool isSell, ref long result)
+	{
+		if (!RobinCrusoePerk.IsActive())
+		{
+			return false;
+		}
+		if (!isSell)
+		{
+			TryAddNodeBuffFeature(item);
+			if (RobinCrusoePerk.IsFood(item))
+			{
+				result = (long)((double)result * 2.0);
+				TryAddRobinsonBuyMarkup(item);
+				return true;
+			}
+			if (RobinCrusoePerk.IsMedicine(item))
+			{
+				result = (long)((double)result * 2.0);
+				TryAddRobinsonBuyMarkup(item);
+				return true;
+			}
+		}
+		else if (isSell)
+		{
+			TryAddNodeBuffFeature(item);
+			if (RobinCrusoePerk.IsFood(item))
+			{
+				int foodQuality = RobinCrusoePerk.GetFoodQuality(item);
+				switch (foodQuality)
+				{
+				case 3:
+					result = 0L;
+					break;
+				case 2:
+					result = (long)((double)result * 0.1);
+					break;
+				default:
+					if (RobinCrusoePerk.IsEaten(item))
+					{
+						result = (long)((double)result * 0.2);
+					}
+					else if (foodQuality <= 0)
+					{
+						result = (long)((double)result * 1.3);
+					}
+					break;
+				}
+				TryAddFoodQualityFeature(item, foodQuality);
+			}
+			double num = 1.0 + (double)RobinCrusoePerk.GetSellBonusPct() / 100.0;
+			if (num > 1.0)
+			{
+				result = (long)((double)result * num);
+			}
+			double contraEffMult = RobinCrusoePerk.GetContraEffMult();
+			if (contraEffMult > 1.0 && RobinCrusoePerk.IsContrabandItem(item))
+			{
+				result = (long)((double)result * contraEffMult);
+			}
+		}
+		return false;
+	}
+
+	// ③ 违禁品判定（3 重降级链，保持原逐段 try 防御）
+	private static bool IsContrabandSafe(GameItem item)
+	{
+		bool flag = false;
+		try
+		{
+			flag = ContrabandHelper.IsContraband(item);
+		}
+		catch
+		{
+			// 交易防御：违禁品判定失败降级（flag 保持默认）
+		}
+		if (!flag)
+		{
+			try
+			{
+				flag = item.IsTag("CONTRABAND");
+			}
+			catch
+			{
+				// 交易防御：违禁品标签判定失败降级
+			}
+		}
+		if (!flag)
+		{
+			try
+			{
+				flag = item.IsTag("CONTRABAND_ITEM_TAG");
+			}
+			catch
+			{
+				// 交易防御：违禁品标签判定失败降级
+			}
+		}
+		return flag;
+	}
+
+	// ④ 风险/酒鬼：违禁 ×1.2 / 酒类 ×1.25
+	private static void ApplyRiskWineMarkup(GameItem item, ref long result, bool flag)
+	{
+		bool flag2 = TraitEffects.IsAlcohol(item);
+		float num2 = 1f;
+		bool flag3 = false;
+		try
+		{
+			flag3 = RiskTakerPerk.IsActive();
+		}
+		catch
+		{
+			// 交易防御：风险特性激活判定失败降级
+		}
+		if (flag3 && flag)
+		{
+			num2 *= 1.2f;
+		}
+		if (WineLoverPerk.IsActive() && flag2)
+		{
+			num2 *= 1.25f;
+		}
+		if (num2 > 1f)
+		{
+			result = (long)((float)result * num2);
+			TryAddTradeFeature(item, flag, flag2);
+		}
+	}
+
+	// ⑤ 笑面虎/童叟无欺：卖出价 ±25%
+	private static void ApplyFaceMarkup(GameItem item, ref long result)
+	{
+		double faceMult = 1.0;
+		string faceLabelId = null;
+		string faceLabel = null;
+		if (SmilingFacePerk.IsActive()) { faceMult = 1.25; faceLabelId = "smiling_face_markup"; faceLabel = LangHelper.T("笑面虎加价", "Smiling Face Markup"); }
+		else if (SmilingTigerPerk.IsActive()) { faceMult = 0.75; faceLabelId = "honest_dealer_discount"; faceLabel = LangHelper.T("童叟无欺折让", "Honest Dealer Discount"); }
+		if (faceMult != 1.0)
+		{
+			result = (long)((double)result * faceMult);
+			int facePct = SmilingFacePerk.IsActive() ? 25 : -25;
+				AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling, facePct);
 		}
 	}
 
