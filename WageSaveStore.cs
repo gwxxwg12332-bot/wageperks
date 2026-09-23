@@ -52,6 +52,7 @@ internal static class WageSaveStore
     private static string _curKey = null;        // 当前文件键（runID 或 pending）
     private static bool _pendingLoad;            // 读档待加载标志（Postfix 只设它）
     private static int _pendingLoadFrames;       // 帧延迟计数
+    private static bool _loadedOnce;             // 本次读档：键值文件是否已加载（键值不依赖容器就绪，LoadGame Postfix 即可读）
     private static bool _dirty;                  // 有未落盘改动
 
     // ===================== 路径 =====================
@@ -317,7 +318,10 @@ internal static class WageSaveStore
 
     // ===================== ③ 读档 =====================
 
-    /// <summary>读档（PlayerStore.LoadGame Postfix 调）。只设标志位，不做任何实际加载。</summary>
+    /// <summary>读档（PlayerStore.LoadGame Postfix 调）。
+    /// 键值文件同步读取（键值不依赖容器就绪）——消除"清缓存→30帧后读文件"空窗口：
+    /// 空窗口内 GetStat/GetBlood 会把默认值物化进缓存 → 读档状态被刷丢（蛙娘六维刷0 / 鲁滨逊血量刷满）。
+    /// 容器引用恢复仍走延迟 LoadIfPending → OnGameLoaded（childItems 就绪后）。</summary>
     internal static void OnLoadGame()
     {
         try
@@ -325,20 +329,26 @@ internal static class WageSaveStore
             ClearMem();
             _pendingLoad = true;
             _pendingLoadFrames = 0;
-            Core.LogMsg("[SaveStore] 读档挂点触发，待加载");
+            _loadedOnce = false;
+            TryDoLoad(); // runID 未就绪时返回 false，由轮询下帧补读
+            Core.LogMsg("[SaveStore] 读档挂点触发，键值" + (_loadedOnce ? "已同步加载" : "待轮询补读"));
         }
         catch { }
     }
 
-    /// <summary>轮询驱动（每帧调，轻量）。延迟 N 帧后真正读文件。</summary>
+    /// <summary>轮询驱动（每帧调，轻量）。文件未读则下帧补读；已读则只等延迟帧驱动 OnGameLoaded。</summary>
     internal static void LoadIfPending()
     {
         if (!_pendingLoad) return;
         try
         {
+            if (!_loadedOnce)
+            {
+                TryDoLoad(); // runID 补就绪后读文件（空窗口 ≤1 帧）
+                if (!_loadedOnce) return;
+            }
             if (++_pendingLoadFrames < LOAD_DELAY_FRAMES) return;
             _pendingLoad = false;
-            DoLoad();
             // 阶段2：文件数据就绪后驱动全部特性 OnGameLoaded。
             // 挂点必须在**这里**而不是 PlayerStore.LoadGame Postfix —— 后者执行时容器 childItems 尚未就绪，
             // 直接恢复引用类型必失败（阶段1 已用血泪验证，见 WageSaveStore.cs 顶部时序说明）。
@@ -352,33 +362,50 @@ internal static class WageSaveStore
         }
     }
 
-    private static void DoLoad()
+    /// <summary>读文件（带 runID 就绪检测）。runID 未就绪（LoadGame 早期）返回 false，等轮询补读；
+    /// 就绪则加载文件并标记 _loadedOnce。返回是否本次完成加载。</summary>
+    private static bool TryDoLoad()
     {
-        string key = ResolveKey();
-        string path = FilePathFor(key);
-
-        if (path == null || !File.Exists(path))
+        try
         {
-            // 正式文件未建立：可能是开局 runID 空窗期写入的 pending 数据 → 并入（同档早期数据不丢）
-            string pending = FilePathFor(PENDING_KEY);
-            if (key != PENDING_KEY && pending != null && File.Exists(pending))
+            string key = ResolveKey();
+            if (key == PENDING_KEY)
             {
-                ReadInto(pending);
-                File.Delete(pending);   // 并入后清理，避免下次重复并入
-                _curKey = key;
-                Core.LogMsg("[SaveStore] 正式文件未建立，已从 pending 并入（" + _mem.Count + " 项）");
-                DumpForDiagnostics();
-                return;
+                // runID 尚未就绪（LoadGame 存档头解析中）→ 放弃本次，等轮询下帧重试。
+                // 不能读 pending 文件：pending 是"开局 runID 空窗期"数据，读档场景下可能属旧会话残留。
+                return false;
             }
-            Core.LogMsg("[SaveStore] 无存档文件（新档）：" + key);
+            string path = FilePathFor(key);
+            if (path == null || !File.Exists(path))
+            {
+                // 正式文件未建立：可能是开局 runID 空窗期写入的 pending 数据 → 并入（同档早期数据不丢）
+                string pending = FilePathFor(PENDING_KEY);
+                if (pending != null && File.Exists(pending))
+                {
+                    ReadInto(pending);
+                    File.Delete(pending);   // 并入后清理，避免下次重复并入
+                    _curKey = key;
+                    _loadedOnce = true;
+                    Core.LogMsg("[SaveStore] 正式文件未建立，已从 pending 并入（" + _mem.Count + " 项）");
+                    DumpForDiagnostics();
+                    return true;
+                }
+                Core.LogMsg("[SaveStore] 无存档文件（新档）：" + key);
+                _curKey = key;
+                _loadedOnce = true;
+                return true;
+            }
+            ReadInto(path);
             _curKey = key;
-            return;
+            _loadedOnce = true;
+            Core.LogMsg("[SaveStore] 已加载 " + key + "（" + _mem.Count + " 项）");
+            DumpForDiagnostics();
+            return true;
         }
-
-        ReadInto(path);
-        _curKey = key;
-        Core.LogMsg("[SaveStore] 已加载 " + key + "（" + _mem.Count + " 项）");
-        DumpForDiagnostics();
+        catch
+        {
+            return false;
+        }
     }
 
     // 【开发诊断 · 发布前删】输出已加载键值——用于验证"六维/好感是否恢复"
