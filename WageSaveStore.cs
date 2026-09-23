@@ -109,6 +109,13 @@ internal static class WageSaveStore
 
     // ===================== ① 运行时读写（只碰内存） =====================
 
+    // 旧层(PerkStatePersistence)缓存 runID 可能来自上一档；兼容读取前强制刷新。
+    // 根治"切档后旧缓存串档"（原 4 处业务侧 ResetCache 调用已收拢至此，业务代码不再手写）
+    private static void EnsureLegacyFresh()
+    {
+        try { PerkStatePersistence.ResetCache(); } catch { }
+    }
+
     internal static string GetString(string ns, string key, string def = "")
     {
         try
@@ -116,6 +123,7 @@ internal static class WageSaveStore
             string k = ns + "." + key;
             if (_mem.TryGetValue(k, out string v)) return v;
             // 旧层兼容（迁移期）：新层 miss → 从旧层(PlayerPrefs)读 → 回填新层，打烊即完成迁移
+            EnsureLegacyFresh();
             if (PerkStatePersistence.HasKey(ns, key))
             {
                 string legacy = PerkStatePersistence.GetString(ns, key, def);
@@ -145,6 +153,7 @@ internal static class WageSaveStore
             string k = ns + "." + key;
             if (_mem.TryGetValue(k, out string s) && int.TryParse(s, out int v)) return v;
             // 旧层兼容（迁移期）：新层 miss → 从旧层(PlayerPrefs)读 → 回填新层
+            EnsureLegacyFresh();
             if (PerkStatePersistence.HasKey(ns, key))
             {
                 int legacy = PerkStatePersistence.GetInt(ns, key, def);
@@ -169,6 +178,7 @@ internal static class WageSaveStore
             string k = ns + "." + key;
             if (_mem.TryGetValue(k, out string s) && float.TryParse(s, out float v)) return v;
             // 旧层兼容（迁移期）：新层 miss → 从旧层(PlayerPrefs)读 → 回填新层
+            EnsureLegacyFresh();
             if (PerkStatePersistence.HasKey(ns, key))
             {
                 float legacy = PerkStatePersistence.GetFloat(ns, key, def);
@@ -193,6 +203,7 @@ internal static class WageSaveStore
             string k = ns + "." + key;
             if (_mem.TryGetValue(k, out string s)) return s == "1";
             // 旧层兼容（迁移期）：旧层 bool 实为 int 0/1，按 int 读取
+            EnsureLegacyFresh();
             if (PerkStatePersistence.HasKey(ns, key))
             {
                 bool legacy = PerkStatePersistence.GetBool(ns, key, def);
@@ -232,7 +243,12 @@ internal static class WageSaveStore
     {
         // 迁移期：新层 miss 时也要认旧层(PlayerPrefs)的 key，
         // 否则 "if (HasKey) x = Get(...)" 模式的旧档数据会被静默跳过
-        try { return _mem.ContainsKey(ns + "." + key) || PerkStatePersistence.HasKey(ns, key); }
+        try
+        {
+            if (_mem.ContainsKey(ns + "." + key)) return true;
+            EnsureLegacyFresh();
+            return PerkStatePersistence.HasKey(ns, key);
+        }
         catch { return false; }
     }
 

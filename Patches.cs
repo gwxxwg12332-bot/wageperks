@@ -476,13 +476,6 @@ internal static class Patches
 	{
 		try
 		{
-			try
-			{
-				PerkStatePersistence.ResetCache();
-			}
-			catch
-			{
-			}
 			WageGirlSystem.CleanDefaultRunOnNewGame(); // 09-22 蛙娘：新档清 default_run 残留（防串档/新档误判已存在）
 			WageGirlSystem.ResetForNewGame(); // 09-20 蛙娘：新档硬重置状态（根治初次偷拿不触发——lastStealDay残留）
 			RobinCrusoePerk.CleanDefaultRunOnNewGame(); // 09-22 鲁滨逊：新档清 default_run 残留（防未保存档残留串新档）
@@ -560,13 +553,6 @@ internal static class Patches
 			}
 			if (LuckScoutPerk.IsActive())
 			{
-				try
-				{
-					PerkStatePersistence.ResetCache();
-				}
-				catch
-				{
-				}
 				LuckScoutPerk.TryGiveKit();
 			}
 			try

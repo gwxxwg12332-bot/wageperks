@@ -415,7 +415,7 @@ internal static partial class RobinCrusoePerk
         try
         {
             _rcRestoredContainers.Clear(); // 读档：清容器恢复防重集合（新会话重新恢复）
-            PerkStatePersistence.ResetCache(); // 读档切档：清旧层 runID 缓存（兼容读取仍走旧层，防 key 前缀串用导致状态节点全回默认，用户反馈 09-10）
+            // 旧层 runID 缓存刷新已收拢至 WageSaveStore（兼容读取入口自动 EnsureLegacyFresh），此处不再手写
             // 恢复保存点生存状态（SaveGame 快照）——"退出本天未保存重新进"当天扣减（拾荒-7等）应随读档回滚
             try
             {

@@ -446,7 +446,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
     public static void PostfixLoadGame()
     {
-        try { PerkStatePersistence.ResetCache(); } catch { } // LoadGame 切档：清 runID 缓存，防 key 前缀串用
+        // 旧层 runID 缓存刷新已收拢至 WageSaveStore（兼容读取入口自动 EnsureLegacyFresh），此处不再手写
         try
         {
             if (RestoreAllBeadsInPlayerInventories()) { _restoreFramesLeft = 0; return; }
@@ -470,6 +470,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                 try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
                 try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
                 try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+                try { var v = emporium.hiddenElement as GameInventory; if (v != null) allInvs.Add(v); } catch { } // 09-23 补：海报后暗格
 
                 // 递归容器内容库存：虚空珠可能放在容器里（用户反馈：容器回档需拖垃圾升级才恢复）
                 // 根因：容器内的虚空珠不在 4 个主背包里，LoadGame 恢复遍历漏掉 → 升级操作碰一下才 ApplyLockedShape
