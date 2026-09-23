@@ -898,6 +898,8 @@ try { WageGirlSystem.OnGameLoadedReset(); } catch { } // 蛙娘读档重置缓�
 		// 阶段3（2026-09-23）：补丁挂载自检——汇总成功/失败数，失败项即"功能不会生效"的清单。
 		// 放在 try/catch 之后，保证即使中途抛异常也能输出已挂载情况。
 		// 说明：**不引入任何冲突检测/让路逻辑** —— 拦截其他 mod 等于同时废掉我们自己的补丁（历史事故）。
+		// 阶段3：冲突防护——列出已加载的已知冲突 mod
+		ModCompat.LogLoadedConflicts();
 		ManualPatcher.LogPatchSummary();
 	}
 

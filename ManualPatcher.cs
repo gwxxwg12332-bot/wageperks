@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
@@ -87,7 +87,6 @@ internal static class ManualPatcher
                 if (hmPrefix != null) hmPrefix.priority = priority.Value;
                 if (hmPostfix != null) hmPostfix.priority = priority.Value;
             }
-
             _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix);
             MarkOk();
         }
