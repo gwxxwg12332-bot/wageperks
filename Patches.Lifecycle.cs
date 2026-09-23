@@ -48,6 +48,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：读档轮询异常跳过（LoadIfPending 自身有日志兜底），不阻塞帧循环
 		}
 		try
 		{
@@ -58,6 +59,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：PerkUI 状态检查（特性选择界面 guard，异常=UI未就绪，跳过本帧判断）
 		}
 		try
 		{
@@ -65,6 +67,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：鲁滨逊热键处理异常跳过，不阻塞帧循环
 		}
 		try
 		{
@@ -72,6 +75,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：背包升级延迟校验异常跳过
 		}
 		try
 		{
@@ -79,6 +83,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：背包升级读档恢复异常跳过
 		}
 		try
 		{
@@ -86,6 +91,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：读档 30 帧延迟恢复异常跳过（容器未就绪属预期，下帧重试）
 		}
 		try
 		{
@@ -93,6 +99,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：寻宝者补发重试异常跳过
 		}
 		try
 		{
@@ -100,6 +107,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：蛙哥储物箱补发重试异常跳过
 		}
 		try
 		{
@@ -108,6 +116,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：蛙娘动画/移动驱动异常跳过（单帧渲染问题不崩溃游戏）
 		}
 		try
 		{
@@ -115,6 +124,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 每帧防御：诊断面板刷新异常跳过
 		}
 	}
 
@@ -159,6 +169,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 防御：个别 input handler 的 keyListeners 结构异常跳过（不影响其余 handler）
 				}
 				try
 				{
@@ -166,6 +177,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 防御：handler 类型名读取异常跳过
 				}
 				try
 				{
@@ -173,6 +185,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 防御：handler 遍历防御（单个异常不中断整体按键扫描）
 				}
 			}
 		}
@@ -255,6 +268,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 防御：初始发放重置——蛙哥储物箱标记重置失败不阻断后续发放
 			}
 			try
 			{
@@ -262,6 +276,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 防御：初始发放重置——命运骰标记重置失败不阻断后续发放
 			}
 			try
 			{
@@ -269,6 +284,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 防御：初始发放重置——寻宝者工具包标记重置失败不阻断后续发放
 			}
 			if (WagePowerPerk.IsActive() && !WagePowerPerk._storageBoxGiven)
 			{
@@ -284,6 +300,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 防御：命运骰补发失败跳过（GiveIfActive 内部已断言）
 			}
 			try
 			{
@@ -291,14 +308,7 @@ internal static partial class Patches
 			}
 			catch
 			{
-			}
-			try
-			{
-				// 09-20 B3：流浪者兜底——鲁滨逊等其他特性发放后全清 + 重发 6 件（HandleInitialItem 晚于各特性发放）
-				// 09-21 已迁移 WandererPerk.PostfixHandleSkipIntro（HandleSkipIntro L7742 后清——唯一正确时机）
-			}
-			catch
-			{
+				// 防御：鲁滨逊新档初始化失败跳过（不影响其他特性发放）
 			}
 		}
 		catch (System.Exception ex)
@@ -572,3 +582,4 @@ internal static partial class Patches
 	{
 	}
 }
+

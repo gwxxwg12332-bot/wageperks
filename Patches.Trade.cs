@@ -103,6 +103,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：物品唯一ID读取（交互期物品可能已销毁，跳过保持原价）
 			}
 			if (num != _lastSellModeItemUid)
 			{
@@ -126,6 +127,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 交易防御：违禁品等级查询失败降级（isContraband 保持默认）
 				}
 				bool isAlcohol = TraitEffects.IsAlcohol(item);
 				TryAddTradeFeature(item, isContraband, isAlcohol);
@@ -149,6 +151,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：物品唯一ID读取（同上）
 			}
 			if (num != _lastBuyModeItemUid)
 			{
@@ -285,6 +288,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：违禁品判定失败降级（flag 保持默认）
 			}
 			if (!flag)
 			{
@@ -294,6 +298,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 交易防御：违禁品标签判定失败降级
 				}
 			}
 			if (!flag)
@@ -304,6 +309,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 交易防御：违禁品标签判定失败降级
 				}
 			}
 			bool flag2 = TraitEffects.IsAlcohol(item);
@@ -315,6 +321,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：风险特性激活判定失败降级
 			}
 			if (flag3 && flag)
 			{
@@ -344,6 +351,7 @@ internal static partial class Patches
 		}
 		catch
 		{
+			// 交易防御：风险特性激活判定失败降级（同一判定链）
 		}
 	}
 
@@ -494,6 +502,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 交易防御：反射读取 clientIntent 字段失败（游戏版本差异，跳过）
 				}
 				if (num != 1)
 				{
@@ -519,10 +528,12 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：鲁滨逊营收记录失败跳过（不影响交易主流程）
 			}
 		}
 		catch
 		{
+			// 交易防御：鲁滨逊营收记录失败跳过
 		}
 	}
 
@@ -545,6 +556,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：StoreClient 状态检查异常跳过
 			}
 			try
 			{
@@ -562,6 +574,7 @@ internal static partial class Patches
 				}
 				catch
 				{
+					// 交易防御：PlayerStore 当前客户状态检查异常跳过
 				}
 				if (storeClient != null && ((storeClient.identifier ?? "") == "inventor" || (storeClient.identifier ?? "") == "inventorStorage" || (storeClient.identifier ?? "") == "inventor_storage"))
 				{
@@ -570,6 +583,7 @@ internal static partial class Patches
 			}
 			catch
 			{
+				// 交易防御：PlayerStore 当前客户状态检查异常跳过
 			}
 		}
 		catch (System.Exception ex)
@@ -619,6 +633,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：物品唯一ID读取（同上）
 				}
 				if (num != 0L && !_discountedItems.ContainsKey(num))
 				{
@@ -673,6 +688,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：物品唯一ID读取（同上）
 				}
 				if (num != 0L && !_discountedItems.ContainsKey(num))
 				{
@@ -791,6 +807,7 @@ itemFeature.isFeatureExposed = true;
 			}
 			catch
 			{
+				// 交易防御：物品指针读取（交互期物品销毁防御）
 			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
@@ -889,6 +906,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：物品唯一ID读取（同上）
 				}
 				if (num != 0L && !_tradeFeatureItems.ContainsKey(num))
 				{
@@ -933,7 +951,10 @@ f.isFeatureExposed = true;
 			f.actualDisplay = display;
 			item.itemFeatures.Add(f);
 		}
-		catch { }
+		catch
+		{
+			// 交易防御：AddTradeLabel 前置判空失败跳过（标签不显示，价格不受影响）
+		}
 	}
 
 	private static void TryAddRobinsonBuyMarkup(GameItem item)
@@ -972,6 +993,7 @@ itemFeature.isFeatureExposed = true;
 		}
 		catch
 		{
+			// 交易防御：特征容器判空/骰子标记检查失败跳过
 		}
 	}
 
@@ -1014,6 +1036,7 @@ itemFeature.isFeatureExposed = true;
 			}
 			catch
 			{
+				// 交易防御：物品唯一ID读取（同上）
 			}
 			if (num != 0L && !_tradeFeatureItems.ContainsKey(num))
 			{
@@ -1045,6 +1068,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：特征容器遍历——已含特性检查失败跳过（防重复叠加）
 				}
 				try
 				{
@@ -1055,6 +1079,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：特征容器遍历——已含特性检查失败跳过
 				}
 				try
 				{
@@ -1065,6 +1090,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：特征容器遍历——已含特性检查失败跳过
 				}
 				try
 				{
@@ -1075,6 +1101,7 @@ itemFeature.isFeatureExposed = true;
 				}
 				catch
 				{
+					// 交易防御：特征容器遍历——已含特性检查失败跳过
 				}
 			}
 			_tradeFeatureItems.Clear();
@@ -1165,3 +1192,4 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 }
+
