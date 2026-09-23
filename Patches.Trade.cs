@@ -44,7 +44,9 @@ internal static partial class Patches
 
 	private static int _currentValueCallsInNegociated = 0;
 
-	private static bool _inBudgetOverride = false;
+	internal static bool _inBudgetOverride = false; // 09-23 原 private；蛙娘 PostfixApplyBudgetModifier 防重入也需访问 → internal
+
+	private static float _budgetDiagTime = 0f; // 成交预算诊断节流（发布前删）
 
 	private static readonly HashSet<long> _moodBoostedClients = new HashSet<long>();
 
@@ -385,6 +387,7 @@ internal static partial class Patches
 			try
 			{
 				int budget = __instance.GetBudget();
+				// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
 				__instance.SetBudget((int)((double)budget * (1.0 + (double)budgetBonusPct / 100.0)));
 			}
 			finally
@@ -408,6 +411,7 @@ internal static partial class Patches
 				if (budgetBonusPct > 0 && !__result.useClientBudget)
 				{
 					int clientCash = __result.clientCash;
+					// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
 					__result.clientCash = (int)((double)clientCash * (1.0 + (double)budgetBonusPct / 100.0));
 				}
 			}
@@ -467,6 +471,12 @@ internal static partial class Patches
 	{
 		try
 		{
+			// 【开发诊断 · 发布前删】成交时刻预算/现金最终值（预算归零根因实测）
+			if (__instance != null && Time.time - _budgetDiagTime > 5f)
+			{
+				_budgetDiagTime = Time.time;
+				Core.LogMsg("[预算诊断·成交] client=" + (__instance.identifier ?? "?") + " GetBudget=" + __instance.GetBudget() + " clientCash=" + __instance.clientCash + " useClientBudget=" + __instance.useClientBudget);
+			}
 			if (!RobinCrusoePerk.IsActive())
 			{
 				return;

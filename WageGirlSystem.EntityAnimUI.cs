@@ -240,7 +240,7 @@ public static partial class WageGirlSystem
         catch { }
     }
 
-    // ===================== 阶段 3：在场增益-预算 ×4（ApplyBudgetModifier Postfix——照鲁滨逊预算联动先例） =====================
+    // ===================== 阶段 3：在场增益-预算（09-23 用户拍板：不人为变化预算，恢复原生——本 Postfix 仅诊断观测） =====================
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
         try
@@ -248,16 +248,14 @@ public static partial class WageGirlSystem
             if (__instance == null) return;
             if (!Exists()) return; // 蛙娘未出现 → 无增益
             if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
-            // 预算 ×4（+300%，话术 v9：OverrideBudget(GetBudget()*4)）
-            int budget = __instance.GetBudget();
-            // 09-20 优化：预算随好感分档（<30→1.5x、<60→2.5x、≥60→4x）
-            int affB = GetAffection();
-            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
-            long newBudget = (long)(budget * mult);
-            if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
-            __instance.OverrideBudget((int)newBudget);
-            __instance.clientCash = (int)newBudget;
-            __instance.useClientBudget = true;
+            if (Patches._inBudgetOverride) return; // 防重入（鲁滨逊 SetBudget 触发链）
+            // 【开发诊断 · 发布前删】仅观测：确认原生预算在蛙娘在场时是否被原生正确计算（不再覆盖任何值）
+            if (Time.time - _budgetDiagTime > 5f)
+            {
+                _budgetDiagTime = Time.time;
+                int budget = __instance.GetBudget();
+                Core.LogMsg("[预算诊断·原生] client=" + (__instance.identifier ?? "?") + " GetBudget=" + budget + " useClientBudget=" + __instance.useClientBudget + " clientCash=" + __instance.clientCash);
+            }
         }
         catch { }
     }
@@ -525,6 +523,7 @@ public static partial class WageGirlSystem
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f;
     private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
+    private static float _budgetDiagTime = 0f;   // 预算诊断节流（发布前删）
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
     private static int _stepsTaken = 0;      // 本轮已走步数
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）

@@ -85,13 +85,7 @@ public static class BuildConfig
 		}
 	}
 
-	// ===== 蛙娘在场：客户预算加成 CFG ===== (09-23)
-	public static float WageGirlBudgetMultLow => GetFloat("WageGirlBudgetMultLow", 1.5f);
-	public static float WageGirlBudgetMultMid => GetFloat("WageGirlBudgetMultMid", 2.5f);
-	public static float WageGirlBudgetMultHigh => GetFloat("WageGirlBudgetMultHigh", 4f);
-	public static int WageGirlBudgetAffLow => GetInt("WageGirlBudgetAffLow", 30);
-	public static int WageGirlBudgetAffMid => GetInt("WageGirlBudgetAffMid", 60);
-	public static long WageGirlBudgetCap => 2147483646L;
+	// ===== 蛙娘在场：客户预算加成 CFG ===== (09-23) —— 09-23 用户拍板恢复原生预算后全部作废（无任何引用）已移除
 
 	public static bool HardMode
 	{
