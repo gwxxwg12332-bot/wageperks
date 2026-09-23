@@ -33,7 +33,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Rare] 异常: " + ex.Message); }
 
     }
     public static void PostfixCreateTooltip(RichTextBuilder builder, GameItem item)
@@ -72,7 +72,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Rare] 异常: " + ex.Message); }
 
     }
     private static string[] BuildRarePool()
@@ -123,7 +123,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
                             return neural;
                         }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Rare] 异常: " + ex.Message); }
                 }
             }
 

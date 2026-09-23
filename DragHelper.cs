@@ -27,7 +27,7 @@ internal static class DragHelper
             if (dragged == null || target == null) return true;
             if (isDraggedType(dragged) && isTargetType(target)) return false;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DragHelper] 异常: " + ex.Message); }
         return true;
     }
 }

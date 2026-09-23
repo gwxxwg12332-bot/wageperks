@@ -390,7 +390,7 @@ internal static class BatteryCannibalism
 				list.Add(item);
 			}
 		}
-		catch { }
+		catch (System.Exception ex) { Core.LogMsg("[BatteryCannibalism] 异常: " + ex.Message); }
 		return list;
 	}
 

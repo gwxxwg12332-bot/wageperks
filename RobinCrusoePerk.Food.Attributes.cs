@@ -33,7 +33,7 @@ internal static partial class RobinCrusoePerk
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(FOOD_Q_TAG, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
     }
 
     internal static int GetCalorie(GameItem item)
@@ -47,7 +47,7 @@ internal static partial class RobinCrusoePerk
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
         try
         {
             if (item.IsTag("CALORIE"))
@@ -56,7 +56,7 @@ internal static partial class RobinCrusoePerk
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
         return 300;
     }
     // 已食用判定：剩余卡路里 < 满量
@@ -83,7 +83,7 @@ internal static partial class RobinCrusoePerk
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
         return GetCalorie(item);
     }
 
@@ -98,7 +98,7 @@ internal static partial class RobinCrusoePerk
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(CAL_LEFT_TAG, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
     }
 
     internal static int GetEffectiveCal(GameItem item)
@@ -125,7 +125,7 @@ internal static partial class RobinCrusoePerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
         try { return Math.Max(0, WaterHelper.GetCurrentCapacityML(item)); } catch { }
         return BOTTLE_ML;
     }

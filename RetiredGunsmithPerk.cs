@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -69,7 +69,7 @@ internal sealed class RetiredGunsmithPerk : CustomStartingPerk
             if (string.IsNullOrEmpty(id)) return true;
             if (id.StartsWith("printer_chip_") || id == "printer_module_metal") return false;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RetiredGunsmithPerk] 异常: " + ex.Message); }
         return true;
     }
 

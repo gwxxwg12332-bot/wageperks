@@ -28,7 +28,7 @@ internal static class TagHelper
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(tag, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TagHelper] 异常: " + ex.Message); }
     }
 
     public static void AddInt(GameItem item, string tag, int delta)

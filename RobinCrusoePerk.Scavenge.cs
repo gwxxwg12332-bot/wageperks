@@ -34,7 +34,7 @@ internal static partial class RobinCrusoePerk
             // 三处同 cap（拆包 2.13.11.4：GetMaxScavAttempts/GetScavTimeLeft/CanScavenge 独立复制，须一致）
             __result = GetScavAttempts() < GetScavCap();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
     }
     public static void PostfixGetMaxScavAttempts(ref int __result)
     {
@@ -44,7 +44,7 @@ internal static partial class RobinCrusoePerk
             if (IsBloodWeak() || IsForcedRest()) { __result = 0; return; } // 09-20 M5
             __result = GetScavCap(); // 上限
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
     }
     public static void PostfixGetScavTimeLeft(ref int __result)
     {
@@ -55,7 +55,7 @@ internal static partial class RobinCrusoePerk
             // UI 显示：剩余 = 上限 - 已用（不为负，数字整对）
             __result = Math.Max(0, GetScavCap() - GetScavAttempts());
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
     }
     // 拾荒次数 cap（v5.7）：受伤=0、病危=0；心情 ≥80 +2 / <40 -2；基底 5
     private static int GetScavCap()
@@ -72,7 +72,7 @@ internal static partial class RobinCrusoePerk
             cap = Math.Max(1, cap);
             return cap;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
         return 5;
     }
     // 拾荒池多加官方药品+食物（用户拍板 09-09）：每次成功拾荒 60% 概率额外翻出 1 件（官方已开放）
@@ -110,7 +110,7 @@ internal static partial class RobinCrusoePerk
             // 09-13 用户拍板 v1 定稿：拾荒每次 -2 清洁（单一场景）
             SetClean(Math.Max(0, GetClean() - BuildConfig.CleanScavCost));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
     }
 
     private static int GetScavAttempts()
@@ -121,7 +121,7 @@ internal static partial class RobinCrusoePerk
             if (ps == null) return 0;
             return ps.scavengingAttempts;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
         return 0;
     }
 }

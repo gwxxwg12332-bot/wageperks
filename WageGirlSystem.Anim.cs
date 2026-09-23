@@ -28,7 +28,7 @@ public static partial class WageGirlSystem
             _spWalk = LoadSpriteGroup(WageGirlAnimFrames.Walk);
             _curAnimSprites = _spIdle;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     private static Sprite[] LoadSpriteGroup(string[] b64s)
     {
@@ -50,11 +50,11 @@ public static partial class WageGirlSystem
                         arr[i] = Sprite.Create(tex, new Rect(0, 0, 64, 96), new Vector2(0.5f, 0.5f), 200f); // 09-22 回缩1倍：64×96 超采样 → 显示 32×48
                         continue;
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
                 }
                 try { UnityEngine.Object.Destroy(tex); } catch { }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
         }
         return arr;
     }
@@ -83,7 +83,7 @@ public static partial class WageGirlSystem
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     private static void EnsureStaticIcon()
     {
@@ -117,7 +117,7 @@ public static partial class WageGirlSystem
             sp.hideFlags = HideFlags.DontSave;
             _staticIconSprite = sp;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
     {
@@ -129,7 +129,7 @@ public static partial class WageGirlSystem
                 if (_staticIconSprite != null) { __result = _staticIconSprite; return false; }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
         return true;
     }
     private static string EvalState()
@@ -165,7 +165,7 @@ public static partial class WageGirlSystem
             _animModeTimer = 0f;
             _curAnimSprites = mode == 1 ? _spWalk : mode == 2 ? _spAngry : _spIdle;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     private static bool ExistsCached()
     {
@@ -188,7 +188,7 @@ public static partial class WageGirlSystem
             if (Time.frameCount == _lastTickFrame) return;
             _lastTickFrame = Time.frameCount;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
         try
         {
             if (!ExistsCached()) return;
@@ -275,7 +275,7 @@ public static partial class WageGirlSystem
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     private static void TryApplyAnimFrame()
     {
@@ -336,7 +336,7 @@ public static partial class WageGirlSystem
             if (f == null) return;
             el.ApplyAnimationFrame(f);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
     private static bool TryMoveStep()
     {
@@ -413,7 +413,7 @@ public static partial class WageGirlSystem
                             return true;
                         }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
                 }
                 if (Time.time - _lastMoveDiagTime > 5f)
                 {
@@ -468,6 +468,6 @@ public static partial class WageGirlSystem
             }
             if (s != null) frame = s;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
     }
 }

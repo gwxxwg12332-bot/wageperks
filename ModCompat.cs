@@ -162,7 +162,7 @@ public static class ModCompat
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ModCompat] 异常: " + ex.Message); }
         return false;
     }
 
@@ -180,6 +180,6 @@ public static class ModCompat
                 Core.LogMsg($"[兼容] 检测到第三方 mod「{e.ModAssembly}」已加载——{act}");
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ModCompat] 异常: " + ex.Message); }
     }
 }

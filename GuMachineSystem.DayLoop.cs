@@ -23,7 +23,7 @@ public static partial class GuMachineSystem
                 TryAiGeneratorTick(gen, day);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
     }
     private static System.Collections.Generic.List<GameItem> FindGuMachines()
     {
@@ -33,7 +33,7 @@ public static partial class GuMachineSystem
             var all = Il2Cpp.PlayerStore.Instance.FindAllItem(true);
             if (all != null) foreach (var it in all) { if (it != null && it.identifier == GU_MACHINE_ID) result.Add(it); }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
         return result;
     }
     internal static GameGridInventory GetGuGrid(GameItem gu) // internal：供 BatteryCannibalism 收集养蛊机舱内电池
@@ -57,7 +57,7 @@ public static partial class GuMachineSystem
                 if (isMod) { try { m.EnableTag("MODULE_STUCK_TAG"); } catch { } }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
     }
     private static void UnlockGuModules(GameGridInventory grid)
     {
@@ -70,6 +70,6 @@ public static partial class GuMachineSystem
                 try { if (m.IsTag("MODULE_STUCK_TAG")) m.DisableTag("MODULE_STUCK_TAG"); } catch { }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
     }
 }

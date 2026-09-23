@@ -13,7 +13,7 @@ internal static class NpcHelper
             if (ps == null) return;
             ps.QueueFuturClient(npcId, daysFromNow);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NpcHelper] 异常: " + ex.Message); }
     }
 
     public static void ScheduleOnce(string npcId, string tagKey, int firstDay, int currentDay)
@@ -25,6 +25,6 @@ internal static class NpcHelper
             Schedule(npcId, 0);
             WageSaveStore.SetInt("NpcSchedule", tagKey, 1);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NpcHelper] 异常: " + ex.Message); }
     }
 }

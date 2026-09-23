@@ -91,7 +91,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
             if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪继续等
             TryGiveKit();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.State] 异常: " + ex.Message); }
     }
     internal override void OnNewGame()
 

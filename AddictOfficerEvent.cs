@@ -137,7 +137,7 @@ internal static class AddictOfficerEvent
                         int lvl = ContrabandHelper.GetContrabandLevel(c);
                         if (lvl > 0) haul.Add((c, hidden, lvl));
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
                 }
             }
 
@@ -156,7 +156,7 @@ internal static class AddictOfficerEvent
                         int lvl = ContrabandHelper.GetContrabandLevel(c);
                         if (lvl > 0) haul.Add((c, inner, lvl));
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
                 }
             }
         }
@@ -193,7 +193,7 @@ internal static class AddictOfficerEvent
                 try { if (ChemicalFeedbackHelper.IsNarcotic(it)) return true; } catch { }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
         return false;
     }
 
@@ -224,13 +224,13 @@ internal static class AddictOfficerEvent
                 var inv = prop?.GetValue(w) as GameInventory;
                 if (inv != null) return inv;
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
             try
             {
                 var grid = ContainerUpgradeV2.GetContainerGrid(container);
                 if (grid != null) return grid;
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
             return null;
         }
         catch { return null; }
@@ -255,7 +255,7 @@ internal static class AddictOfficerEvent
             if (client.mainDialogue != null) client.mainDialogue.SetText(speaker, text);
             else { var d = new Dialogue(); d.SetText(speaker, text); client.mainDialogue = d; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[AddictOfficerEvent] 异常: " + ex.Message); }
     }
 
     private static int GetDay() { try { return StoreStation.GetDayCounter(); } catch { return 1; } }

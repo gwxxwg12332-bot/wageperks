@@ -75,7 +75,7 @@ internal static partial class RobinCrusoePerk
             int now = DeterministicSchedule.CurrentDay;
             return now - start <= 2;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
         return false;
     }
 
@@ -88,7 +88,7 @@ internal static partial class RobinCrusoePerk
             if (wf.realCondition != null && wf.realCondition.identifier == "wine_quality_homebrew") return true;
             if (wf.fakeCondition != null && wf.fakeCondition.identifier == "wine_quality_homebrew") return true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
         return false;
     }
 
@@ -153,7 +153,7 @@ internal static partial class RobinCrusoePerk
             TryExpel(item); // 饮料喝完消失（消耗 1 件）
             RefreshStatusPanel();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
     }
 
     private static bool IsSnack(GameItem item)
@@ -201,7 +201,7 @@ internal static partial class RobinCrusoePerk
             try { StoreUIManager.Instance.Notify(LangHelper.T("麻醉品：心情 +" + BuildConfig.NarcoticMood + " 睡眠 +" + slp + "%", "Narcotic: Mood +" + BuildConfig.NarcoticMood + " Sleep +" + slp + "%"), "green"); } catch { }
             RefreshStatusPanel();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
     }
 
     private static void TreatWithMedicine(GameItem item)
@@ -237,7 +237,7 @@ internal static partial class RobinCrusoePerk
             TryExpel(item); // 物品从库存消失（消耗 1 件）
             RefreshStatusPanel();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
     }
 
 }

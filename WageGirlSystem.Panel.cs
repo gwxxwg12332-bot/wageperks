@@ -28,7 +28,7 @@ public static partial class WageGirlSystem
                     rt.anchoredPosition = new Vector2(-16, -16);
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
             b.BeginColumn(4f);
             // 09-20 优化：顶部好感度显示
             b.AddLabel(LangHelper.T("好感度：" + GetAffection() + "/100（" + GetAffLevelText() + "）", "Affection: " + GetAffection() + "/100 (" + GetAffLevelText() + ")"), "wg_aff");
@@ -59,7 +59,7 @@ public static partial class WageGirlSystem
                     var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = GetStat(K_FENCE_CAT) + 1; if (c > 7) c = 0; SetStat(K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("销赃类别（可选择）：" + cats[curCat], "Fence type (selectable): " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
                 // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
                 try
                 {
@@ -73,7 +73,7 @@ public static partial class WageGirlSystem
                     // 模式说明
                     b.AddLabel(LangHelper.T(wmode == 0 ? "拖违禁品给蛙娘 → 洗白（消除标签，按等级扣费）" : "拖违禁品给蛙娘 → 累计销赃（点「销赃」按钮出发）", wmode == 0 ? "Feed contraband → launder (remove tag, cost by level)" : "Feed contraband → accumulate fence (press Fence to go)"), "wg_mode_hint");
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
             }
             // 喂钱按钮
             try {
@@ -112,7 +112,7 @@ public static partial class WageGirlSystem
                     b.AddLabel(st, "wg_leave");
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }

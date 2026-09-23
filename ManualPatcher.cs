@@ -51,7 +51,7 @@ internal static class ManualPatcher
             Core.LogMsg("[Patch自检] ===== 以下补丁未应用（对应功能不会生效）=====");
             foreach (string d in _patchFailDetails) Core.LogMsg("[Patch自检]   " + d);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ManualPatcher] 异常: " + ex.Message); }
     }
 
     internal static void Init(HarmonyLib.Harmony harmony)

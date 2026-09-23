@@ -37,7 +37,7 @@ internal static class ContainerShapeHelper
             if (grid.inventoryShape.width == targetW) return;
             SetFullRect(grid, targetW, targetH);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerShapeHelper] 异常: " + ex.Message); }
     }
 
     private static GameGridInventory GetContainerGrid(GameItem box)
@@ -60,6 +60,6 @@ internal static class ContainerShapeHelper
     private static void SetFullRect(GameGridInventory grid, int w, int h)
     {
         try { grid.SetShape(new string('0', w * h), w); }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerShapeHelper] 异常: " + ex.Message); }
     }
 }

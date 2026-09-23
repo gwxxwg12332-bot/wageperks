@@ -31,6 +31,6 @@ public static partial class GuMachineSystem
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (f != null) f.SetValue(it, val);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Tools] 异常: " + ex.Message); }
     }
 }

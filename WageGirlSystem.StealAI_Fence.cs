@@ -44,7 +44,7 @@ public static partial class WageGirlSystem
                 ReportLine(LangHelper.T(msg + sn + "（" + stolen + " 件）", msg + " (" + (stolenNames != null ? string.Join(", ", stolenNames) : "") + ", " + stolen + " items)"));
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 真饮品判定：水量 > 0 或有卡路里值才算喝得到东西（空瓶/无记录的饮品不算）
@@ -185,12 +185,12 @@ public static partial class WageGirlSystem
                         names.Add(ModCannibalism.GetName(it));
                     }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
             }
             if (names.Count > 0) ReportLine(LangHelper.T("蛙娘回来了，带了点东西回来：" + string.Join("、", names), "Wage Girl is back with: " + string.Join(", ", names)));
             else ReportLine(LangHelper.T("蛙娘回来了（没带什么值钱的东西）", "Wage Girl is back (empty-handed)"));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 偷钱消失：从场景所有网格 + 容器内部移除蛙娘实体（回归时 TryGiveToBackpack 重发）
@@ -223,9 +223,9 @@ public static partial class WageGirlSystem
                     }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 单个网格内移除蛙娘（含顶层容器 contentWindow 内部递归）
@@ -251,7 +251,7 @@ public static partial class WageGirlSystem
                     if (inner != null) RemoveGirlFromInv(inner);
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
         }
     }
 
@@ -391,7 +391,7 @@ private static void FenceReturn()
             if (names.Count > 0) { int actualKeep = (int)(amt - spent); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, string.Join("、", names))); }
             else ReportLine(LangHelper.T("蛙娘销赃回来了（没找到合适的货）", "Wage Girl is back (no good goods found)"));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 09-21 新增：销赃夜报统一格式
@@ -454,7 +454,7 @@ private static void FenceReturn()
             else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
             // 09-22 砍：跑路回归不偷（只带回来给玩家）
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 按类别找物品（跑路回归礼物用）
@@ -554,10 +554,10 @@ private static void FenceReturn()
                     _itemInfoCache[id] = info;
                     try { g.Destroy(); } catch { }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 武器/工具类别判定（id 关键词匹配，照 IsToolOrKeyOrContainer 先例）
@@ -635,7 +635,7 @@ private static void FenceReturn()
             var inv = (GameInventory)em.backInvinvElement;
             inv.UncheckedAccept(it); // 主仓库(后库)
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
     // 正品免疫宁（09-23 修复「蛙娘带回的正品免疫宁无法使用」）
@@ -676,7 +676,7 @@ private static void FenceReturn()
                     inv = prop != null ? (prop.GetValue(cw) as GameInventory) : null;
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
             if (inv == null) return crate; // 取不到内部库存 → 原样返回（箱自带原版内容）
             var basePool = WagePowerPerk.ItemPool ?? new string[0];
             long spent = 0; int tries = 0, filled = 0;

@@ -114,7 +114,7 @@ public static partial class WageGirlSystem
             // 阶段 5：回归 / 自主偷拿 / 偷钱循环
             RunDayEvents();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 异常: " + ex.Message); }
     }
 
     // 每日事件：回归（按原因分支）→（消失期不活动）→ 跑路检查 → 初次偷拿 → 日常偷拿 → 好物 → 偷钱循环
@@ -224,7 +224,7 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 ReportLine(LangHelper.T("蛙娘偷走了 " + steal + " 块钱，出门躲债去了（明天回来）", "Wage Girl stole " + steal + " credits and went out (back tomorrow)"));
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 异常: " + ex.Message); }
     }
 
     // 任一六维 <阈值（跑路判定；CFG：WageGirlRunawayLowStat）
@@ -289,7 +289,7 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             if (giftCrate != null) { AddToFront(giftCrate); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一只物资箱！", "Wage Girl brought a supply crate today!")); }
             else { AddToFront(it); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!")); }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 异常: " + ex.Message); }
     }
 
     // 销赃回归：按所选类别拆成多件带回（每件 ≤ 单件目标、最接近；总价值 ≤ 目标×1.3；跑腿费 10% 起随好感降）

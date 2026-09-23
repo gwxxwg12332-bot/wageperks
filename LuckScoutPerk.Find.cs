@@ -42,7 +42,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Find] 异常: " + ex.Message); }
 
     }
     private static GameItem FindScannerInOwned()
@@ -71,7 +71,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Find] 异常: " + ex.Message); }
 
         finally { _inAfterhourScan = false; }
 
@@ -125,7 +125,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Find] 异常: " + ex.Message); }
 
         return null;
 

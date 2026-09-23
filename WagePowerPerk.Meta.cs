@@ -109,7 +109,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             try { var v = emporium.showcaseElement as GameInventory; if (v != null) list.Add(v); } catch { }
             try { var v = emporium.invElement as GameInventory; if (v != null) list.Add(v); } catch { }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
         return list;
     }
 
@@ -137,7 +137,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪继续等
             TryGiveStorageBox();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
     }
 
     // ============================================================
@@ -234,7 +234,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 StoreClientInstance instance = store.currentClientInstance;
                 if (instance != null && instance.storeClient != null) return instance.storeClient;
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
 
             // 方式2：从PlayerStore的storeClientManager获取
             try
@@ -260,7 +260,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
 
             // 方式3：遍历PlayerStore的所有字段，查找StoreClient类型
             try
@@ -279,7 +279,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
 
             // 方式4：遍历PlayerStore的所有属性，查找StoreClient类型
             try
@@ -298,7 +298,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
         }
         catch
         {
@@ -348,7 +348,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                                     }
                                 }
                             }
-                            catch { }
+                            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Meta] 异常: " + ex.Message); }
                         }
                     }
                 }

@@ -38,7 +38,7 @@ public static partial class WageGirlSystem
     private static void ApplyIcon(GameItem it)
     {
         try { it.SetSpriteAndShape(ICON_ATLAS, ICON); }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Entity] 异常: " + ex.Message); }
     }
     private static Sprite SpriteFromPixels(Color[] pixels, int w, int h)
     {
@@ -64,7 +64,7 @@ public static partial class WageGirlSystem
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (f != null) f.SetValue(it, val);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Entity] 异常: " + ex.Message); }
     }
     private static bool ExistsInScene()
     {
@@ -100,7 +100,7 @@ public static partial class WageGirlSystem
                     if (inner != null && FindGirlInInv(inner)) return true;
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Entity] 异常: " + ex.Message); }
         }
         return false;
     }
@@ -151,7 +151,7 @@ public static partial class WageGirlSystem
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Entity] 异常: " + ex.Message); }
         return null;
     }
 }

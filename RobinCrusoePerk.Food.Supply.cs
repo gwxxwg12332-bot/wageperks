@@ -34,7 +34,7 @@ internal static partial class RobinCrusoePerk
                         MerchantHelper.AddItemToCounter(m, price, false);
                         added++;
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Supply] 异常: " + ex.Message); }
                 }
                 Core.LogMsg("[养蛊机] 博士廉价模组供货 " + added + " 件（day " + day + "）");
             }
@@ -93,7 +93,7 @@ internal static partial class RobinCrusoePerk
                     try { Il2Cpp.WaterHelper.Remove(item, sip * 1000); } catch { } // 09-11 定案：µl 单位
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Supply] 异常: " + ex.Message); }
             return false; // 拦原版：水质挂钩已由 mod 接管
         }
         catch { return true; }
@@ -158,7 +158,7 @@ internal static partial class RobinCrusoePerk
                         stack.Push(ci);
                     }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Supply] 异常: " + ex.Message); }
             }
             // 3) 兜底：原生销毁（吃完/喝完/用完=销毁，TryDestroyAll 签名为 List<GameItem>，MoreUpdate 拆包确认）
             try
@@ -205,10 +205,10 @@ internal static partial class RobinCrusoePerk
                     for (int i = 0; i < gi.childItems.Count; i++)
                         if (gi.childItems[i] != null) result.Add(gi.childItems[i]);
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Supply] 异常: " + ex.Message); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Supply] 异常: " + ex.Message); }
         return result;
     }
 

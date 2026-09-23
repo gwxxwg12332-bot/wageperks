@@ -27,7 +27,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.Display] 异常: " + ex.Message); }
 
         }
         public static void PostfixQueueFuturEvent(StoreEvent storeEvent)
@@ -48,7 +48,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.Display] 异常: " + ex.Message); }
 
         }
 }

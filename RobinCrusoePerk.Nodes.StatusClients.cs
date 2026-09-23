@@ -38,7 +38,7 @@ internal static partial class RobinCrusoePerk
             // 工厂打标补充（desperate/wornOut/sickLowers 等未知 identifier）
             if (_statusClientSet.Contains(client)) return true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Nodes.StatusClients] 异常: " + ex.Message); }
         return false;
     }
     internal static string GetStatusClientKind(StoreClient client)
@@ -53,7 +53,7 @@ internal static partial class RobinCrusoePerk
             if (id.Contains("sick")) return "sick";
             if (_statusClientSet.Contains(client)) return _statusClientKind.GetValueOrDefault(client, "");
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Nodes.StatusClients] 异常: " + ex.Message); }
         return "";
     }
     private static readonly HashSet<StoreClient> _statusClientSet = new HashSet<StoreClient>();
@@ -75,7 +75,7 @@ internal static partial class RobinCrusoePerk
             _statusClientSet.Add(__result);
             if (!string.IsNullOrEmpty(kind)) _statusClientKind[__result] = kind;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Nodes.StatusClients] 异常: " + ex.Message); }
     }
 
     // ===== 状态客户加价系数（TryApplyTradeMarkup mode==2 调用）=====

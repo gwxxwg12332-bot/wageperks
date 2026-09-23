@@ -81,7 +81,7 @@ internal static partial class RobinCrusoePerk
                     int rest = WageSaveStore.GetInt(PERK_ID, "blood_rest", 0);
                     if (rest > 0 && rest == 3 - i) PostfixOnNewDay();
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Death] 异常: " + ex.Message); }
                 if (_gameOverTriggered) return; // 跳天中死亡（三死/失血）→ 立即停止
             }
             try { ps.SaveGame(); } catch { } // 3 天无死亡才存档
@@ -162,6 +162,6 @@ internal static partial class RobinCrusoePerk
             WageSaveStore.SetInt(PERK_ID, "lowDays", 0);
             try { StoreUIManager.Instance.Notify(LangHelper.T("一位好心顾客送来了口粮和水……", "A kind customer brought rations and water..."), "green"); } catch { }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Death] 异常: " + ex.Message); }
     }
 }

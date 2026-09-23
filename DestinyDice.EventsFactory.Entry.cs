@@ -122,7 +122,7 @@ namespace JacksonPerks
 
                     }
 
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsFactory.Entry] 异常: " + ex.Message); }
 
                 }
 

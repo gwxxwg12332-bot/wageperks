@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using MelonLoader;
@@ -179,7 +179,7 @@ internal static class SpecialNpcManager
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[SpecialNpcManager] 异常: " + ex.Message); }
         return false;
     }
 

@@ -128,7 +128,7 @@ public static partial class GuMachineSystem
             try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#7FC97F"); } catch { } // 09-19 亮绿(#00FF00)改柔和绿——刺眼反馈
             Core.AddNightReportLine(line);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Tick] 异常: " + ex.Message); }
     }
     private static System.Collections.Generic.List<GameItem> FindAiGenerators()
     {
@@ -141,7 +141,7 @@ public static partial class GuMachineSystem
                 if (all != null) foreach (var it in all) { if (it != null && it.identifier == AI_GENERATOR_ID) result.Add(it); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Tick] 异常: " + ex.Message); }
         return result;
     }
     private static void TryAiGeneratorTick(GameItem gen, int day)
@@ -257,6 +257,6 @@ public static partial class GuMachineSystem
             }
             RobinCrusoePerk.AddTagInt(gen, AI_LAST_DAY_TAG, day);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Tick] 异常: " + ex.Message); }
     }
 }

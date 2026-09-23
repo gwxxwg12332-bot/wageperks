@@ -48,7 +48,7 @@ internal static class DeterministicRandom
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DeterministicRandom] 异常: " + ex.Message); }
         // 兜底：用固定字符串
         return "default_run";
     }

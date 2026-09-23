@@ -15,7 +15,7 @@ public static partial class WageGirlSystem
             if (__instance == null || targetItem == null) return true;
             if (IsGirl(targetItem) && CanFeed(__instance)) { __result = true; return false; } // hover 可拖
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
         return true;
     }
     public static bool PrefixCanTarget(GameItem __instance, GameItem targetItem, ref bool __result)
@@ -31,7 +31,7 @@ public static partial class WageGirlSystem
             if (!IsDragRelease()) return true;
             if (TryFeed(__instance, targetItem)) return false; // 喂食成功：拦截原生放入
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
         return true;
     }
     private static bool IsDragRelease()
@@ -184,6 +184,6 @@ public static partial class WageGirlSystem
             // （面板内按钮各自保留原有门控：销赃 TryFence / 洗白 仍禁止交易中使用）
             ShowPanel();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
     }
 }

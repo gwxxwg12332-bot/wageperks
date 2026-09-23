@@ -71,14 +71,14 @@ internal static partial class RobinCrusoePerk
                     }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
             if (!bag) Core.LogMsg("[卖血] blood_bag 不存在或发放失败");
             try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
             try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000)"), "green"); } catch { }
             RefreshStatusPanel();
             return true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
         return false;
     }
 
@@ -150,7 +150,7 @@ internal static partial class RobinCrusoePerk
                 RefreshStatusPanel();
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
     }
 
     public static bool PrefixReceiveWound()
@@ -164,7 +164,7 @@ internal static partial class RobinCrusoePerk
             if (IsBloodWeak()) avoid -= 0.3f; // 卖血虚弱（<3000）：受伤概率 +30%（09-17）
             if (UnityEngine.Random.value < avoid) return false;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
         return true;
     }
     // 受伤扣血（09-17 卖血）：轻伤 -200 / 重伤 -500（ReceiveMinorWound/MajorWound Postfix）
@@ -190,7 +190,7 @@ internal static partial class RobinCrusoePerk
             WageSaveStore.SetInt(PERK_ID, "saved_sleep", GetSleep());
             WageSaveStore.SetInt(PERK_ID, "saved_social", GetSocial());
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
     }
     // 受伤判定：woundState > 0（[L1] PlayerStore.healthData@0x2B8 → HealthData.woundState@0x24；IsSeriouslyWounded=woundState>5）
     private static bool IsWounded()
@@ -201,7 +201,7 @@ internal static partial class RobinCrusoePerk
             if (ps == null || ps.healthData == null) return false;
             return ps.healthData.woundState > 0;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
         return false;
     }
     // 伤口稳定判定（打绷带/治疗后 isWoundStable=true，与捡漏直觉同语义；[L1] 原版 HealthData 字段）
@@ -213,7 +213,7 @@ internal static partial class RobinCrusoePerk
             if (ps == null || ps.healthData == null) return false;
             return ps.healthData.isWoundStable;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
         return false;
     }
 }

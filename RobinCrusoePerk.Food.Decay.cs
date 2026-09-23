@@ -21,7 +21,7 @@ internal static partial class RobinCrusoePerk
                 if (ts != null) return ts.GetInt();
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Decay] 异常: " + ex.Message); }
         return StoreStation.GetDayCounter();
     }
 
@@ -35,7 +35,7 @@ internal static partial class RobinCrusoePerk
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(FOOD_DECAY_DAY_TAG, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Decay] 异常: " + ex.Message); }
     }
 
     private static int DecayFoodsAndCount(out int fresh, out int stale, out int rotten)
@@ -58,7 +58,7 @@ internal static partial class RobinCrusoePerk
                 else rotten++;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Decay] 异常: " + ex.Message); }
         return fresh + stale;
     }
 
@@ -72,7 +72,7 @@ internal static partial class RobinCrusoePerk
                 RefreshStatusPanel(); // 生病实时刷新常驻面板（状态行 buff 跟随）
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Decay] 异常: " + ex.Message); }
     }
 
 }

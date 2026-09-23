@@ -82,7 +82,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Interaction] 异常: " + ex.Message); }
 
         }
 
@@ -209,7 +209,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Interaction] 异常: " + ex.Message); }
 
             return true;
 
@@ -227,7 +227,7 @@ namespace JacksonPerks
                 var selHandler = Il2Cpp.ItemSelectHandler.current;
                 if (selHandler != null && selHandler.IsEquipped) return true; // 放行，不吸收
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Interaction] 异常: " + ex.Message); }
 
             // 09-15 根因修复（拆包实锤）：吸收唯一触发点 = PrefixTarget（松手放置）。
             // MayTarget 只做"能否放置"判定——返回 true → 原生继续到 Target（松手才触发吸收）；悬停预览正常，不销毁物品。
@@ -281,7 +281,7 @@ namespace JacksonPerks
                 var selHandler = Il2Cpp.ItemSelectHandler.current;
                 if (selHandler != null && selHandler.IsEquipped) return true; // 放行，不吸收
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Interaction] 异常: " + ex.Message); }
 
             GameItem dice = null, food = null;
 

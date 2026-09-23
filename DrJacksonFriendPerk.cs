@@ -102,7 +102,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                                     return (int)val;
                                 }
                             }
-                            catch { }
+                            catch (System.Exception ex) { Core.LogMsg("[DrJacksonFriendPerk] 异常: " + ex.Message); }
                         }
                     }
                 }
@@ -261,7 +261,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                 if (PlayerStore.Instance != null && PlayerStore.Instance.currentClientInstance != null)
                     client = PlayerStore.Instance.currentClientInstance.GetClientBlueprint();
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DrJacksonFriendPerk] 异常: " + ex.Message); }
             AddJacksonGoodsToCounter(client);
         }
         catch (Exception ex) { Core.LogMsg("[博士之友] OnInventorStock 异常: " + ex.Message); }
@@ -279,7 +279,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
                 if (it != null && it.identifier == itemId) return true;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DrJacksonFriendPerk] 异常: " + ex.Message); }
         return false;
     }
 

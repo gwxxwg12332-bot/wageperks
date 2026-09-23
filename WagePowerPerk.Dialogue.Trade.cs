@@ -122,7 +122,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     {
                         m.Invoke(NegociationUIManager.Instance, null);
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.Dialogue.Trade] 异常: " + ex.Message); }
                 }
             }
             catch (Exception ex)

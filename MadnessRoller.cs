@@ -172,7 +172,7 @@ internal static class MadnessRoller
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return list;
     }
 
@@ -206,7 +206,7 @@ internal static class MadnessRoller
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
 
         if (best == null) return null;
         if (chosenMaxSlots >= bestSlots) return null;
@@ -236,7 +236,7 @@ internal static class MadnessRoller
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return best;
     }
 
@@ -258,7 +258,7 @@ internal static class MadnessRoller
                 if (perk.cost <= pointsLeft) candidates.Add(perk);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
 
         if (candidates.Count > 0) return candidates[Rng.Next(candidates.Count)];
         return null;
@@ -285,7 +285,7 @@ internal static class MadnessRoller
                 dict[id] = set;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return dict;
     }
 
@@ -302,7 +302,7 @@ internal static class MadnessRoller
                 if (incompat.TryGetValue(chosenId, out var set2) && set2.Contains(candidateId)) return true;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return false;
     }
 
@@ -335,7 +335,7 @@ internal static class MadnessRoller
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return false;
     }
 
@@ -349,7 +349,7 @@ internal static class MadnessRoller
                 if (perk != null && perk.id == id) return perk;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return null;
     }
 
@@ -406,7 +406,7 @@ internal static class MadnessRoller
                 if (el != null && el.id == id) return el;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
         return null;
     }
 

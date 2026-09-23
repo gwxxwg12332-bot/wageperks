@@ -49,7 +49,7 @@ internal static class FoodFatigueHelper
             if (list.Count > 3) list.RemoveAt(0);
             _recentFood[systemId] = list;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[FoodFatigueHelper] 异常: " + ex.Message); }
     }
 
     private static List<string> GetRecentFood(string systemId)

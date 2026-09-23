@@ -91,7 +91,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             if (gameItem == null) return true;
             if (gameItem.identifier == "evaporator") return false;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WaterMerchantPerk] 异常: " + ex.Message); }
         return true;
     }
     internal static void AddSpecialSellItems()

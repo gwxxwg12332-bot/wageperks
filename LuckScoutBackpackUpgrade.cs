@@ -159,7 +159,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
 
         return true;
 
@@ -261,7 +261,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                 _pendingShapes.RemoveAt(i);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
     }
 
 
@@ -417,11 +417,11 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                         var inner = cw.childElement.Cast<GameGridInventory>();
                         if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
         return false;
     }
 
@@ -441,7 +441,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
             _restoreFramesLeft--;
             if (RestoreAllBeadsInPlayerInventories()) _restoreFramesLeft = 0;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
     }
 
     public static void PostfixLoadGame()
@@ -491,7 +491,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                             var inner = cw.childElement.Cast<GameGridInventory>();
                             if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                         }
-                        catch { }
+                        catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
                     }
                 }
             }

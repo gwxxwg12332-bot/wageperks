@@ -70,10 +70,10 @@ internal static partial class Patches
 						Core.LogMsg("[奥丁] 声望" + revRep + " → 压价 -50%");
 					}
 				}
-				catch { }
+				catch (System.Exception ex) { Core.LogMsg("[Patches.Npc.Client] 异常: " + ex.Message); }
 			}
 		}
-		catch { }
+		catch (System.Exception ex) { Core.LogMsg("[Patches.Npc.Client] 异常: " + ex.Message); }
 		try
 		{
 			if (!(storeClient.identifier == "retired_winemaker"))

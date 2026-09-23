@@ -16,7 +16,7 @@ public static partial class WageGirlSystem
             __result += 50;
             if (__result > 100) __result = 100;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
     }
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
@@ -41,6 +41,6 @@ public static partial class WageGirlSystem
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap; // 上限防溢出
             __instance.OverrideBudget((int)newBudget); // 防御③：只写一次，不触发原生重算
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
     }
 }

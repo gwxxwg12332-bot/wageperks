@@ -89,7 +89,7 @@ internal static class WageSaveStore
                 if (!string.IsNullOrEmpty(rid)) return Sanitize(rid);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
         return PENDING_KEY;
     }
 
@@ -144,7 +144,7 @@ internal static class WageSaveStore
             _mem[ns + "." + key] = value ?? "";
             _dirty = true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
     }
 
     internal static int GetInt(string ns, string key, int def = 0)
@@ -237,7 +237,7 @@ internal static class WageSaveStore
             foreach (var k in toRemove) _mem.Remove(k);
             if (toRemove.Count > 0) _dirty = true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
     }
 
     internal static bool HasKey(string ns, string key)
@@ -333,7 +333,7 @@ internal static class WageSaveStore
             TryDoLoad(); // runID 未就绪时返回 false，由轮询下帧补读
             Core.LogMsg("[SaveStore] 读档挂点触发，键值" + (_loadedOnce ? "已同步加载" : "待轮询补读"));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
     }
 
     /// <summary>轮询驱动（每帧调，轻量）。文件未读则下帧补读；已读则只等延迟帧驱动 OnGameLoaded。</summary>
@@ -424,7 +424,7 @@ internal static class WageSaveStore
             }
             Core.LogMsg(sb.ToString());
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
     }
 
     private static void ReadInto(string path)
@@ -459,7 +459,7 @@ internal static class WageSaveStore
                 _mem[t.Substring(0, eq)] = t.Substring(eq + 1);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
     }
 
     // ===================== 新档 / 清理 =====================

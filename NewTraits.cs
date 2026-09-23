@@ -115,7 +115,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
                 _hungover = WageSaveStore.GetBool(PerkId, "hungover", false);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
     }
 }
 
@@ -543,7 +543,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 if (GiveToBackpack(id) != null) given++;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
     }
 
     private static string RandomFromPool(string[] pool)
@@ -580,7 +580,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
         return ids;
     }
 
@@ -643,7 +643,7 @@ internal sealed class WandererPerk : CustomStartingPerk
                     if (di != null) invs.Add(di);
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
             foreach (var inv in invs)
             {
                 if (inv == null || inv.childItems == null) { continue; }
@@ -658,11 +658,11 @@ internal sealed class WandererPerk : CustomStartingPerk
                         try { dit.Destroy(); } catch { }
                         try { inv.childItems.RemoveAt(di); } catch { }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
     }
 
 

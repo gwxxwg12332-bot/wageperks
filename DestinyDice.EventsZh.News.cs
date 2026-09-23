@@ -59,7 +59,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
         }
         public static void EnsureNewsButtons()
@@ -110,7 +110,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
         }
         public static void PrevNewsPage()
@@ -133,7 +133,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
         }
         public static void NextNewsPage()
@@ -156,7 +156,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
         }
         public static void ApplyNewsPage()
@@ -231,7 +231,7 @@ namespace JacksonPerks
 
                         }
 
-                        catch { }
+                        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
                     }
 
@@ -261,7 +261,7 @@ namespace JacksonPerks
 
                         }
 
-                        catch { }
+                        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.News] 异常: " + ex.Message); }
 
                     }
 

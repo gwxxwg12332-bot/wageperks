@@ -29,7 +29,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Scavenge] 异常: " + ex.Message); }
 
     }
     public static void PostfixGetScavTimeLeft(ref int __result)
@@ -48,7 +48,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Scavenge] 异常: " + ex.Message); }
 
     }
     public static void PrefixCanScavenge()
@@ -77,7 +77,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Scavenge] 异常: " + ex.Message); }
 
     }
     public static void PostfixCanScavenge(ref bool __result)
@@ -216,7 +216,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         }
 
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Scavenge] 异常: " + ex.Message); }
 
     }
 }

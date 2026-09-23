@@ -58,7 +58,7 @@ internal static class ItemHelper
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
         try
         {
             if (item.IsTag("CALORIE"))
@@ -67,7 +67,7 @@ internal static class ItemHelper
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
         return 300;
     }
 
@@ -82,7 +82,7 @@ internal static class ItemHelper
                 if (ts != null) return Math.Max(0, ts.GetInt());
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
         return GetCalorie(item);
     }
 
@@ -97,7 +97,7 @@ internal static class ItemHelper
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(CAL_LEFT_TAG, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
     }
 
     // ===== 水 =====
@@ -115,7 +115,7 @@ internal static class ItemHelper
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
         try { return Math.Max(0, WaterHelper.GetCurrentCapacityML(item)); } catch { }
         return 2000;
     }

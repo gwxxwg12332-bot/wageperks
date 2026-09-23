@@ -54,7 +54,7 @@ internal static class NewStartTypeUI
             if (IsMarkedRun(ps.runID))
                 ps.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE; // 兜底：PostfixLoadGame 若因 runID 空未恢复，这里补恢复
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
     }
     // 双语：const 无法运行时切换 → static readonly（LangHelper.IsEnglish 延迟求值）。职业英文名先拟 Space Station Robinson，可改。
     private static readonly string START_NAME = LangHelper.T("空间站鲁滨逊", "Space Station Robinson");
@@ -185,7 +185,7 @@ internal static class NewStartTypeUI
                                 replaced++; setOk = true;
                             }
                         }
-                        catch { }
+                        catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
                     }
                     // 方案0：运行时 Type.GetType（编译期 TMPro 在 Il2Cpp 下 CS0246 不可行——参考 mod 全用字符串判断）
                     // Il2Cpp 下 c.GetType() 返回基类 Object（诊断实锤只有 m_CachedPtr）；运行时按程序集名取真实类型
@@ -204,7 +204,7 @@ internal static class NewStartTypeUI
                         }
 
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
                     // 方案1：set_text / SetText(string) 方法反射（Il2Cpp 下 GetType 是基类，通常不可用，保留兜底）
                     if (ms != null)
                     {
@@ -216,7 +216,7 @@ internal static class NewStartTypeUI
                             var ps = mi.GetParameters();
                             if (ps == null || ps.Length != 1) continue;
                             try { mi.Invoke(c, new object[] { START_NAME }); replaced++; setOk = true;  }
-                            catch { }
+                            catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
                             break;
                         }
                     }
@@ -234,14 +234,14 @@ internal static class NewStartTypeUI
                             else
                             { }
                         }
-                        catch { }
+                        catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
                     }
                 }
             }
             for (int i = 0; i < root.childCount; i++)
                 ReplaceAllText(root.GetChild(i), ref replaced);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[NewStartTypeUI] 异常: " + ex.Message); }
     }
 
 

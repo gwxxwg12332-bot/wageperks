@@ -96,7 +96,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.ClientStats] 异常: " + ex.Message); }
         return "其他";
     }
 

@@ -54,7 +54,7 @@ public static class ContainerUpgradeV2
             var cw = item.contentWindow;
             if (cw != null && cw.childElement != null) { var v = cw.childElement.Cast<GameGridInventory>(); if (v != null) return v; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return null;
     }
     public static void GetShapeWH(GameGridInventory inv, ref int w, ref int h)
@@ -65,7 +65,7 @@ public static class ContainerUpgradeV2
             w = inv.inventoryShape.width;
             h = inv.inventoryShape.height;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
     // 全开放矩形形状（'0'=可放）；字符串重载自动 ValidateBackground（同虚空珠路径）
     private static void SetFullRect(GameGridInventory grid, int w, int h)
@@ -248,7 +248,7 @@ public static class ContainerUpgradeV2
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 
     // 妙妙箱内部库存螺丝批量消耗
@@ -286,7 +286,7 @@ public static class ContainerUpgradeV2
             SetTagIntValue(box, "wb_progress", progress);
             if (stage >= MAX_STAGE) TryGiveSecondWageBox(box);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 
     // 09-23 拖螺丝到妙妙箱松手 → 直接消耗 1 颗螺丝 +1 progress（和打烊消耗共存）
@@ -371,7 +371,7 @@ public static class ContainerUpgradeV2
             if (w == targetW && h == targetH) return;
             SetFullRect(grid, targetW, targetH);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 
     // ===================== 09-14 位置方案（hiddenElement 海报后边 2×2）=====================
@@ -388,7 +388,7 @@ public static class ContainerUpgradeV2
             for (int i = 0; i < hid.childItems.Count; i++)
                 if (hid.childItems[i] != null && hid.childItems[i].Pointer == box.Pointer) return i;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return -1;
     }
     // 按索引从 PlayerPrefs 读段位（-1=无记录）
@@ -419,7 +419,7 @@ public static class ContainerUpgradeV2
             SetFullRect(grid, targetW, targetH);
             try { SetTagIntValue(box, "wb_stage", stage); } catch { }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 
     // ===================== 鲁滨逊容器段位 =====================
@@ -481,7 +481,7 @@ public static class ContainerUpgradeV2
             if (IsNuts(__instance) && IsWageBox(targetItem))
             { __result = true; return false; } // hover 可拖
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return true;
     }
     public static bool PrefixCanTarget_WageBox(GameItem __instance, GameItem targetItem, ref bool __result)
@@ -497,7 +497,7 @@ public static class ContainerUpgradeV2
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(__instance, targetItem)) return false; // 升级成功：拦截原生放入
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return true;
     }
     public static bool PrefixMayHaveValidInventorySlot_WageBox(GameItem __instance, GameItem item, ref bool __result)
@@ -509,7 +509,7 @@ public static class ContainerUpgradeV2
             if (!IsDragRelease()) return true;
             if (TryUpgradeWageBox(item, __instance)) { __result = false; return false; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return true;
     }
 
@@ -532,6 +532,6 @@ public static class ContainerUpgradeV2
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 }

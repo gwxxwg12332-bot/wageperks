@@ -17,7 +17,7 @@ public static partial class GuMachineSystem
                 if (stuck) return false;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Interact] 异常: " + ex.Message); }
         return true;
     }
 }

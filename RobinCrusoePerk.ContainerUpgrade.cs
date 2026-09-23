@@ -47,7 +47,7 @@ internal static partial class RobinCrusoePerk
             if (!IsActive()) return;
             __result += 2;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     // ===== 供货商卖水药食物（拆包 09-10：PlaceSupplierInventory 是 supplier 上货入口；仿水商 MerchantHelper.AddItemToCounter 追加，同日不重复）=====
@@ -106,7 +106,7 @@ internal static partial class RobinCrusoePerk
             int up = GetTagIntSafe(gameItem, "wageUpgradePct");
             if (up > 0) __result += up;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     public static void PostfixGetCurrentQualityBonus(GameItem gameItem, ref int __result)
     {
@@ -117,7 +117,7 @@ internal static partial class RobinCrusoePerk
             int up = GetTagIntSafe(gameItem, "wageUpgradePct");
             if (up > 0) __result += up;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     public static void PostfixApplyBasicModuleEffect(GameInventory invModule, GameItem item, GameItem system)
     {
@@ -134,7 +134,7 @@ internal static partial class RobinCrusoePerk
             if (eff != null && eff.valueInt > 0 && ts != null && ts.valueInt > 0)
                 SetTagIntValue(target, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * 0.5) + eff.valueInt));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     public static void PostfixModifyTempStatFromBaseByPercentage(GameItem item, int percentage)
     {
@@ -147,7 +147,7 @@ internal static partial class RobinCrusoePerk
                 if (ts != null && ts.valueInt > 0) SetTagIntValue(item, t, Math.Max(0, (int)(ts.valueInt * 0.5)));
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     internal static void SetTagIntValue(GameItem item, string tag, int value)
     {
@@ -158,7 +158,7 @@ internal static partial class RobinCrusoePerk
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(tag, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     // ===== 金属锭/垃圾升级系统（用户拍板 09-09：拖 metal_ingot 到机器/模板 = 性能/效率/质量三维各 +1% 无限叠加；
     // 拖 junk 到容器 = 容量 +1 列宽，无限叠加。拖放拦截仿虚空珠模式）=====
@@ -176,7 +176,7 @@ internal static partial class RobinCrusoePerk
                 || (IsJunk(__instance) && ContainerUpgradeV2.IsUpgradeableContainer(targetItem)))
             { __result = true; return false; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return true;
     }
     public static bool PrefixCanTarget(GameItem __instance, GameItem targetItem, ref bool __result)
@@ -198,7 +198,7 @@ internal static partial class RobinCrusoePerk
                     if (TryUpgradeContainer(__instance, targetItem)) return false;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return true;
     }
     // 容器升级：拖 junk 到容器物品（CONTAINER_TAG）→ 不放进去，升级容量 +1 列
@@ -212,7 +212,7 @@ internal static partial class RobinCrusoePerk
             if (!IsDragRelease()) return true;
             if (TryUpgradeContainer(item, __instance)) { __result = false; return false; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return true;
     }
     // ===== MoreUpdate（MoreDeviceUpgrades v0.2.0）兼容让路（09-14）=====
@@ -383,7 +383,7 @@ internal static partial class RobinCrusoePerk
             var cw = item.contentWindow;
             if (cw != null && cw.childElement != null) { var v = cw.childElement.Cast<GameGridInventory>(); if (v != null) return v; }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return null;
     }
     // 容器宽高：inventoryShape 类型化直读（拆包 09-10 [L1]：GameGridInventory.inventoryShape public / GridShapeBuilder.width/height public）
@@ -395,7 +395,7 @@ internal static partial class RobinCrusoePerk
             w = inv.inventoryShape.width;
             h = inv.inventoryShape.height;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     private static void ConsumeOne(GameItem item)
     {
@@ -429,7 +429,7 @@ internal static partial class RobinCrusoePerk
                     SetSocial(WageSaveStore.GetInt(PERK_ID, "saved_social", SOCIAL_START));
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
             EmporiumEntry emporium = EmporiumEntry.Instance;
             if (emporium == null) return;
             var allInvs = new System.Collections.Generic.List<GameInventory>();
@@ -456,7 +456,7 @@ internal static partial class RobinCrusoePerk
                         var inner = cw.childElement.Cast<GameGridInventory>();
                         if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
                 }
             }
             int restored = 0;
@@ -484,7 +484,7 @@ internal static partial class RobinCrusoePerk
                         // 容器v2：按段位恢复（含老档 wageUpgradeCap>0 → 满级迁移）；未升级老档保持现状
                         if (ContainerUpgradeV2.RestoreCrusoeShape(item)) { _rcRestoredContainers.Add(item.Pointer); restored++; }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
                 }
             }
         }
@@ -504,7 +504,7 @@ internal static partial class RobinCrusoePerk
                 int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
                 if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); _rcRestoredContainers.Add(__instance.Pointer); return; }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
             if (ContainerUpgradeV2.IsWageBox(__instance))
             {
                 try { if (!__instance.IsTag("CUSTOM_STORAGE_TAG")) __instance.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档补打
@@ -517,7 +517,7 @@ internal static partial class RobinCrusoePerk
             if (!_rcRestoredContainers.Add(__instance.Pointer)) return; // 已恢复过：跳过防双加
             ContainerUpgradeV2.RestoreCrusoeShape(__instance);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     internal static int GetTagIntSafe(GameItem item, string tag)
@@ -532,7 +532,7 @@ internal static partial class RobinCrusoePerk
             int v = GetTagIntSafe(item, tag);
             SetTagIntValue(item, tag, v + delta);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     // ===== 机器 tooltip 升级提示（拆包 2.5.31/2.5.32 复核：机器悬停 = MachineryHelper.CreateMachineryTooltip(RichTextBuilder, GameItem)
@@ -564,7 +564,7 @@ internal static partial class RobinCrusoePerk
                             foreach (var m in ggrid.childItems)
                                 if (m != null) { string mid = ""; try { mid = m.identifier ?? ""; } catch { } if (mid == GuMachineSystem.PROTECTOR_ID) { hasProt = true; break; } }
                     }
-                    catch { }
+                    catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
                     string mode = hasProt
                         ? LangHelper.T("阉割版（100%成功，上限75%）", "Stable (100% success, cap 75%)")
                         : LangHelper.T("不稳定版（50%成功，失败产报废模组）", "Unstable (50% success, fail -> scrap module)");
@@ -604,7 +604,7 @@ internal static partial class RobinCrusoePerk
             }
             builder.AddLine(LangHelper.T("◆ 金属锭升级：性能+" + pct + "% 效率+" + effv + "%（拖 metal_ingot 继续 +1%）", "◆ Ingot upgrade: Perf +" + pct + "% Eff +" + effv + "% (keep dragging metal_ingot +1%)"), bold: true);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     // ===== 面板显示 0.5（用户拍板 09-09："机器面板显示的数字"；拆包：CreateModuleTooltip/AddModuleStatLine 直读 tag
@@ -624,7 +624,7 @@ internal static partial class RobinCrusoePerk
                 if (tempValue > 0) tempValue = Math.Max(0, (int)(tempValue * 0.5));
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     // ===== 机器 0.5 总系数（用户拍板 09-09；拆包 2.5.27 [L1]：逐台 Postfix ×0.5 含基础，不写 tag——写 -50 只有 2 条路径天然减半）=====
     // water_recycler 效率：ApplyPerformanceWaterRecyclerEffect(GameItem) 后效率 tag ×0.5（含 50 基础；船舶系统）
@@ -636,7 +636,7 @@ internal static partial class RobinCrusoePerk
             var ts = __0.GetTagReadonly("WATER_RECYCLER_CURRENT_EFFICIENCY_INT");
             if (ts != null && ts.valueInt > 0) SetTagIntValue(__0, "WATER_RECYCLER_CURRENT_EFFICIENCY_INT", Math.Max(0, (int)(ts.valueInt * 0.5)));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     // ===== 容器获得即减半（用户拍板 09-09：改挂点——任何容器/机器储存区物品获得时减半，可拖 junk 升级恢复）=====
     // ContainerHelper.InitContainerItem = 容器物品初始化统一入口（custom_storage_box 走它；官方容器同链）
@@ -650,7 +650,7 @@ internal static partial class RobinCrusoePerk
             ShrinkInv(__0 as GameGridInventory, GetId(__1) + "(容器获得减半)", __1);
             try { __1.EnableTag("CONTAINER_TOOLTIP_TAG"); } catch { } // 容量行显示门控（拆包 2.5.32）
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     // ===== 容器开局容量减半（用户拍板 09-09 修正2：玩家主背包恢复原样；减半对象=机器上储存区/机器箱子/背包内容器物品）=====
@@ -684,10 +684,10 @@ internal static partial class RobinCrusoePerk
                     var grid = GetContainerGrid(item);
                     if (grid != null) ShrinkInv(grid, GetId(item) + "(储存区/机器箱)", item);
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     // 真减半：读运行时 inventoryShape（GridShape 接口，实际 GridShapeBuilder 实现）的 width/height → SetShape(半宽, 高)
     // 保底：现有物品数 +5 格；宽度下限 4（防极端容器）
@@ -748,7 +748,7 @@ internal static partial class RobinCrusoePerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return false;
     }
 
@@ -800,7 +800,7 @@ internal static partial class RobinCrusoePerk
             if (types != null && types.Contains("MODDABLE"))
                 __0.RemoveGameItemType("MODDABLE");
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
     // C. Prefix StoreClientListGun 订单生成：拦截定制单（拆包 09-13 [L1]：原生有 null 防护——客户端照常来店但无定制要求）
     public static bool PrefixBlockGunOrder() { return false; }
@@ -826,7 +826,7 @@ internal static partial class RobinCrusoePerk
                     var ids = Il2Cpp.DirectoryMaster.GetIdentifierList<object>("GunModDirectory");
                     if (ids != null) { foreach (var s in ids) { if (!string.IsNullOrEmpty(s)) _gunModIds.Add(s); } }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
             }
             return _gunModIds.Contains(id);
         }
@@ -839,7 +839,7 @@ internal static partial class RobinCrusoePerk
             if (identifier != null && IsGunModIdentifier(identifier))
                 identifier = "scrap_metal"; // 重定向无害废金属（防崩；模组物品不再生成到任何池）
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return true;
     }
 
@@ -872,6 +872,6 @@ internal static partial class RobinCrusoePerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 }

@@ -29,7 +29,7 @@ internal static class PerkStatePersistence
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
         // 不缓存 default_run：PlayerStore.runID 可能在游戏开始后才赋值，缓存会导致永远用 default_run
         return "default_run";
     }
@@ -64,7 +64,7 @@ internal static class PerkStatePersistence
             }
             PlayerPrefs.Save();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
     }
     // 读取int
     internal static int GetInt(string perkId, string key, int defaultValue = 0)
@@ -85,7 +85,7 @@ internal static class PerkStatePersistence
                 return v;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
         return defaultValue;
     }
     // 存储float
@@ -103,7 +103,7 @@ internal static class PerkStatePersistence
             }
             PlayerPrefs.Save();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
     }
     // 读取float
     internal static float GetFloat(string perkId, string key, float defaultValue = 0f)
@@ -123,7 +123,7 @@ internal static class PerkStatePersistence
                 return v;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
         return defaultValue;
     }
     // 存储bool
@@ -151,7 +151,7 @@ internal static class PerkStatePersistence
             }
             PlayerPrefs.Save();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
     }
     // 读取string
     internal static string GetString(string perkId, string key, string defaultValue = "")
@@ -171,7 +171,7 @@ internal static class PerkStatePersistence
                 return v;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
         return defaultValue;
     }
 
@@ -188,7 +188,7 @@ internal static class PerkStatePersistence
             }
             PlayerPrefs.Save();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
     }
     // 检查key是否存在
     internal static bool HasKey(string perkId, string key)
@@ -198,7 +198,7 @@ internal static class PerkStatePersistence
             if (PlayerPrefs.HasKey(MakeKey(perkId, key))) return true;
             return PlayerPrefs.HasKey(DefaultKey(perkId, key)); // 回退：default_run 残留也算有
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
         return false;
     }
     // 删除某个特性的所有状态
@@ -212,6 +212,6 @@ internal static class PerkStatePersistence
         {
             _cachedRunId = null; // 顺带清 runID 缓存，避免切档后 key 前缀串用
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[PerkStatePersistence] 异常: " + ex.Message); }
     }
 }

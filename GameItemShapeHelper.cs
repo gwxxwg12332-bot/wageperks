@@ -20,7 +20,7 @@ internal static class GameItemShapeHelper
                 "<modifiedShape>k__BackingField",
                 BindingFlags.NonPublic | BindingFlags.Instance);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GameItemShapeHelper] 异常: " + ex.Message); }
     }
 
     /// <summary>
@@ -38,6 +38,6 @@ internal static class GameItemShapeHelper
             // 直接写字段（不触发动画帧重置）
             _modifiedShapeField.SetValue(item, shape);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GameItemShapeHelper] 异常: " + ex.Message); }
     }
 }

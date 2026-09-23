@@ -44,7 +44,7 @@ public static partial class GuMachineSystem
             else if (iconKey == PROTECTOR_ICON) sp = _protectorSprite;
             else if (iconKey == AI_MODULE_ICON) sp = _aiModuleSprite;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
         if (sp != null)
         {
             try { it.SetSpriteAndShape(ICON_ATLAS, iconKey); return; } catch { }
@@ -69,7 +69,7 @@ public static partial class GuMachineSystem
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
         try { it.SetSpriteAndShape("custom_atlas", "custom_storage_box_sprite"); } catch { }
     }
     private static GameItem CreateGuMachine()
@@ -91,7 +91,7 @@ public static partial class GuMachineSystem
                     inv.identifier = GU_MACHINE_ID;
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
             it.EnableTag("STANDARD_MACHINE_TAG");
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge"));
@@ -126,7 +126,7 @@ public static partial class GuMachineSystem
                     inv.identifier = AI_GENERATOR_ID;
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
             it.EnableTag("STANDARD_MACHINE_TAG");
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator"));

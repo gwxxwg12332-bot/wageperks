@@ -23,7 +23,7 @@ internal static partial class RobinCrusoePerk
             _foodCalBackup = full; _foodCalBackupValid = true;
             try { System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(left); }; var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct); item.ModifyTag("CALORIE_VALUE_TAG", il2cppAct, false); } catch { }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
     }
 
     public static void PostfixFoodTooltip(GameItem item)
@@ -36,7 +36,7 @@ internal static partial class RobinCrusoePerk
                 _foodCalBackupValid = false;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
     }
 
     public static void PrefixFeedDispenserB3(Il2Cpp.MachineFeedDispenser.__c__DisplayClass7_0 __instance)
@@ -55,7 +55,7 @@ internal static partial class RobinCrusoePerk
                 try { System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(left); }; var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct); m.ModifyTag("CALORIE_VALUE_TAG", il2cppAct, false); } catch { }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
     }
 
     public static void PostfixCreateItemTooltip(RichTextBuilder builder, GameItem item)
@@ -141,7 +141,7 @@ internal static partial class RobinCrusoePerk
                 builder.AddLine(LangHelper.T("双击使用：心情+20（消耗1件）", "Double-click: Mood +20 (consumed)"),
                     true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
     }
 
 }

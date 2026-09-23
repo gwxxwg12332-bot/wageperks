@@ -99,7 +99,7 @@ internal static partial class RobinCrusoePerk
             var ng = Il2Cpp.NewGameData.Instance;
             if (ng != null && (int)ng.startType == START_TYPE) return true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return false;
     }
     // ===== v5.9 失眠警觉：偷窃概率-50%（拆包 2.5.29：原生偷窃=PlayerStore.HandleInsurance，EndNight 链）=====
@@ -125,7 +125,7 @@ internal static partial class RobinCrusoePerk
                 return amt;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return 0;
     }
     // 爆发辅助：损失 1 件小货物（白名单：食物/水（杂货主体）；不损工具/机器/容器/钥匙卡；AddictOfficer 同款 GetAllItems 遍历）
@@ -150,7 +150,7 @@ internal static partial class RobinCrusoePerk
                     var inv = FindContainingInventory(it);
                     if (inv != null) { inv.Expel(it); lost++;  }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             }
             return lost;
         }
@@ -174,10 +174,10 @@ internal static partial class RobinCrusoePerk
                     var inv = FindContainingInventory(it);
                     if (inv != null) { inv.Expel(it);  return; }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
     }
     // 找包含指定物品的库存（遍历店铺各库存容器 childItems）
     private static GameInventory FindContainingInventory(GameItem target)
@@ -194,7 +194,7 @@ internal static partial class RobinCrusoePerk
                 if (em.hiddenElement != null) invs.Add(em.hiddenElement);
                 if (em.afterhourInventory != null) invs.Add(em.afterhourInventory);
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             foreach (var inv in invs)
             {
                 try
@@ -203,10 +203,10 @@ internal static partial class RobinCrusoePerk
                     for (int i = 0; i < inv.childItems.Count; i++)
                         if (inv.childItems[i] == target) return inv;
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return null;
     }
     private static bool IsToolOrKeyOrContainer(GameItem item)
@@ -278,7 +278,7 @@ internal static partial class RobinCrusoePerk
                     rt.anchoredPosition = new Vector2(-16, -16);
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             b.BeginColumn(4f);
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + satCal + "/2200 kcal", "sat_l");
             b.AddProgressBar(sat / 100f, "sat");
@@ -445,7 +445,7 @@ internal static partial class RobinCrusoePerk
                 inv.UncheckedAccept(item);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
     }
 
     private static void GivePureWaterToBackpack(int count)
@@ -466,7 +466,7 @@ internal static partial class RobinCrusoePerk
                 inv.UncheckedAccept(spawn);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
     }
 
     // 09-11 用户确认：取消"前3天无随机客户"设定（PrefixHandleNormalClient/AugClient/AnyClient 已删，只保留次要客户永久拦截）
@@ -474,7 +474,7 @@ internal static partial class RobinCrusoePerk
     {
         // 09-10 用户拍板：次要客户（拾荒客/上层医生等）永久删掉，不限前3天
         try { if (IsActive()) return false; }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return true;
     }
 
@@ -490,7 +490,7 @@ internal static partial class RobinCrusoePerk
             if (_pickSkipToday < skip) { _pickSkipToday++; return false; }
             if (_burstClientCut >= 50) { _burstSkipFlip = !_burstSkipFlip; if (_burstSkipFlip) return false; } // 病恹恹爆发：当日客流-50%
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return true;
     }
 
@@ -498,7 +498,7 @@ internal static partial class RobinCrusoePerk
     public static bool PrefixOpenGoOutsideConfirm()
     {
         try { if (IsActive() && IsForbiddenOutside()) return false; }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return true;
     }
 
@@ -521,7 +521,7 @@ internal static partial class RobinCrusoePerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return true;
     }
 
@@ -535,7 +535,7 @@ internal static partial class RobinCrusoePerk
                 return false;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return true;
     }
 
@@ -557,7 +557,7 @@ internal static partial class RobinCrusoePerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
         return false;
     }
 
@@ -694,7 +694,7 @@ internal static partial class RobinCrusoePerk
                     ps.AddNightLog(LangHelper.T("口粮：新鲜 " + fresh + "｜变质 " + stale + "｜腐烂 " + rotten + "（共" + foodCount + "份可吃）", "Rations: fresh " + fresh + " | stale " + stale + " | rotten " + rotten + " (" + foodCount + " edible)"), "#7FC97F"); // 09-22 统一柔和绿
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
             try { StoreUIManager.Instance.Notify(LangHelper.T("第" + day + "天：", "Day " + day + ": ") + nodeTxt + "｜" + moodTxt, "white"); } catch { }
             RefreshStatusPanel(); // 每日结算刷新常驻面板
         }

@@ -23,7 +23,7 @@ internal static class LangHelper
             if (!string.IsNullOrEmpty(code))
                 return !code.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LangHelper] 异常: " + ex.Message); }
 
         // 方法2：Unity Localization 当前语言
         try
@@ -37,7 +37,7 @@ internal static class LangHelper
                     return !code.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LangHelper] 异常: " + ex.Message); }
 
         // 方法3：系统语言兜底
         try
@@ -46,7 +46,7 @@ internal static class LangHelper
                    Application.systemLanguage != SystemLanguage.ChineseTraditional &&
                    Application.systemLanguage != SystemLanguage.Chinese;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[LangHelper] 异常: " + ex.Message); }
 
         // 最终兜底：默认中文
         return false;

@@ -51,7 +51,7 @@ internal static partial class RobinCrusoePerk
                     var item = Il2Cpp.ItemSpawner.Spawn(id);
                     if (item != null) ps.AddDirectSellingItemToTable(item);
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Rent] 异常: " + ex.Message); }
             }
             return false; // 跳过原生 4 件
         }
@@ -133,7 +133,7 @@ internal static partial class RobinCrusoePerk
             if (ps == null) return null;
             return ps.storeClientManager;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Rent] 异常: " + ex.Message); }
         return null;
     }
 

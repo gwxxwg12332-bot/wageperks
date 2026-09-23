@@ -19,7 +19,7 @@ public static partial class GuMachineSystem
                 if (name == AI_MODULE_ICON && _aiModuleSprite != null) { __result = _aiModuleSprite; return false; }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Atlas] 异常: " + ex.Message); }
         return true;
     }
 }

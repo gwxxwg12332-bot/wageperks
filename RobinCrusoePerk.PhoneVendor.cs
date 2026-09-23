@@ -216,7 +216,7 @@ internal static partial class RobinCrusoePerk
                     GameItem hq = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water"); // 09-20 设计稿：带水大瓶（删 DirectoryMaster.Item+AddWater 链——工厂产物 AddWater 静默失败 → 空瓶）
                     if (hq != null) { if (MerchantHelper.AddItemToCounter(hq, 0, false) != null) added++; }
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
             }
 
             // 神经模组概率：落实到博士之友特性（09-12 用户拍板：特性激活才 roll）
@@ -249,7 +249,7 @@ internal static partial class RobinCrusoePerk
                 if (it != null && it.identifier == itemId) return true;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
         return false;
     }
 
@@ -267,7 +267,7 @@ internal static partial class RobinCrusoePerk
             }
             return n;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
         return 0;
     }
 
@@ -342,10 +342,10 @@ internal static partial class RobinCrusoePerk
                 var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(num);
                 if (pc != null) pc.phoneState = Il2Cpp.StorePhoneClient.PhoneState.None; // 电话簿消失 + 拨号空号
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
             Core.LogMsg("[空间站鲁滨逊] " + label + " 已被举报/击毙，电话停用");
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
     // 举报（Core 注册 Postfix WantedElement.OnArrested——通缉 UI 举报回调，identifier 字段实锤）
     public static void PostfixWantedElementOnArrested(Il2Cpp.WantedElement __instance)
@@ -356,7 +356,7 @@ internal static partial class RobinCrusoePerk
             if (__instance.identifier == "wanted6") // 李北文可举报（通缉犯）；胡安 wanted7 保持原版行为
                 MarkWantedPhoneRemoved(__instance.identifier);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
     // 击毙（Core 注册 Postfix AugHelper.CleanupKill——枪战对话击杀处理；拆包 09-13 [L1]：
     // 客户击杀=枪战对话（SecShootoutDialog），KillCurrentEntity 不在客户链（仅 Debug/Survival 调）。
@@ -374,7 +374,7 @@ internal static partial class RobinCrusoePerk
             if (id == "wanted7" || id == "wanted6")
                 MarkWantedPhoneRemoved(id);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 
     // 电话簿显示名修正（Core 注册 Postfix ContactElement.OnInit）：原生读 locID，覆盖为 displayName（胡安/李北文）
@@ -387,7 +387,7 @@ internal static partial class RobinCrusoePerk
             if (pc == null || string.IsNullOrEmpty(pc.displayName)) return;
             __instance.titleTMP.text = pc.displayName;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 
     // 接听拦截（Core 注册 Prefix PhoneUIManager.WillAnswerCall）：未解锁 → 空号提示
@@ -420,7 +420,7 @@ internal static partial class RobinCrusoePerk
                 Core.LogMsg("[奥丁] 声望低但声名狼藉激活 → 强制接听");
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 
     // 拨号即叫货（Core 注册 Prefix PhoneUIManager.StartPhoneDialog）：接通瞬间自动排期 + 冷却，拦掉原版对话
@@ -476,7 +476,7 @@ internal static partial class RobinCrusoePerk
             TickOnePhoneCooldown(BUTCHER_PHONE_NUMBER);
             TickOnePhoneCooldown(LI_BEIWEN_PHONE_NUMBER);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
     private static void TickOnePhoneCooldown(long number)
     {
@@ -491,6 +491,6 @@ internal static partial class RobinCrusoePerk
                     pc.phoneState = Il2Cpp.StorePhoneClient.PhoneState.Regular; // 冷却结束恢复可拨
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 }

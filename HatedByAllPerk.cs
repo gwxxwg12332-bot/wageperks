@@ -52,6 +52,6 @@ internal sealed class HatedByAllPerk : CustomStartingPerk
                 "Hated by All: cash -" + cashLoss);
             try { ps.AddNightLog(msg, "#7FC97F"); } catch { }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[HatedByAllPerk] 异常: " + ex.Message); }
     }
 }

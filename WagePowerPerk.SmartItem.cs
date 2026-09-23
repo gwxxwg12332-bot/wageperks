@@ -38,7 +38,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
         return 500; // 默认500（新手期）
     }
 
@@ -64,7 +64,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
 
         _itemValueCache[itemId] = value;
         return value;
@@ -163,7 +163,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
         // 默认根据购买次数判断
         if (_totalPurchases < 10) return PlayerEconomy.Poor;
         if (_totalPurchases < 30) return PlayerEconomy.Normal;
@@ -350,7 +350,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     }
                     Il2Cpp.DropTableFournitureDirectory.AddLootToFourniture(gi, loot);
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
             }
             return gi;
         }
@@ -453,7 +453,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
         if (tags.Count == 0)
         {
             // fallback：类别映射标签
@@ -480,7 +480,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                 string _curId = "[]";
                 if (client.clientBuyingIdList != null) _curId = string.Join(",", client.clientBuyingIdList.ToArray());
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
 
             // 已有标签，跳过
             if (client.clientBuyingTagList != null && client.clientBuyingTagList.Count > 0) return;
@@ -510,7 +510,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
                     foreach (var t in GetItemBuyTags(id))
                         if (!tags.Contains(t)) tags.Add(t);
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[WagePowerPerk.SmartItem] 异常: " + ex.Message); }
             }
             
             if (client.clientBuyingTagList == null)

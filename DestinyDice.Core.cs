@@ -152,7 +152,7 @@ namespace JacksonPerks
 
                 }
 
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
 
 
 
@@ -243,7 +243,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
 
             return true; // 放行
 
@@ -435,7 +435,7 @@ namespace JacksonPerks
                         ? GetFakeItemValue(absorbedItem)  // 假货/贴标水按假货价
                         : (int)absorbedItem.GetCurrentValue();
                 }
-                catch { }
+                catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
                 if (itemValue <= 0) itemValue = 1; // 最低1价值
 
 
@@ -523,7 +523,7 @@ namespace JacksonPerks
             _activeDice = dice;
             UpdateDicePanelTitle(dice, value);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
     // 卸载已排队事件：RemoveAllEvent + 返还最近一次 LastCost × 50%（加回 value）
@@ -539,7 +539,7 @@ namespace JacksonPerks
                 var evtMgr = (StoreStation.instance != null) ? StoreStation.instance.storeEventManager : null;
                 if (evtMgr != null) evtMgr.RemoveAllEvent(evtId); // 原生 API：清未来队列+触发日，已激活则停掉
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
             int lastCost = GetTagInt(dice, DICE_LAST_COST_TAG);
             if (lastCost > 0)
             {
@@ -553,7 +553,7 @@ namespace JacksonPerks
             _unloadConfirm = false;
             UpdateDicePanelTitle(dice, GetTagInt(dice, DICE_VALUE_TAG));
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
     // 双击拦截：物品是骰子 → 掷骰并拦掉原生分发（查看/食用/选中）
@@ -567,7 +567,7 @@ namespace JacksonPerks
                 return false;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
         return true;
     }
 
@@ -597,7 +597,7 @@ namespace JacksonPerks
                 if (UnityEngine.GUI.Button(new UnityEngine.Rect(x + 90f, y, 80f, h), LangHelper.T("取消", "No"))) { _unloadConfirm = false; }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
     // 每日打烊门槛回落：threshold>400 → -400（直到400为止）；value 永不受影响
@@ -619,7 +619,7 @@ namespace JacksonPerks
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
     // string 版 tag 读写（PENDING_EVENT 用）
@@ -644,7 +644,7 @@ namespace JacksonPerks
             var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
             item.ModifyTag(tag, il2cppAct, false);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
     // ===== 触发随机事件（暂时用日志占位，后续接入游戏原生事件） =====
@@ -685,7 +685,7 @@ namespace JacksonPerks
 
             }
 
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
 
         }
 }

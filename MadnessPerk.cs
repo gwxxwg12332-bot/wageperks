@@ -32,6 +32,6 @@ internal sealed class MadnessPerk : CustomStartingPerk
             // 具体逻辑待拆包确认特性选择机制
             Core.LogMsg("[精神错乱] OnNewGame 触发");
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessPerk] 异常: " + ex.Message); }
     }
 }

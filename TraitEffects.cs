@@ -24,7 +24,7 @@ internal static class TraitEffects
             // 优先用item.identifier（GameItem原生字段，IL2CPP interop已暴露）
             if (!string.IsNullOrEmpty(item.identifier)) return item.identifier;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         try
         {
             var idProp = item.GetType().GetProperty("id");
@@ -32,7 +32,7 @@ internal static class TraitEffects
             var idField = item.GetType().GetField("id");
             if (idField != null) return idField.GetValue(item)?.ToString() ?? "";
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         return item.name ?? "";
     }
 
@@ -47,7 +47,7 @@ internal static class TraitEffects
             var valueField = item.GetType().GetField("value");
             if (valueField != null) return (int)valueField.GetValue(item);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         return 0;
     }
 
@@ -63,7 +63,7 @@ internal static class TraitEffects
                 bool result = item.IsTag("contraband");
                 return result;
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
 
             // 方法2：用GetTagReadonly方法检查
             try
@@ -74,7 +74,7 @@ internal static class TraitEffects
                     return tagState.IsEnabled();
                 }
             }
-            catch { }
+            catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
 
             // 方法3：根据物品ID判断（扩展列表）
             string id = GetItemId(item);
@@ -107,7 +107,7 @@ internal static class TraitEffects
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         return false;
     }
 
@@ -137,7 +137,7 @@ internal static class TraitEffects
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         return false;
     }
 
@@ -163,7 +163,7 @@ internal static class TraitEffects
             int value = GetItemValue(item);
             if (value > 0 && value < 20) return true;
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
         return false;
     }
 }

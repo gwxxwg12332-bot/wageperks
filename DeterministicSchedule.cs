@@ -36,7 +36,7 @@ internal static class DeterministicSchedule
                 return instance.runID;
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[DeterministicSchedule] 异常: " + ex.Message); }
         return "no-run";
     }
 
