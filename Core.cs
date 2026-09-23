@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks", "1.2.8", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks", "1.2.8fix", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace JacksonPerks;
