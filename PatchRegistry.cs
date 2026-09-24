@@ -134,7 +134,7 @@ public static class PatchRegistry
 				typeof(GameItem)
 			}, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(EmporiumEntry), "GetAllAfterhourOwnedItems", null, "PostfixGetAllAfterhourOwnedItems", null, typeof(LuckScoutPerk));
-			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen", null, typeof(Patches), null, "FinalizerPerkUiOpen");
+			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", "PrefixPerkUiOpen", "PostfixPerkUiOpen", null, typeof(Patches), null, "FinalizerPerkUiOpen");
 			ManualPatcher.TryPatch(typeof(StartingPerkIconLoader), "Start", null, "PostfixIconLoaderStart");
 			ManualPatcher.TryPatch(typeof(NetworkUpgrade), "Unlock", "Prefix", "Postfix", null, typeof(DetectiveUpgradePatch));
 			ManualPatcher.TryPatch(typeof(SecData), "OnFixerUsed", "Prefix", null, null, typeof(DetectiveFixerPatch));
@@ -222,7 +222,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice));
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
 			Core.LogMsg("[Patch] 命运骰子拖放吸收已注册");
 		}
 		catch (System.Exception ex3)
@@ -269,13 +269,13 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleInspectionClient", "PrefixHandleInspectionClient", "PostfixHandleInspectionClient");
 			ManualPatcher.TryPatch(typeof(StoreReputation), "IsPerkUnlocked", null, "PostfixIsPerkUnlocked");
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", null, "PostfixDoubleClickAction", patchHost: typeof(RobinCrusoePerk), parameterTypes: new System.Type[2]
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", null, "PostfixDoubleClickAction", patchHost: typeof(RobinCrusoePerk), parameterTypes: new System.Type[2]
 			{
 				typeof(GameItem),
 				typeof(Vector2)
 			});
 			// 09-21 蛙娘：双击实体开面板（全局，不依赖鲁滨逊特性——独立 Postfix，多 Postfix 共存）
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", null, "PostfixDoubleClickAction", patchHost: typeof(WageGirlSystem), parameterTypes: new System.Type[2]
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", null, "PostfixDoubleClickAction", patchHost: typeof(WageGirlSystem), parameterTypes: new System.Type[2]
 			{
 				typeof(GameItem),
 				typeof(Vector2)
@@ -339,8 +339,20 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WandererPerk));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)); // 声名狼藉
+			// 声名狼藉：强开保险服务解锁 + 价格双倍（拆包：保险解锁依赖黑市声望，声名狼藉-99被原生锁）
+			ManualPatcher.TryPatch(typeof(Il2Cpp.StoreService), "UpdateCost", null, "PostfixUpdateCost", null, typeof(InfamousPerk));
+			ManualPatcher.TryPatchAllOverloads(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, typeof(StackInteractions));
+			ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMouseDragHandler), "EndDrag", null, "PostfixEndDrag", null, typeof(StackInteractions));
+			ManualPatcher.TryPatch(typeof(Il2Cpp.InputActionManager), "Update", null, "PostfixFrameUpdate", null, typeof(StackInteractions));
+			ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", null, "PostfixEndGroupDrag", null, typeof(StackInteractions));
+			ManualPatcher.TryPatch(typeof(GameItem), "OnRightClick", null, "PostfixOnRightClick", null, typeof(StackInteractions));
+			// 吞噬瓶
+			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(DevourBottle));
+			ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMouseDragHandler), "EndDrag", null, "PostfixEndDrag", null, typeof(DevourBottle));
+			ManualPatcher.TryPatch(typeof(GameItem), "OnDoubleClick", null, "PostfixDoubleClick", null, typeof(DevourBottle));
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)); // 09-21 发放后清+重发（根治"清了白清"）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(DrJacksonFriendPerk)); // 阶段2 CR-15：基类 OnNewGame 挂的 GameMaster.NewGame 实测从不触发，改挂此处重置来访日
+			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WaterMerchantPerk)); // 水商之友：开局送吞噬瓶
 			ManualPatcher.TryPatch(typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame_IngotContainer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(LiquidContainerHelper), "AutoSipFromContainer", "PrefixAutoSipFromContainer", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientList), "PlaceSupplierInventory", null, "PostfixPlaceSupplierInventory", null, typeof(RobinCrusoePerk));
@@ -373,12 +385,11 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价 +50（GetDealMakerBonus=显示+实际判定共用，拆包二次实锤）
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ApplyAnimationFrame", "PrefixApplyAnimationFrame", null, null, typeof(WageGirlSystem)); // 09-22 蛙娘动画帧（GoFishing CustomItemAnimationPatch 先例模式）
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ResolveSpriteByName", "PostfixResolveSpriteByName", null, null, typeof(WageGirlSystem)); // 拆包实锤：拦截sprite解析入口,蛙娘永远给mod图标
-			// 09-21 信誉扣减减半（用户拍板：减信誉少50%）——实例版 ModReputation(double)，议价 5 处入口
-			ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputation", null, new System.Type[1] { typeof(double) }, typeof(Patches));
+
 				// 09-22 制卡降上城区声望：mod 违禁品跳过客户曝光链（ClientExposeFeature，曝光=扣声望-4+划词条+对话）
 				ManualPatcher.TryPatchByName(typeof(StoreClient), "ClientExposeFeature", "PrefixClientExposeFeature", null, typeof(Patches));
-				// 诊断（用完删）：static ModReputation(String,int,bool) 日志——确认曝光扣声望走 static 版（-4）
-				ManualPatcher.TryPatch(typeof(StoreReputation), "ModReputation", "PrefixModReputationStatic", null, new System.Type[3] { typeof(string), typeof(int), typeof(bool) }, typeof(Patches));
+
+
 			
 			
 			

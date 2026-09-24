@@ -44,6 +44,27 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
         _lastVisitDay = -1;
     }
 
+    // PlayerStore.StartNewGame Postfix：开局给吞噬瓶
+    public static void PostfixStartNewGame()
+    {
+        try
+        {
+            if (!IsActive()) return;
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            var bottle = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("water_jug");
+            if (bottle != null)
+            {
+                // 吞噬瓶：容量改大（10000ml）
+                try { WaterHelper.InitLiquidContainerItem(bottle, 10000, 100, false, false, false, true); } catch { }
+                var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bottle, false);
+                if (slot != null) { slot.TryAcceptOnce(); }
+                else { ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAccept(bottle); }
+                Core.LogMsg("[水商之友] 开局赠送吞噬瓶(water_jug, 10000ml)");
+            }
+        } catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送吞噬瓶失败: " + ex.Message); }
+    }
+
     internal static bool IsActive()
     {
         return Core.PerkActive(PerkId);

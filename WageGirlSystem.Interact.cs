@@ -13,7 +13,7 @@ public static partial class WageGirlSystem
         try
         {
             if (__instance == null || targetItem == null) return true;
-            if (IsGirl(targetItem) && CanFeed(__instance)) { __result = true; return false; } // hover 可拖
+            if (IsGirl(targetItem) && CanFeed(__instance) && IsPlayerOwnedForCare(__instance)) { __result = true; return false; } // hover 可拖（只允许玩家自己的物品）
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
         return true;
@@ -29,6 +29,7 @@ public static partial class WageGirlSystem
             if (__instance == null || targetItem == null) return true;
             if (!IsGirl(targetItem)) return true;
             if (!IsDragRelease()) return true;
+            if (!IsPlayerOwnedForCare(__instance)) return true; // 货架商品不能喂
             if (TryFeed(__instance, targetItem)) return false; // 喂食成功：拦截原生放入
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
@@ -106,19 +107,30 @@ public static partial class WageGirlSystem
             int curAff = GetAffection();
             // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
             int affBase = curAff < 30 ? 1 : (curAff < 70 ? 2 : 1);
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); try { item.Destroy(); } catch { } } // 09-21 Bug1: 日用品用完消失
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); StackSystem.ConsumeOne(item); return true; } // 堆叠：数量-1，吃完才Destroy
             else if (RobinCrusoePerk.IsFood(item)) {
-                // 食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
-                int cal = RobinCrusoePerk.GetCalLeft(item);
-                if (cal <= 0) { item.Destroy(); return false; }
-                int bite = cal <= 100 ? cal : Math.Max(100, (cal + 1) / 2);
-                int left = cal - bite;
+                // 堆叠食物：整个吃一个，数量-1
+                if (StackSystem.GetCount(item) > 1) {
+                    int cal = RobinCrusoePerk.GetCalLeft(item);
+                    gain = Math.Max(1, (int)Math.Round(cal / 22f));
+                    SetStat(K_SAT, Math.Min(100, GetStat(K_SAT) + gain));
+                    SetStat(K_HEALTH, Math.Max(0, GetStat(K_HEALTH) + 15));
+                    aff = affBase;
+                    msg = LangHelper.T("蛙娘吃饱了！饱食 +" + gain, "Wage Girl ate! Satiety +" + gain);
+                    StackSystem.ConsumeOne(item);
+                    return true;
+                }
+                // 普通食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
+                int cal2 = RobinCrusoePerk.GetCalLeft(item);
+                if (cal2 <= 0) { item.Destroy(); return true; }
+                int bite = cal2 <= 100 ? cal2 : Math.Max(100, (cal2 + 1) / 2);
+                int left = cal2 - bite;
                 gain = Math.Max(1, (int)Math.Round(bite / 22f));
                 SetStat(K_SAT, Math.Min(100, GetStat(K_SAT) + gain));
-                SetStat(K_HEALTH, Math.Max(0, GetStat(K_HEALTH) + 15)); // 进食健康+15
+                SetStat(K_HEALTH, Math.Max(0, GetStat(K_HEALTH) + 15));
                 aff = affBase;
                 msg = LangHelper.T("蛙娘吃饱了！饱食 +" + gain, "Wage Girl ate! Satiety +" + gain);
-                // 留食：吃完才 Destroy，剩→SetCalLeft+EATEN_TAG
+                // 吃完才 Destroy，剩→SetCalLeft+EATEN_TAG
                 if (left <= 0) { item.Destroy(); }
                 else { RobinCrusoePerk.SetCalLeft(item, left); try { item.EnableTag("EATEN_TAG", true); } catch { } }
             }
@@ -141,7 +153,7 @@ public static partial class WageGirlSystem
                     msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
                     // 09-24 修：无水量饮品（酒/烈酒）喝完销毁——不留瓶子
                     // 只有有水量的水瓶才留（WaterHelper.Remove 扣水量分支）
-                    try { item.Destroy(); } catch { }
+                    StackSystem.ConsumeOne(item);
                 }
                 else {
                     int sip = Math.Min(200, ml);
@@ -175,14 +187,19 @@ public static partial class WageGirlSystem
         try { return item.IsTag("IS_OWNED_TAG"); } catch { }
         return false;
     }
+    private static float _lastDoubleClickLog = 0;
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {
+        // 09-24 双击粘滞节流：1 秒内只打一次日志（原生 DoubleClickAction 可能每帧调多次）
+        if (UnityEngine.Time.time - _lastDoubleClickLog > 1f)
+        {
+            _lastDoubleClickLog = UnityEngine.Time.time;
+            Core.LogMsg("[双击] WageGirl Postfix 触发: " + (newItem != null ? newItem.name : "null"));
+        }
         try
         {
             if (newItem == null) return;
             if (newItem.identifier != ENTITY_ID) return;
-            // 09-23 修复「蛙娘只有在不营业时才可被照顾」：状态/照顾面板在营业期间同样可打开
-            // （面板内按钮各自保留原有门控：销赃 TryFence / 洗白 仍禁止交易中使用）
             ShowPanel();
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }
