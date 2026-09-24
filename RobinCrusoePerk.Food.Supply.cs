@@ -148,7 +148,7 @@ internal static partial class RobinCrusoePerk
                 {
                     var w = c.contentWindow;
                     if (w == null) continue;
-                    var gi = (w.childElement != null) ? w.childElement.Cast<GameGridInventory>() : null;
+                    var gi = (w.childElement != null) ? w.childElement.TryCast<GameGridInventory>() : null;
                     if (gi == null || gi.childItems == null) continue;
                     for (int i = 0; i < gi.childItems.Count; i++)
                     {
@@ -200,7 +200,7 @@ internal static partial class RobinCrusoePerk
                 {
                     var w = container.contentWindow;
                     if (w == null) continue;
-                    var gi = (w.childElement != null) ? w.childElement.Cast<GameGridInventory>() : null;
+                    var gi = (w.childElement != null) ? w.childElement.TryCast<GameGridInventory>() : null;
                     if (gi == null || gi.childItems == null) continue;
                     for (int i = 0; i < gi.childItems.Count; i++)
                         if (gi.childItems[i] != null) result.Add(gi.childItems[i]);

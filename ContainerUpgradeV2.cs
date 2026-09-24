@@ -52,7 +52,7 @@ public static class ContainerUpgradeV2
         try
         {
             var cw = item.contentWindow;
-            if (cw != null && cw.childElement != null) { var v = cw.childElement.Cast<GameGridInventory>(); if (v != null) return v; }
+            if (cw != null && cw.childElement != null) { var v = cw.childElement.TryCast<GameGridInventory>(); if (v != null) return v; }
         }
         catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return null;

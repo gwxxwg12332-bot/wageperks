@@ -143,7 +143,7 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
             try {
                 foreach (var kv in _memStats)
                     WageSaveStore.SetInt(NS, kv.Key, kv.Value);
-                WageSaveStore.Flush(); // 一次性写文件（原子替换，防强退写坏）
+                // 09-24 修：不自己 Flush，统一由 WageSaveStore.PostfixSaveGame（priority 0 最后跑）落盘
             } catch { }
         }
 

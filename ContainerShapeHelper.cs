@@ -1,5 +1,6 @@
 using System;
 using Il2Cpp;
+using Il2CppInterop.Runtime;
 
 namespace JacksonPerks;
 
@@ -46,7 +47,7 @@ internal static class ContainerShapeHelper
         {
             var cw = box.contentWindow;
             if (cw == null || cw.childElement == null) return null;
-            return cw.childElement.Cast<GameGridInventory>();
+            return cw.childElement.TryCast<GameGridInventory>();
         }
         catch { return null; }
     }

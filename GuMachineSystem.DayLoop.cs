@@ -41,7 +41,7 @@ public static partial class GuMachineSystem
         try
         {
             if (gu == null || gu.contentWindow == null || gu.contentWindow.childElement == null) return null;
-            return gu.contentWindow.childElement.Cast<GameGridInventory>();
+            return gu.contentWindow.childElement.TryCast<GameGridInventory>();
         }
         catch { return null; }
     }

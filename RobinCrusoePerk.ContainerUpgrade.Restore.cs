@@ -56,7 +56,7 @@ internal static partial class RobinCrusoePerk
                     {
                         var cw = it.contentWindow;
                         if (cw == null || cw.childElement == null) continue;
-                        var inner = cw.childElement.Cast<GameGridInventory>();
+                        var inner = cw.childElement.TryCast<GameGridInventory>();
                         if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                     }
                     catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }

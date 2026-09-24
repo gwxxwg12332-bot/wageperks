@@ -250,7 +250,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                 if (item == null) { _pendingShapes.RemoveAt(i); continue; }
                 var cw = item.contentWindow;
                 if (cw == null || cw.childElement == null) continue; // 容器未就绪，下帧再试
-                var inv = cw.childElement.Cast<GameGridInventory>();
+                var inv = cw.childElement.TryCast<GameGridInventory>();
                 if (inv != null)
                 {
                     // 【09-13 不降级保护】pending 目标不得低于当前已升级 slots（读档重建入队 1 不能覆盖升级后的 6）
@@ -352,7 +352,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                     string invType = cw.childElement.GetType().Name;
 
 
-                    var inv = cw.childElement.Cast<GameGridInventory>();
+                    var inv = cw.childElement.TryCast<GameGridInventory>();
 
                     if (inv != null)
 
@@ -414,7 +414,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                     {
                         var cw = it.contentWindow;
                         if (cw == null || cw.childElement == null) continue;
-                        var inner = cw.childElement.Cast<GameGridInventory>();
+                        var inner = cw.childElement.TryCast<GameGridInventory>();
                         if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                     }
                     catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
@@ -488,7 +488,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                         {
                             var cw = it.contentWindow;
                             if (cw == null || cw.childElement == null) continue;
-                            var inner = cw.childElement.Cast<GameGridInventory>();
+                            var inner = cw.childElement.TryCast<GameGridInventory>();
                             if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
                         }
                         catch (System.Exception ex) { Core.LogMsg("[LuckScoutBackpackUpgrade] 异常: " + ex.Message); }
@@ -510,7 +510,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                     if (slots <= 0) slots = 1;
                     var cw = item.contentWindow;
                     if (cw == null || cw.childElement == null) continue;
-                    var gridInv = cw.childElement.Cast<GameGridInventory>();
+                    var gridInv = cw.childElement.TryCast<GameGridInventory>();
                     if (gridInv == null) continue;
                     ApplyLockedShape(gridInv, slots);
                     try { cw.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + slots + LangHelper.T("/200格)", "/200 slots)"); } catch { }
@@ -866,7 +866,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
                     var cw = bead.contentWindow;
                     if (cw != null && cw.childElement != null)
                     {
-                        var inv = cw.childElement.Cast<GameGridInventory>();
+                        var inv = cw.childElement.TryCast<GameGridInventory>();
                         if (inv != null) ApplyLockedShape(inv, slots);
                     }
                 } catch { }
@@ -897,7 +897,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
                 {
 
-                    var inv = cw.childElement.Cast<GameGridInventory>();
+                    var inv = cw.childElement.TryCast<GameGridInventory>();
 
                     if (inv != null) ApplyLockedShape(inv, newSlots);
 

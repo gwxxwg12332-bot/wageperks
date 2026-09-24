@@ -1,0 +1,7 @@
+# 🔒 Private Obsidian Vault
+
+This repository stores a private, secure backup of your Obsidian vault, synchronized automatically by **SuperSync**.
+
+## ⚠️ Important Notes
+* **Keep Private**: This repository contains your personal notes. Do not make this repository public.
+* **Automated Sync**: Files are synced automatically by the SuperSync plugin. Avoid manual modifications to the files directly on GitHub to prevent sync conflicts.

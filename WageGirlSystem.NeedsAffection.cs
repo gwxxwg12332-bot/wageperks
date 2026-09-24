@@ -285,7 +285,7 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 }
             }
             if (it == null) return;
-            GameItem giftCrate = CreateSupplyCrate(it.unitValue);
+            GameItem giftCrate = CreateSupplyCrate(it.unitValue, out long unusedFilled);
             if (giftCrate != null) { AddToFront(giftCrate); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一只物资箱！", "Wage Girl brought a supply crate today!")); }
             else { AddToFront(it); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!")); }
         }

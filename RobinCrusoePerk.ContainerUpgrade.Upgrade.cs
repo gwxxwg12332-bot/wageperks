@@ -244,7 +244,7 @@ internal static partial class RobinCrusoePerk
         try
         {
             var cw = item.contentWindow;
-            if (cw != null && cw.childElement != null) { var v = cw.childElement.Cast<GameGridInventory>(); if (v != null) return v; }
+            if (cw != null && cw.childElement != null) { var v = cw.childElement.TryCast<GameGridInventory>(); if (v != null) return v; }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
         return null;

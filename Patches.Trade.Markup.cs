@@ -117,7 +117,7 @@ internal static partial class Patches
 	// ① 信誉扫地：卖出 ×0.8 / 买入 ×1.2 + 标签（-20/+20）
 	private static void ApplyBadReputationMarkup(GameItem item, bool isSell, ref long result)
 	{
-		bool _brActive = BadReputationPerk.IsActive(); bool _brCleared = BadReputationPerk.IsCleared(); Core.LogMsg("[信誉扫地] 检查: active=" + _brActive + " cleared=" + _brCleared + " item=" + (item.identifier ?? "?"));
+		bool _brActive = BadReputationPerk.IsActive(); bool _brCleared = BadReputationPerk.IsCleared(); 
 		if (_brActive && !_brCleared)
 		{
 			if (isSell)

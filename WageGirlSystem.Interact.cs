@@ -139,7 +139,8 @@ public static partial class WageGirlSystem
                     SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
                     aff = affBase;
                     msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
-                    // 无水量可扣 → 整件喝完消失（否则同一件可无限刷口渴）
+                    // 09-24 修：无水量饮品（酒/烈酒）喝完销毁——不留瓶子
+                    // 只有有水量的水瓶才留（WaterHelper.Remove 扣水量分支）
                     try { item.Destroy(); } catch { }
                 }
                 else {

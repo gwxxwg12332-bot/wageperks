@@ -1,0 +1,10 @@
+{
+  "id": "supersync",
+  "name": "SuperSync",
+  "version": "0.3.1",
+  "minAppVersion": "1.7.2",
+  "description": "Sync your vault with a private GitHub repository using the GitHub API on desktop and mobile.",
+  "author": "Rahuletto",
+  "authorUrl": "https://marban.lol",
+  "isDesktopOnly": false
+}

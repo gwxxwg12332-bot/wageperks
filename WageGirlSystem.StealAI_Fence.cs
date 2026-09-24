@@ -308,8 +308,9 @@ private static void FenceReturn()
             // cat==0 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
             if (cat == 0)
             {
-                GameItem crate = CreateSupplyCrate(target);
-                if (crate != null) { AddToFront(crate); long crateVal = crate.unitValue; int actualKeep = (int)(amt - crateVal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T("一只物资箱", "a supply crate"))); }
+                long filledVal;
+                GameItem crate = CreateSupplyCrate(target, out filledVal);
+                if (crate != null) { AddToFront(crate); int actualKeep = (int)(amt - filledVal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T("一只物资箱", "a supply crate"))); }
                 else ReportLine(BuildFenceReport(amt, 0, LangHelper.T("（没弄到箱子）", "(no crate)")));
                 return;
             }
@@ -447,7 +448,7 @@ private static void FenceReturn()
             GameItem gift = FindCategoryItem(mode);
             if (gift != null)
                 {
-                    GameItem giftBox = CreateSupplyCrate(gift.unitValue);
+                    GameItem giftBox = CreateSupplyCrate(gift.unitValue, out long unusedFilled2);
                     if (giftBox != null) AddToFront(giftBox); else AddToFront(gift);
                     ReportLine(LangHelper.T("蛙娘回来了，带了份物资箱补偿你", "Wage Girl is back with a supply crate to make up"));
                 }
@@ -656,12 +657,13 @@ private static void FenceReturn()
     }
 
     // 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
-    private static GameItem CreateSupplyCrate(long targetValue)
+    private static GameItem CreateSupplyCrate(long targetValue, out long filledValue)
     {
         try
         {
+            filledValue = 0;
             // 09-23 修复「物资箱有 1% 概率没有物资」之一：目标价值为 0 → 主循环一次都不进 → 空箱
-            if (targetValue < 1) targetValue = 1;
+            if (targetValue < 1) targetValue = 1; filledValue = 0;
             string[] boxes = { "evidence_box", "med_box", "sec_box", "service_box", "eng_box" };
             string bid = boxes[Core.Rng.Next(boxes.Length)];
             GameItem crate = CustomStorageContainer.CreateLootCrate(bid);
@@ -677,7 +679,7 @@ private static void FenceReturn()
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
-            if (inv == null) return crate; // 取不到内部库存 → 原样返回（箱自带原版内容）
+            if (inv == null) { filledValue = crate != null ? crate.unitValue : 0; return crate; }
             var basePool = WagePowerPerk.ItemPool ?? new string[0];
             long spent = 0; int tries = 0, filled = 0;
             bool wantContraband = Core.Rng.Next(100) < 5; // 好物95% / 违禁5%
@@ -712,8 +714,9 @@ private static void FenceReturn()
                     try { inv.UncheckedAccept(it); filled++; } catch { }
                 }
             }
+            filledValue = spent; // 09-24 修：返回实际塞入物品总价值，克扣按这个算
             return crate;
         }
-        catch { return null; }
+        catch { filledValue = 0; return null; }
     }
 }
