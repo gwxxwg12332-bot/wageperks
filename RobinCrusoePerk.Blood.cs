@@ -133,7 +133,10 @@ internal static partial class RobinCrusoePerk
                     bool good = Core.Rng.Next(2) == 0;
                     int delta = (int)(BLOOD_MAX * 0.2f); // 1200
                     AddBlood(good ? delta : -delta);
-                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体恢复期结束：血量" + (good ? "+" : "-") + delta + "（" + GetBlood() + "/6000）", "Recovery over: blood " + (good ? "+" : "-") + delta + " (" + GetBlood() + "/6000)"), good ? "green" : "red"); } catch { }
+                    // 09-24 修：恢复期结束强制回血到安全线 3000——防止"结束随机扣血→仍<3000→下方 else-if 再设 rest=3"的
+                    // 虚弱永续循环（卖血超过阈值后永远昏迷/禁出门/禁采血=游戏卡死）。虚弱期结束=身体恢复，必须给出安全出口。
+                    if (GetBlood() < 3000) { AddBlood(3000 - GetBlood()); }
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体恢复期结束：血量 " + GetBlood() + "/6000", "Recovery over: blood " + GetBlood() + "/6000"), GetBlood() >= 3000 ? "green" : "red"); } catch { }
                 }
                 else
                 {

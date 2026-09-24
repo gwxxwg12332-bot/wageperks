@@ -61,6 +61,10 @@ internal static partial class RobinCrusoePerk
     private static bool _gameOverTriggered = false;
 
     // 09-20 拍板：昏迷当天立刻强制过夜 ×3（实际日期 +3，跳过 3 天）；跳天中死亡立即停止
+    // 09-24 修（卡死根因）：删除同步循环跳天（EndDay/EndNight/OnDayEnd/BeginDay ×3）——
+    // UI 按钮事件栈内同步重入原生日切状态机 3 轮，每轮再触发全部 OnDayStart Postfix + 双重结算（原生链+L82 显式）
+    // → 实测卡死。昏迷语义改为：blood_rest=3 由正常每日结算自然递减（禁出门/禁采血 IsForcedRest 即时生效），
+    // 不再一键跳过 3 天；恢复期结束强制回血安全线（TickBloodRest），虚弱永续循环同步根除。
     private static void ForceComaSkip()
     {
         try
@@ -68,23 +72,7 @@ internal static partial class RobinCrusoePerk
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return;
             _gameOverTriggered = false;
-            for (int i = 0; i < 3; i++)
-            {
-                try { Il2Cpp.StoreUIManager.Instance.CloseAllUI(); } catch { }
-                try { ps.EndDay(); } catch { }
-                try { ps.EndNight(); } catch { }
-                try { var sem = Il2Cpp.StoreStation.instance != null ? Il2Cpp.StoreStation.instance.storeEventManager : null; if (sem != null) sem.OnDayEnd(); } catch { }
-                try { ps.BeginDay(); } catch { }
-                // 防双兜底：若原生链未触发鲁滨逊每日结算（StoreClientManager.OnNewDay Postfix），blood_rest 未递减 → 显式结算一次
-                try
-                {
-                    int rest = WageSaveStore.GetInt(PERK_ID, "blood_rest", 0);
-                    if (rest > 0 && rest == 3 - i) PostfixOnNewDay();
-                }
-                catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Death] 异常: " + ex.Message); }
-                if (_gameOverTriggered) return; // 跳天中死亡（三死/失血）→ 立即停止
-            }
-            try { ps.SaveGame(); } catch { } // 3 天无死亡才存档
+            try { Il2Cpp.StoreUIManager.Instance.CloseAllUI(); } catch { }
             RefreshStatusPanel();
         }
         catch (Exception ex) { Core.LogMsg("[鲁滨逊] 昏迷跳天异常: " + ex.Message); }
