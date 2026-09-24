@@ -376,6 +376,18 @@ internal static partial class Patches
 		}
 	}
 
+	// 09-24 保险丝：原生 OpenUI 内部调 LocHelper.Get() 可能崩溃（异步本地化未就绪）
+	// Finalizer 拦住异常，不让整个特性界面死掉
+	public static System.Exception FinalizerPerkUiOpen(PerkUIController __instance, System.Exception __exception)
+	{
+		if (__exception != null)
+		{
+			Core.LogMsg("[特性UI] OpenUI 原生异常已被 Finalizer 兜住: " + __exception.Message);
+			return null; // 返回 null = 吞掉异常，不扩散
+		}
+		return null;
+	}
+
 	public static void PostfixIconLoaderStart(StartingPerkIconLoader __instance)
 	{
 		try

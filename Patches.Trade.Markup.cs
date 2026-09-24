@@ -96,6 +96,8 @@ internal static partial class Patches
 			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
 			catch (System.Exception ex) { isSell = CurrentUITradeMode == 2; Core.LogMsg("[交易标记] IsItemOwned判定失败，按UI模式回退: " + ex.Message); }
 			ApplyBadReputationMarkup(item, isSell, ref result);
+			// 09-24 修复：博士之友/退休枪匠/水商/酿酒师买对应NPC商品 ×0.95（之前只加 friend_discount 标签不改价=无效）
+			ApplyFriendMarkup(item, !isSell, ref result);
 			if (ApplyRobinsonMarkup(item, isSell, ref result)) return;
 			if (!isSell)
 			{
@@ -130,6 +132,24 @@ internal static partial class Patches
 				result = (long)((double)result * 1.2);
 				TryAddBadReputationFeature(item, 20);
 			}
+		}
+	}
+
+	// ①.5 博士之友/退休枪匠/水商/酿酒师：买对应NPC的商品 ×0.95（复用 Friend.cs GetFriendBuyDiscount 判定，标签已由 PostfixUIInitBuyMode 加）
+	private static void ApplyFriendMarkup(GameItem item, bool isBuy, ref long result)
+	{
+		try
+		{
+			if (!isBuy || item == null) return;
+			float disc = GetFriendBuyDiscount(out _, out _);
+			if (disc < 1f)
+			{
+				result = (long)((double)result * disc);
+			}
+		}
+		catch
+		{
+			// 交易防御：朋友折扣判定失败降级（同一判定链）
 		}
 	}
 

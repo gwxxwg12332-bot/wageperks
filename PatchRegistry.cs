@@ -134,7 +134,7 @@ public static class PatchRegistry
 				typeof(GameItem)
 			}, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(EmporiumEntry), "GetAllAfterhourOwnedItems", null, "PostfixGetAllAfterhourOwnedItems", null, typeof(LuckScoutPerk));
-			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen");
+			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen", null, typeof(Patches), null, "FinalizerPerkUiOpen");
 			ManualPatcher.TryPatch(typeof(StartingPerkIconLoader), "Start", null, "PostfixIconLoaderStart");
 			ManualPatcher.TryPatch(typeof(NetworkUpgrade), "Unlock", "Prefix", "Postfix", null, typeof(DetectiveUpgradePatch));
 			ManualPatcher.TryPatch(typeof(SecData), "OnFixerUsed", "Prefix", null, null, typeof(DetectiveFixerPatch));

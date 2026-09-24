@@ -64,7 +64,8 @@ internal static class ManualPatcher
     // 需要"所有系统写完后再执行"的全局门面（如统一落盘 Flush）应传低优先级（如 0）保证最后跑
     internal static void TryPatch(Type type, string name,
         string prefix = null, string postfix = null,
-        Type[] parameterTypes = null, Type patchHost = null, int? priority = null)
+        Type[] parameterTypes = null, Type patchHost = null, int? priority = null,
+        string finalizer = null)
     {
         Type host = patchHost ?? typeof(Patches);
         try
@@ -82,12 +83,13 @@ internal static class ManualPatcher
 
             HarmonyMethod hmPrefix = prefix == null ? null : new HarmonyMethod(host, prefix);
             HarmonyMethod hmPostfix = postfix == null ? null : new HarmonyMethod(host, postfix);
+            HarmonyMethod hmFinalizer = finalizer == null ? null : new HarmonyMethod(host, finalizer);
             if (priority.HasValue)
             {
                 if (hmPrefix != null) hmPrefix.priority = priority.Value;
                 if (hmPostfix != null) hmPostfix.priority = priority.Value;
             }
-            _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix);
+            _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix, finalizer: hmFinalizer);
             MarkOk();
         }
         catch (Exception ex)
