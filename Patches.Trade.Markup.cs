@@ -91,6 +91,7 @@ internal static partial class Patches
 	{
 		try
 		{
+			long originalResult = result; // 09-24 clamp 下限用：保存原价
 			// 09-21 拆包实锤：用 IsItemOwned 判定买卖方向，替代 CurrentUITradeMode（竞态/残留）
 			bool isSell = false;
 			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
@@ -106,6 +107,8 @@ internal static partial class Patches
 			bool flag = IsContrabandSafe(item);
 			ApplyRiskWineMarkup(item, ref result, flag);
 			ApplyFaceMarkup(item, ref result);
+			// 09-24 修：所有卖出倍率叠加后 clamp 到原价 50% 下限（防负面特性叠太多价格崩到零）
+			if (isSell && result < originalResult * 0.5) result = (long)(originalResult * 0.5);
 		}
 		catch
 		{
@@ -523,6 +526,8 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
+	// 09-24 实锤修复（运行时 Failed to patch）：原生返回 Il2CppSystem.ValueTuple，必须同命名空间才能被 Harmony 挂载；
+	// 4b86809 曾声称修复但未落地（git show 无 Markup.cs 改动）——此为此前笑面虎/童叟无欺一直失效的真因。
 	public static void PostfixTradeRepMultipliers(ref Il2CppSystem.ValueTuple<double, double> __result)
 	{
 		try
