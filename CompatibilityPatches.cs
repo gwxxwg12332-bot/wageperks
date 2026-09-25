@@ -59,7 +59,7 @@ internal static class CompatibilityPatches
 
     // ===== 3. 声望兜底 =====
     // BargainUIManager.ComputeTradeRepMultipliers Postfix（最后执行 priority=0）
-    public static void PostfixTradeRepMultipliers(ref System.ValueTuple<double, double> __result)
+    public static void PostfixTradeRepMultipliers(ref Il2CppSystem.ValueTuple<double, double> __result)
     {
         try
         {
@@ -72,7 +72,7 @@ internal static class CompatibilityPatches
             if (changed)
             {
                 Core.LogMsg("[兼容] 声望倍率兜底: (" + __result.Item1 + "," + __result.Item2 + ") → (" + sell + "," + buy + ")");
-                __result = (sell, buy);
+                __result = new Il2CppSystem.ValueTuple<double, double>(sell, buy);
             }
         } catch { }
     }

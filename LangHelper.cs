@@ -57,4 +57,17 @@ internal static class LangHelper
     {
         return IsEnglish() ? en : zh;
     }
+
+    /// <summary>安全版 T：本地化系统未就绪时直接返回中文，不触发同步等待</summary>
+    public static string SafeT(string zh, string en)
+    {
+        try
+        {
+            return T(zh, en);
+        }
+        catch
+        {
+            return zh; // 本地化未就绪，返回中文兜底
+        }
+    }
 }
