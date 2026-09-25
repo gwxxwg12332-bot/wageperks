@@ -126,6 +126,8 @@ public static partial class WageGirlSystem
             else if (RobinCrusoePerk.IsDrink(item)) {
                 // 水：GetWaterMl → sip=min(200,ml) → purity 5 档
                 int ml = RobinCrusoePerk.GetWaterMl(item);
+                string _id = ""; try { _id = item.identifier; } catch { }
+                Core.LogMsg("[蛙娘喂水] id=" + _id + " ml=" + ml); // 诊断日志，用完删
                 if (ml <= 0) {
                     // 09-26 修：ml<=0 时只有酒能喂，其他（空瓶/空水瓶）不能喂
                     string id = "";
