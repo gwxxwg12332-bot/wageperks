@@ -89,6 +89,8 @@ internal static partial class RobinCrusoePerk
         try {
             if (_memBlood >= 0) return _memBlood;
             int saved = WageSaveStore.GetInt(PERK_ID, "blood", BLOOD_MAX);
+            // 09-26 修：读档空窗期返回默认值但不物化进缓存（防默认值6000污染存档）
+            if (!WageSaveStore.LoadComplete) return saved;
             _memBlood = saved;
             return saved;
         } catch { return BLOOD_MAX; }

@@ -28,6 +28,7 @@ private const string DIR_NAME = "WagesPerks";
     private static int _pendingLoadFrames;       // 帧延迟计数
     private static bool _loadedOnce;             // 本次读档：键值文件是否已加载（键值不依赖容器就绪，LoadGame Postfix 即可读）
     private static bool _loadingComplete = true;  // 09-26 写入门控：mod启动默认true，读档期间false，加载完true
+    internal static bool LoadComplete => _loadingComplete; // 09-26 暴露给外部读门控状态
     private static bool _dirty;                  // 有未落盘改动
 
     // ===================== 路径 =====================
