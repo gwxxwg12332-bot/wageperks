@@ -116,8 +116,8 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(TradeSheet), "GetFoundryShop", null, "PostfixTradeSheetFoundryShop");
 			ManualPatcher.TryPatch(typeof(TradeSheet), "GetEnergyFarmShop", null, "PostfixTradeSheetEnergyFarmShop");
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleContentUnlockClient", null, "PostfixOnHandleContentUnlockClient");
-					ManualPatcher.TryPatch(typeof(InputActionManager), "Update", null, "PostfixInputActionManagerUpdate");
-		ManualPatcher.TryPatch(typeof(InventorySortHelper), "Sort", null, "PostfixSort", null, typeof(RobinCrusoePerk)); // 09-22 右键排列后恢复 shape
+			ManualPatcher.TryPatch(typeof(InputActionManager), "Update", null, "PostfixInputActionManagerUpdate");
+			ManualPatcher.TryPatch(typeof(InventorySortHelper), "Sort", null, "PostfixSort", null, typeof(RobinCrusoePerk)); // 09-22 右键排列后恢复 shape
 			ManualPatcher.TryPatch(typeof(StoreUIManager), "OnNextClientArrived", null, "PostfixSpecialNpcStartDialogue");
 			ManualPatcher.TryPatch(typeof(DialogUIManager), "DisplayClientText", "PrefixDisplayClientText", null, new System.Type[1] { typeof(Dialogue) });
 			ManualPatcher.TryPatch(typeof(ScavHelper), "GetMaxScavAttempts", null, "PostfixGetMaxScavAttempts", null, typeof(LuckScoutPerk));
@@ -251,7 +251,7 @@ public static class PatchRegistry
 				typeof(int)
 			});
 			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", "PrefixSaveGame", "PostfixSaveGame", null, typeof(NewStartTypeUI));
-			ManualPatcher.TryPatch(typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk));
+			// 注意：RobinCrusoePerk 的 SaveGame PostfixSaveGame 已在 RegisterCoreAndWanted L175 注册——勿重复（曾重复注册导致落盘跑两次）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame", null, typeof(NewStartTypeUI));
 		}
 		catch (System.Exception ex3)
