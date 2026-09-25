@@ -167,35 +167,3 @@ internal static class TraitEffects
         return false;
     }
 }
-// ============================================================
-// 补丁：新的一天处理好酒之徒宿醉
-// ============================================================
-// [HarmonyPatch(typeof(GameMaster), "OnNewDay")]
-internal static class TraitHangoverPatch
-{
-    static void Postfix()
-    {
-        try
-        {
-            if (WineLoverPerk.IsActive())
-            {
-                // 30%概率宿醉
-                if (Core.Rng.Next(10) < 3)
-                {
-                    // 宿醉效果通过全局变量标记，在议价补丁中检查
-                    _isHungover = true;
-                }
-                else
-                {
-                    _isHungover = false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            MelonLogger.Error("[特性效果] 宿醉补丁失败: " + ex.Message);
-        }
-    }
-
-    internal static bool _isHungover = false;
-}

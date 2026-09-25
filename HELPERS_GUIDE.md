@@ -31,15 +31,6 @@ ItemHelper.IsDailyNeed(item); // 是不是日用品
 
 ---
 
-### MathHelper — 数值计算
-```csharp
-MathHelper.Clamp(150, 0, 100);  // → 100（限制范围）
-MathHelper.Lerp(0, 100, 0.5f);  // → 50（插值）
-```
-**什么时候用**：任何需要限制数值范围的场景。
-
----
-
 ### LangHelper — 本地化
 ```csharp
 string s = LangHelper.T("中文", "English");
@@ -69,17 +60,6 @@ UIHelper.CreateWindow(...);
 
 ---
 
-### DragHelper — 拖拽判定
-```csharp
-DragHelper.IsDragRelease();  // 是否拖拽松手
-DragHelper.ShouldAllowDrag(dragged, target, isType1, isType2);
-```
-**什么时候用**：拖拽吞噬/升级/合成场景。
-
----
-
-## 三、业务类
-
 ### NpcHelper — NPC调度
 ```csharp
 NpcHelper.Schedule("npc_id", daysFromNow);      // 预约NPC
@@ -95,15 +75,6 @@ MerchantHelper.GetNegotiatedValue(...);  // 议价后价格
 MerchantHelper.GetDealMakerBonus(...);   // 议价成功率
 ```
 **什么时候用**：价格修正、议价相关。
-
----
-
-### FoodFatigueHelper — 吃腻了系统
-```csharp
-FoodFatigueHelper.IsTiredOf(item);  // 是不是吃腻了
-FoodFatigueHelper.AddFatigue(item); // 增加腻值
-```
-**什么时候用**：蛙娘/鲁滨逊吃同一种东西会腻。
 
 ---
 
@@ -127,17 +98,6 @@ ConfigHelper.MachineContainerTemplateUpgrade; // 机器模板升级开关
 
 ---
 
-### LoggerHelper — 日志统一
-```csharp
-LoggerHelper.Debug("tag", "调试信息");  // 仅Debug模式输出
-LoggerHelper.Info("tag", "普通信息");
-```
-**什么时候用**：诊断日志用Debug，正式日志用Info。发布前Debug自动消失。
-
----
-
-## 五、形状类
-
 ### ContainerShapeHelper — 容器形状
 ```csharp
 ContainerShapeHelper.GetGrid(item);     // 获取容器网格
@@ -158,22 +118,3 @@ GameItemShapeHelper.SetShape(item, shape); // 写物品占地形状
 ---
 
 ## 六、其他
-
-### TooltipHelper — 提示框
-```csharp
-TooltipHelper.AddModifier(...); // 修改物品提示框
-```
-**什么时候用**：给物品加额外说明文字。
-
----
-
-## 使用原则
-
-1. **先查再用**：写新功能前先看有没有现成Helper
-2. **能组合就组合**：比如 NotifyHelper + TagHelper 组合用
-3. **不要重复造轮子**：已有Helper能解决的，不要自己写一套
-4. **扩展加新的**：如果现有Helper都不满足，再加新的，不要改旧的
-
----
-
-> 新功能开发 = 先找Helper → 组合用 → 不够再加。
