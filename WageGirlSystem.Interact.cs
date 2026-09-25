@@ -74,7 +74,7 @@ public static partial class WageGirlSystem
                         return false;
                     }
                     SetStat(K_SAVINGS, savings - washCost);
-                    try { Il2Cpp.ContrabandHelper.RemoveContrabandStatus(item); } catch { }
+                    try { Il2Cpp.ContrabandHelper.RemoveContrabandStatus(item); try { item.EnableTag("wage_washed", true); } catch { } } catch { }
                     try { item.shortDescription = (item.shortDescription ?? "") + LangHelper.T("【被蛙哥的大手洗白】", "[Laundered by Wage's big hand]"); } catch { }
                     string itemName = ModCannibalism.GetName(item);
                     ReportLine(LangHelper.T("蛙娘把 " + itemName + " 洗白了（L" + lvl + " -" + washCost + " 块小金库）", "Wage Girl laundered " + itemName + " (L" + lvl + " -" + washCost + " savings)"));
@@ -162,7 +162,7 @@ public static partial class WageGirlSystem
             else return false;
             SetAffection(GetAffection() + aff);
             SetStat("lastFedDay", CurrentDay()); // 记录今天喂过
-            try { StoreUIManager.Instance.Notify(msg, "green"); } catch { }
+            try { StoreUIManager.Instance.Notify(msg); } catch { }
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
             SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
             return true;

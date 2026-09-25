@@ -57,6 +57,28 @@ partial class WageSaveStore
             // 直接恢复引用类型必失败（阶段1 已用血泪验证，见 WageSaveStore.cs 顶部时序说明）。
             try { CustomStartingPerks.NotifyGameLoaded(); }
             catch (Exception ex2) { Core.LogMsg("[SaveStore] OnGameLoaded 驱动失败: " + ex2.Message); }
+            // 09-26 防御重洗白：读档数据就绪后扫全店，已洗白物品若恢复违禁 tag 则重新洗白
+            try
+            {
+                var em = Il2Cpp.EmporiumEntry.Instance;
+                if (em != null)
+                {
+                    var all = em.GetAllItems();
+                    foreach (var it in all)
+                    {
+                        try
+                        {
+                            if (it != null && it.IsTag("wage_washed") && Il2Cpp.ContrabandHelper.GetContrabandLevel(it) > 0)
+                            {
+                                Il2Cpp.ContrabandHelper.RemoveContrabandStatus(it);
+                                Core.LogMsg("[蛙娘] 读档防御重洗白: " + it.identifier);
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex3) { Core.LogMsg("[蛙娘] 读档重洗白扫描异常: " + ex3.Message); }
         }
         catch (Exception ex)
         {

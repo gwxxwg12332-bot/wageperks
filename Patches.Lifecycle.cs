@@ -388,6 +388,16 @@ internal static partial class Patches
 		return null;
 	}
 
+	public static System.Exception FinalizerPerkUiOnChange(PerkUIController __instance, System.Exception __exception)
+	{
+		if (__exception != null)
+		{
+			Core.LogMsg("[特性UI] OnChange 原生异常已被 Finalizer 兜住: " + __exception.Message);
+			return null;
+		}
+		return null;
+	}
+
 	public static void PostfixIconLoaderStart(StartingPerkIconLoader __instance)
 	{
 		try

@@ -12,11 +12,13 @@ public static partial class WageGirlSystem
     {
         try
         {
+            Core.LogMsg("[蛙娘] ShowPanel 开始");
             var mgr = Il2Cpp.CustomUIManager.Instance;
-            if (mgr == null) return;
+            if (mgr == null) { Core.LogMsg("[蛙娘] ShowPanel 段1: CustomUIManager.Instance 为 null"); return; }
             if (mgr.IsOpen("wage_girl_panel")) mgr.CloseWindow("wage_girl_panel");
             var b = mgr.CreateWindow("wage_girl_panel", LangHelper.T("蛙娘 · 状态", "Wage Girl · Status"), "overlay");
-            if (b == null) return;
+            if (b == null) { Core.LogMsg("[蛙娘] ShowPanel 段2: CreateWindow 返回 null"); return; }
+            Core.LogMsg("[蛙娘] ShowPanel 段2: 窗口创建成功");
             b.SetSize(300, 560).SetPosition(Vector2.zero);
             try
             {

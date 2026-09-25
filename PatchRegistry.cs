@@ -135,7 +135,7 @@ public static class PatchRegistry
 			}, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(EmporiumEntry), "GetAllAfterhourOwnedItems", null, "PostfixGetAllAfterhourOwnedItems", null, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen", null, typeof(Patches), null, "FinalizerPerkUiOpen");
-			ManualPatcher.TryPatch(typeof(PerkUIController), "OnChange", null, null, null, typeof(Patches), null, "FinalizerPerkUiOnChange"); // 09-26 本地化崩溃兜底
+			ManualPatcher.TryPatch(typeof(PerkUIController), "OnChange", null, null, null, typeof(Patches), null, "FinalizerPerkUiOnChange"); // 09-26 本地化崩溃兜底（OnChange 存在，补写宿主方法）
 			ManualPatcher.TryPatch(typeof(StartingPerkIconLoader), "Start", null, "PostfixIconLoaderStart");
 			ManualPatcher.TryPatch(typeof(NetworkUpgrade), "Unlock", "Prefix", "Postfix", null, typeof(DetectiveUpgradePatch));
 			ManualPatcher.TryPatch(typeof(SecData), "OnFixerUsed", "Prefix", null, null, typeof(DetectiveFixerPatch));
@@ -224,7 +224,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice));
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
 			Core.LogMsg("[Patch] 命运骰子拖放吸收已注册");
 		}
 		catch (System.Exception ex3)
@@ -271,13 +271,13 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleInspectionClient", "PrefixHandleInspectionClient", "PostfixHandleInspectionClient");
 			ManualPatcher.TryPatch(typeof(StoreReputation), "IsPerkUnlocked", null, "PostfixIsPerkUnlocked");
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", null, "PostfixDoubleClickAction", patchHost: typeof(RobinCrusoePerk), parameterTypes: new System.Type[2]
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", null, "PostfixDoubleClickAction", patchHost: typeof(RobinCrusoePerk), parameterTypes: new System.Type[2]
 			{
 				typeof(GameItem),
 				typeof(Vector2)
 			});
 			// 09-21 蛙娘：双击实体开面板（全局，不依赖鲁滨逊特性——独立 Postfix，多 Postfix 共存）
-			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "OnDoubleClick", null, "PostfixDoubleClickAction", patchHost: typeof(WageGirlSystem), parameterTypes: new System.Type[2]
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", null, "PostfixDoubleClickAction", patchHost: typeof(WageGirlSystem), parameterTypes: new System.Type[2]
 			{
 				typeof(GameItem),
 				typeof(Vector2)
@@ -343,7 +343,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)); // 声名狼藉
 			// 声名狼藉：强开保险服务解锁 + 价格双倍（拆包：保险解锁依赖黑市声望，声名狼藉-99被原生锁）
 			ManualPatcher.TryPatch(typeof(Il2Cpp.StoreService), "UpdateCost", null, "PostfixUpdateCost", null, typeof(InfamousPerk));
-			ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", "PrefixEndGroupDrag", "PostfixEndGroupDrag", null, typeof(BatchDragUpgrade), null, "FinalizerEndGroupDrag"); // 09-26 批量拖拽升级
+			// ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", "PrefixEndGroupDrag", "PostfixEndGroupDrag", null, typeof(BatchDragUpgrade), null, "FinalizerEndGroupDrag"); // 09-26 批量拖拽升级（临时注释，排查启动卡住）
 			// 09-26 v1.2.10 稳定版：堆叠系统+吞噬瓶已删除
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)); // 09-21 发放后清+重发（根治"清了白清"）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(DrJacksonFriendPerk)); // 阶段2 CR-15：基类 OnNewGame 挂的 GameMaster.NewGame 实测从不触发，改挂此处重置来访日

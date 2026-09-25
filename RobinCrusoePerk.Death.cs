@@ -57,9 +57,6 @@ internal static partial class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PrefixExecuteGameOver 异常: " + ex.Message); }
         return true;
     }
-    // 09-20 昏迷强制过夜：死亡事件标志（三死/失血 → ExecuteGameOverBy 置位 → ForceComaSkip 停止跳天）
-    private static bool _gameOverTriggered = false;
-
     // 09-20 拍板：昏迷当天立刻强制过夜 ×3（实际日期 +3，跳过 3 天）；跳天中死亡立即停止
     // 09-24 修（卡死根因）：删除同步循环跳天（EndDay/EndNight/OnDayEnd/BeginDay ×3）——
     // UI 按钮事件栈内同步重入原生日切状态机 3 轮，每轮再触发全部 OnDayStart Postfix + 双重结算（原生链+L82 显式）
@@ -71,7 +68,6 @@ internal static partial class RobinCrusoePerk
         {
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps == null) return;
-            _gameOverTriggered = false;
             try { Il2Cpp.StoreUIManager.Instance.CloseAllUI(); } catch { }
             RefreshStatusPanel();
         }
@@ -81,7 +77,6 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            _gameOverTriggered = true; // 09-20 昏迷跳天循环检测：任何死亡事件（三死/失血）立即置标志停止跳天
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.ExecuteGameOver(ending);  }
         }
