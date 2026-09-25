@@ -107,7 +107,7 @@ public static partial class WageGirlSystem
             int curAff = GetAffection();
             // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
             int affBase = curAff < 30 ? 1 : (curAff < 70 ? 2 : 1);
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); try { item.Destroy(); } catch { } return true; } // 堆叠：数量-1，吃完才Destroy
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); try { item.Destroy(); } catch { } } // 09-26 删 return true：走公共收尾（好感/提示/面板刷新一次补齐）
             else if (RobinCrusoePerk.IsFood(item)) {
                 // 普通食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
                 int cal2 = RobinCrusoePerk.GetCalLeft(item);

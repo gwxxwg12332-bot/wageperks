@@ -24,7 +24,7 @@ internal static class BatchDragUpgrade
             // 读 hoverItem（拖拽目标容器）
             GameItem hover = null;
             try { hover = __instance.hoverItem; } catch { }
-            if (hover == null) { Core.LogMsg("[批量升级] hoverItem 为 null"); return; }
+            if (hover == null) return;
 
             // 识别目标类型
             bool isDice = false, isBox = false, isBead = false;

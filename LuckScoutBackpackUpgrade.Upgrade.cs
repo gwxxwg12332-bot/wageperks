@@ -37,11 +37,11 @@ partial class LuckScoutBackpackUpgrade
 
     {
 
-        if (junk == null || bead == null) { Core.LogMsg("[虚空珠] 失败: junk或bead为null"); return false; }
+        if (junk == null || bead == null) return false;
 
         // 09-19 per-bead 防抖（同一珠 0.5s 防重扣；不同珠互不误伤）
         DateTime _last;
-        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) { Core.LogMsg("[虚空珠] 失败: 防抖拦截"); return false; }
+        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) return false;
 
         try
 
