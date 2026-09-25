@@ -30,6 +30,20 @@
 - 验证方法：非鲁滨逊职业（startType≠14）的档不卡 → 可用来验证修复效果
 - 修复版本：v1.1.6（待发布）
 
+### BUG-015 蛙娘好感度/六维状态读档清零
+- 优先级：🔴 高（状态丢失，影响蛙娘玩法）
+- 状态：已修复（09-26，开发版已部署 MD5 1D0041FF）
+- 现象：喂蛙娘 → 好感上涨 → 打烊存档 → 关游戏重开 → 读档 → 好感度回到初始值。日志 [SaveStore] 显示键值（wage_girl.affection 等）已读到，但游戏内状态未生效
+- 根因（源码级确认）：读档空窗期（OnLoadGame → LoadIfPending/TryDoLoad 完成前）特性代码 SetXxx 写入**默认值**，覆盖刚读入存档的键值——键值在日志可见但已被默认值污染
+- 修复（WageSaveStore.cs 写入门控）：
+  1. _loadingComplete 字段默认 true（新档/启动正常写入）
+  2. OnLoadGame L473 复位 false（读档期间禁止写入）
+  3. SetString L286 唯一写入口拦截 if (!_loadingComplete) return（SetInt/Bool/Float 全走 SetString）
+  4. TryDoLoad L533/L541/L547 三出口（成功/无档/异常）统一放开 true
+  5. 蛙娘预热核心 key（K_LEAVE/K_EXIST）在 OnGameLoadedReset 最先恢复
+- 验证：正常旧档/连续读两档/存档损坏/新开局/读档后销赃/读档后蛙娘外出——6 场景全覆盖
+- 修复版本：v1.2.10+（待重打包）
+
 ## 🟠 中优先级（机制逻辑错误，影响核心玩法）
 
 ### BUG-002 生存状态议价 buff：购买生效、出售不生效
