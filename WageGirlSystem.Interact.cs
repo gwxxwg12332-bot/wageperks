@@ -127,12 +127,12 @@ public static partial class WageGirlSystem
                 // 水：GetWaterMl → sip=min(200,ml) → purity 5 档
                 int ml = RobinCrusoePerk.GetWaterMl(item);
                 if (ml <= 0) {
-                    // 09-23 修复「无卡路里值的饮品统一按其价值恢复蛙娘的口渴值」
-                    // 根因：酒/代饮品（red_beer / nudka / galaxy_blend 等）原生不写 LIQUID_CONTAINER_CURRENT，
-                    // GetWaterMl()=0 → 旧代码 `item.Destroy(); return false;` → 物品凭空消失、口渴一点不回。
-                    // 注：有卡路里的饮品会被上面的 IsFood 分支先接走（IsFood 要求 CALORIE_VALUE_TAG/CALORIE），
-                    // 所以落到饮品分支且 ml=0 的基本都是无卡路里值的饮品 → 统一按「价值」恢复口渴。
-                    // 档位沿用水质 5 档的量级（25/18/12/6/2），既有水/纯度机制完全不动。
+                    // 09-26 修：空瓶（empty_*）不能喂蛙娘——不回口渴、不触发，直接 return false
+                    string id = "";
+                    try { id = item.identifier; } catch { }
+                    if (id.StartsWith("empty_")) return false; // 空瓶/空啤酒瓶：不能喂
+
+                    // 酒（red_beer/nudka/galaxy_blend 等）→ 按价值回口渴，喝完销毁酒瓶
                     long dval = 0;
                     try { dval = item.GetCurrentValue(); } catch { }
                     if (dval <= 0) { try { dval = item.unitValue; } catch { } }
@@ -140,17 +140,7 @@ public static partial class WageGirlSystem
                     SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
                     aff = affBase;
                     msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
-                    // 09-26 修：无水量饮品——酒销毁留瓶规则：
-                    // 酒（red_beer/nudka/galaxy_blend 等）→ 喝完销毁酒瓶（09-24 拍板保留）
-                    // 空瓶/空啤酒瓶/空水瓶 → 留瓶（可继续装水，与双击链语义一致）
-                    string id = "";
-                    try { id = item.identifier; } catch { }
-                    bool isAlcohol = id == "red_beer" || id == "nudka" || id == "galaxy_blend" || id == "whiskey" || id == "vodka";
-                    if (isAlcohol)
-                    {
-                        try { item.Destroy(); } catch { } // 酒喝完销毁酒瓶
-                    }
-                    // 空瓶/非酒容器 → 留瓶，不销毁
+                    try { item.Destroy(); } catch { } // 酒喝完销毁酒瓶
                 }
                 else {
                     int sip = Math.Min(200, ml);
