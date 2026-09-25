@@ -127,12 +127,13 @@ public static partial class WageGirlSystem
                 // 水：GetWaterMl → sip=min(200,ml) → purity 5 档
                 int ml = RobinCrusoePerk.GetWaterMl(item);
                 if (ml <= 0) {
-                    // 09-26 修：空瓶（empty_*）不能喂蛙娘——不回口渴、不触发，直接 return false
+                    // 09-26 修：ml<=0 时只有酒能喂，其他（空瓶/空水瓶）不能喂
                     string id = "";
                     try { id = item.identifier; } catch { }
-                    if (id.StartsWith("empty_")) return false; // 空瓶/空啤酒瓶：不能喂
+                    bool isAlcohol = id == "red_beer" || id == "nudka" || id == "galaxy_blend" || id == "whiskey" || id == "vodka";
+                    if (!isAlcohol) return false; // 空瓶/空水瓶：不能喂
 
-                    // 酒（red_beer/nudka/galaxy_blend 等）→ 按价值回口渴，喝完销毁酒瓶
+                    // 酒 → 按价值回口渴，喝完销毁酒瓶
                     long dval = 0;
                     try { dval = item.GetCurrentValue(); } catch { }
                     if (dval <= 0) { try { dval = item.unitValue; } catch { } }
