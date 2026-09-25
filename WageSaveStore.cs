@@ -60,6 +60,7 @@ internal static class WageSaveStore
     private static bool _pendingLoad;            // 读档待加载标志（Postfix 只设它）
     private static int _pendingLoadFrames;       // 帧延迟计数
     private static bool _loadedOnce;             // 本次读档：键值文件是否已加载（键值不依赖容器就绪，LoadGame Postfix 即可读）
+    private static bool _loadingComplete = true;  // 09-26 写入门控：mod启动默认true，读档期间false，加载完true
     private static bool _dirty;                  // 有未落盘改动
 
     // ===================== 路径 =====================
@@ -282,6 +283,7 @@ internal static class WageSaveStore
     {
         try
         {
+            if (!_loadingComplete) return; // 09-26 读档空窗期：丢弃所有写入，防默认值污染
             _mem[ns + "." + key] = value ?? "";
             _dirty = true;
         }
@@ -468,6 +470,7 @@ internal static class WageSaveStore
         try
         {
             ClearMem();
+            _loadingComplete = false; // 09-26 读档期间禁止写入，防止空窗期默认值污染存档
             _pendingLoad = true;
             _pendingLoadFrames = 0;
             _loadedOnce = false;
@@ -527,6 +530,7 @@ internal static class WageSaveStore
                     File.Delete(pending);   // 并入后清理，避免下次重复并入
                     _curKey = key;
                     _loadedOnce = true;
+                    _loadingComplete = true; // 09-26 加载完成，放开写入
                     Core.LogMsg("[SaveStore] 正式文件未建立，已从 pending 并入（" + _mem.Count + " 项）");
                     DumpForDiagnostics();
                     return true;
@@ -534,11 +538,13 @@ internal static class WageSaveStore
                 Core.LogMsg("[SaveStore] 无存档文件（新档）：" + key);
                 _curKey = key;
                 _loadedOnce = true;
+                _loadingComplete = true; // 09-26 加载完成，放开写入
                 return true;
             }
             ReadInto(path);
             _curKey = key;
             _loadedOnce = true;
+            _loadingComplete = true; // 09-26 加载完成，放开写入
             Core.LogMsg("[SaveStore] 已加载 " + key + "（" + _mem.Count + " 项）");
             DumpForDiagnostics();
             return true;

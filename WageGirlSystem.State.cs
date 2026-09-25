@@ -173,6 +173,13 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     {
         try {
             _memStats.Clear(); // 09-20 修：读档清内存缓存——下次GetStat自动从Prefs重载存档值
+            // 09-26 预热核心key：先读决定实体去留的key，再读六维/好感
+            // 不预热的话，下面兜底校验读到默认值0，会误判蛙娘在店里（实际她在外跑路）
+            GetStat(K_LEAVE);
+            GetStat(K_EXIST);
+            GetStat(K_AFF);
+            GetStat(K_SAT); GetStat(K_TH); GetStat(K_HEALTH);
+            GetStat(K_MOOD); GetStat(K_CLEAN); GetStat(K_SLEEP);
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;
             try { EnsureSprites(); } catch { } // 读档后确保动画帧已加载
             // 09-23 修：兜底校验——K_LEAVE 未到回归日 → 强制删实体
