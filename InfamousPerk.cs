@@ -48,6 +48,13 @@ internal sealed class InfamousPerk : CustomStartingPerk
                     rep.ModReputation(diff);
                     int after = (int)rep.GetReputationExact();
                     Core.LogMsg("[声名狼藉] " + factionIds[i] + " cur=" + cur + " diff=" + diff + " after=" + after);
+                    // 09-26 兜底：黑市声望特殊（diff=-99 实际扣 -198），补正到 -99
+                    if (factionIds[i] == "FACTION_BLACK_MARKET" && after != -99)
+                    {
+                        rep.ModReputation(-99 - after);
+                        after = (int)rep.GetReputationExact();
+                        Core.LogMsg("[声名狼藉] 黑市兜底修正: after=" + after);
+                    }
                 }
                 catch (Exception ex) { Core.LogMsg("[声名狼藉] " + factionIds[i] + " 异常: " + ex.Message); }
             }
@@ -73,5 +80,23 @@ internal sealed class InfamousPerk : CustomStartingPerk
             Core.LogMsg("[声名狼藉] 第1天送5000 OK");
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
+    }
+
+    // 声名狼藉：强开保险服务解锁 + 价格双倍（拆包：保险解锁依赖黑市声望，声名狼藉-99被原生锁）
+    public static void PostfixUpdateCost(Il2Cpp.StoreService __instance)
+    {
+        try
+        {
+            if (!IsActive()) return;
+            if (__instance == null) return;
+            string sid = "";
+            try { sid = __instance.id; } catch { }
+            Core.LogMsg("[声名狼藉] UpdateCost: sid=" + sid + " unlocked=" + __instance.unlocked + " cost=" + __instance.cost);
+            if (sid != "INSURANCE_SERVICE") return;
+            __instance.unlocked = true;   // 强开解锁
+            __instance.cost *= 2;          // 价格双倍
+            Core.LogMsg("[声名狼藉] 保险服务强开 unlocked=true cost=" + __instance.cost);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[声名狼藉] PostfixUpdateCost 异常: " + ex.Message); }
     }
 }

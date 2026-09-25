@@ -27,15 +27,21 @@ partial class LuckScoutBackpackUpgrade
 
 
 
+    // 09-26 批量升级：清空防抖记录（批量循环调用时用）
+    internal static void ClearDebounce()
+    {
+        try { _lastConsumeByBead.Clear(); } catch { }
+    }
+
     internal static bool DoUpgrade(GameItem junk, GameItem bead)
 
     {
 
-        if (junk == null || bead == null) return false;
+        if (junk == null || bead == null) { Core.LogMsg("[虚空珠] 失败: junk或bead为null"); return false; }
 
         // 09-19 per-bead 防抖（同一珠 0.5s 防重扣；不同珠互不误伤）
         DateTime _last;
-        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) return false;
+        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) { Core.LogMsg("[虚空珠] 失败: 防抖拦截"); return false; }
 
         try
 
@@ -46,6 +52,7 @@ partial class LuckScoutBackpackUpgrade
 
             if (slots >= MAX_SLOTS)
             {
+                Core.LogMsg("[虚空珠] 失败: 已满级 slots=" + slots);
                 // 满级：不能升级，但"碰一下"也恢复形状（读档后容器内虚空珠可能漏恢复）
                 try
                 {

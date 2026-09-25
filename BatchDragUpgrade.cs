@@ -16,6 +16,7 @@ internal static class BatchDragUpgrade
     {
         try
         {
+            Core.LogMsg("[批量升级] Prefix 触发");
             _pending.Clear();
             _target = null;
             _armed = false;
@@ -23,7 +24,7 @@ internal static class BatchDragUpgrade
             // 读 hoverItem（拖拽目标容器）
             GameItem hover = null;
             try { hover = __instance.hoverItem; } catch { }
-            if (hover == null) return;
+            if (hover == null) { Core.LogMsg("[批量升级] hoverItem 为 null"); return; }
 
             // 识别目标类型
             bool isDice = false, isBox = false, isBead = false;
@@ -35,7 +36,8 @@ internal static class BatchDragUpgrade
 
             // 遍历 selectedItems，排除目标本身
             var selected = __instance.selectedItems;
-            if (selected == null) return;
+            if (selected == null) { Core.LogMsg("[批量升级] selectedItems 为 null"); return; }
+            Core.LogMsg("[批量升级] selectedItems 数量=" + selected.Count);
 
             foreach (var el in selected)
             {
@@ -71,6 +73,8 @@ internal static class BatchDragUpgrade
             if (_target == null || _pending.Count == 0) return;
 
             int ok = 0, fail = 0;
+            // 09-26 批量升级：清空虚空珠防抖（否则 0.5s 内只能吃一个）
+            try { LuckScoutBackpackUpgrade.ClearDebounce(); } catch { }
             foreach (var item in _pending)
             {
                 try
@@ -94,6 +98,8 @@ internal static class BatchDragUpgrade
                     // 虚空珠：LuckScoutBackpackUpgrade.DoUpgrade(item, target)
                     if (LuckScoutBackpackUpgrade.IsBead(_target))
                     {
+                        // 每个物品调用前清空防抖（否则上一个成功后写了记录，下一个被拦）
+                        try { LuckScoutBackpackUpgrade.ClearDebounce(); } catch { }
                         if (LuckScoutBackpackUpgrade.DoUpgrade(item, _target)) ok++;
                         else fail++;
                         continue;

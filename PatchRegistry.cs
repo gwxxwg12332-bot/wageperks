@@ -343,7 +343,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)); // 声名狼藉
 			// 声名狼藉：强开保险服务解锁 + 价格双倍（拆包：保险解锁依赖黑市声望，声名狼藉-99被原生锁）
 			ManualPatcher.TryPatch(typeof(Il2Cpp.StoreService), "UpdateCost", null, "PostfixUpdateCost", null, typeof(InfamousPerk));
-			// ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", "PrefixEndGroupDrag", "PostfixEndGroupDrag", null, typeof(BatchDragUpgrade), null, "FinalizerEndGroupDrag"); // 09-26 批量拖拽升级（临时注释，排查启动卡住）
+			ManualPatcher.TryPatch(typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", "PrefixEndGroupDrag", "PostfixEndGroupDrag", null, typeof(BatchDragUpgrade), null, "FinalizerEndGroupDrag"); // 09-26 批量拖拽升级
 			// 09-26 v1.2.10 稳定版：堆叠系统+吞噬瓶已删除
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)); // 09-21 发放后清+重发（根治"清了白清"）
 			ManualPatcher.TryPatch(typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(DrJacksonFriendPerk)); // 阶段2 CR-15：基类 OnNewGame 挂的 GameMaster.NewGame 实测从不触发，改挂此处重置来访日
