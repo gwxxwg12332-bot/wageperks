@@ -85,6 +85,13 @@ public static class BuildConfig
 		}
 	}
 
+
+		// ===== 兼容层开关 =====
+		public static bool CompatTradeClamp { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatTradeClamp"); } catch { return true; } } }
+		public static bool CompatBudgetRestore { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatBudgetRestore"); } catch { return true; } } }
+		public static bool CompatRepClamp { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatRepClamp"); } catch { return true; } } }
+		public static bool CompatWineNameProtect { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatWineNameProtect"); } catch { return true; } } }
+		public static bool CompatPhoneLocalization { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatPhoneLocalization"); } catch { return true; } } }
 	// ===== 蛙娘系统 CFG（09-23 全部数值可配置，默认=原设计稿数值） =====
 	// 客户预算增益（好感分档：原生预算×倍率，≤0不覆盖防归零）
 	public static float WageGirlBudgetMultLow => GetFloat("WageGirlBudgetMultLow", 1.5f);

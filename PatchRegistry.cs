@@ -159,6 +159,7 @@ public static class PatchRegistry
 			// ComputeTradeRepMultipliers(返回 ValueTuple<double,double>)，故宿主 Postfix 同步改名并改签名。
 			// 依据：_Demo_20260915_cpp2il IsilDump\Assembly-CSharp\BargainUIManager.txt:8752
 			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers");
+			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers", typeof(CompatibilityPatches)); // 声望兜底
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OpenUI", null, "PostfixStartOfDayOpenUI");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "ShowMorningReport", null, "PostfixStartOfDayShowMorningReport");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OnStartDayButtonClicked", null, "PostfixStartOfDayButtonClicked");
