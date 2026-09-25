@@ -479,7 +479,13 @@ public static class ContainerUpgradeV2
         {
             if (__instance == null || targetItem == null) return true;
             if (IsNuts(__instance) && IsWageBox(targetItem))
-            { __result = true; return false; } // hover 可拖
+            {
+                // 09-26 修白嫖bug：货架上没买的螺丝（非玩家所有）不能拖来升级
+                bool owned = false;
+                try { owned = Il2Cpp.GeneralHelper.IsItemOwned(__instance); } catch { }
+                if (!owned) return true; // 非玩家所有：不拦截，原生处理
+                __result = true; return false; // hover 可拖
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
         return true;
@@ -495,6 +501,10 @@ public static class ContainerUpgradeV2
             if (__instance == null || targetItem == null) return true;
             if (!IsNuts(__instance) || !IsWageBox(targetItem)) return true;
             if (!IsDragRelease()) return true;
+            // 09-26 修白嫖bug：货架上没买的螺丝不能被消耗升级
+            bool owned = false;
+            try { owned = Il2Cpp.GeneralHelper.IsItemOwned(__instance); } catch { }
+            if (!owned) return true; // 非玩家所有：不拦截，原生放入
             if (TryUpgradeWageBox(__instance, targetItem)) return false; // 升级成功：拦截原生放入
         }
         catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
