@@ -140,9 +140,17 @@ public static partial class WageGirlSystem
                     SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
                     aff = affBase;
                     msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
-                    // 09-24 修：无水量饮品（酒/烈酒）喝完销毁——不留瓶子
-                    // 只有有水量的水瓶才留（WaterHelper.Remove 扣水量分支）
-                    try { item.Destroy(); } catch { }
+                    // 09-26 修：无水量饮品——酒销毁留瓶规则：
+                    // 酒（red_beer/nudka/galaxy_blend 等）→ 喝完销毁酒瓶（09-24 拍板保留）
+                    // 空瓶/空啤酒瓶/空水瓶 → 留瓶（可继续装水，与双击链语义一致）
+                    string id = "";
+                    try { id = item.identifier; } catch { }
+                    bool isAlcohol = id == "red_beer" || id == "nudka" || id == "galaxy_blend" || id == "whiskey" || id == "vodka";
+                    if (isAlcohol)
+                    {
+                        try { item.Destroy(); } catch { } // 酒喝完销毁酒瓶
+                    }
+                    // 空瓶/非酒容器 → 留瓶，不销毁
                 }
                 else {
                     int sip = Math.Min(200, ml);
