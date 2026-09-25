@@ -507,10 +507,10 @@ internal static partial class Patches
 	{
 		try
 		{
-			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
+			try { WageSaveStore.OnLoadGame(); } catch { } // 09-23 阶段1：统一存储层读档标志（实际加载走 FrameUpdate 轮询）
 			try { RobinCrusoePerk.ClearMemBlood(); } catch { } // 09-20 修：读档清鲁滨逊血量缓存
 			try { RobinCrusoePerk.ClearWantedQueued(); } catch { } // 09-20 修：读档清供应商排期标记
-			try { WageSaveStore.OnLoadGame(); } catch { } // 09-23 阶段1：统一存储层读档标志（实际加载走 FrameUpdate 轮询）
+			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
 			_pendingLoadGameRestore = true;
 			_loadGameRestoreDelayFrames = 30;
 		}
