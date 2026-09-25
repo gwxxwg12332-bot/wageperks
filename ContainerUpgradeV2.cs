@@ -290,7 +290,7 @@ public static class ContainerUpgradeV2
     }
 
     // 09-23 拖螺丝到妙妙箱松手 → 直接消耗 1 颗螺丝 +1 progress（和打烊消耗共存）
-    private static bool ConsumeNutsDirectly(GameItem box, GameItem nuts)
+    internal static bool ConsumeNutsDirectly(GameItem box, GameItem nuts)
     {
         try
         {

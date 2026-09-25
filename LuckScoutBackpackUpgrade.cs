@@ -841,7 +841,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
 
 
-    private static bool DoUpgrade(GameItem junk, GameItem bead)
+    internal static bool DoUpgrade(GameItem junk, GameItem bead)
 
     {
 
@@ -930,7 +930,7 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
     // ===== 工具方法 =====
 
-    private static bool IsBead(GameItem item)
+    internal static bool IsBead(GameItem item)
 
     {
 

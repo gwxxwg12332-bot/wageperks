@@ -473,7 +473,7 @@ namespace JacksonPerks
             try { return (item.identifier ?? "").ToLowerInvariant(); } catch { return "?"; }
         }
 
-        private static bool IsDice(GameItem item)
+        internal static bool IsDice(GameItem item)
 
         {
 
