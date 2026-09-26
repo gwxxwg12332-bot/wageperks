@@ -88,8 +88,6 @@ public static partial class WageGirlSystem
                     int aff = GetAffection();
                     int maxVal = aff < 30 ? BuildConfig.WageGirlSnatchValueLow : (aff < 70 ? BuildConfig.WageGirlSnatchValueMid : BuildConfig.WageGirlSnatchValueHigh);
                     if (it.unitValue > maxVal) continue;
-                    // [蛙诊] 诊断日志（发布前删）
-                    Core.LogMsg("[蛙诊] 进候选: id=" + (it.identifier ?? "?") + " val=" + it.unitValue + " isFood=" + RobinCrusoePerk.IsFood(it) + " isDrink=" + RobinCrusoePerk.IsDrink(it) + " isDaily=" + RobinCrusoePerk.IsDailyNeed(it) + " mode=" + mode);
                     candidates.Add(it);
                 }
             }

@@ -14,7 +14,6 @@ internal static class CompatibilityPatches
 {
     // ===== 1. 价格兜底 =====
     // GameItem.GetNegociatedValue Postfix（最后执行 priority=0）
-    private static float _zeroBuyDiagTime = 0f; // 0元购诊断节流（发布前删）
     public static void PostfixGetNegociatedValue(GameItem __instance, ref long __result)
     {
         try
@@ -24,14 +23,6 @@ internal static class CompatibilityPatches
             {
                 Core.LogMsg("[兼容] 价格兜底: " + __result + " → 0 (" + __instance.identifier + ")");
                 __result = 0;
-            }
-            // 09-26 P2-10 诊断：成交价 ≤ 0 时打三方值上下文（0元购根因实测；预算/现金见成交日志）
-            if (__result <= 0 && UnityEngine.Time.time - _zeroBuyDiagTime > 5f)
-            {
-                _zeroBuyDiagTime = UnityEngine.Time.time;
-                string cli = "?";
-                try { var ps = Il2Cpp.PlayerStore.Instance; if (ps != null && ps.currentClientInstance != null) cli = ps.currentClientInstance.GetClientBlueprint().identifier; } catch { }
-                Core.LogMsg("[0元购诊断] item=" + (__instance.identifier ?? "?") + " negVal=" + __result + " client=" + cli);
             }
         } catch { }
     }

@@ -135,11 +135,7 @@ internal static partial class Patches
 	{
 		try
 		{
-			// 【开发诊断 · 发布前删】成交时刻预算/现金最终值（预算归零根因实测）
-			if (__instance != null && Time.time - _budgetDiagTime > 5f)
 			{
-				_budgetDiagTime = Time.time;
-				Core.LogMsg("[预算诊断·成交] client=" + (__instance.identifier ?? "?") + " GetBudget=" + __instance.GetBudget() + " clientCash=" + __instance.clientCash + " useClientBudget=" + __instance.useClientBudget);
 			}
 			if (!RobinCrusoePerk.IsActive())
 			{

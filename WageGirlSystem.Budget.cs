@@ -27,11 +27,7 @@ public static partial class WageGirlSystem
             if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
             if (Patches._inBudgetOverride) return; // 防重入：鲁滨逊 SetBudget 会再次触发 ApplyBudgetModifier → 本条 Postfix 重入（倍率嵌套）
             int budget = __instance.GetBudget();
-            // 【开发诊断 · 发布前删】观测 Postfix 读到的原生最终预算（节流 5s）
-            if (Time.time - _budgetDiagTime > 5f)
             {
-                _budgetDiagTime = Time.time;
-                Core.LogMsg("[预算诊断] Postfix触发 client=" + (__instance.identifier ?? "?") + " GetBudget=" + budget + " useClientBudget=" + __instance.useClientBudget + " clientCash=" + __instance.clientCash);
             }
             if (budget <= 0) return; // 防御①：原生算完 ≤0 → 不覆盖（mod 绝不写 0）
             int affB = GetAffection();

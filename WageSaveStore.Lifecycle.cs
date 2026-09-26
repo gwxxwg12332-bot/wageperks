@@ -113,7 +113,6 @@ partial class WageSaveStore
                     _loadedOnce = true;
                     _loadingComplete = true; // 09-26 加载完成，放开写入
                     Core.LogMsg("[SaveStore] 正式文件未建立，已从 pending 并入（" + _mem.Count + " 项）");
-                    DumpForDiagnostics();
                     return true;
                 }
                 Core.LogMsg("[SaveStore] 无存档文件（新档）：" + key);
@@ -127,7 +126,6 @@ partial class WageSaveStore
             _loadedOnce = true;
             _loadingComplete = true; // 09-26 加载完成，放开写入
             Core.LogMsg("[SaveStore] 已加载 " + key + "（" + _mem.Count + " 项）");
-            DumpForDiagnostics();
             return true;
         }
         catch

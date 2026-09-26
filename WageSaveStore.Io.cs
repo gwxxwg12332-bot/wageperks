@@ -161,23 +161,4 @@ partial class WageSaveStore
         }
         catch { return ""; }
     }
-
-    // 【开发诊断 · 发布前删】输出已加载键值——用于验证"六维/好感是否恢复"
-    private static void DumpForDiagnostics()
-    {
-        try
-        {
-            if (_mem.Count == 0) return;
-            var sb = new StringBuilder("[SaveStore] 内容: ");
-            bool first = true;
-            foreach (var kv in _mem)
-            {
-                if (!first) sb.Append(", ");
-                sb.Append(kv.Key).Append('=').Append(kv.Value);
-                first = false;
-            }
-            Core.LogMsg(sb.ToString());
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] 异常: " + ex.Message); }
-    }
 }

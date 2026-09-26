@@ -90,10 +90,8 @@ internal static partial class RobinCrusoePerk
             if (_memBlood >= 0) return _memBlood;
             int saved = WageSaveStore.GetInt(PERK_ID, "blood", BLOOD_MAX);
             // 09-26 修：读档空窗期返回默认值但不物化进缓存（防默认值6000污染存档）
-            Core.LogMsg("[血量诊断] GetBlood: saved=" + saved + " LoadComplete=" + WageSaveStore.LoadComplete);
             if (!WageSaveStore.LoadComplete) return saved;
             _memBlood = saved;
-            Core.LogMsg("[血量诊断] GetBlood: 缓存 blood=" + _memBlood);
             return saved;
         } catch { return BLOOD_MAX; }
     }
@@ -102,11 +100,9 @@ internal static partial class RobinCrusoePerk
     internal static int AddBlood(int delta)
     {
         // 09-26 修：读档空窗期不要物化默认值（否则 SetBlood 会把默认值6000写进缓存，打烊写回存档覆盖真实值）
-        Core.LogMsg("[血量诊断] AddBlood: delta=" + delta + " LoadComplete=" + WageSaveStore.LoadComplete + " _memBlood=" + _memBlood);
         if (!WageSaveStore.LoadComplete) return BLOOD_MAX;
         int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
         SetBlood(b);
-        Core.LogMsg("[血量诊断] AddBlood: SetBlood " + b + " _memBlood=" + _memBlood);
         if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } } // 09-20 拍板：失血归零立即死亡（日常/跳天通用）
         return b;
     }
@@ -186,7 +182,7 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
-            if (_memBlood >= 0) { WageSaveStore.SetInt(PERK_ID, "blood", _memBlood); Core.LogMsg("[血量诊断] PostfixSaveGame: _memBlood=" + _memBlood); } // 09-26 修：血量落盘桥接通 + 打烊诊断日志（设计稿验收）
+            if (_memBlood >= 0) WageSaveStore.SetInt(PERK_ID, "blood", _memBlood); // 09-26 修：血量打烊落盘桥（删除诊断日志时保留）
             WageSaveStore.SetInt(PERK_ID, "saved_sat", GetSatiety());
             WageSaveStore.SetInt(PERK_ID, "saved_th", GetThirstPct());
             WageSaveStore.SetInt(PERK_ID, "saved_hp", GetHealth());

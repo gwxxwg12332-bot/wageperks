@@ -64,8 +64,6 @@ public static partial class WageGirlSystem
     private static float _animModeTimer = 0f;
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f;
-    private static float _lastMoveDiagTime = 0f; // 09-22 TryMoveStep 诊断独立节流（用完删）
-    private static float _budgetDiagTime = 0f;   // 预算诊断节流（发布前删）
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
     private static int _stepsTaken = 0;      // 本轮已走步数
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）

@@ -386,10 +386,7 @@ public static partial class WageGirlSystem
             {
                 if (shape != null) { try { gw = shape.width; gh = shape.height; } catch { } }
             }
-            // 09-22 诊断（用完删）：任何情况都打——区分 shape 为空 / 宽高为 0 / 盲试结果（独立节流防被 tick 诊断挡）
-            if (Time.time - _lastMoveDiagTime > 5f)
             {
-                _lastMoveDiagTime = Time.time;
             }
             if (gw > 0 && gh > 0)
             {
@@ -415,9 +412,7 @@ public static partial class WageGirlSystem
                     }
                     catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
                 }
-                if (Time.time - _lastMoveDiagTime > 5f)
                 {
-                    _lastMoveDiagTime = Time.time;
                 }
             }
             // 兜底：Expel + TryFindOneValidInventorySlot（至少能动，可能左上角）

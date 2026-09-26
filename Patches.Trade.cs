@@ -46,7 +46,6 @@ internal static partial class Patches
 
 	internal static bool _inBudgetOverride = false; // 09-23 原 private；蛙娘 PostfixApplyBudgetModifier 防重入也需访问 → internal
 
-	private static float _budgetDiagTime = 0f; // 成交预算诊断节流（发布前删）
 
 	private static readonly HashSet<long> _moodBoostedClients = new HashSet<long>();
 
