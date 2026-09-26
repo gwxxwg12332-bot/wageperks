@@ -16,6 +16,7 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
+            ClearMemBlood(); // 09-26 修：新档清血量内存缓存（GetBlood 短路缓存防上一档血量串档；下方 SetInt blood=6000 后回读正常满血）
             WandererPerk.ClearBackpack(); // 09-20 设计稿：清原版发放（invElement+dossier）——先清后发，防误清自己物资
             bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 原生困难模式开关（开局界面）
             WageSaveStore.SetInt(PERK_ID, "robinson_hard", hard ? 1 : 0); // 随档（原生 hardMode 退出重进重置，存 mod 状态）
