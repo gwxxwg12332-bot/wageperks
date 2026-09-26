@@ -186,7 +186,7 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (!IsActive()) return;
-            if (_memBlood >= 0) WageSaveStore.SetInt(PERK_ID, "blood", _memBlood); // 09-26 修：血量落盘桥接通
+            if (_memBlood >= 0) { WageSaveStore.SetInt(PERK_ID, "blood", _memBlood); Core.LogMsg("[血量诊断] PostfixSaveGame: _memBlood=" + _memBlood); } // 09-26 修：血量落盘桥接通 + 打烊诊断日志（设计稿验收）
             WageSaveStore.SetInt(PERK_ID, "saved_sat", GetSatiety());
             WageSaveStore.SetInt(PERK_ID, "saved_th", GetThirstPct());
             WageSaveStore.SetInt(PERK_ID, "saved_hp", GetHealth());

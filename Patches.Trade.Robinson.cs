@@ -104,7 +104,9 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
-			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag") || !RobinCrusoePerk.IsActive())
+			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag")
+				|| LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item) // 09-26 修：虚空珠/妙妙箱不加 node buff（防批量吸收标签堆积）
+				|| !RobinCrusoePerk.IsActive())
 			{
 				return;
 			}
@@ -121,6 +123,11 @@ itemFeature.isFeatureExposed = true;
 			catch
 			{
 				// 交易防御：物品指针读取（交互期物品销毁防御）
+			}
+			// 09-26 修：Pointer 判重——同一物品只加一次（identifier 比较对虚空珠匹配不上，改指针级）
+			if (num != 0L && _nodeBuffItems.Contains(num))
+			{
+				return;
 			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
@@ -165,11 +172,26 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
-			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag"))
+			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag")
+				|| LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item)) // 09-26 修：容器不加 buy markup（同 node buff 防堆积）
 			{
 				return;
 			}
 			string text = LangHelper.T("鲁滨逊·口粮双倍价", "Robinson·Ration x2");
+			long num = 0L;
+			try
+			{
+				num = item.Pointer.ToInt64();
+			}
+			catch
+			{
+				// 交易防御：物品指针读取（交互期物品销毁防御）
+			}
+			// 09-26 修：Pointer 判重（同 TryAddNodeBuffFeature 模式）
+			if (num != 0L && _nodeBuffItems.Contains(num))
+			{
+				return;
+			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
 				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_robin_buy")
@@ -194,6 +216,10 @@ itemFeature.isFeatureExposed = true;
 			itemFeature.publicDisplay = text;
 			itemFeature.actualDisplay = text;
 			item.itemFeatures.Add(itemFeature);
+			if (num != 0L)
+			{
+				_nodeBuffItems.Add(num); // 09-26 补：新建分支也登记指针（判重闭环）
+			}
 		}
 		catch
 		{
