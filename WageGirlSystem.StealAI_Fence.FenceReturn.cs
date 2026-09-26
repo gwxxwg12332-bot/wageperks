@@ -174,11 +174,11 @@ private static void FenceReturn()
             SetStat(K_FENCE_PENDING, 0);
             if (amt <= 0) { ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back from fencing")); return; }
             int aff = GetAffection();
-            // 跑腿费：BasePct% 起步，好感满降 10 个百分点 → 最低 FeeMinPct%（CFG：WageGirlFenceFeeBasePct/MinPct）
-            float fee = BuildConfig.WageGirlFenceFeeBasePct / 100f - (aff / (10f * BuildConfig.WageGirlAffMax));
-            if (fee < BuildConfig.WageGirlFenceFeeMinPct / 100f) fee = BuildConfig.WageGirlFenceFeeMinPct / 100f;
-            // 09-23 改：不预算克扣，实际克扣 = amt - spentTotal
-            long target = (long)(amt * (1f - fee));
+            // 09-26 C口径：margin = 好感加成(0~+20%) + 基准(+10%) + 随机(-10%~+30%) → 期望 ≥ 0 → 期望产出 ≥ 投入（CFG：WageGirlFenceAffBonusPct/MarginBasePct/MarginLow/MarginHigh）
+            float margin = (aff / (float)BuildConfig.WageGirlAffMax) * BuildConfig.WageGirlFenceAffBonusPct / 100f
+                + BuildConfig.WageGirlFenceMarginBasePct / 100f
+                + Core.Rng.Next(BuildConfig.WageGirlFenceMarginLow, BuildConfig.WageGirlFenceMarginHigh + 1) / 100f;
+            long target = (long)(amt * (1f + margin));
             if (target < 1) target = 1;
             int cat = GetStat(K_FENCE_CAT);
             // cat==0 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
@@ -257,7 +257,9 @@ private static void FenceReturn()
             for (int i = 0; i < n && spent < target; i++)
             {
                 long itemTarget = Math.Min(perTarget, target - spent);
-                GameItem it = FindItemNearValue(itemTarget, cat, false); // 单件 ≤ 单件目标、最接近
+                // 09-26 C口径：30% 概率向上取整找货（geq=true），填平"只少不多"缺口；L263 的 ×1.3 防超仍生效
+                bool geq = Core.Rng.Next(100) < 30;
+                GameItem it = FindItemNearValue(itemTarget, cat, geq); // 单件 ≤ 单件目标、最接近（30% 允许略超）
                 if (it == null) break;
                 long v = it.unitValue;
                 if (spent + v > target * 1.3) break; // 累计防超
@@ -271,12 +273,15 @@ private static void FenceReturn()
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
-    // 09-21 新增：销赃夜报统一格式
+    // 09-21 新增：销赃夜报统一格式（09-26 C口径：target>amt 时 keep 为负 → 显示"贴补"）
     private static string BuildFenceReport(int amt, int keep, string items) {
         int savings = GetStat(K_SAVINGS);
+        string keepDesc = keep > 0
+            ? LangHelper.T("克扣" + keep + "块", "kept " + keep)
+            : LangHelper.T("贴补" + (-keep) + "块", "topped up " + (-keep));
         return LangHelper.T(
-            "蛙娘销赃归来：收入" + amt + "块，克扣" + keep + "块，小金库" + savings + "块。带了：" + items,
-            "Wage Girl fenced: income " + amt + ", kept " + keep + ", savings " + savings + ". Brought: " + items);
+            "蛙娘销赃归来：投入" + amt + "块，" + keepDesc + "，小金库" + savings + "块。带了：" + items,
+            "Wage Girl fenced: invested " + amt + ", " + keepDesc + ", savings " + savings + ". Brought: " + items);
     }
 
     // 09-21 新增：洗白所有违禁品

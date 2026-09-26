@@ -136,6 +136,11 @@ public static class BuildConfig
 	public static int WageGirlFenceSleepDebt => GetInt("WageGirlFenceSleepDebt", 20);
 	// 零花钱档位（逗号分隔）
 	public static int[] WageGirlAllowanceSteps => ParseIntList(GetStr("WageGirlAllowanceSteps", "100,300,500"));
+	// 销赃 margin（09-26 C口径：期望产出≥投入；超额=蛙娘渠道溢价，不扣玩家钱/不动小金库）
+	public static int WageGirlFenceAffBonusPct => GetInt("WageGirlFenceAffBonusPct", 20);    // 好感加成上限(%)
+	public static int WageGirlFenceMarginBasePct => GetInt("WageGirlFenceMarginBasePct", 10); // 基准加成(%)
+	public static int WageGirlFenceMarginLow => GetInt("WageGirlFenceMarginLow", -10);        // 随机下界(%)
+	public static int WageGirlFenceMarginHigh => GetInt("WageGirlFenceMarginHigh", 30);       // 随机上界(%)
 	// 好物（好感达标每 N 天带 1 件）
 	public static int WageGirlGiftAff => GetInt("WageGirlGiftAff", 50);
 	public static int WageGirlGiftInterval => GetInt("WageGirlGiftInterval", 7);
@@ -381,6 +386,10 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("WageGirlFenceFeeMinPct", 5, "蛙娘销赃跑腿费下限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceSleepDebt", 20, "蛙娘销赃熬夜睡眠债");
 			melonPreferences_Category.CreateEntry("WageGirlAllowanceSteps", "100,300,500", "蛙娘零花钱档位(逗号分隔)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceAffBonusPct", 20, "蛙娘销赃好感加成上限(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceMarginBasePct", 10, "蛙娘销赃基准加成(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceMarginLow", -10, "蛙娘销赃随机浮动下限(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceMarginHigh", 30, "蛙娘销赃随机浮动上限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlGiftAff", 50, "蛙娘好物·好感门槛");
 			melonPreferences_Category.CreateEntry("WageGirlGiftInterval", 7, "蛙娘好物·间隔天数");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
