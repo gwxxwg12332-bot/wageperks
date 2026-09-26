@@ -86,6 +86,29 @@ public static partial class WageGirlSystem
     {
         try
         {
+            // 09-26 日切防御重洗白：镜像读档扫描（WageSaveStore.Lifecycle L60-81），
+            // 已洗白物品若恢复违禁 tag 则重新洗白（不依赖蛙娘是否活跃——保护全店洗白物品）
+            try
+            {
+                var em = Il2Cpp.EmporiumEntry.Instance;
+                if (em != null)
+                {
+                    var all = em.GetAllItems();
+                    foreach (var it in all)
+                    {
+                        try
+                        {
+                            if (it != null && it.IsTag("wage_washed") && Il2Cpp.ContrabandHelper.GetContrabandLevel(it) > 0)
+                            {
+                                Il2Cpp.ContrabandHelper.RemoveContrabandStatus(it);
+                                Core.LogMsg("[蛙娘] 日切防御重洗白: " + it.identifier);
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex3) { Core.LogMsg("[蛙娘] 日切重洗白扫描异常: " + ex3.Message); }
             // 全局发放：存档里未出现过 → 发 1 个蛙娘实体到背包（玩家自己摆出来）
             if (!Exists() && WageGirlPerk.IsActive()) // 09-23 Perk 化：选了「蛙娘」特性才发放（旧档已存在保留）
             {

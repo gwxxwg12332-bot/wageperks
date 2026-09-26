@@ -44,7 +44,7 @@ public class Core : MelonMod
 	{
 		BuildConfig.InitPrefs();
 		Log = base.LoggerInstance;
-		Log.Msg("Wage's Perks v1.2.10 已加载 - 手动Patch模式");
+		Log.Msg("Wage's Perks v1.3.0 已加载 - 手动Patch模式");
 		Log.Msg("【深空当铺】Wage's Perks QQ群：1109707341");
 		ManualPatcher.Init(base.HarmonyInstance);
 		try

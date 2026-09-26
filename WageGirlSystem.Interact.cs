@@ -41,7 +41,8 @@ public static partial class WageGirlSystem
     }
     private static bool IsGirl(GameItem it)
     {
-        try { return it != null && it.identifier == ENTITY_ID; } catch { return false; }
+        // 09-26 修：identifier 读档丢失兜底（拆包实锤见 Anim.cs L452 同款 TAG 兜底）
+        try { return it != null && (it.identifier == ENTITY_ID || it.IsTag(TAG)); } catch { return false; }
     }
     private static bool CanFeed(GameItem item)
     {
@@ -184,12 +185,12 @@ public static partial class WageGirlSystem
         if (UnityEngine.Time.time - _lastDoubleClickLog > 1f)
         {
             _lastDoubleClickLog = UnityEngine.Time.time;
-            Core.LogMsg("[双击] WageGirl Postfix 触发: " + (newItem != null ? newItem.name : "null"));
+            Core.LogMsg("[双击] WageGirl Postfix 触发: " + (newItem != null ? (newItem.name + " id=" + newItem.identifier) : "null"));
         }
         try
         {
             if (newItem == null) return;
-            if (newItem.identifier != ENTITY_ID) return;
+            if (!IsGirl(newItem)) return; // 09-26 修：identifier 读档丢失兜底（同 IsGirl TAG 兜底）
             ShowPanel();
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 异常: " + ex.Message); }

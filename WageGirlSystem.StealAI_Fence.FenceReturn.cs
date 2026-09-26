@@ -303,6 +303,8 @@ private static void FenceReturn()
             foreach (var it in washList) {
                 try { it.DisableTag("CONTRABAND_ITEM_TAG", true); } catch { }
                 try { it.DisableTag("contraband", true); } catch { }
+                // 09-26 补：全店洗白也打 wage_washed 标记——读档/日切防御扫描只认这个标记，不打则防不住恢复
+                try { it.EnableTag("wage_washed", true); } catch { }
             }
             ReportLine(LangHelper.T("蛙娘洗白了 " + washList.Count + " 件违禁品（-" + cost + " 块小金库）", "Wage Girl laundered " + washList.Count + " contraband (-" + cost + " savings)"));
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }

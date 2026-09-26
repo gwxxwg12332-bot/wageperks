@@ -90,6 +90,7 @@ internal static class BatchDragUpgrade
                     // 妙妙箱：ContainerUpgradeV2.ConsumeNutsDirectly(target, item)
                     if (ContainerUpgradeV2.IsWageBox(_target))
                     {
+                        if (!ContainerUpgradeV2.IsNuts(item)) { fail++; continue; } // 09-26 修：非螺丝不吃
                         if (ContainerUpgradeV2.ConsumeNutsDirectly(_target, item)) ok++;
                         else fail++;
                         continue;
@@ -98,6 +99,7 @@ internal static class BatchDragUpgrade
                     // 虚空珠：LuckScoutBackpackUpgrade.DoUpgrade(item, target)
                     if (LuckScoutBackpackUpgrade.IsBead(_target))
                     {
+                        if (!LuckScoutBackpackUpgrade.IsJunk(item)) { fail++; continue; } // 09-26 修：非垃圾不吃
                         // 每个物品调用前清空防抖（否则上一个成功后写了记录，下一个被拦）
                         try { LuckScoutBackpackUpgrade.ClearDebounce(); } catch { }
                         if (LuckScoutBackpackUpgrade.DoUpgrade(item, _target)) ok++;

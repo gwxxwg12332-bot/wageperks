@@ -135,7 +135,7 @@ partial class LuckScoutBackpackUpgrade
 
 
 
-    private static bool IsJunk(GameItem item)
+    internal static bool IsJunk(GameItem item)
 
     {
 
