@@ -98,21 +98,25 @@ internal static partial class Patches
 			string identifier = __instance.identifier;
 			if (identifier == "wine_bottle")
 			{
-				string name = __instance.name;
-				if (name != null)
+				// 09-26 修：任何自定义名都保留（原生 CUSTOM_NAME_TAG + name 字段双保险），不再只保两种莓果酿
+				// 实锤：HasCustomName(item)=IsTag("CUSTOM_NAME_TAG")，GetCustomName=GetTagReadonly("CUSTOM_NAME_TAG")（ISIL GeneralHelper.txt:2932/3003）
+				try
 				{
-					if (name.Contains("荧光莓果酿"))
+					if (Il2Cpp.GeneralHelper.HasCustomName(__instance)) // 原生自定义名标签（别的 mod 走原生机制时命中）
 					{
-						__result = "荧光莓果酿";
-						return;
-					}
-					if (name.Contains("暗影莓果酿"))
-					{
-						__result = "暗影莓果酿";
-						return;
+						string cn = Il2Cpp.GeneralHelper.GetCustomName(__instance);
+						if (!string.IsNullOrEmpty(cn)) { __result = cn; return; }
 					}
 				}
-				__result = LangHelper.T("酒瓶", "Wine Bottle");
+				catch { }
+				string name = __instance.name;
+				if (!string.IsNullOrEmpty(name)
+					&& name != "Wine Bottle" && name != "酒瓶" && name != "Empty Wine Bottle" && name != "空酒瓶")
+				{
+					__result = name; // 原生酿酒名 / 别的 mod 直接写 name 字段的酒名
+					return;
+				}
+				__result = LangHelper.T("酒瓶", "Wine Bottle"); // 兜底：普通空酒瓶走翻译
 			}
 			else
 			{
