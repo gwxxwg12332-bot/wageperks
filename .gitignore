@@ -8,3 +8,4 @@ obj/
 *.bak_before_*
 *.takeover.bak
 _*.ps1
+memory/secrets.local.md
