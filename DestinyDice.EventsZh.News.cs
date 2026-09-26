@@ -406,7 +406,6 @@ namespace JacksonPerks
             try { SetNewsButtonsActive(false); } catch { }
 
         }
-        private static int _newsPageFrame = -1; // 09-27 报纸翻页同帧去重（InputActionManager.Update 每帧多次调用，照 Survival.cs Z 键先例）
 
         public static void PostfixNewsInputUpdate()
 
@@ -423,10 +422,6 @@ namespace JacksonPerks
                 bool right = UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.RightArrow);
 
                 if (!left && !right) return;
-                // 09-27 同帧去重：一次按键只翻一页（防多实例 Update 同帧双翻转）
-                int fr = UnityEngine.Time.frameCount;
-                if (fr == _newsPageFrame) return;
-                _newsPageFrame = fr;
 
 
                 int pages = (_newsAllEvents.Count + 3) / 4;
