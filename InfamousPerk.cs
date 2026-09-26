@@ -44,7 +44,12 @@ internal sealed class InfamousPerk : CustomStartingPerk
                     var rep = StoreReputation.GetStoreReputation(factionIds[i]);
                     if (rep == null) { Core.LogMsg("[声名狼藉] " + factionIds[i] + " = null"); continue; }
                     int cur = (int)rep.GetReputationExact();
-                    int diff = targetValues[i] - cur;
+                    if (cur <= targetValues[i]) // 09-26 B修正版：已更负/达标：跳过，防正值回升（差值为正会冲正）
+                    {
+                        Core.LogMsg("[声名狼藉] " + factionIds[i] + " cur=" + cur + " 已更负/达标，跳过");
+                        continue;
+                    }
+                    int diff = targetValues[i] - cur; // 此处 diff 恒 < 0，只向下逼近
                     rep.ModReputation(diff);
                     int after = (int)rep.GetReputationExact();
                     Core.LogMsg("[声名狼藉] " + factionIds[i] + " cur=" + cur + " diff=" + diff + " after=" + after);
