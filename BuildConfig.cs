@@ -141,6 +141,15 @@ public static class BuildConfig
 	public static int WageGirlFenceMarginBasePct => GetInt("WageGirlFenceMarginBasePct", 10); // 基准加成(%)
 	public static int WageGirlFenceMarginLow => GetInt("WageGirlFenceMarginLow", -10);        // 随机下界(%)
 	public static int WageGirlFenceMarginHigh => GetInt("WageGirlFenceMarginHigh", 30);       // 随机上界(%)
+	// 销赃数量随机（09-26 用户拍板：不锁件数，给惊喜感；逗号分隔 min,max）
+	public static int WageGirlFenceBoxMin => FenceCountKey("WageGirlFenceBoxCount", "1,3", 0);        // 物资箱数量下限
+	public static int WageGirlFenceBoxMax => FenceCountKey("WageGirlFenceBoxCount", "1,3", 1);        // 物资箱数量上限
+	public static int WageGirlFenceCardMin => FenceCountKey("WageGirlFenceCardCount", "1,3", 0);      // 指挥卡张数下限
+	public static int WageGirlFenceCardMax => FenceCountKey("WageGirlFenceCardCount", "1,3", 1);      // 指挥卡张数上限
+	public static int WageGirlFenceInjectorMin => FenceCountKey("WageGirlFenceInjectorCount", "1,2", 0); // 免疫宁支数下限
+	public static int WageGirlFenceInjectorMax => FenceCountKey("WageGirlFenceInjectorCount", "1,2", 1); // 免疫宁支数上限
+	public static int WageGirlFenceItemMin => FenceCountKey("WageGirlFenceItemCount", "3,8", 0);      // 差额/拆件件数下限
+	public static int WageGirlFenceItemMax => FenceCountKey("WageGirlFenceItemCount", "3,8", 1);      // 差额/拆件件数上限
 	// 好物（好感达标每 N 天带 1 件）
 	public static int WageGirlGiftAff => GetInt("WageGirlGiftAff", 50);
 	public static int WageGirlGiftInterval => GetInt("WageGirlGiftInterval", 7);
@@ -390,6 +399,10 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginBasePct", 10, "蛙娘销赃基准加成(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginLow", -10, "蛙娘销赃随机浮动下限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginHigh", 30, "蛙娘销赃随机浮动上限(%)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceBoxCount", "1,3", "销赃物资箱数量范围(min,max)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceCardCount", "1,3", "销赃指挥卡张数范围(min,max)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceInjectorCount", "1,2", "销赃免疫宁支数范围(min,max)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceItemCount", "3,8", "销赃差额/拆件数量范围(min,max)");
 			melonPreferences_Category.CreateEntry("WageGirlGiftAff", 50, "蛙娘好物·好感门槛");
 			melonPreferences_Category.CreateEntry("WageGirlGiftInterval", 7, "蛙娘好物·间隔天数");
 			melonPreferences_Category.CreateEntry("BoxWidths", "3,10,20,32,42,52", "蛙哥箱每段宽度(逗号分隔)");
@@ -486,5 +499,18 @@ public static class BuildConfig
 		{
 			return def;
 		}
+	}
+
+	// 09-26 销赃数量范围解析：逗号分隔 min,max；配置损坏时回退默认串
+	private static int FenceCountKey(string key, string defStr, int idx)
+	{
+		try
+		{
+			var arr = ParseIntList(GetStr(key, defStr));
+			if (arr.Length > idx) return arr[idx];
+			var darr = ParseIntList(defStr);
+			return darr.Length > idx ? darr[idx] : 1;
+		}
+		catch { return 1; }
 	}
 }

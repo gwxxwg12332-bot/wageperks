@@ -181,25 +181,40 @@ private static void FenceReturn()
             long target = (long)(amt * (1f + margin));
             if (target < 1) target = 1;
             int cat = GetStat(K_FENCE_CAT);
-            // cat==0 物资箱：CreateLootCrate 随机箱 + 内部按 ItemPool 填充到目标价值
+            // cat==0 物资箱：1~3 只随机箱（CFG），target 均分，内部按 ItemPool 填到各自份额
             if (cat == 0)
             {
-                long filledVal;
-                GameItem crate = CreateSupplyCrate(target, out filledVal);
-                if (crate != null) { AddToFront(crate); int actualKeep = (int)(amt - filledVal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T("一只物资箱", "a supply crate"))); }
+                // 09-26 惊喜感：多只箱（1~3），不再单箱硬塞
+                int nBox = Core.Rng.Next(BuildConfig.WageGirlFenceBoxMin, BuildConfig.WageGirlFenceBoxMax + 1);
+                long filledTotal = 0; int boxOk = 0;
+                for (int b = 0; b < nBox; b++)
+                {
+                    long share = target / Math.Max(1, nBox);
+                    if (b == nBox - 1) share = target - filledTotal; // 末箱补余
+                    if (share < 1) share = 1;
+                    long filledVal = 0;
+                    GameItem crate = CreateSupplyCrate(share, out filledVal);
+                    if (crate != null) { AddToFront(crate); filledTotal += filledVal; boxOk++; }
+                }
+                if (boxOk > 0) { int actualKeep = (int)(amt - filledTotal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T(boxOk + "只物资箱", boxOk + " supply crates"))); }
                 else ReportLine(BuildFenceReport(amt, 0, LangHelper.T("（没弄到箱子）", "(no crate)")));
                 return;
             }
-            // cat==5 指挥卡：cmd_keycard + 差额按随机物品补足
+            // cat==5 指挥卡：1~3 张 cmd_keycard（CFG）+ 差额随机件数补足
             if (cat == 5)
             {
-                GameItem kc = null;
-                try { kc = DirectoryMaster.Item("cmd_keycard", true); } catch { }
+                int kcCount = Core.Rng.Next(BuildConfig.WageGirlFenceCardMin, BuildConfig.WageGirlFenceCardMax + 1); // 09-26 惊喜感：多张卡
                 long kcVal = 0;
                 var names5 = new System.Collections.Generic.List<string>();
-                if (kc != null) { AddToFront(kc); kcVal = kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
+                for (int j = 0; j < kcCount; j++)
+                {
+                    GameItem kc = null;
+                    try { kc = DirectoryMaster.Item("cmd_keycard", true); } catch { }
+                    if (kc != null) { AddToFront(kc); kcVal += kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
+                }
                 long remain = target - kcVal;
-                int n5 = (int)Math.Max(1, Math.Min(5, remain / 500));
+                // 09-26 惊喜感：差额件数随机 3~8（CFG），不再 500/件封顶5；小额 target 按 remain/300 收紧防碎片
+                int n5 = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(remain / 300)));
                 long per5 = remain / Math.Max(1, n5);
                 long spent5 = 0;
                 for (int i = 0; i < n5 && spent5 < remain; i++)
@@ -212,15 +227,20 @@ private static void FenceReturn()
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
-            // cat==6 医药品：必带免疫宁(large_purple_injector) + 差额补医疗物品
+            // cat==6 医药品：1~2 支正品免疫宁（CFG）+ 差额随机件数补足
             if (cat == 6)
             {
-                GameItem im = CreateGenuineImmunivax();
+                int imCount = Core.Rng.Next(BuildConfig.WageGirlFenceInjectorMin, BuildConfig.WageGirlFenceInjectorMax + 1); // 09-26 惊喜感：多支免疫宁
                 long imVal = 0;
                 var names6 = new System.Collections.Generic.List<string>();
-                if (im != null) { AddToFront(im); imVal = im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
+                for (int j = 0; j < imCount; j++)
+                {
+                    GameItem im = CreateGenuineImmunivax();
+                    if (im != null) { AddToFront(im); imVal += im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
+                }
                 long remain6 = target - imVal;
-                int n6 = (int)Math.Max(1, Math.Min(5, remain6 / 500));
+                // 09-26 惊喜感：差额件数随机 3~8（CFG），不再 500/件封顶5
+                int n6 = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(remain6 / 300)));
                 long per6 = remain6 / Math.Max(1, n6);
                 long spent6 = 0;
                 for (int i = 0; i < n6 && spent6 < remain6; i++)
@@ -233,10 +253,10 @@ private static void FenceReturn()
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
-            // cat==7 模板：按价值拆件带回（复用 FindItemNearValue，模块优先）
+            // cat==7 模板：随机件数拆模块带回（09-26 惊喜感：不锁件数）
             if (cat == 7)
             {
-                int n7 = (int)Math.Max(1, Math.Min(5, target / 500));
+                int n7 = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(target / 300)));
                 long per7 = target / Math.Max(1, n7);
                 long spent7 = 0; var names7 = new System.Collections.Generic.List<string>();
                 for (int i = 0; i < n7 && spent7 < target; i++)
@@ -249,9 +269,9 @@ private static void FenceReturn()
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
-            // 拆件：每 500 价值 1 件（1-5 件）；单件目标 = 总目标/件数
-            int n = (int)Math.Max(1, Math.Min(5, target / 500));
-            long perTarget = target / n;
+            // 拆件：随机件数（09-26 惊喜感：不锁件数，CFG 3~8）；单件目标 = 总目标/件数
+            int n = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(target / 300)));
+            long perTarget = target / Math.Max(1, n);
             long spent = 0;
             var names = new System.Collections.Generic.List<string>();
             for (int i = 0; i < n && spent < target; i++)
