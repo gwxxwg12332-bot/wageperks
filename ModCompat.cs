@@ -66,12 +66,14 @@ public static class ModCompat
     //       共存告警（YieldOnLoad=false）= 数据/注册核心不让（让了=职业失效/存档错乱），靠被动 GetPatchInfo + 实测
     private static readonly List<ConflictEntry> KNOWN_CONFLICTS = new List<ConflictEntry>
     {
-        // --- EmptyNukeBarrel_Rare：拾荒域（09-16 玩家 15 mods 崩溃实锤）——拾荒加成可降级回原生 ---
-        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "ScavengeDumpingGrounds", true),
-        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetRandomScavengedItem", true),
-        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetMaxScavAttempts", true),
-        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetScavTimeLeft", true),
-        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "CanScavenge", true),
+        // --- EmptyNukeBarrel_Rare：拾荒域（09-16 玩家 15 mods 崩溃实锤）---
+        // 09-26 功能优先：拾荒计数/稀有物追加是我方核心功能，让路=群友环境静默失效（计数不涨）→ 改共存告警
+        // 风险：对方若用 MonoMod detour 复制方法，共存可能双 detour 进程级崩溃——需装了该 mod 的环境实测，崩则退回
+        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "ScavengeDumpingGrounds", false),
+        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetRandomScavengedItem", false),
+        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetMaxScavAttempts", false),
+        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetScavTimeLeft", false),
+        new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "CanScavenge", false),
         // --- NestedStorage（QoL）：ContainerHelper.InitContainerItem 同方法双 Postfix（09-19 拆包实锤）---
         // 我方鲁滨逊容器初始化减半/段位标记让路（职业特性弱化，游戏正常）
         new ConflictEntry("NestedStorage", "ContainerHelper", "InitContainerItem", true),
@@ -98,8 +100,8 @@ public static class ModCompat
         new ConflictEntry("MoreDeviceUpgrades", "RobinCrusoePerk", "PrefixTarget", false),
         // --- GoFishing 1.3.10（09-19 拆包实锤，rar 解压后 4 DLL 全分析）---
         // ItemForgeRuntime：ScavengeBonusPatch = Postfix __result.Clear() 强接管拾荒产出（源码实锤 L91/L95）
-        // → 我方拾荒双倍/稀有物追加让路（共存=加载顺序依赖，结果不稳定）
-        new ConflictEntry("ItemForgeRuntime", "ScavHelper", "GetRandomScavengedItem", true),
+        // 09-26 功能优先：稀有物追加为我方核心功能 → 改共存告警（加载顺序依赖，实测为准）
+        new ConflictEntry("ItemForgeRuntime", "ScavHelper", "GetRandomScavengedItem", false),
         // ItemForgeRuntime：加工台拖放/双击链（ProcessingToolCanTargetPatch/MayTargetPatch/TargetPatch + ProcessingContainerDoubleClickPatch）
         // → 我方虚空珠/机器金属锭升级/双击吃喝共用 GameItem.CanTarget/MayTarget/Target + DoubleClickAction——核心交互不让，共存告警 + 实测
         new ConflictEntry("ItemForgeRuntime", "GameItem", "CanTarget", false),
