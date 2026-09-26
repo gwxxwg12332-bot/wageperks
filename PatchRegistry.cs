@@ -52,6 +52,7 @@ public static class PatchRegistry
 		// 放在 try/catch 之后，保证即使中途抛异常也能输出已挂载情况。
 		// 说明：**不引入任何冲突检测/让路逻辑** —— 拦截其他 mod 等于同时废掉我们自己的补丁（历史事故）。
 		// 阶段3：冲突防护——列出已加载的已知冲突 mod
+		LuckScoutPerk.InstallCompatGuards(); // 09-26 第三方兼容守卫：拾荒计数快照-恢复 + 厨房空ID估价（未装则跳过）
 		ModCompat.LogLoadedConflicts();
 		ManualPatcher.LogPatchSummary();
 	}
@@ -127,7 +128,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameMaster), "QuitToMenu", null, "PostfixQuitToMenu", null, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(EscapeUIManager), "OnMainMenu", null, "PostfixOnMainMenu", null, typeof(LuckScoutPerk));
 			ManualPatcher.TryPatch(typeof(GameMaster), "NewGame", null, "PostfixNewGame", null, typeof(LuckScoutPerk));
-			ManualPatcher.TryPatch(typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(LuckScoutPerk));
+			ManualPatcher.TryPatch(typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(LuckScoutPerk), -1000, "FinalizerGetRandomScavengedItem"); // 09-26 拾荒守卫：priority 后置防第三方 Clear 吞追加
 			ManualPatcher.TryPatch(typeof(ScavHelper), "CreateTooltip", null, "PostfixCreateTooltip", new System.Type[2]
 			{
 				typeof(RichTextBuilder),
@@ -299,7 +300,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(ScavHelper), "CanScavenge", null, "PostfixCanScavenge", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(ScavHelper), "GetMaxScavAttempts", null, "PostfixGetMaxScavAttempts", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(ScavHelper), "GetScavTimeLeft", null, "PostfixGetScavTimeLeft", null, typeof(RobinCrusoePerk));
-			ManualPatcher.TryPatch(typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(RobinCrusoePerk));
+			ManualPatcher.TryPatch(typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(RobinCrusoePerk), -1000, "FinalizerGetRandomScavengedItem"); // 09-26 拾荒守卫：priority 后置防第三方 Clear 吞追加
 			ManualPatcher.TryPatch(typeof(MachineryHelper), "GetCurrentPerformanceBonus", null, "PostfixGetCurrentPerformanceBonus", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MachineryHelper), "GetCurrentQualityBonus", null, "PostfixGetCurrentQualityBonus", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(ModuleHelper), "ApplyBasicModuleEffect", null, "PostfixApplyBasicModuleEffect", new System.Type[3]

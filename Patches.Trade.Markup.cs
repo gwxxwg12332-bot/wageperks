@@ -59,10 +59,12 @@ internal static partial class Patches
 		}
 	}
 
-	public static void PrefixGameItemGetNegociatedValue(GameItem __instance)
+	public static bool PrefixGameItemGetNegociatedValue(GameItem __instance)
 	{
+		if (__instance == null || string.IsNullOrEmpty(__instance.identifier)) return false; // 09-26 空 identifier 不参与估价（防空字典键，原值0）
 		_inNegociatedCalc = true;
 		_currentValueCallsInNegociated = 0;
+		return true;
 	}
 
 	public static void PostfixGameItemGetNegociatedValue(GameItem __instance, ref long __result)
@@ -74,12 +76,14 @@ internal static partial class Patches
 		}
 	}
 
-	public static void PrefixGameItemGetCurrentValue(GameItem __instance)
+	public static bool PrefixGameItemGetCurrentValue(GameItem __instance)
 	{
+		if (__instance == null || string.IsNullOrEmpty(__instance.identifier)) return false; // 09-26 空 identifier 不参与估价（防空字典键）
 		if (_inNegociatedCalc)
 		{
 			_currentValueCallsInNegociated++;
 		}
+		return true;
 	}
 
 	public static void PostfixGameItemGetCurrentValue(GameItem __instance, ref long __result)

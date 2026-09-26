@@ -138,6 +138,8 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
     {
 
+        try { _attemptsAtScavenge = PlayerStore.Instance != null ? PlayerStore.Instance.scavengingAttempts : -1; } catch { _attemptsAtScavenge = -1; } // 09-26 守卫双保险：记录 Prefix 时原生次数
+
         _scavengeAllowedThisCall = ScavHelper.CanScavenge();
 
     }
@@ -151,7 +153,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
             if (!IsActive()) return;
 
-            if (!_scavengeAllowedThisCall) return;  // 非真正拾荒（CanScavenge false 提前 return）不计数
+            if (!_scavengeAllowedThisCall && !IsSuspiciousReset()) return;  // 非真正拾荒（CanScavenge false 提前 return）不计数；09-26 第三方清零污染快照时放行
 
             int count = GetScavCount() + 1;
 
@@ -174,6 +176,16 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         catch (Exception ex) { Core.LogMsg("[捡漏直觉] 拾荒计数失败: " + ex.Message); }
 
+    }
+    // 09-26 拾荒守卫双保险：Prefix 时原生次数还有、Postfix 时变 0 → 判定第三方清零污染了 CanScavenge 快照，放行计数
+    private static bool IsSuspiciousReset()
+    {
+        try
+        {
+            var ps = PlayerStore.Instance;
+            return _attemptsAtScavenge > 0 && ps != null && ps.scavengingAttempts == 0;
+        }
+        catch { return false; }
     }
     public static void PostfixQuitToMenu() { try { ResetState();  } catch { } }
     public static void PostfixOnMainMenu() { try { ResetState();  } catch { } }
@@ -218,5 +230,15 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         catch (System.Exception ex) { Core.LogMsg("[LuckScoutPerk.Scavenge] 异常: " + ex.Message); }
 
+    }
+    // 09-26 拾荒守卫（P1）：priority -1000 后置跑（第三方 __result.Clear() 之后追加）；Finalizer 兜异常时也补跑追加
+    public static System.Exception FinalizerGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result, System.Exception __exception)
+    {
+        if (__exception != null)
+        {
+            try { PostfixGetRandomScavengedItem(__result); } catch { }
+            Core.LogMsg("[拾荒守卫] GetRandomScavengedItem 异常被 Finalizer 兜住，已补跑稀有物追加");
+        }
+        return null;
     }
 }

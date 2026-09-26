@@ -238,6 +238,8 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
     private static bool _scavengeAllowedThisCall = false;
 
+    private static int _attemptsAtScavenge = -1; // 09-26 拾荒守卫：PrefixScavengeDumpingGrounds 记录的原生次数（第三方清零判定用）
+
 
 
     // 记录本次 CanScavenge 调用前玩家是否受伤（Prefix 记录，Postfix 用）

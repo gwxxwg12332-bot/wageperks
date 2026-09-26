@@ -100,6 +100,16 @@ internal static partial class RobinCrusoePerk
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 拾荒额外掉落异常: " + ex.Message); }
     }
+    // 09-26 拾荒守卫（P1）：priority -1000 后置跑（第三方 __result.Clear() 之后追加）；Finalizer 兜异常时也补跑追加
+    public static System.Exception FinalizerGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result, System.Exception __exception)
+    {
+        if (__exception != null)
+        {
+            try { PostfixGetRandomScavengedItem(__result); } catch { }
+            Core.LogMsg("[拾荒守卫] GetRandomScavengedItem 异常被 Finalizer 兜住，已补跑额外掉落追加");
+        }
+        return null;
+    }
     // 拾荒消耗睡眠（v5.7+：外出拾荒睡眠 -15%，疲劳影响拾荒次数/效率）
     public static void PostfixScavengeDumpingGrounds()
     {

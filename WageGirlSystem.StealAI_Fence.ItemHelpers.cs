@@ -161,6 +161,7 @@ public static partial class WageGirlSystem
                 foreach (var kv in _itemInfoCache)
                 {
                     var info = kv.Value;
+                    if (string.IsNullOrEmpty(kv.Key)) continue; // 09-26 空 identifier 不参与销赃池（防空字典键）
                     if (info == null || info.Value <= 0) continue;
                     if (!CategoryMatch(info, cat)) continue;
                     if (geq && info.Value < target) continue;
