@@ -112,6 +112,16 @@ public class Core : MelonMod
 
 	public static bool PerkActive(string perkId)
 	{
+		// 09-27 主菜单 guard（学何小鲁框架 PerkActiveMainMenuGuard；ISIL 实锤 get_Instance=场景查找不 new）：
+		// 主菜单无真实 PlayerStore → 直接短路 false，避免 IsPerkActive 内部访问 PlayerStore 状态触发懒加载/异常路径
+		try
+		{
+			if (PlayerStore.Instance == null) return false;
+		}
+		catch
+		{
+			return false;
+		}
 		try
 		{
 			return StartingPerk.IsPerkActive(perkId);

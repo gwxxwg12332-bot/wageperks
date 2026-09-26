@@ -47,7 +47,20 @@ internal static partial class Patches
 	internal static bool _inBudgetOverride = false; // 09-23 原 private；蛙娘 PostfixApplyBudgetModifier 防重入也需访问 → internal
 
 
-	private static readonly HashSet<long> _moodBoostedClients = new HashSet<long>();
+	private static readonly HashSet<string> _moodBoostedClients = new HashSet<string>();
+
+	// 09-27 B3 修：按 runID|day|pointer 去重（原 HashSet<long> 只增不清 → 指针复用致成交不再+5、跨档残留）
+	private static string MoodKey(StoreClient c)
+	{
+		try
+		{
+			string rid = "";
+			PlayerStore ps = PlayerStore.Instance;
+			if (ps != null) rid = ps.runID ?? "";
+			return rid + "|" + StoreStation.GetDayCounter() + "|" + (long)c.Pointer;
+		}
+		catch { return null; }
+	}
 
 	private const string FRIEND_DISCOUNT_ID = "friend_discount";
 

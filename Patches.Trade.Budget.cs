@@ -141,7 +141,8 @@ internal static partial class Patches
 			{
 				return;
 			}
-			if (__instance != null && _moodBoostedClients.Add((long)__instance.Pointer))
+			string mk = MoodKey(__instance);
+			if (__instance != null && mk != null && _moodBoostedClients.Add(mk))
 			{
 				RobinCrusoePerk.BoostMood(5, LangHelper.T("成交一单", "Deal closed"));
 			}

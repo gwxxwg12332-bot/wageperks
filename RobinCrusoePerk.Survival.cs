@@ -47,7 +47,7 @@ internal static partial class RobinCrusoePerk
     internal static int MOOD_DOWN => BuildConfig.MoodDown;
 
 
-    // ===== Z 键调出/关闭状态面板（用户拍板；特性界面/主菜单不响应，硬约束守护）=====
+    // ===== Z 键只强开状态面板（09-27 B6 注释修正：原"调出/关闭"与实际不符，按 Z 只打开不关，避免自动弹开关误触）=====
     // 09-12 实锤：InputActionManager.Update 每帧可被多次调用（多实例/多Patch）→ 必须同帧去重，否则一次按键开→关双翻转，面板打不开
     private static int _zKeyFrame = -1;
     private static bool _autoPopup = true;  // 09-22 新增：自动弹面板开关（按 Z 切换）
@@ -60,7 +60,6 @@ internal static partial class RobinCrusoePerk
             int _zFrame = UnityEngine.Time.frameCount;
             if (_zFrame == _zKeyFrame) return;
             _zKeyFrame = _zFrame;
-            if (!IsActive()) return;
             if (!IsActive()) return;
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr != null && mgr.IsOpen("rc_status")) { mgr.CloseWindow("rc_status"); } else { RefreshStatusPanel(force: true); }

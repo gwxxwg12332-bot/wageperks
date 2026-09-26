@@ -35,7 +35,6 @@ internal static partial class Patches
 {
 	private static int _inspectionTriggeredDay = -1;
 
-	private static bool _keysDumped = false;
 
 	public static bool PrefixHandleInspectionClient(StoreClientManager __instance)
 	{

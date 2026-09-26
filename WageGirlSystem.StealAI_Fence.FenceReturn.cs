@@ -196,7 +196,7 @@ private static void FenceReturn()
                     GameItem crate = CreateSupplyCrate(share, out filledVal);
                     if (crate != null) { AddToFront(crate); filledTotal += filledVal; boxOk++; }
                 }
-                if (boxOk > 0) { int actualKeep = (int)(amt - filledTotal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T(boxOk + "只物资箱", boxOk + " supply crates"))); }
+                if (boxOk > 0) { int actualKeep = (int)(target - filledTotal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T(boxOk + "只物资箱", boxOk + " supply crates"))); }
                 else ReportLine(BuildFenceReport(amt, 0, LangHelper.T("（没弄到箱子）", "(no crate)")));
                 return;
             }
@@ -213,6 +213,7 @@ private static void FenceReturn()
                     if (kc != null) { AddToFront(kc); kcVal += kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
                 }
                 long remain = target - kcVal;
+                if (remain <= 0) return; // 09-27 C3 拍板：指挥卡已值回 target，不再补件（防负 remain 边界）
                 // 09-26 惊喜感：差额件数随机 3~8（CFG），不再 500/件封顶5；小额 target 按 remain/300 收紧防碎片
                 int n5 = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(remain / 300)));
                 long per5 = remain / Math.Max(1, n5);
@@ -223,7 +224,7 @@ private static void FenceReturn()
                     if (it5 == null) break;
                     AddToFront(it5); spent5 += it5.unitValue; names5.Add(ModCannibalism.GetName(it5));
                 }
-                if (names5.Count > 0) { int actualKeep5 = (int)(amt - kcVal - spent5); if (actualKeep5 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep5); ReportLine(BuildFenceReport(amt, actualKeep5, string.Join("、", names5))); }
+                if (names5.Count > 0) { int actualKeep5 = (int)(target - kcVal - spent5); if (actualKeep5 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep5); ReportLine(BuildFenceReport(amt, actualKeep5, string.Join("、", names5))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
@@ -239,6 +240,7 @@ private static void FenceReturn()
                     if (im != null) { AddToFront(im); imVal += im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
                 }
                 long remain6 = target - imVal;
+                if (remain6 <= 0) return; // 09-27 C3 拍板：免疫宁已值回 target，不再补件（防负 remain 边界）
                 // 09-26 惊喜感：差额件数随机 3~8（CFG），不再 500/件封顶5
                 int n6 = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(remain6 / 300)));
                 long per6 = remain6 / Math.Max(1, n6);
@@ -249,7 +251,7 @@ private static void FenceReturn()
                     if (it6 == null) break;
                     AddToFront(it6); spent6 += it6.unitValue; names6.Add(ModCannibalism.GetName(it6));
                 }
-                if (names6.Count > 0) { int actualKeep6 = (int)(amt - imVal - spent6); if (actualKeep6 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep6); ReportLine(BuildFenceReport(amt, actualKeep6, string.Join("、", names6))); }
+                if (names6.Count > 0) { int actualKeep6 = (int)(target - imVal - spent6); if (actualKeep6 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep6); ReportLine(BuildFenceReport(amt, actualKeep6, string.Join("、", names6))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
@@ -265,7 +267,7 @@ private static void FenceReturn()
                     if (it7 == null) break;
                     AddToFront(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
                 }
-                if (names7.Count > 0) { int actualKeep7 = (int)(amt - spent7); if (actualKeep7 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep7); ReportLine(BuildFenceReport(amt, actualKeep7, string.Join("、", names7))); }
+                if (names7.Count > 0) { int actualKeep7 = (int)(target - spent7); if (actualKeep7 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep7); ReportLine(BuildFenceReport(amt, actualKeep7, string.Join("、", names7))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
@@ -287,7 +289,7 @@ private static void FenceReturn()
                 spent += v;
                 names.Add(ModCannibalism.GetName(it));
             }
-            if (names.Count > 0) { int actualKeep = (int)(amt - spent); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, string.Join("、", names))); }
+            if (names.Count > 0) { int actualKeep = (int)(target - spent); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, string.Join("、", names))); }
             else ReportLine(LangHelper.T("蛙娘销赃回来了（没找到合适的货）", "Wage Girl is back (no good goods found)"));
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
@@ -302,38 +304,6 @@ private static void FenceReturn()
         return LangHelper.T(
             "蛙娘销赃归来：投入" + amt + "块，" + keepDesc + "，小金库" + savings + "块。带了：" + items,
             "Wage Girl fenced: invested " + amt + ", " + keepDesc + ", savings " + savings + ". Brought: " + items);
-    }
-
-    // 09-21 新增：洗白所有违禁品
-    private static void TryWashAll() {
-        try {
-            if (Patches.CurrentUITradeMode != 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("交易模式下不能洗白", "Can't launder while trading"), "orange"); } catch { } return; }
-            var all = EmporiumEntry.Instance.GetAllItems();
-            var washList = new System.Collections.Generic.List<GameItem>();
-            foreach (var it in all) {
-                if (it == null) continue;
-                try { if (Il2Cpp.ContrabandHelper.GetContrabandLevel(it) > 0) washList.Add(it); } catch { }
-            }
-            if (washList.Count == 0) {
-                try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("店里没有违禁品", "No contraband in store"), "orange"); } catch { }
-                return;
-            }
-            int cost = washList.Count * BuildConfig.WageGirlWashCostPerItem;
-            int savings = GetStat(K_SAVINGS);
-            if (savings < cost) {
-                try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("小金库余额不足（需要 " + cost + " 块）", "Not enough savings (need " + cost + ")"), "orange"); } catch { }
-                return;
-            }
-            SetStat(K_SAVINGS, savings - cost);
-            foreach (var it in washList) {
-                try { it.DisableTag("CONTRABAND_ITEM_TAG", true); } catch { }
-                try { it.DisableTag("contraband", true); } catch { }
-                // 09-26 补：全店洗白也打 wage_washed 标记——读档/日切防御扫描只认这个标记，不打则防不住恢复
-                try { it.EnableTag("wage_washed", true); } catch { }
-            }
-            ReportLine(LangHelper.T("蛙娘洗白了 " + washList.Count + " 件违禁品（-" + cost + " 块小金库）", "Wage Girl laundered " + washList.Count + " contraband (-" + cost + " savings)"));
-            try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
-        } catch (Exception ex) { Core.LogMsg("[蛙娘] 洗白异常: " + ex.Message); }
     }
 
     // 跑路回归：带最低维度对应类别礼物 + 先偷 1 件

@@ -119,7 +119,8 @@ public static partial class WageGirlSystem
             foreach (var p in picked)
             {
                 try { stolenVal += p.unitValue; } catch { }
-                try { p.Destroy(); stolen++; } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; } } catch { } }
+                // 09-27 B26 修：偷拿成功时记录物品名（stolenNames 此前从未 Add → 夜报不报偷了什么）
+                try { p.Destroy(); stolen++; stolenNames.Add(ModCannibalism.GetName(p)); } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; stolenNames.Add(ModCannibalism.GetName(p)); } } catch { } }
             }
             try { SetStat("stolenValue", GetStat("stolenValue", 0) + (int)Math.Min(stolenVal, int.MaxValue)); } catch { }
             return stolen;

@@ -233,7 +233,7 @@ public static partial class WageGirlSystem
             if (inv == null) { filledValue = crate != null ? crate.unitValue : 0; return crate; }
             var basePool = WagePowerPerk.ItemPool ?? new string[0];
             long spent = 0; int tries = 0, filled = 0;
-            bool wantContraband = Core.Rng.Next(100) < 5; // 好物95% / 违禁5%
+            bool wantContraband = false; // 09-27 C4 拍板：箱内 100% 合法（删 5% 违禁陷阱——眼线已 -15 点，不再被随机坑）
             var pool = new System.Collections.Generic.List<string>(basePool);
             while (spent < targetValue && tries < 40 && pool.Count > 0)
             {
@@ -242,9 +242,6 @@ public static partial class WageGirlSystem
                 GameItem it = null;
                 try { it = DirectoryMaster.Item(id, true); } catch { }
                 if (it == null) { tries++; continue; }
-                bool isContra = false;
-                try { isContra = ContrabandHelper.GetContrabandLevel(it) > 0; } catch { }
-                if (wantContraband != isContra) { tries++; continue; } // 分流不符跳过
                 try { inv.UncheckedAccept(it); spent += it.unitValue; filled++; } catch { tries++; }
             }
             // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环可能因违禁分流不符（5% 分支尤甚）、

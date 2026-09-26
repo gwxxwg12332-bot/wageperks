@@ -124,15 +124,12 @@ public static class BuildConfig
 	public static int WageGirlSnatchSleepDebt => GetInt("WageGirlSnatchSleepDebt", 10);
 	public static int WageGirlStealNoStealAff => GetInt("WageGirlStealNoStealAff", 80);
 	// 洗白费用（每件违禁品）
-	public static int WageGirlWashCostPerItem => GetInt("WageGirlWashCostPerItem", 50);
 	// 跑路
 	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
 	public static int WageGirlRunawayStreak => GetInt("WageGirlRunawayStreak", 5);
 	public static int WageGirlRunawayDays => GetInt("WageGirlRunawayDays", 14);
 	// 销赃
 	public static int WageGirlFenceDays => GetInt("WageGirlFenceDays", 2);
-	public static int WageGirlFenceFeeBasePct => GetInt("WageGirlFenceFeeBasePct", 15);
-	public static int WageGirlFenceFeeMinPct => GetInt("WageGirlFenceFeeMinPct", 5);
 	public static int WageGirlFenceSleepDebt => GetInt("WageGirlFenceSleepDebt", 20);
 	// 零花钱档位（逗号分隔）
 	public static int[] WageGirlAllowanceSteps => ParseIntList(GetStr("WageGirlAllowanceSteps", "100,300,500"));
@@ -312,6 +309,12 @@ public static class BuildConfig
 			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
 					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
 		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
+melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: true, "蛙娘自动走动（关=蛙娘原地待机）");
+melonPreferences_Category.CreateEntry("CompatTradeClamp", default_value: true, "兼容：交易价格兜底（负价→0）");
+melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true, "兼容：客户预算兜底恢复");
+melonPreferences_Category.CreateEntry("CompatRepClamp", default_value: true, "兼容：声望下限兜底");
+melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
+melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
 		melonPreferences_Category.CreateEntry("ContainerUpgradeEnabled", default_value: true, "容器/机器升级（关=不升级）");
 			melonPreferences_Category.CreateEntry("CleanDailyLoss", 2, "清洁每日衰减量");
@@ -386,13 +389,10 @@ public static class BuildConfig
 			melonPreferences_Category.CreateEntry("WageGirlSnatchValueHigh", 200, "蛙娘偷拿价值上限·高好感(≥70)");
 			melonPreferences_Category.CreateEntry("WageGirlSnatchSleepDebt", 10, "蛙娘偷拿熬夜睡眠债");
 			melonPreferences_Category.CreateEntry("WageGirlStealNoStealAff", 80, "蛙娘好感≥此值不再偷钱/偷拿");
-			melonPreferences_Category.CreateEntry("WageGirlWashCostPerItem", 50, "蛙娘洗白每件违禁品费用");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayLowStat", 20, "蛙娘跑路·六维低于此值计1天");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayStreak", 5, "蛙娘跑路·连续天数门槛");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");
 			melonPreferences_Category.CreateEntry("WageGirlFenceDays", 2, "蛙娘销赃外出天数");
-			melonPreferences_Category.CreateEntry("WageGirlFenceFeeBasePct", 15, "蛙娘销赃跑腿费起点(%)");
-			melonPreferences_Category.CreateEntry("WageGirlFenceFeeMinPct", 5, "蛙娘销赃跑腿费下限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceSleepDebt", 20, "蛙娘销赃熬夜睡眠债");
 			melonPreferences_Category.CreateEntry("WageGirlAllowanceSteps", "100,300,500", "蛙娘零花钱档位(逗号分隔)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceAffBonusPct", 20, "蛙娘销赃好感加成上限(%)");

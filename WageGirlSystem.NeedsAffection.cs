@@ -326,6 +326,7 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 ps.playerCash -= amt;
                 // 09-23 改：零花钱进小金库（不出去逛街）
                 SetStat(K_SAVINGS, GetStat(K_SAVINGS) + amt);
+                SetStat(K_ALLOWANCE, amt); // 09-27 B5 修（总控拍板）：写 K_ALLOWANCE 当天标记——RunDayEvents 豁免/回归分支读它（此前恒 0 → 给零花钱后当天不偷断裂）
                 // 09-23 新增：前三次加好感（好感 = 档位序数，CFG 改档位自动适配）
                 int allowCount = GetStat(K_ALLOWANCE_COUNT);
                 if (allowCount < 3) {

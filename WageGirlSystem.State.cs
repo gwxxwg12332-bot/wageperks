@@ -91,17 +91,19 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     internal static void SetExists(bool v) { try { SetStat(K_EXIST, v ? 1 : 0); } catch { } }
 
     // 蛙娘全部持久化 key（清 default_run 残留用）
-    private static readonly string[] ALL_KEYS = new string[]
+    // 09-27 B4 修：全量持久化 key 数组（Reset/清理共用；补 allowanceCount/allowance/savings/washMode/lastFedDay/stolenValue 6 个，原漏 12 key）
+    private static readonly string[] ALL_STAT_KEYS = new string[]
     {
         K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_SLEEP_DEBT, K_AFF, K_LAST_STEAL, K_LEAVE,
-        K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON
+        K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON,
+        K_ALLOWANCE_COUNT, K_ALLOWANCE, K_SAVINGS, K_WASH_MODE, "lastFedDay", "stolenValue"
     };
 
     // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
     // 2026-09-24 旧层门面已删：清理入口收拢至 WageSaveStore（旧档迁移通道唯一入口）
     internal static void CleanDefaultRunOnNewGame()
     {
-        try { WageSaveStore.CleanLegacyDefaultRun(NS, ALL_KEYS); } catch { }
+        try { WageSaveStore.CleanLegacyDefaultRun(NS, ALL_STAT_KEYS); } catch { }
     }
 
     // ===================== 阶段 5：偷钱循环 + 自主偷拿 + 回归（话术 v9） =====================
@@ -132,6 +134,7 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
                 CleanDefaultRunOnNewGame();
                 ResetForNewGame();
                 _memStats.Clear(); // 防连续开新档进程内残留
+                _cachedGirlItem = null; _cachedEl = null; // 09-27 C2 拍板：新档清动画实体缓存（防连续开新档进程内旧实体残留）
                 WageSaveStore.ResetForNewRun(); // 09-23 阶段1：清统一存储层内存 + pending 文件残留（防新档读到上一档残值）
             } catch { }
         }
@@ -151,17 +154,15 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
         internal static void ResetForNewGame()
         {
             try {
-                // 清 default_run 残留
-                SetStat(K_LAST_STEAL, 0);
-                SetStat(K_EXIST, 0);
-                SetStat(K_LEAVE, 0);
+                // 09-27 B4 修：全量 key 重置（原只清 3 个 + 六维 → 漏 12 key：睡眠债/饥饿/偷拿额/好物日/销赃额/待销赃/销赃类别/离开原因/零花计数/小金库/零花池/偷拿价值/喂食日残留 → 同 runID 重开新档串状态）
+                foreach (var k in ALL_STAT_KEYS) SetStat(k, 0);
                 // 六维重置为初始值（CFG：WageGirlStatInit）
-                SetStat("sat", BuildConfig.WageGirlStatInit);
-                SetStat("th", BuildConfig.WageGirlStatInit);
-                SetStat("health", BuildConfig.WageGirlStatInit);
-                SetStat("mood", BuildConfig.WageGirlStatInit);
-                SetStat("clean", BuildConfig.WageGirlStatInit);
-                SetStat("sleep", BuildConfig.WageGirlStatInit);
+                SetStat(K_SAT, BuildConfig.WageGirlStatInit);
+                SetStat(K_TH, BuildConfig.WageGirlStatInit);
+                SetStat(K_HEALTH, BuildConfig.WageGirlStatInit);
+                SetStat(K_MOOD, BuildConfig.WageGirlStatInit);
+                SetStat(K_CLEAN, BuildConfig.WageGirlStatInit);
+                SetStat(K_SLEEP, BuildConfig.WageGirlStatInit);
                 // 好感重置
                 SetAffection(0);
             } catch { }

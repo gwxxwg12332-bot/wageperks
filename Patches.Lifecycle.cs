@@ -135,64 +135,7 @@ internal static partial class Patches
 			return;
 		}
 		FrameUpdate();
-		if (_keysDumped)
-		{
-			return;
-		}
-		_keysDumped = true;
-		try
-		{
-			Il2CppSystem.Collections.Generic.List<InputActionHandler> actionHandlers = __instance.actionHandlers;
-			if (actionHandlers == null)
-			{
-				return;
-			}
-			for (int i = 0; i < actionHandlers.Count; i++)
-			{
-				InputActionHandler inputActionHandler = actionHandlers[i];
-				if (inputActionHandler == null)
-				{
-					continue;
-				}
-				try
-				{
-					Il2CppSystem.Collections.Generic.List<KeyCode> keyListeners = inputActionHandler.keyListeners;
-					if (keyListeners != null && keyListeners.Count > 0)
-					{
-						string[] array = new string[keyListeners.Count];
-						for (int j = 0; j < keyListeners.Count; j++)
-						{
-							array[j] = keyListeners[j].ToString();
-						}
-						string.Join(",", array);
-					}
-				}
-				catch
-				{
-					// 防御：个别 input handler 的 keyListeners 结构异常跳过（不影响其余 handler）
-				}
-				try
-				{
-					_ = inputActionHandler.GetType().FullName;
-				}
-				catch
-				{
-					// 防御：handler 类型名读取异常跳过
-				}
-				try
-				{
-					_ = inputActionHandler.GetIl2CppType().FullName;
-				}
-				catch
-				{
-					// 防御：handler 遍历防御（单个异常不中断整体按键扫描）
-				}
-			}
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[按键] Dump 异常: " + ex.Message);
-		}
+		// 09-27 B7 修：删 _keysDumped 一次性 dump 残留（结果全丢弃，无实际作用）
 	}
 
 	public static void PostfixInitStartingPerks()
