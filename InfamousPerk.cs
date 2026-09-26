@@ -76,13 +76,13 @@ internal sealed class InfamousPerk : CustomStartingPerk
             int got = WageSaveStore.GetInt(PerkId, "got_money", 0);
             Core.LogMsg("[声名狼藉] OnDayStart: active=" + active + " day=" + day + " got=" + got);
             if (!active) return;
-            if (day != 2) return;  // 第二天送5000
+            if (day != 1) return;  // 09-27 A14 拍板：day==1 = 第 2 天送 5000（起算语义修正：原 day!=2 是第 3 天才送）
             if (got > 0) return;
             WageSaveStore.SetInt(PerkId, "got_money", 1);
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.playerCash += 5000; }
             NotifyHelper.NightLogRaw("声名狼藉：你收到了 5000 补偿金");
-            Core.LogMsg("[声名狼藉] 第1天送5000 OK");
+            Core.LogMsg("[声名狼藉] 第2天送5000 OK");
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
     }
@@ -99,7 +99,8 @@ internal sealed class InfamousPerk : CustomStartingPerk
             Core.LogMsg("[声名狼藉] UpdateCost: sid=" + sid + " unlocked=" + __instance.unlocked + " cost=" + __instance.cost);
             if (sid != "INSURANCE_SERVICE") return;
             __instance.unlocked = true;   // 强开解锁
-            __instance.cost *= 2;          // 价格双倍
+            // 09-27 A13 拍板：翻倍只执行一次（UpdateCost 每帧调用，不标记会每帧 ×2 指数爆炸）；标记持久化防读档后重复翻倍——第 2 天起价格恒定
+            if (WageSaveStore.GetInt(PerkId, "insurance_doubled", 0) == 0) { __instance.cost *= 2; WageSaveStore.SetInt(PerkId, "insurance_doubled", 1); }
             Core.LogMsg("[声名狼藉] 保险服务强开 unlocked=true cost=" + __instance.cost);
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] PostfixUpdateCost 异常: " + ex.Message); }

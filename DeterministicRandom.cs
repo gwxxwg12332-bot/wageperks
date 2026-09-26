@@ -28,24 +28,10 @@ internal static class DeterministicRandom
     {
         try
         {
-            // 尝试从PlayerStore获取runID（用反射查找可能的字段名）
-            if (PlayerStore.Instance != null)
+            // 09-27 A15 拍板：强类型直取 PlayerStore.Instance.runID（拆包实锤字段存在，DeterministicSchedule.cs:34 同款用法）；删反射猜字段
+            if (PlayerStore.Instance != null && !string.IsNullOrEmpty(PlayerStore.Instance.runID))
             {
-                var type = PlayerStore.Instance.GetType();
-                // 尝试常见的字段名
-                string[] possibleFields = { "saveID", "saveId", "runID", "runId", "gameID", "gameId", "sessionID", "sessionId" };
-                foreach (var fieldName in possibleFields)
-                {
-                    var field = type.GetField(fieldName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (field != null)
-                    {
-                        var value = field.GetValue(PlayerStore.Instance);
-                        if (value != null && !string.IsNullOrEmpty(value.ToString()))
-                        {
-                            return value.ToString();
-                        }
-                    }
-                }
+                return PlayerStore.Instance.runID;
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[DeterministicRandom] 异常: " + ex.Message); }

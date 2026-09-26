@@ -251,7 +251,7 @@ internal static partial class Patches
 				if (property != null)
 				{
 					int num2 = (int)property.GetValue(instance);
-					property.SetValue(instance, num2 - num);
+					property.SetValue(instance, System.Math.Max(0, num2 - num)); // 09-27 A16 拍板：扣款下限 0（人神共愤禁止动扣款逻辑本身，仅加下限防现金为负）
 					flag = true;
 				}
 			}
@@ -267,7 +267,7 @@ internal static partial class Patches
 					if (field != null)
 					{
 						int num3 = (int)field.GetValue(instance);
-						field.SetValue(instance, num3 - num);
+						field.SetValue(instance, System.Math.Max(0, num3 - num)); // 09-27 A16 拍板：扣款下限 0
 						flag = true;
 					}
 				}
