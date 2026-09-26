@@ -76,13 +76,13 @@ internal sealed class InfamousPerk : CustomStartingPerk
             int got = WageSaveStore.GetInt(PerkId, "got_money", 0);
             Core.LogMsg("[声名狼藉] OnDayStart: active=" + active + " day=" + day + " got=" + got);
             if (!active) return;
-            if (day != 1) return;  // 09-27 A14 拍板：day==1 = 第 2 天送 5000（起算语义修正：原 day!=2 是第 3 天才送）
+            if (day != 2) return;  // 第二天送5000（09-27 A14 回退：恢复 1.3.0 原样）
             if (got > 0) return;
             WageSaveStore.SetInt(PerkId, "got_money", 1);
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.playerCash += 5000; }
             NotifyHelper.NightLogRaw("声名狼藉：你收到了 5000 补偿金");
-            Core.LogMsg("[声名狼藉] 第2天送5000 OK");
+            Core.LogMsg("[声名狼藉] 第1天送5000 OK");
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
     }
