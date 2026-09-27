@@ -24,8 +24,9 @@ public static partial class WageGirlSystem
             if (!Exists()) return;
             if (GetStat(K_LEAVE) > 0) return; // 已外出
             if (GetAffection() < 20) { ReportLine(LangHelper.T("好感不够，她不愿出远门（需好感≥20）", "Affection too low for travel (need ≥20)")); return; }
-            // 扣1份口粮
-            if (!FindAndConsumeFood()) { ReportLine(LangHelper.T("没有食物当口粮，走不了", "No food for provisions")); return; }
+            // 检查口粮库存（需提前给予口粮）
+            if (GetStat(K_PROVISION) < 1) { ReportLine(LangHelper.T("没有口粮，她不愿出远门（点给予口粮备1份食物）", "No provisions (give food first)")); return; }
+            SetStat(K_PROVISION, GetStat(K_PROVISION) - 1);
             int day = CurrentDay();
             SetStat(K_LEAVE, day + TRAVEL_DAYS);
             SetStat(K_LEAVE_REASON, 4);
@@ -62,13 +63,13 @@ public static partial class WageGirlSystem
         {
             if (GetStat(K_LEAVE_REASON) != 4) return;
             if (GetStat(K_LEAVE) <= 0) return;
-            if (!FindAndConsumeFood())
+            if (GetStat(K_PROVISION) < 1)
             {
-                // 没口粮了 → 明天提前回来
                 SetStat(K_LEAVE, day + 1);
                 ReportLine(LangHelper.T("口粮吃完了，她提前回来了", "She ran out of food and came back early"));
                 Core.LogMsg("[蛙娘旅行] 口粮耗尽提前结束");
             }
+            else { SetStat(K_PROVISION, GetStat(K_PROVISION) - 1); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘旅行] DailyTick异常: " + ex.Message); }
     }
@@ -110,6 +111,20 @@ public static partial class WageGirlSystem
             Core.LogMsg("[蛙娘旅行] 回归 early=" + early);
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘旅行] Return异常: " + ex.Message); }
+    }
+
+    // 玩家点"给予口粮"按钮：从仓库扣1份食物存入口粮库存
+    internal static void GiveProvision()
+    {
+        try
+        {
+            if (!Exists()) return;
+            if (!FindAndConsumeFood()) { ReportLine(LangHelper.T("仓库里没有食物可作口粮", "No food in stock")); return; }
+            SetStat(K_PROVISION, GetStat(K_PROVISION) + 1);
+            ReportLine(LangHelper.T("已备好1份口粮（当前" + GetStat(K_PROVISION) + "份）", "Stored 1 provision (total: " + GetStat(K_PROVISION) + ")"));
+            ShowPanel();
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙娘旅行] GiveProvision异常: " + ex.Message); }
     }
 
     // 找玩家仓库一件食物删掉，成功返回true

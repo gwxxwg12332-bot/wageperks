@@ -81,6 +81,11 @@ public static partial class WageGirlSystem
             try {
                 int leaveNow = GetStat(K_LEAVE);
                 bool isOutNow = leaveNow > 0 && CurrentDay() < leaveNow;
+                if (!isOutNow)
+                {
+                    var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { GiveProvision(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
+                    b.AddButton(LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
+                }
                 if (!isOutNow && GetAffection() >= 20)
                 {
                     var travelBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryStartTravel(); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 旅行异常: " + ex.Message); } }));

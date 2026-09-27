@@ -270,9 +270,9 @@ internal static partial class Patches
 			if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				ScheduleJacksonToday();
-				WageBrother.ScheduleToday();
-				WageBrother.CleanupCardIfGone();
 			}
+			// 蛙哥塞队不依赖博士之友激活（v1.3.1 bug修：原被包在博士条件里导致不点博士永不到店）
+			try { if (PlayerStore.Instance != null) { WageBrother.ScheduleToday(); WageBrother.CleanupCardIfGone(); } } catch { }
 		}
 		catch (System.Exception ex)
 		{

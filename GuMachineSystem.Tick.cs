@@ -306,12 +306,11 @@ public static partial class GuMachineSystem
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG", Math.Min(cap, v)); } catch { }
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0（int tag）
-            try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }
             WageSaveStore.SetInt("GuBeast", "eat_day", day);
             WageSaveStore.SetInt("GuBeast", "eat_count", eatCount + 1);
-            Core.LogMsg("[练兽] 互食完成（第" + (eatCount+1) + "/3次）");
+            Core.LogMsg("[练兽] 老鼠互食完成（第" + (eatCount+1) + "/3次，WageSaveStore计数）");
         }
         catch (System.Exception ex) { Core.LogMsg("[练兽] TryBeastEat异常: " + ex.Message); }
     }

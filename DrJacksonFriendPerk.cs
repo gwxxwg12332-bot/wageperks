@@ -198,8 +198,6 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
             for (int i = 0; i < 3; i++)
                 client.clientBuyingIdList.Add("storage_bay_large");
 
-            // v1.3.1【6a】博士卖老鼠（练兽用，identifier=rat，拆包实锤）
-            try { for (int i = 0; i < 2; i++) client.clientBuyingIdList.Add("rat"); } catch { }
 
 
             // 4. 设置clientIntent为SELL

@@ -34,6 +34,7 @@ public static partial class WageGirlSystem
     private const string K_ALLOWANCE_COUNT = "allowanceCount";  // 09-23 新增：今天已给几次零花钱（前三次加好感）      // 09-23 新增：违禁品处理模式 0=洗白 1=销赃     // 销赃带回类别 0=随机 1=食物饮品 2=日用品 3=武器工具（面板按钮循环切换）
     private const string K_LEAVE_REASON = "leaveReason";  // 消失原因 0=偷钱 1=销赃 2=跑路（阶段 6）
 	private const string K_SAVINGS = "savings";       // 小金库（跑腿费存起来）
+    private const string K_PROVISION = "provision";    // 旅行口粮库存（给予口粮按钮存）       // 小金库（跑腿费存起来）
     // v3 喂钱
     private const string K_ALLOWANCE = "allowance";       // 零花钱池（随档）
     private const int K_LEAVE_REASON_FEED = 3;             // 外出原因 3 = 喂钱逛街

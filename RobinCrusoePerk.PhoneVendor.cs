@@ -413,7 +413,6 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            Core.LogMsg("[奥丁诊断] WillAnswerCall被调用 number=" + number + " 声名狼藉=" + Core.PerkActive("声名狼藉") + " 人神共愤=" + Core.PerkActive("人神共愤") + " __result=" + __result);
             if (number != 51189) return; // 奥丁号码
             if (Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))
             {

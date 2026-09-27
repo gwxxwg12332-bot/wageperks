@@ -68,12 +68,7 @@ internal static partial class RobinCrusoePerk
                 if (!isRat) { string rid = ""; try { rid = item.identifier ?? ""; } catch { } if (rid == "rat") isRat = true; }
                 if (isRat && builder != null && item != null)
                 {
-                    float lon = TagHelper.GetFloat(item, "ANIMAL_LONGEVITY_TAG");
-                    float imm = TagHelper.GetFloat(item, "ANIMAL_IMMUNITY_TAG");
-                    float hp = TagHelper.GetFloat(item, "ANIMAL_MAX_HEALTH_TAG");
-                    float gr = TagHelper.GetFloat(item, "ANIMAL_GROWTH_RATE_TAG");
-                    int age = GetTagIntSafe(item, "ANIMAL_AGE_TAG");
-                    builder.AddLine(LangHelper.T("寿命:" + lon + " 免疫:" + imm + " 血:" + hp + " 生长:" + gr + " 年龄:" + age, "Longevity:" + lon + " Immunity:" + imm + " HP:" + hp + " Growth:" + gr + " Age:" + age),
+                    builder.AddLine(LangHelper.T("◆ 经过养蛊，老鼠更强壮了（属性已叠加到原生tag）", "◆ Enhanced by the Swarm Forge (stats stacked to native tags)"),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                 }
             } catch { }

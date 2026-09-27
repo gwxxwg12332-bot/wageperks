@@ -32,8 +32,7 @@ public static partial class WageGirlSystem
             WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
             GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
             GiveRewardItem(GuMachineSystem.AI_MODULE_ID, 2);
-            GiveRewardItem(GuMachineSystem.PROTECTOR_ID, 1);
-            Core.LogMsg("[蛙娘] 好感破50，送出三件套（生成器x1+神经模组x2+保护器x1）");
+            Core.LogMsg("[蛙娘] 好感破50，送出（不稳定AI制造器x1+原生AI神经模组x2，进背包）");
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
     }
@@ -46,7 +45,7 @@ public static partial class WageGirlSystem
             {
                 GameItem it = null;
                 try { it = DirectoryMaster.Item(id); } catch { }
-                if (it != null) ps.AddDirectSellingItemToTable(it, false, true, false, 100);
+                if (it != null) ps.AddDirectSellingItemToTable(it, true, false, false, 100);
             }
         }
         catch { }

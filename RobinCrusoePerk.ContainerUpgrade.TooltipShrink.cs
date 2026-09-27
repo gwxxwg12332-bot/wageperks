@@ -28,6 +28,10 @@ internal static partial class RobinCrusoePerk
                         "◆ 充能 " + charge + "/3（打烊 +1，满 3 自动炼蛊·需舱内≥2模组）",
                         "◆ Charge " + charge + "/3 (+1 at close, auto-forge at 3, needs ≥2 modules)"), bold: true);
                 }
+                    // v1.3.1 bug6：加速器贡献显示
+                    int boostStep = 1;
+                    try { var bg = GuMachineSystem.GetGuGrid(item); if (bg != null && bg.childItems != null) foreach (var m in bg.childItems) { if (m == null) continue; string mid2 = ""; try { mid2 = m.identifier ?? ""; } catch { } int s2 = mid2 == "turbo_booster_adv" ? 3 : (mid2 == "turbo_booster" ? 2 : 1); if (s2 > boostStep) boostStep = s2; } } catch { }
+                    if (boostStep > 1) builder.AddLine(LangHelper.T("◆ 加速器：+" + (boostStep-1) + "/天（加速炼蛊充能）", "◆ Booster: +" + (boostStep-1) + "/day (forging charge accelerated)"), bold: true);
                 else
                 {
                     // 09-19 P3：显示当前模式（读舱内保护器实时判定）+ 失败结果提示
