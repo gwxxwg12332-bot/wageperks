@@ -79,6 +79,15 @@ public static class PatchRegistry
 		}
 		try
 		{
+			System.Func<StoreClient> wb = () => { try { var c = StoreClientListWanted.CreateWanted7(); if (c != null) { c.identifier = "wage_brother"; c.displayName = LangHelper.T("蛙哥", "Wage Brother"); } return c; } catch { return StoreClientListWanted.CreateWanted7(); } };
+			StoreClientListDict.storeClientDict["wage_brother"] = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<StoreClient>>(wb);
+		}
+		catch (System.Exception exwb)
+		{
+			Core.LogMsg("[WagePerks] 注入 wage_brother 失败: " + exwb.Message);
+		}
+		try
+		{
 			ManualPatcher.TryPatch(typeof(StartingPerkList), "InitStartingPerk", null, "PostfixInitStartingPerks");
 			ManualPatcher.TryPatch(typeof(GameMaster), "NewGame", null, "PostfixOnNewGame");
 			ManualPatcher.TryPatch(typeof(NewGameData), "HandleInitialItem", null, "HandleInitialItemPostfix");

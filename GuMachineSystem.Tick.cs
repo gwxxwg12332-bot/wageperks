@@ -306,6 +306,9 @@ public static partial class GuMachineSystem
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG", Math.Min(cap, v)); } catch { }
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0（int tag）
+            // 【5】练兽完成后：存活者饥饿值刷新 + 免疫设满（不患病）
+            try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_HUNGER_TAG", 0); } catch { }
+            try { TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", 100f); } catch { }
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }
             WageSaveStore.SetInt("GuBeast", "eat_day", day);
