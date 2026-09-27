@@ -101,6 +101,24 @@ internal static partial class Patches
 			try { isSell = Il2Cpp.GeneralHelper.IsItemOwned(item); }
 			catch (System.Exception ex) { isSell = CurrentUITradeMode == 2; Core.LogMsg("[交易标记] IsItemOwned判定失败，按UI模式回退: " + ex.Message); }
 			ApplyBadReputationMarkup(item, isSell, ref result);
+			if (isSell && (Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤")))
+			{
+				try
+				{
+					var ps = PlayerStore.Instance;
+					if (ps != null && ps.currentClientInstance != null)
+					{
+						var bp = ps.currentClientInstance.GetClientBlueprint();
+						if (bp != null && bp.identifier == "wanted4Normal")
+						{
+							long before = result;
+							result = (long)(result * 0.5);
+							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " " + before + " -> " + result);
+						}
+					}
+				}
+				catch { }
+			}
 			// 09-24 修复：博士之友/退休枪匠/水商/酿酒师买对应NPC商品 ×0.95（之前只加 friend_discount 标签不改价=无效）
 			ApplyFriendMarkup(item, !isSell, ref result);
 			if (ApplyRobinsonMarkup(item, isSell, ref result)) return;

@@ -57,7 +57,7 @@ internal static partial class Patches
 		}
 		try
 		{
-			// 09-23 奥丁（wanted4）：声望低时压价更狠
+			// 09-28 奥丁压价改挂 GetNegociatedValue（sellPriceModifier 字段不在报价链），这里只打日志
 			string oid = storeClient.identifier;
 			if (oid == "wanted4" || oid == "wanted4Normal")
 			{
