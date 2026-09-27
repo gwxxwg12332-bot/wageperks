@@ -18,7 +18,6 @@ internal static class WageBrother
 {
     internal const string CLIENT_ID = "wage_brother";
     internal const string CARD_ID = "wage_brother_card";
-    private static int _lastScheduledDay = -1;
     private static bool _cardSpawned = false;
 
     // 周期塞队（照博士 ScheduleJacksonToday）
@@ -32,8 +31,9 @@ internal static class WageBrother
             int day = StoreStation.GetDayCounter();
             if (HasQueued()) return false;
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
-            if (_lastScheduledDay >= 0 && day - _lastScheduledDay < interval) return false;
-            _lastScheduledDay = day;
+            int lastSched = WageSaveStore.GetInt("wage_brother", "last_scheduled_day", -1);
+            if (lastSched >= 0 && day - lastSched < interval) return false;
+            WageSaveStore.SetInt("wage_brother", "last_scheduled_day", day);
             ps.QueueFuturClient(CLIENT_ID, 1);
             Core.LogMsg("[蛙哥] 已排队，明天到访");
             return true;

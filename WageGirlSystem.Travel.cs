@@ -119,7 +119,7 @@ public static partial class WageGirlSystem
         try
         {
             if (!Exists()) return;
-            if (!FindAndConsumeFood()) { ReportLine(LangHelper.T("仓库里没有食物可作口粮", "No food in stock")); return; }
+            if (!FindAndConsumeFood()) { ReportLine(LangHelper.T("背包没有食物", "No food in stock")); return; }
             SetStat(K_PROVISION, GetStat(K_PROVISION) + 1);
             ReportLine(LangHelper.T("已备好1份口粮（当前" + GetStat(K_PROVISION) + "份）", "Stored 1 provision (total: " + GetStat(K_PROVISION) + ")"));
             ShowPanel();
