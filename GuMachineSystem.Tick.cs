@@ -297,15 +297,15 @@ public static partial class GuMachineSystem
             if (rats.Count < 2) return;
             // 选存活者（LONGEVITY最高）+ 被吃者（第一只非存活）
             GameItem survivor = rats[0], eaten = rats[1];
-            int bestLong = -1;
-            foreach (var r in rats) { int lv = RobinCrusoePerk.GetTagIntSafe(r, "LONGEVITY"); if (lv > bestLong) { bestLong = lv; survivor = r; } }
+            float bestLong = -1f;
+            foreach (var r in rats) { float lv = TagHelper.GetFloat(r, "ANIMAL_LONGEVITY_TAG"); if (lv > bestLong) { bestLong = lv; survivor = r; } }
             foreach (var r in rats) { if (r != survivor) { eaten = r; break; } }
-            int cap = BuildConfig.GuBeastCap;
-            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "LONGEVITY") + RobinCrusoePerk.GetTagIntSafe(eaten, "LONGEVITY"); RobinCrusoePerk.SetTagIntValue(survivor, "LONGEVITY", Math.Min(cap, v)); } catch { }
-            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "IMMUNITY") + RobinCrusoePerk.GetTagIntSafe(eaten, "IMMUNITY"); RobinCrusoePerk.SetTagIntValue(survivor, "IMMUNITY", Math.Min(cap, v)); } catch { }
-            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "MAX_HEALTH") + RobinCrusoePerk.GetTagIntSafe(eaten, "MAX_HEALTH"); RobinCrusoePerk.SetTagIntValue(survivor, "MAX_HEALTH", Math.Min(cap, v)); } catch { }
-            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "GROWTH_RATE") + RobinCrusoePerk.GetTagIntSafe(eaten, "GROWTH_RATE"); RobinCrusoePerk.SetTagIntValue(survivor, "GROWTH_RATE", Math.Min(cap, v)); } catch { } // bug5
-            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "WEIGHT") + RobinCrusoePerk.GetTagIntSafe(eaten, "WEIGHT"); if (v != 0) RobinCrusoePerk.SetTagIntValue(survivor, "WEIGHT", v); } catch { } // bug5: WEIGHT有才加
+            float cap = BuildConfig.GuBeastCap;
+            try { float v = TagHelper.GetFloat(survivor, "ANIMAL_LONGEVITY_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_LONGEVITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_LONGEVITY_TAG", Math.Min(cap, v)); } catch { }
+            try { float v = TagHelper.GetFloat(survivor, "ANIMAL_IMMUNITY_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_IMMUNITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", Math.Min(cap, v)); } catch { }
+            try { float v = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG", Math.Min(cap, v)); } catch { }
+            try { float v = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG", Math.Min(cap, v)); } catch { }
+            try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0（int tag）
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }

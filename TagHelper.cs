@@ -35,4 +35,23 @@ internal static class TagHelper
     {
         try { SetInt(item, tag, GetInt(item, tag) + delta); } catch { }
     }
+
+    // v1.3.1：float tag 读写（动物属性 ANIMAL_*_TAG 是 float）
+    public static float GetFloat(GameItem item, string tag)
+    {
+        try { var t = item.GetTagReadonly(tag); if (t != null) return t.GetFloat(); } catch { }
+        return 0f;
+    }
+
+    public static void SetFloat(GameItem item, string tag, float value)
+    {
+        try
+        {
+            if (!item.IsTag(tag)) item.EnableTag(tag, true);
+            System.Action<TagState> sysAct = delegate (TagState state) { state.SetFloat(value); };
+            var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
+            item.ModifyTag(tag, il2cppAct, false);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[TagHelper] SetFloat异常: " + ex.Message); }
+    }
 }

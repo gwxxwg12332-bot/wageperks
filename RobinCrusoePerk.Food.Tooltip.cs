@@ -68,10 +68,10 @@ internal static partial class RobinCrusoePerk
                 if (!isRat) { string rid = ""; try { rid = item.identifier ?? ""; } catch { } if (rid == "rat") isRat = true; }
                 if (isRat && builder != null && item != null)
                 {
-                    int lon = GetTagIntSafe(item, "LONGEVITY");
-                    int imm = GetTagIntSafe(item, "IMMUNITY");
-                    int hp = GetTagIntSafe(item, "MAX_HEALTH");
-                    int gr = GetTagIntSafe(item, "GROWTH_RATE");
+                    float lon = TagHelper.GetFloat(item, "ANIMAL_LONGEVITY_TAG");
+                    float imm = TagHelper.GetFloat(item, "ANIMAL_IMMUNITY_TAG");
+                    float hp = TagHelper.GetFloat(item, "ANIMAL_MAX_HEALTH_TAG");
+                    float gr = TagHelper.GetFloat(item, "ANIMAL_GROWTH_RATE_TAG");
                     int age = GetTagIntSafe(item, "ANIMAL_AGE_TAG");
                     builder.AddLine(LangHelper.T("寿命:" + lon + " 免疫:" + imm + " 血:" + hp + " 生长:" + gr + " 年龄:" + age, "Longevity:" + lon + " Immunity:" + imm + " HP:" + hp + " Growth:" + gr + " Age:" + age),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
