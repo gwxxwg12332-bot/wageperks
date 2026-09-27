@@ -155,7 +155,12 @@ internal static partial class RobinCrusoePerk
     // moisture_farm 产出量：MachineMoistureFarm.GetOutputVolume(GameItem)→int ×0.5（含基础）
     public static void PostfixGetOutputVolume(ref int __result)
     {
-        try { if (IsActive() && __result > 0) __result = Math.Max(1, (int)(__result * 0.5)); } catch { }
+        try {
+            if (__result <= 0) return;
+            if (IsActive()) __result = Math.Max(1, (int)(__result * 0.5));
+            // v1.3.1【7】干燥空气：集水器产出再×0.5（独立 perk 叠加）
+            if (DryAirPerk.IsActive()) __result = Math.Max(1, (int)(__result * DryAirPerk.GetEvaporatorOutputMult()));
+        } catch { }
     }
 
     // water_purifier 基础半：WaterHelper.RemoveContaminantFromContainer 返回移除量 ×0.5（净化慢一半；加成半已被模板0.5覆盖）

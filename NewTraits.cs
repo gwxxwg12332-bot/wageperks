@@ -17,8 +17,8 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("刀尖舔血", "Blood Blade");
-    internal override string Description => LangHelper.T("高风险高回报的赌徒特性（2点）。违禁品买卖价+20%，利润丰厚；代价是治安部永远盯着你——每天强制检查，连满信誉豁免也无效。吞噬季每 10 天降临：机器里的模组会互相吞噬融合，产出高级违禁品。利润越高，越可能翻车。", "High-risk high-reward gambler (2 points). Contraband price +20 percent, but Security is always watching: mandatory inspection every day — even max reputation won't spare you. Every 10 days, Cannibalism Season strikes: modules in machines devour each other, yielding high-grade contraband. Higher profit, higher risk.");
-    internal override int Cost => 2; // 09-16 用户拍板：需要 2 特性点
+    internal override string Description => LangHelper.T("高风险高回报的赌徒特性（0点）。违禁品买卖价+20%，利润丰厚；代价是治安部永远盯着你——每天强制检查，连满信誉豁免也无效。吞噬季已停用。利润越高，越可能翻车。", "High-risk high-reward gambler (0 points). Contraband price +20 percent, but Security is always watching: mandatory inspection every day — even max reputation won't spare you. Cannibalism Season is disabled. Higher profit, higher risk.");
+    internal override int Cost => 0; // 09-28 v1.3.1：2→0 免费可选
     internal override int Type => 0; // 09-17 用户拍板：正面特性（绿色）；违禁品收益是主要面向，强制检查为伴随代价
 
     internal override void OnNewGame()

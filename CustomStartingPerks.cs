@@ -33,7 +33,8 @@ internal static class CustomStartingPerks
         new MadnessPerk(),
         new DestinyDicePerk(),
         new WandererPerk(),
-        new InfamousPerk()
+        new InfamousPerk(),
+        new DryAirPerk()
     };
 
     private static readonly System.Collections.Generic.Dictionary<string, StartingPerk> Created =

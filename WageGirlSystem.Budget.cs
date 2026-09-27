@@ -23,20 +23,38 @@ public static partial class WageGirlSystem
         try
         {
             if (__instance == null) return;
-            if (!Exists()) return; // 蛙娘未出现 → 无增益
             if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
-            if (Patches._inBudgetOverride) return; // 防重入：鲁滨逊 SetBudget 会再次触发 ApplyBudgetModifier → 本条 Postfix 重入（倍率嵌套）
+            if (Patches._inBudgetOverride) return; // 防重入
             int budget = __instance.GetBudget();
+            if (budget <= 0) return;
+            // v1.3.1【7b】干燥空气：水酒客户预算+25%（不依赖蛙娘，独立 perk）
+            if (DryAirPerk.IsActive() && BuysWaterOrBooze(__instance))
             {
+                long dry = (long)(budget * DryAirPerk.GetWaterBoozeBudgetBonus());
+                __instance.OverrideBudget((int)dry);
+                return;
             }
-            if (budget <= 0) return; // 防御①：原生算完 ≤0 → 不覆盖（mod 绝不写 0）
+            if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
             int affB = GetAffection();
             float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
                 : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
             long newBudget = (long)(budget * mult);
-            if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap; // 上限防溢出
-            __instance.OverrideBudget((int)newBudget); // 防御③：只写一次，不触发原生重算
+            if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
+            __instance.OverrideBudget((int)newBudget);
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
+    }
+    // v1.3.1【7b】：客户购买清单含水/酒物品？
+    private static readonly System.Collections.Generic.HashSet<string> WaterBoozeIds = new System.Collections.Generic.HashSet<string>(new string[] {
+        "wine_bottle","red_beer","nudka","beer","alcohol","wine_berry","beer_case","beer_bottle",
+        "water_bottle","bottled_water","empty_bottle","wine","whiskey","vodka","rum","champagne","sake"
+    });
+    private static bool BuysWaterOrBooze(StoreClient c)
+    {
+        try {
+            if (c.clientBuyingIdList == null) return false;
+            foreach (var id in c.clientBuyingIdList) { if (id != null && WaterBoozeIds.Contains(id)) return true; }
+        } catch { }
+        return false;
     }
 }

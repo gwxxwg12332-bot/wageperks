@@ -20,7 +20,37 @@ public static partial class WageGirlSystem
     internal static int GetSleepDebt() => GetStat(K_SLEEP_DEBT, 0);
     internal static void SetSleepDebt(int v) => SetStat(K_SLEEP_DEBT, Math.Max(0, v));
     internal static int GetAffection() => GetStat(K_AFF, 0);
-    internal static void SetAffection(int v) => SetStat(K_AFF, Math.Max(0, Math.Min(BuildConfig.WageGirlAffMax, v)));
+    internal static void SetAffection(int v) { SetStat(K_AFF, Math.Max(0, Math.Min(BuildConfig.WageGirlAffMax, v))); CheckAffection50Reward(); }
+
+    // v1.3.1：好感首次>=50 送三件套（生成器×1+神经模组×2+保护器×1），防重复（WageSaveStore 标记）
+    private static void CheckAffection50Reward()
+    {
+        try
+        {
+            if (GetAffection() < 50) return;
+            if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
+            WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
+            GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
+            GiveRewardItem(GuMachineSystem.AI_MODULE_ID, 2);
+            GiveRewardItem(GuMachineSystem.PROTECTOR_ID, 1);
+            Core.LogMsg("[蛙娘] 好感破50，送出三件套（生成器x1+神经模组x2+保护器x1）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
+    }
+    private static void GiveRewardItem(string id, int count)
+    {
+        try
+        {
+            var ps = PlayerStore.Instance; if (ps == null) return;
+            for (int i = 0; i < count; i++)
+            {
+                GameItem it = null;
+                try { it = DirectoryMaster.Item(id); } catch { }
+                if (it != null) ps.AddDirectSellingItemToTable(it, false, true, false, 100);
+            }
+        }
+        catch { }
+    }
     internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
     internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
 
@@ -163,6 +193,7 @@ public static partial class WageGirlSystem
                 }
                 else if (reason == 1) FenceReturn();
                 else if (reason == 2) RunawayReturn();
+                else if (reason == 4) TravelReturn(false);
                 else
                 {
                     int amt = GetStat(K_STEAL_AMT);
@@ -172,6 +203,8 @@ public static partial class WageGirlSystem
                 TryGiveToBackpack(); // 实体重新发放（消失期实体已移除）
                 return; // 回归日不触发其他事件
             }
+            // 2) 消失期：不偷拿不偷钱
+            TravelDailyTick(day); // v1.3.1【8】旅行期间每日扣口粮
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day < leaveDay) return;
             // 3) 跑路检查：连续 N 天任一六维 <阈值 → 离家出走 M 天（CFG：WageGirlRunaway*）

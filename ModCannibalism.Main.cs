@@ -37,6 +37,16 @@ internal static partial class ModCannibalism
 	{
 		try
 		{
+			if (!BuildConfig.CannibalismSeasonEnabled)
+			{
+				// v1.3.1：吞噬季总开关默认关。旧档进行中状态不强制清，仅记一行日志。
+				if (RiskTakerPerk.IsActive())
+				{
+					int numOff = DeterministicSchedule.CurrentDay % BuildConfig.CannibalInterval;
+					if (numOff <= 2) Core.LogMsg("[吞噬季] 已停用（CannibalismSeasonEnabled=false），跳过今日互食");
+				}
+				return;
+			}
 			if (!RiskTakerPerk.IsActive())
 			{
 				return;

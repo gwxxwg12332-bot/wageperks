@@ -77,6 +77,21 @@ public static partial class WageGirlSystem
                 }
                 catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
             }
+            // v1.3.1【8】出门旅行按钮（好感>=20，不在外出时）
+            try {
+                int leaveNow = GetStat(K_LEAVE);
+                bool isOutNow = leaveNow > 0 && CurrentDay() < leaveNow;
+                if (!isOutNow && GetAffection() >= 20)
+                {
+                    var travelBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryStartTravel(); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 旅行异常: " + ex.Message); } }));
+                    b.AddButton(LangHelper.T("🧳 出门旅行（3天，扣1份口粮）", "🧳 Go traveling (3 days, costs 1 food)"), travelBtn, "wg_travel_btn");
+                }
+                else if (isOutNow && GetStat(K_LEAVE_REASON) == 4)
+                {
+                    var recallBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { RecallTravel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 召回异常: " + ex.Message); } }));
+                    b.AddButton(LangHelper.T("📞 花200信用点提前召回", "📞 Recall for 200 credits"), recallBtn, "wg_recall_btn");
+                }
+            } catch { }
             // 喂钱按钮
             try {
                 int sel = _allowanceSel;

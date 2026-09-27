@@ -249,6 +249,8 @@ public static class BuildConfig
 
 	public static int CannibalCap => GetInt("CannibalCap", 150);
 
+	public static bool CannibalismSeasonEnabled { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CannibalismSeasonEnabled"); } catch { return false; } } }
+
 	public static int BatteryInterval => GetInt("BatteryInterval", 8);
 
 	public static int InspectInterval => GetInt("InspectInterval", 15);
@@ -260,6 +262,7 @@ public static class BuildConfig
 	public static int GuForgeMult => GetInt("GuForgeMult", 120);
 
 	public static int GuForgeCap => GetInt("GuForgeCap", 150);
+	public static int GuBeastCap => GetInt("GuBeastCap", 999);	// v1.3.1【6】练兽属性上限（练兽放开，炼蛊150不变）
 
 	public static int AiGenPrice => GetInt("AiGenPrice", 5000);
 
@@ -409,6 +412,7 @@ melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: 
 			melonPreferences_Category.CreateEntry("CannibalInterval", 10, "吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("CannibalAbsorbPct", 10, "吞噬吸收(%)");
 			melonPreferences_Category.CreateEntry("CannibalCap", 150, "吞噬三维属性上限");
+			melonPreferences_Category.CreateEntry("CannibalismSeasonEnabled", false, "吞噬季总开关(默认关)");
 			melonPreferences_Category.CreateEntry("BatteryInterval", 8, "电池吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("InspectInterval", 15, "治安部眼线检查间隔(天)");
 			melonPreferences_Category.CreateEntry("GuMachinePrice", 3000, "养蛊机售价");
@@ -416,6 +420,7 @@ melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: 
 			melonPreferences_Category.CreateEntry("GuForgeMult", 120, "炼蛊倍率(% 120=×1.2)");
 			melonPreferences_Category.CreateEntry("GuForgeCap", 150, "炼蛊属性上限");
 			melonPreferences_Category.CreateEntry("AiGenPrice", 5000, "AI生成器售价");
+			melonPreferences_Category.CreateEntry("GuBeastCap", 999, "练兽属性上限(练兽放开)");
 			melonPreferences_Category.CreateEntry("AiSuccessPct", 50, "AI抽卡成功率(%)");
 			melonPreferences_Category.CreateEntry("AiStableCap", 75, "阉割版属性上限");
 			melonPreferences_Category.CreateEntry("AiUnstableCap", 150, "不稳定版属性上限");
