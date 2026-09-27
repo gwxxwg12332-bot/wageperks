@@ -31,7 +31,7 @@ public static partial class WageGirlSystem
             if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
             WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
             GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
-            GiveRewardItem(GuMachineSystem.AI_MODULE_ID, 2);
+            GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
             Core.LogMsg("[蛙娘] 好感破50，送出（不稳定AI制造器x1+原生AI神经模组x2，进背包）");
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
