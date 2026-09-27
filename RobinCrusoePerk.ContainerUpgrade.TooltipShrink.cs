@@ -9,6 +9,24 @@ using UnityEngine;
 namespace JacksonPerks;
 internal static partial class RobinCrusoePerk
 {
+    // 加速器缓存（防 tooltip 每帧遍历舱内卡手）
+    private static GameItem _cachedBoostItem = null;
+    private static int _cachedBoostStep = 1;
+    private static int _cachedBoostDay = -1;
+    private static int GetCachedBoostStep(GameItem gu)
+    {
+        try
+        {
+            int today = StoreStation.GetDayCounter();
+            if (object.ReferenceEquals(_cachedBoostItem, gu) && _cachedBoostDay == today) return _cachedBoostStep;
+            int step = 1;
+            var bg = GuMachineSystem.GetGuGrid(gu);
+            if (bg != null && bg.childItems != null) foreach (var m in bg.childItems) { if (m == null) continue; string mid2 = ""; try { mid2 = m.identifier ?? ""; } catch { } int s2 = mid2 == "turbo_booster_adv" ? 3 : (mid2 == "turbo_booster" ? 2 : 1); if (s2 > step) step = s2; }
+            _cachedBoostItem = gu; _cachedBoostStep = step; _cachedBoostDay = today;
+            return step;
+        }
+        catch { return 1; }
+    }
 
     // ===== 机器 tooltip 升级提示（拆包 2.5.31/2.5.32 复核：机器悬停 = MachineryHelper.CreateMachineryTooltip(RichTextBuilder, GameItem)
     // 2 参 public static；AddTooltipModuleBonus 真实签名 = string×3（默认值），非 int×3——挂入口 CreateMachineryTooltip 最省事）=====
@@ -28,9 +46,8 @@ internal static partial class RobinCrusoePerk
                         "◆ 充能 " + charge + "/3（打烊 +1，满 3 自动炼蛊·需舱内≥2模组）",
                         "◆ Charge " + charge + "/3 (+1 at close, auto-forge at 3, needs ≥2 modules)"), bold: true);
                 }
-                    // v1.3.1 bug6：加速器贡献显示
-                    int boostStep = 1;
-                    try { var bg = GuMachineSystem.GetGuGrid(item); if (bg != null && bg.childItems != null) foreach (var m in bg.childItems) { if (m == null) continue; string mid2 = ""; try { mid2 = m.identifier ?? ""; } catch { } int s2 = mid2 == "turbo_booster_adv" ? 3 : (mid2 == "turbo_booster" ? 2 : 1); if (s2 > boostStep) boostStep = s2; } } catch { }
+                    // v1.3.1 bug6：加速器贡献显示（缓存：同物品同一天只算一次，防每帧遍历卡手）
+                    int boostStep = GetCachedBoostStep(item);
                     if (boostStep > 1) builder.AddLine(LangHelper.T("◆ 加速器：+" + (boostStep-1) + "/天（加速炼蛊充能）", "◆ Booster: +" + (boostStep-1) + "/day (forging charge accelerated)"), bold: true);
                 else
                 {

@@ -68,9 +68,9 @@ internal static partial class Patches
 					if (revRep <= -99)
 					{
 						storeClient.sellPriceModifier = -50;
-						Core.LogMsg("[奥丁] 声望" + revRep + " → 压价 -50%");
+						Core.LogMsg("[奥丁] " + oid + " 进店 声望" + revRep + " → sellPriceModifier=-50（实际读回" + storeClient.sellPriceModifier + "）");
 					}
-					else { storeClient.sellPriceModifier = 0; } // 声望恢复：收购价回原生
+					else { storeClient.sellPriceModifier = 0; Core.LogMsg("[奥丁] " + oid + " 进店 声望" + revRep + " → 不压价（sellPriceModifier=0）"); }
 				}
 				catch (System.Exception ex) { Core.LogMsg("[Patches.Npc.Client] 异常: " + ex.Message); }
 			}
