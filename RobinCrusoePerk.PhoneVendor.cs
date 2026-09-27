@@ -432,6 +432,8 @@ internal static partial class RobinCrusoePerk
         {
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
+            // 声望正常（未到被LL_AVOIDED屏蔽的程度）→ 走原生，不拦截
+            try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
             Core.LogMsg("[奥丁] AutoCall拦截 number=51189 → 强制StartPhoneDialog");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
             return false;
