@@ -58,7 +58,8 @@ internal static partial class Patches
 		try
 		{
 			// 09-23 奥丁（wanted4）：声望低时压价更狠
-			if (storeClient.identifier == "wanted4")
+			string oid = storeClient.identifier;
+			if (oid == "wanted4" || oid == "wanted4Normal")
 			{
 				try
 				{
@@ -69,6 +70,7 @@ internal static partial class Patches
 						storeClient.sellPriceModifier = -50;
 						Core.LogMsg("[奥丁] 声望" + revRep + " → 压价 -50%");
 					}
+					else { storeClient.sellPriceModifier = 0; } // 声望恢复：收购价回原生
 				}
 				catch (System.Exception ex) { Core.LogMsg("[Patches.Npc.Client] 异常: " + ex.Message); }
 			}
