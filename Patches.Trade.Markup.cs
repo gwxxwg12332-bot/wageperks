@@ -530,31 +530,38 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
-	// 09-24 实锤修复（运行时 Failed to patch）：原生返回 Il2CppSystem.ValueTuple，必须同命名空间才能被 Harmony 挂载；
-	// 4b86809 曾声称修复但未落地（git show 无 Markup.cs 改动）——此为此前笑面虎/童叟无欺一直失效的真因。
-	public static void PostfixTradeRepMultipliers(ref Il2CppSystem.ValueTuple<double, double> __result)
+	// 笑面虎/童叟无欺声誉倍率（09-27 重写：旧 ref ValueTuple Postfix 绑定错位读幻觉，
+	// 改挂两个 double 标量返回方法——cheatsheet L1 铁律：Il2Cpp 返回 >8B 结构体禁止 ref 结构体 Postfix）
+	// 挂点A：StoreClient.GetTradeRepMultiplier(bool isPlayerSold) —— 收益链
+	// 挂点B：BargainUIManager.ComputeRepPer1000Credits(double tradeMult, string factionId) —— 显示主路径
+	// 09-27 按用户拍板：笑面虎"加的少减的多"——正向收益 ×0.75，负向惩罚绝对值 ×1.25（更负）
+	// 童叟无欺对称：正向 ×1.25（加的多），负向惩罚 ×0.75（减的少）
+	private static double _RepFactorBySign(double val)
 	{
 		try
 		{
-			double factor = 1.0;
+			bool positive = val >= 0; // 正向收益 vs 负向惩罚
 			if (SmilingFacePerk.IsActive())
 			{
-				factor = 0.75; // 笑面虎：声誉获取 -25%（混合特性代价）
+				return positive ? 0.75 : 1.25;
 			}
-			else if (SmilingTigerPerk.IsActive())
+			if (SmilingTigerPerk.IsActive())
 			{
-				factor = 1.25; // 童叟无欺：声誉 +25%
-			}
-			if (factor != 1.0)
-			{
-				__result = new Il2CppSystem.ValueTuple<double, double>(
-					__result.Item1 * factor, __result.Item2 * factor);
+				return positive ? 1.25 : 0.75;
 			}
 		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[童叟无欺] 声誉补丁失败: " + ex.Message);
-		}
+		catch { }
+		return 1.0;
+	}
+	public static void PostfixGetTradeRepMultiplier(ref double __result)
+	{
+		try { double f = _RepFactorBySign(__result); if (f != 1.0) __result *= f; }
+		catch (System.Exception ex) { Core.LogMsg("[童叟无欺] GetTradeRepMultiplier 补丁失败: " + ex.Message); }
+	}
+	public static void PostfixComputeRepPer1000Credits(ref double __result)
+	{
+		try { double f = _RepFactorBySign(__result); if (f != 1.0) __result *= f; }
+		catch (System.Exception ex) { Core.LogMsg("[童叟无欺] ComputeRepPer1000Credits 补丁失败: " + ex.Message); }
 	}
 
 }

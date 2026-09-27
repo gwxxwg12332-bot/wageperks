@@ -89,7 +89,6 @@ public static class BuildConfig
 		// ===== 兼容层开关 =====
 		public static bool CompatTradeClamp { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatTradeClamp"); } catch { return true; } } }
 		public static bool CompatBudgetRestore { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatBudgetRestore"); } catch { return true; } } }
-		public static bool CompatRepClamp { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatRepClamp"); } catch { return true; } } }
 		public static bool CompatWineNameProtect { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatWineNameProtect"); } catch { return true; } } }
 		public static bool CompatPhoneLocalization { get { try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CompatPhoneLocalization"); } catch { return true; } } }
 	// ===== 蛙娘系统 CFG（09-23 全部数值可配置，默认=原设计稿数值） =====
@@ -312,7 +311,6 @@ public static class BuildConfig
 melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: true, "蛙娘自动走动（关=蛙娘原地待机）");
 melonPreferences_Category.CreateEntry("CompatTradeClamp", default_value: true, "兼容：交易价格兜底（负价→0）");
 melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true, "兼容：客户预算兜底恢复");
-melonPreferences_Category.CreateEntry("CompatRepClamp", default_value: true, "兼容：声望下限兜底");
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");

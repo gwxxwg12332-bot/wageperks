@@ -160,8 +160,12 @@ public static class PatchRegistry
 			// 09-23 游戏版本适配：方法由 ComputeTradeRepMultiplier(返回 double) 改为
 			// ComputeTradeRepMultipliers(返回 ValueTuple<double,double>)，故宿主 Postfix 同步改名并改签名。
 			// 依据：_Demo_20260915_cpp2il IsilDump\Assembly-CSharp\BargainUIManager.txt:8752
-			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers");
-			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers", typeof(CompatibilityPatches)); // 声望兜底
+			// [实验-临时] 完全卸载 ComputeTradeRepMultipliers Postfix（定位挂点破坏原生返回根因）
+			// ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers");
+			// ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeTradeRepMultipliers", null, "PostfixTradeRepMultipliers", typeof(CompatibilityPatches)); // 声望兜底
+			// 09-27 笑面虎/童叟无欺声誉倍率：改挂 double 标量返回方法（替代旧 ValueTuple 挂点，cheatsheet L1）
+			ManualPatcher.TryPatchByName(typeof(StoreClient), "GetTradeRepMultiplier", null, "PostfixGetTradeRepMultiplier", typeof(Patches));
+			ManualPatcher.TryPatchByName(typeof(BargainUIManager), "ComputeRepPer1000Credits", null, "PostfixComputeRepPer1000Credits", typeof(Patches));
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OpenUI", null, "PostfixStartOfDayOpenUI");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "ShowMorningReport", null, "PostfixStartOfDayShowMorningReport");
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "OnStartDayButtonClicked", null, "PostfixStartOfDayButtonClicked");

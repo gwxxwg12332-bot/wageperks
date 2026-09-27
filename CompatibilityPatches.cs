@@ -8,7 +8,7 @@ namespace JacksonPerks;
 /// 兼容层兜底 patch（P0）：
 /// 1. 价格兜底：最终价格 < 0 强制改成 0
 /// 2. 预算兜底：原预算 > 0，最终预算 ≤ 0 时恢复原预算
-/// 3. 声望兜底：声望倍率 < 0.1 时 clamp 到 0.1
+/// （声望兜底已删：ref ValueTuple Postfix 绑定错位读幻觉，破坏原生议价倍率——见 cheatsheet L1 铁律）
 /// </summary>
 internal static class CompatibilityPatches
 {
@@ -54,26 +54,6 @@ internal static class CompatibilityPatches
             {
                 Core.LogMsg("[兼容] 预算兜底: " + __instance.clientBudget + " → " + orig + " (客户=" + __instance.identifier + ")");
                 __instance.clientBudget = orig;
-            }
-        } catch { }
-    }
-
-    // ===== 3. 声望兜底 =====
-    // BargainUIManager.ComputeTradeRepMultipliers Postfix（最后执行 priority=0）
-    public static void PostfixTradeRepMultipliers(ref Il2CppSystem.ValueTuple<double, double> __result)
-    {
-        try
-        {
-            if (!BuildConfig.CompatRepClamp) return;
-            double sell = __result.Item1;
-            double buy = __result.Item2;
-            bool changed = false;
-            if (sell < 0.1) { sell = 0.1; changed = true; }
-            if (buy < 0.1) { buy = 0.1; changed = true; }
-            if (changed)
-            {
-                Core.LogMsg("[兼容] 声望倍率兜底: (" + __result.Item1 + "," + __result.Item2 + ") → (" + sell + "," + buy + ")");
-                __result = new Il2CppSystem.ValueTuple<double, double>(sell, buy);
             }
         } catch { }
     }
