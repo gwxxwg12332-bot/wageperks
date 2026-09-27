@@ -431,7 +431,6 @@ internal static partial class RobinCrusoePerk
         {
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-            // 声望正常（未到被LL_AVOIDED屏蔽的程度）→ 走原生，不拦截
             try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
             Core.LogMsg("[奥丁] AutoCall拦截 number=51189 → 强制StartPhoneDialog");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
@@ -444,7 +443,7 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            long number = currentNumber; // 参数名必须 currentNumber（Harmony 按名匹配）
+            long number = currentNumber;
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
             try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
@@ -459,16 +458,16 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            // 奥丁（声名狼藉专属）：51189 → wanted4 排期2天到店收账
+            // 51189 奥丁：声名狼藉强通后排期 wanted4Normal（原生收货奥丁，非名片wanted4）
             if (currentNumber == 51189)
             {
                 if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
                 try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
                 PlayerStore ps0 = PlayerStore.Instance; if (ps0 == null || ps0.storeClientManager == null) return true;
-                try { ps0.storeClientManager.RemoveDuplicateClientsByIdentifier("wanted4"); } catch { }
-                ps0.QueueFuturClient("wanted4", 2);
-                try { StoreUIManager.Instance.Notify(LangHelper.T("电话那头沉默片刻：『我会来收账的。』2天后到店", "Silence... 'I'll come collect.' Arriving in 2 days."), "orange"); } catch { }
-                Core.LogMsg("[奥丁] 电话接通 → 排期wanted4 2天到店");
+                try { ps0.storeClientManager.RemoveDuplicateClientsByIdentifier("wanted4Normal"); } catch { }
+                ps0.QueueFuturClient("wanted4Normal", 2);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("已联系奥丁，2天后到店", "Odin contacted, arriving in 2 days."), "green"); } catch { }
+                Core.LogMsg("[奥丁] 电话接通 → 排期wanted4Normal 2天到店");
                 try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { }
                 return false;
             }
