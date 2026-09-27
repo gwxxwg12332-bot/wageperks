@@ -413,6 +413,7 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
+            Core.LogMsg("[奥丁诊断] WillAnswerCall被调用 number=" + number + " 声名狼藉=" + Core.PerkActive("声名狼藉") + " 人神共愤=" + Core.PerkActive("人神共愤") + " __result=" + __result);
             if (number != 51189) return; // 奥丁号码
             if (Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))
             {
@@ -423,6 +424,20 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 
+
+    // v1.3.1 奥丁电话：声望低被LL_AVOIDED拦在AutoCall，声名狼藉/人神共愤时强制接通
+    public static bool PrefixAutoCall(long number)
+    {
+        try
+        {
+            if (number != 51189) return true;
+            if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
+            Core.LogMsg("[奥丁] AutoCall拦截 number=51189 → 强制StartPhoneDialog");
+            try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
+            return false;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PrefixAutoCall异常: " + ex.Message); return true; }
+    }
     // 拨号即叫货（Core 注册 Prefix PhoneUIManager.StartPhoneDialog）：接通瞬间自动排期 + 冷却，拦掉原版对话
     public static bool PrefixStartPhoneDialog(long currentNumber)
     {
