@@ -231,6 +231,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
 			Core.LogMsg("[Patch] 命运骰子拖放吸收已注册");
+			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(WageBrother)); // v1.3.1【补11】蛙哥服务卡双击
 		}
 		catch (System.Exception ex3)
 		{

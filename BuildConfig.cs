@@ -285,6 +285,7 @@ public static class BuildConfig
 	public static int ProtectorSupplyCount => GetInt("ProtectorSupplyCount", 3);
 
 	public static int DoctorVisitInterval => GetInt("DoctorVisitInterval", 7);
+	public static int WageBrotherVisitInterval => GetInt("WageBrotherVisitInterval", 10);	// v1.3.1【补11】蛙哥到访间隔(天)
 
 	public static int DoctorExtraItems => GetInt("DoctorExtraItems", 8);
 
@@ -357,6 +358,7 @@ melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: 
 			melonPreferences_Category.CreateEntry("LuckMaxChanceHard", 50, "稀有物发现几率上限(%)——硬爽版");
 			melonPreferences_Category.CreateEntry("DoctorVisitInterval", 7, "博士来访间隔(天)");
 			melonPreferences_Category.CreateEntry("DoctorExtraItems", 8, "博士夜店加货数量");
+			melonPreferences_Category.CreateEntry("WageBrotherVisitInterval", 10, "蛙哥到访间隔(天)");
 			melonPreferences_Category.CreateEntry("NeuralChanceHard", 50, "硬爽博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralChanceNormal", 3, "普通博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralRollChance", 2, "普通拾荒独立roll受限模组(%)");

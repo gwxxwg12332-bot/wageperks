@@ -270,6 +270,8 @@ internal static partial class Patches
 			if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				ScheduleJacksonToday();
+				WageBrother.ScheduleToday();
+				WageBrother.CleanupCardIfGone();
 			}
 		}
 		catch (System.Exception ex)
