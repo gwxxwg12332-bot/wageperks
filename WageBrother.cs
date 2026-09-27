@@ -28,6 +28,7 @@ internal static class WageBrother
         {
             var ps = PlayerStore.Instance;
             if (ps == null) return false;
+            if (!Core.PerkActive("蛙娘")) return false; // 门控：没点蛙娘 perk 不塞队
             int day = StoreStation.GetDayCounter();
             if (HasQueued()) return false;
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
