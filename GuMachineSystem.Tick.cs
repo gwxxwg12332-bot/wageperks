@@ -308,7 +308,7 @@ public static partial class GuMachineSystem
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0（int tag）
             // 【5】练兽完成后：存活者饥饿值刷新 + 免疫设满（不患病）
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_HUNGER_TAG", 0); } catch { }
-            try { TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", 100f); } catch { }
+            try { TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", 99999f); } catch { } // 练兽赢家完全不生病
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }
             WageSaveStore.SetInt("GuBeast", "eat_day", day);

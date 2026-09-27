@@ -115,7 +115,7 @@ internal static partial class RobinCrusoePerk
                     builder.AddLine(LangHelper.T("◆ 吞噬叠加：性能+" + cp + "% 效率+" + ce + "% 质量+" + cq + "% 价值+" + cv, "◆ Devoured: Perf +" + cp + "% Eff +" + ce + "% Qual +" + cq + "% Value +" + cv),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
-            else if (ContainerUpgradeV2.IsUpgradeableContainer(item))
+            else if (ContainerUpgradeV2.IsUpgradeableContainer(item) && ContainerUpgradeV2.HasTag(item, "wb_stage"))
             {
                 int stage = ContainerUpgradeV2.GetTagIntSafe(item, "wb_stage");
                 if (stage >= ContainerUpgradeV2.MAX_STAGE)
