@@ -48,12 +48,29 @@ public static partial class WageGirlSystem
     {
         try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item) || IsContraband(item); } catch { return false; }
     }
+    internal static bool ProvisionMode = false; // 按钮切换：拖食物到蛙娘身上 = 存口粮
     private static bool TryFeed(GameItem item, GameItem girl)
     {
         try
         {
             if (item == null) return false;
 
+            // 口粮拖拽模式：拖食物到蛙娘身上 → 存入口粮库存，不喂食
+            if (ProvisionMode)
+            {
+                bool isFood = false; try { isFood = RobinCrusoePerk.IsFood(item); } catch { }
+                if (isFood)
+                {
+                    SetStat(K_PROVISION, GetStat(K_PROVISION) + 1);
+                    try { item.parentInventory?.Expel(item); } catch { }
+                    try { item.Destroy(); } catch { }
+                    ProvisionMode = false;
+                    ReportLine(LangHelper.T("已收1份口粮（当前" + GetStat(K_PROVISION) + "份）", "Stored 1 provision (total: " + GetStat(K_PROVISION) + ")"));
+                    ShowPanel();
+                    return true;
+                }
+                ProvisionMode = false; // 拖的不是食物：退出模式走正常喂食
+            }
             // 09-23 修复「蛙娘只有在不营业时才可被照顾」：旧代码在交易 UI 打开时一律 return false，
             // 而营业期间柜台接客几乎全程开交易 UI → 照顾（喂食/喝水/清洁）实际只在打烊后可用。
             // 改为：违禁品分支保持"交易中禁止"（与原行为一致），照顾分支放行（见下方归属校验）。

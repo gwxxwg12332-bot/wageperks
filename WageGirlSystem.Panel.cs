@@ -83,8 +83,8 @@ public static partial class WageGirlSystem
                 bool isOutNow = leaveNow > 0 && CurrentDay() < leaveNow;
                 if (!isOutNow)
                 {
-                    var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { GiveProvision(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
-                    b.AddButton(LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
+                    var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ProvisionMode = !WageGirlSystem.ProvisionMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
+                    b.AddButton(WageGirlSystem.ProvisionMode ? LangHelper.T("🍖 拖拽模式：把食物拖到蛙娘身上（当前" + GetStat(K_PROVISION) + "份）", "🍖 Drag food onto Wage Girl (" + GetStat(K_PROVISION) + " stored)") : LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
                 }
                 if (!isOutNow && GetAffection() >= 20)
                 {
