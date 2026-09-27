@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -172,11 +172,11 @@ internal static class WageBrother
     }
 
     // 服务卡双击 Prefix（OpenContentAction 识别 wage_bro_card）
-    internal static bool PrefixDoubleClickAction(GameItem item, UnityEngine.Vector2 mousePosition)
+    internal static bool PrefixDoubleClickAction(Il2Cpp.GameItem newItem, UnityEngine.Vector2 mousePosition)
     {
         try
         {
-            if (item == null) return true;
+            GameItem item = newItem; if (item == null) return true;
             bool isCard = false; try { isCard = item.IsTag("wage_bro_card"); } catch { }
             if (!isCard) return true; // 不是服务卡，放行原生
             if (PlayerStore.Instance == null) return false;
