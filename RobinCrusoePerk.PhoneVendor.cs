@@ -440,10 +440,11 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PrefixAutoCall异常: " + ex.Message); return true; }
     }
     // HandleCall Prefix（第二道防线：phoneState=1 NotResponding 时 AutoCall 后仍被拦，HandleCall 再强通）
-    public static bool PrefixHandleCall(long number)
+    public static bool PrefixHandleCall(long currentNumber)
     {
         try
         {
+            long number = currentNumber; // 参数名必须 currentNumber（Harmony 按名匹配）
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
             try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
