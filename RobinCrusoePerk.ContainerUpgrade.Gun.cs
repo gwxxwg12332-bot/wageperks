@@ -109,7 +109,7 @@ internal static partial class RobinCrusoePerk
                 // 运行时枚举 GunModDirectory 注册表补全（失败兜底硬编码）
                 try
                 {
-                    var ids = Il2Cpp.DirectoryMaster.GetIdentifierList<object>("GunModDirectory");
+                    var ids = Il2Cpp.DirectoryMaster.GetIdentifierList<GameItem>("GunModDirectory");
                     if (ids != null) { foreach (var s in ids) { if (!string.IsNullOrEmpty(s)) _gunModIds.Add(s); } }
                 }
                 catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
