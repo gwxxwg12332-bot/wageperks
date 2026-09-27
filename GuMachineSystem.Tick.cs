@@ -26,7 +26,7 @@ public static partial class GuMachineSystem
                 int lastDay = RobinCrusoePerk.GetTagIntSafe(gu, GU_LAST_DAY_TAG);
                 if (lastDay < day)
                 {
-                    // 09-28 v1.3.1【补9】：舱内有 turbo_booster/turbo_booster_adv 加速器时充能+2/天（无则+1）
+                    // 09-28 v1.3.1【补9/bug1】：遍历舱内所有加速器取最强（turbo_booster=+2，turbo_booster_adv=+3），不break
                     int chargeStep = 1;
                     try
                     {
@@ -34,7 +34,8 @@ public static partial class GuMachineSystem
                         {
                             if (m == null) continue;
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
-                            if (mid == "turbo_booster" || mid == "turbo_booster_adv") { chargeStep = 2; break; }
+                            int step = mid == "turbo_booster_adv" ? 3 : (mid == "turbo_booster" ? 2 : 1);
+                            if (step > chargeStep) chargeStep = step;
                         }
                     }
                     catch { }
@@ -303,6 +304,8 @@ public static partial class GuMachineSystem
             try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "LONGEVITY") + RobinCrusoePerk.GetTagIntSafe(eaten, "LONGEVITY"); RobinCrusoePerk.SetTagIntValue(survivor, "LONGEVITY", Math.Min(cap, v)); } catch { }
             try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "IMMUNITY") + RobinCrusoePerk.GetTagIntSafe(eaten, "IMMUNITY"); RobinCrusoePerk.SetTagIntValue(survivor, "IMMUNITY", Math.Min(cap, v)); } catch { }
             try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "MAX_HEALTH") + RobinCrusoePerk.GetTagIntSafe(eaten, "MAX_HEALTH"); RobinCrusoePerk.SetTagIntValue(survivor, "MAX_HEALTH", Math.Min(cap, v)); } catch { }
+            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "GROWTH_RATE") + RobinCrusoePerk.GetTagIntSafe(eaten, "GROWTH_RATE"); RobinCrusoePerk.SetTagIntValue(survivor, "GROWTH_RATE", Math.Min(cap, v)); } catch { } // bug5
+            try { int v = RobinCrusoePerk.GetTagIntSafe(survivor, "WEIGHT") + RobinCrusoePerk.GetTagIntSafe(eaten, "WEIGHT"); if (v != 0) RobinCrusoePerk.SetTagIntValue(survivor, "WEIGHT", v); } catch { } // bug5: WEIGHT有才加
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }

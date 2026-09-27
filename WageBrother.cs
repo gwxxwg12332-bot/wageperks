@@ -133,15 +133,16 @@ internal static class WageBrother
             {
                 try
                 {
-                    if (perk.Cost >= 0) continue; // 只负面
+                    if (perk.Cost >= 0) continue;
+                    // bug3: 只列治安眼线/狄仁杰/人神共愤三个
+                    if (!(perk is DarkGridInspectorPerk || perk is DetectivePerk || perk is HatedByAllPerk)) continue;
                     if (!StartingPerk.IsPerkActive(perk.Id)) continue;
                     int price = PriceForCost(perk.Cost);
                     string nm = perk.DisplayName;
                     int cpy = perk.Cost;
                     int pr = price;
-                    bool canAfford = ps.playerCash >= pr;
-                    string btnText = LangHelper.T(nm + "（" + cpy + "点，" + pr + "块）", nm + " (" + cpy + "pt, " + pr + "cr)");
                     var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(perk.Id, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消perk异常: " + ex.Message); } }));
+                    string btnText = LangHelper.T(nm + "（" + cpy + "点，" + pr + "块）", nm + " (" + cpy + "pt, " + pr + "cr)");
                     w.AddButton(btnText, act, "wb_perk_" + listed);
                     listed++;
                 }

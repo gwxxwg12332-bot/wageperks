@@ -62,6 +62,21 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
+            // bug2: rat/动物 tooltip 显示互食属性（不依赖鲁滨逊 IsActive）
+            try {
+                bool isRat = false; try { isRat = item.IsTag("ANIMAL_ITEM_TAG"); } catch { }
+                if (!isRat) { string rid = ""; try { rid = item.identifier ?? ""; } catch { } if (rid == "rat") isRat = true; }
+                if (isRat && builder != null && item != null)
+                {
+                    int lon = GetTagIntSafe(item, "LONGEVITY");
+                    int imm = GetTagIntSafe(item, "IMMUNITY");
+                    int hp = GetTagIntSafe(item, "MAX_HEALTH");
+                    int gr = GetTagIntSafe(item, "GROWTH_RATE");
+                    int age = GetTagIntSafe(item, "ANIMAL_AGE_TAG");
+                    builder.AddLine(LangHelper.T("寿命:" + lon + " 免疫:" + imm + " 血:" + hp + " 生长:" + gr + " 年龄:" + age, "Longevity:" + lon + " Immunity:" + imm + " HP:" + hp + " Growth:" + gr + " Age:" + age),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                }
+            } catch { }
             if (!IsActive() || builder == null || item == null) return;
             if (IsFood(item))
             {
