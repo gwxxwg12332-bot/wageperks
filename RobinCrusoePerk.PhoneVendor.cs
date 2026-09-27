@@ -439,6 +439,20 @@ internal static partial class RobinCrusoePerk
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PrefixAutoCall异常: " + ex.Message); return true; }
     }
+    // HandleCall Prefix（第二道防线：phoneState=1 NotResponding 时 AutoCall 后仍被拦，HandleCall 再强通）
+    public static bool PrefixHandleCall(long number)
+    {
+        try
+        {
+            if (number != 51189) return true;
+            if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
+            try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
+            Core.LogMsg("[奥丁] HandleCall拦截 number=51189 → 强制StartPhoneDialog");
+            try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
+            return false;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PrefixHandleCall异常: " + ex.Message); return true; }
+    }
     // 拨号即叫货（Core 注册 Prefix PhoneUIManager.StartPhoneDialog）：接通瞬间自动排期 + 冷却，拦掉原版对话
     public static bool PrefixStartPhoneDialog(long currentNumber)
     {
