@@ -83,7 +83,7 @@ public static class PatchRegistry
                     // P2: 蛙哥台词（链式构建）
                     try { c.mainDialogue.SetText("蛙哥", LangHelper.T("武器、药、吃的，我都收。", "Weapons, meds, food - I buy all.")); Core.LogMsg("[蛙哥] 台词已替换"); } catch (System.Exception exdlg) { Core.LogMsg("[蛙哥] 台词替换失败: " + exdlg.Message); }
                     // P3: 购买类别 武器/麻醉品/食物/医疗品
-                    try { c.clientBuyingTagList = new Il2CppSystem.Collections.Generic.List<string>(); c.clientBuyingTagList.Add("WEAPON"); c.clientBuyingTagList.Add("NARCOTIC"); c.clientBuyingTagList.Add("FOOD"); c.clientBuyingTagList.Add("MEDICAL"); } catch { }
+                    try { c.clientBuyingTagList = new Il2CppSystem.Collections.Generic.List<string>(); c.clientBuyingTagList.Add("WEAPON"); c.clientBuyingTagList.Add("NARCOTIC"); c.clientBuyingTagList.Add("FOOD"); c.clientBuyingTagList.Add("MEDICAL"); c.clientBuyingTagList.Add("LUXURY_ITEM"); } catch { }
                     } catch { } } return c; } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 工厂异常: " + ex.Message); return StoreClientListWanted.CreateWanted7(); } };
 			StoreClientListDict.storeClientDict["wage_brother"] = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<StoreClient>>(wb);
 		}
