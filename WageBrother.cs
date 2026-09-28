@@ -62,7 +62,7 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) return;
-            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } } catch { }
+            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } RefreshClientSprite(client); } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
@@ -87,6 +87,32 @@ internal static class WageBrother
     private static Sprite _portrait = null;
     private static Sprite _cardSprite = null;
     internal const string CARD_SPRITE_KEY = "wage_brother_card_sprite";
+    // 主动刷新客户 SpriteRenderer（照 PlayerStore:10511-10523 原生链）
+    private static void RefreshClientSprite(StoreClient client)
+    {
+        try
+        {
+            var sprite = SpriteDict.Instance.GetSprite("wage_brother_portrait");
+            Core.LogMsg("[蛙哥] GetSprite=" + (sprite != null ? "ok" : "null"));
+            if (sprite == null) return;
+            // 反射找客户实体上的 SpriteRenderer
+            foreach (var sr in UnityEngine.Object.FindObjectsOfType<SpriteRenderer>())
+            {
+                if (sr == null) continue;
+                try
+                {
+                    var go = sr.gameObject;
+                    if (go == null) continue;
+                    // 客户实体名含客户名或 tag
+                    string nm = go.name ?? "";
+                    Core.LogMsg("[蛙哥] 场景SR: " + nm);
+                }
+                catch { }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] RefreshSprite异常: " + ex.Message); }
+    }
+
     internal static void LoadCardSprite()
     {
         try
