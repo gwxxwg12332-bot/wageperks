@@ -49,7 +49,7 @@ partial class ContainerUpgradeV2
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false; // 妙妙箱走独立螺丝升级链，不走鲁滨逊 junk 升级
             if (IsVoidBeadStorage(item)) return false;
-            try { if (item.GetTagReadonly("CONTAINER_TAG") != null) return true; } catch { } // 09-23 修：IsTag 恒 True 坑 → GetTagReadonly != null
+            try { if (item.IsTag("CONTAINER_TAG")) return true; } catch { } // 09-23 修：IsTag 恒 True 坑 → GetTagReadonly != null
             return IsBuildingContainerId(item.identifier ?? "");
         }
         catch { return false; }
