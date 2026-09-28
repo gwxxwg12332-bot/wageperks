@@ -44,7 +44,7 @@ public static partial class GuMachineSystem
                             try { advs[j].parentInventory?.Expel(advs[j]); } catch { }
                             try { advs[j].Destroy(); } catch { }
                         }
-                        if (advs.Count > 0) { chargeStep = 3 + 2 * (advs.Count - 1); if (Core.DebugMode) Core.LogMsg("[练兽] 涡轮互食 adv数=" + advs.Count + " chargeStep=" + chargeStep); }
+                        if (advs.Count > 0) { chargeStep = 3 + 2 * (advs.Count - 1); try { advs[0].EnableTag("TURBO_READY_TAG"); } catch { } if (Core.DebugMode) Core.LogMsg("[练兽] 涡轮互食 adv数=" + advs.Count + " chargeStep=" + chargeStep); }
                         else if (normCount > 0) chargeStep = 2;
                     }
                     catch { }
