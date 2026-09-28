@@ -146,6 +146,7 @@
     <EmbeddedResource Include="Icons\22_人神共愤.png" />
     <EmbeddedResource Include="Icons\23_精神错乱.png" />
     <EmbeddedResource Include="Icons\24_干燥空气.png" />
+    <EmbeddedResource Include="Assets\wage_brother_card.png" />
 
   </ItemGroup>
 

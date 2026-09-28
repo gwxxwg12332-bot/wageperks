@@ -74,6 +74,7 @@ internal static class WageBrother
             }
             if (card != null)
             {
+                try { LoadCardSprite(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); } catch { }
                 try { card.EnableTag("wage_bro_card", true); } catch { }
                 ps.AddDirectSellingItemToTable(card, false, true, false, 100);
                 _cardSpawned = true;
@@ -84,6 +85,33 @@ internal static class WageBrother
     }
 
     private static Sprite _portrait = null;
+    private static Sprite _cardSprite = null;
+    internal const string CARD_SPRITE_KEY = "wage_brother_card_sprite";
+    internal static void LoadCardSprite()
+    {
+        try
+        {
+            if (_cardSprite != null) return;
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            string resName = null;
+            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith("wage_brother_card.png")) { resName = n; break; }
+            if (resName == null) return;
+            using var st = asm.GetManifestResourceStream(resName);
+            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            Type icType = null;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
+            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
+            _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height);
+        } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
+    }
+    public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
+    {
+        try { if (atlasPath == "custom_atlas" && name == CARD_SPRITE_KEY && _cardSprite != null) { __result = _cardSprite; return false; } } catch { }
+        return true;
+    }
     internal static void LoadPortrait()
     {
         try
