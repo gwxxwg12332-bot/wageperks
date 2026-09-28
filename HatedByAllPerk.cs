@@ -39,7 +39,7 @@ internal sealed class HatedByAllPerk : CustomStartingPerk
             // 基础：第一周500，一周后1500
             int baseMax = day <= 7 ? 500 : 1500;
             // 天数加成：每天+50
-            int dayBonus = day * 50;
+            int dayBonus = day <= 7 ? 0 : (day - 7) * 50;
             // 存款超过10000：每天+1000
             int wealthBonus = (ps.playerCash > 10000) ? 1000 : 0;
             int maxLoss = baseMax + dayBonus + wealthBonus;
