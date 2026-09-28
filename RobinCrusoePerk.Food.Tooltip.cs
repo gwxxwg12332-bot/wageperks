@@ -58,6 +58,7 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
     }
 
+    private static readonly System.Collections.Generic.HashSet<string> _modItemIds = new System.Collections.Generic.HashSet<string> { "rat", "wine_bottle", "empty_wine_bottle", "metal_ingot", "turbo_booster", "turbo_booster_adv", "system_capped_neural_core" };
     public static void PostfixCreateItemTooltip(RichTextBuilder builder, GameItem item)
     {
         try
@@ -73,6 +74,9 @@ internal static partial class RobinCrusoePerk
                 }
             } catch { }
             if (!IsActive() || builder == null || item == null) return;
+            // v1.3.1 卡手优化：非 mod 关心物品一次 id 提取后短路
+            string itemId = (item.identifier ?? "").ToLowerInvariant();
+            if (!IsFood(item) && !IsMachine(item) && !item.IsTag("MODULE_TAG") && !ContainerUpgradeV2.IsUpgradeableContainer(item) && !_modItemIds.Contains(itemId)) return;
             if (IsFood(item))
             {
                 int q = GetFoodQuality(item);
@@ -132,8 +136,7 @@ internal static partial class RobinCrusoePerk
             // 09-13 清洁系统 v1：日用品面板显示"双击恢复清洁"
             else if (IsDailyNeed(item))
             {
-                string id = (item.identifier ?? "").ToLowerInvariant();
-                if (DAILY_NEED_CLEAN.TryGetValue(id, out int _gain))
+                if (DAILY_NEED_CLEAN.TryGetValue(itemId, out int _gain))
                     builder.AddLine(LangHelper.T("双击使用：清洁 +" + _gain, "Double-click: Cleanliness +" + _gain),
                         true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
