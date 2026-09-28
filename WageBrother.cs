@@ -71,11 +71,11 @@ internal static class WageBrother
             if (card == null)
             {
                 // 未注册物品 fallback：用 cassette_player 占位
-                try { card = DirectoryMaster.Item("cassette_player"); } catch { }
+                try { card = DirectoryMaster.Item("joe_card", true); } catch { }
             }
             if (card != null)
             {
-                try { LoadCardSprite(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); } catch { }
+                try { card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。", "Double-click: pay credits to remove a negative perk."); } catch { }
                 try { card.EnableTag("wage_bro_card", true); } catch { }
                 ps.AddDirectSellingItemToTable(card, false, true, false, 100);
                 _cardSpawned = true;
