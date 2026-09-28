@@ -69,8 +69,29 @@ internal static partial class RobinCrusoePerk
                 if (!isRat) { string rid = ""; try { rid = item.identifier ?? ""; } catch { } if (rid == "rat") isRat = true; }
                 if (isRat && builder != null && item != null)
                 {
-                    builder.AddLine(LangHelper.T("◆ 经过养蛊，老鼠更强壮了（属性已叠加到原生tag）", "◆ Enhanced by the Swarm Forge (stats stacked to native tags)"),
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    bool isKing = false; try { isKing = item.IsTag("wage_king_rat"); } catch { }
+                    if (isKing)
+                    {
+                        builder.AddLine(LangHelper.T("◆ 鼠王：吞噬同类进化而成，不受每日互食次数限制", "◆ Rat King: evolved by devouring peers, no daily eat limit"),
+                            true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    }
+                    else
+                    {
+                        builder.AddLine(LangHelper.T("◆ 可用于养蛊机：放入两只以上自动互食，存活者吸收同类属性并重置年龄", "◆ Usable in Swarm Forge: two+ rats auto-devour, survivor absorbs stats and resets age"),
+                            true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    }
+                    try
+                    {
+                        float lon = TagHelper.GetFloat(item, "ANIMAL_LONGEVITY_TAG");
+                        float imm = TagHelper.GetFloat(item, "ANIMAL_IMMUNITY_TAG");
+                        float hp = TagHelper.GetFloat(item, "ANIMAL_MAX_HEALTH_TAG");
+                        float gr = TagHelper.GetFloat(item, "ANIMAL_GROWTH_RATE_TAG");
+                        int age = GetTagIntSafe(item, "ANIMAL_AGE_TAG");
+                        builder.AddLine(LangHelper.T("寿命" + lon.ToString("0.##") + " 免疫" + imm.ToString("0.##") + " 血" + hp.ToString("0.##") + " 生长" + gr.ToString("0.##") + " 年龄" + age,
+                            "Long" + lon.ToString("0.##") + " Imm" + imm.ToString("0.##") + " HP" + hp.ToString("0.##") + " Grw" + gr.ToString("0.##") + " Age" + age),
+                            true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                    }
+                    catch { }
                 }
             } catch { }
             if (!IsActive() || builder == null || item == null) return;
