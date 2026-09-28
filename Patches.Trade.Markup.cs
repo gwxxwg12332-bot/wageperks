@@ -115,6 +115,7 @@ internal static partial class Patches
 							long before = result;
 							result = (long)(result * 0.5);
 							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " " + before + " -> " + result);
+							TryAddOdinFeature(item);
 							if (!_odinNotified) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价 -50%", "Infamy deterrent: Odin buyback -50%"), "red"); } catch { } }
 						}
 					}
@@ -485,6 +486,26 @@ itemFeature.isFeatureExposed = true;
 		{
 			Core.LogMsg("[信誉扫地] 加标签失败: " + ex.Message);
 		}
+	}
+
+	private static void TryAddOdinFeature(GameItem item)
+	{
+		try
+		{
+			if (item == null || item.itemFeatures == null) return;
+			for (int i = 0; i < item.itemFeatures.Count; i++)
+			{
+				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "odin_pressure") return;
+			}
+			ItemFeature f = new ItemFeature();
+			f.identifier = "odin_pressure";
+			f.featureType = ItemFeature.FeatureType.TemporarySelling;
+			f.valueStage = ItemFeature.ValueStage.Market;
+			f.publicDisplay = LangHelper.T("声名狼藉威慑（奥丁-50%）", "Infamy deterrent (Odin -50%)");
+			f.actualDisplay = f.publicDisplay;
+			item.itemFeatures.Add(f);
+		}
+		catch { }
 	}
 
 	private static void RemoveTradeFeatures()
