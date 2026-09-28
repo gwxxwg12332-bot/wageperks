@@ -13,6 +13,23 @@ internal static partial class RobinCrusoePerk
     private static GameItem _cachedBoostItem = null;
     private static int _cachedBoostStep = 1;
     private static int _cachedBoostDay = -1;
+        private static GameItem _cachedProtItem = null;
+    private static bool _cachedHasProt = false;
+    private static int _cachedProtDay = -1;
+    private static bool GetCachedHasProt(GameItem gu)
+    {
+        try
+        {
+            int today = StoreStation.GetDayCounter();
+            if (object.ReferenceEquals(_cachedProtItem, gu) && _cachedProtDay == today) return _cachedHasProt;
+            bool hp = false;
+            var ggrid = GuMachineSystem.GetGuGrid(gu);
+            if (ggrid != null && ggrid.childItems != null) foreach (var m in ggrid.childItems) { if (m != null) { string mid = ""; try { mid = m.identifier ?? ""; } catch { } if (mid == GuMachineSystem.PROTECTOR_ID) { hp = true; break; } } }
+            _cachedProtItem = gu; _cachedHasProt = hp; _cachedProtDay = today;
+            return hp;
+        }
+        catch { return false; }
+    }
     private static int GetCachedBoostStep(GameItem gu)
     {
         try
@@ -52,15 +69,7 @@ internal static partial class RobinCrusoePerk
                 else
                 {
                     // 09-19 P3：显示当前模式（读舱内保护器实时判定）+ 失败结果提示
-                    bool hasProt = false;
-                    try
-                    {
-                        var ggrid = GuMachineSystem.GetGuGrid(item);
-                        if (ggrid != null && ggrid.childItems != null)
-                            foreach (var m in ggrid.childItems)
-                                if (m != null) { string mid = ""; try { mid = m.identifier ?? ""; } catch { } if (mid == GuMachineSystem.PROTECTOR_ID) { hasProt = true; break; } }
-                    }
-                    catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
+                    bool hasProt = GetCachedHasProt(item);
                     string mode = hasProt
                         ? LangHelper.T("阉割版（100%成功，上限75%）", "Stable (100% success, cap 75%)")
                         : LangHelper.T("不稳定版（50%成功，失败产报废模组）", "Unstable (50% success, fail -> scrap module)");

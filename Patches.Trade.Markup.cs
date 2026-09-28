@@ -91,7 +91,8 @@ internal static partial class Patches
 		TryApplyTradeMarkup(__instance, ref __result);
 	}
 
-	private static void TryApplyTradeMarkup(GameItem item, ref long result)
+	private static bool _odinNotified = false;
+		private static void TryApplyTradeMarkup(GameItem item, ref long result)
 	{
 		try
 		{
@@ -114,6 +115,7 @@ internal static partial class Patches
 							long before = result;
 							result = (long)(result * 0.5);
 							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " " + before + " -> " + result);
+							if (!_odinNotified) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价 -50%", "Infamy deterrent: Odin buyback -50%"), "red"); } catch { } }
 						}
 					}
 				}
