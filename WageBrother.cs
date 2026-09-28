@@ -62,6 +62,7 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) return;
+            try { client.SetBudget(1109707341); client.clientIntent = StoreClient.ClientIntent.BUY; } catch { }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } RefreshClientSprite(client); } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
@@ -95,18 +96,11 @@ internal static class WageBrother
             var sprite = SpriteDict.Instance.GetSprite("wage_brother_portrait");
             Core.LogMsg("[蛙哥] GetSprite=" + (sprite != null ? "ok" : "null"));
             if (sprite == null) return;
-            // 反射找客户实体上的 SpriteRenderer
+            // _ClientGameObject 是客户实体（日志已实锤），直接刷它的 SpriteRenderer
             foreach (var sr in UnityEngine.Object.FindObjectsOfType<SpriteRenderer>())
             {
                 if (sr == null) continue;
-                try
-                {
-                    var go = sr.gameObject;
-                    if (go == null) continue;
-                    // 客户实体名含客户名或 tag
-                    string nm = go.name ?? "";
-                    Core.LogMsg("[蛙哥] 场景SR: " + nm);
-                }
+                try { if (sr.gameObject != null && sr.gameObject.name == "_ClientGameObject") { sr.sprite = sprite; Core.LogMsg("[蛙哥] 立绘已刷新到 _ClientGameObject"); } }
                 catch { }
             }
         }

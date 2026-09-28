@@ -89,15 +89,23 @@ public static partial class WageGirlSystem
             }
             else if (roll < 70)
             {
-                // 20%带物品：随机发一件柜台货
+                // 20%带物品：进玩家背包（不是柜台），消赃物
                 try
                 {
-                    var ps = PlayerStore.Instance;
-                    if (ps != null)
+                    var em = EmporiumEntry.Instance;
+                    if (em != null && em.backInvinvElement != null)
                     {
-                        GameItem it = null;
-                        try { it = DirectoryMaster.Item("energy_credit"); } catch { }
-                        if (it != null) ps.AddDirectSellingItemToTable(it, false, true, false, 100);
+                        string[] pool = { "energy_credit", "bottled_water", "processed_meat", "bandage_item", "metal_ingot" };
+                        string pick = pool[Core.Rng.Next(pool.Length)];
+                        GameItem it = DirectoryMaster.Item(pick, true);
+                        if (it != null)
+                        {
+                            try { it.DisableTag("STOLEN_TAG"); } catch { }
+                            try { it.DisableTag("CONTRABAND_TAG"); } catch { }
+                            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(it, false);
+                            if (slot != null) { try { slot.TryAcceptOnce(); } catch { em.backInvinvElement.UncheckedAccept(it); } }
+                            else em.backInvinvElement.UncheckedAccept(it);
+                        }
                     }
                 }
                 catch { }

@@ -36,7 +36,7 @@ public static partial class GuMachineSystem
                         {
                             if (m == null) continue;
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
-                            if (mid == "turbo_booster_adv") advs.Add(m);
+                            if (mid != null && mid.StartsWith("turbo_booster_adv")) advs.Add(m);
                             else if (mid == "turbo_booster") normCount++;
                         }
                         for (int j = advs.Count - 1; j >= 1; j--)
@@ -340,7 +340,8 @@ public static partial class GuMachineSystem
                 WageSaveStore.SetInt("GuBeast", "eat_day", day);
                 WageSaveStore.SetInt("GuBeast", "eat_count", eatCount + 1);
             }
-            Core.LogMsg("[练兽] 老鼠互食完成" + (king != null ? "（鼠王，免计数）" : "（第" + (eatCount+1) + "/3次）"));
+                        Core.LogMsg("[练兽] 老鼠互食完成" + (king != null ? "（鼠王，免计数）" : "（第" + (eatCount+1) + "/3次）"));
+            try { float lon = TagHelper.GetFloat(survivor, "ANIMAL_LONGEVITY_TAG"); float imm = TagHelper.GetFloat(survivor, "ANIMAL_IMMUNITY_TAG"); float hp = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG"); float gr = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG"); Core.LogMsg("[练兽] survivor tag值: 寿命=" + lon + " 免疫=" + imm + " 血=" + hp + " 生长=" + gr); } catch { }
         }
         catch (System.Exception ex) { Core.LogMsg("[练兽] TryBeastEat异常: " + ex.Message); }
     }

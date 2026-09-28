@@ -122,6 +122,7 @@ internal static partial class RobinCrusoePerk
             }
             else if (IsMachine(item) || item.IsTag("MODULE_TAG"))
             {
+                try { int chg = GetTagIntSafe(item, "wage_gu_charge"); if (chg != 0) builder.AddLine(LangHelper.T("◆ 养蛊充能：" + chg + "/3（涡轮互食叠加，鼠王不限次数）", "◆ Swarm charge: " + chg + "/3 (turbo stack, rat king unlimited)"), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
                 // 升级提示（用户拍板：显示在机器上储存区/机器箱子/模板）
                 int pct = GetTagIntSafe(item, "wageUpgradePct");
                 int effv = GetTagIntSafe(item, "wageUpgradeEff");
