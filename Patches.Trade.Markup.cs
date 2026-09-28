@@ -115,7 +115,7 @@ internal static partial class Patches
 							// 09-28 声望线性插值：revRep=-99 → ×0.5；revRep=0 → ×1.0
 							var rep = StoreReputation.GetStoreReputation("FACTION_REVOLUTION");
 							double revRep = rep != null ? rep.GetReputationExact() : 0;
-							double mult = 1.0 + (revRep / -99.0) * 0.5;
+							double mult = 1.0 - (revRep / -99.0) * 0.5;
 							if (mult < 0.5) mult = 0.5;
 							if (mult > 1.0) mult = 1.0;
 							long before = result;
