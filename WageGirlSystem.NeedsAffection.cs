@@ -40,25 +40,24 @@ public static partial class WageGirlSystem
     {
         try
         {
-            var ps = PlayerStore.Instance; if (ps == null) return;
+            var em = EmporiumEntry.Instance; if (em == null || em.backInvinvElement == null) return;
             for (int i = 0; i < count; i++)
             {
                 GameItem it = null;
-                try { it = DirectoryMaster.Item(id); } catch { }
-                if (it != null) ps.AddDirectSellingItemToTable(it, true, false, false, 100);
+                try { it = DirectoryMaster.Item(id, true); } catch { }
+                if (it == null) continue;
+                var slot = em.backInvinvElement.TryFindOneValidInventorySlot(it, false);
+                if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
+                em.backInvinvElement.UncheckedAccept(it);
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveRewardItem异常: " + ex.Message); }
     }
     internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
     internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
-
-    // ===================== 常驻面板（照鲁滨逊 RefreshStatusPanel） =====================
     // 09-20 优化：好感等级文字
     private static string GetAffLevelText() {
         int aff = GetAffection();
-        if (aff < 20) return LangHelper.T("刚认识", "Stranger");
-        if (aff < 50) return LangHelper.T("熟了", "Familiar");
         if (aff < 80) return LangHelper.T("信任你", "Trusts you");
         return LangHelper.T("亲如家人", "Family");
     }

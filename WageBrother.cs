@@ -115,14 +115,14 @@ internal static class WageBrother
             var asm = System.Reflection.Assembly.GetExecutingAssembly();
             string resName = null;
             foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith("wage_brother_card.png")) { resName = n; break; }
-            if (resName == null) return;
+            if (resName == null) { Core.LogMsg("[蛙哥] 立绘资源未找到"); return; }
             using var st = asm.GetManifestResourceStream(resName);
             byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
             Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Point;
             Type icType = null;
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
-            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
+            Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
             _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height);
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
@@ -136,11 +136,11 @@ internal static class WageBrother
     {
         try
         {
-            if (_portrait != null) { SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait; return; }
+            if (_portrait != null) { Core.LogMsg("[蛙哥] 准备注入SpriteDict"); SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait; return; }
             var asm = System.Reflection.Assembly.GetExecutingAssembly();
             string resName = null;
             foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith("wage_brother_portrait.png")) { resName = n; break; }
-            if (resName == null) return;
+            if (resName == null) { Core.LogMsg("[蛙哥] 立绘资源未找到"); return; }
             using var st = asm.GetManifestResourceStream(resName);
             byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
             Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
@@ -148,11 +148,11 @@ internal static class WageBrother
             tex.wrapMode = TextureWrapMode.Clamp;
             Type icType = null;
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
-            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
+            Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
             _portrait = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 208.33f);
             UnityEngine.Object.DontDestroyOnLoad(tex);
             UnityEngine.Object.DontDestroyOnLoad(_portrait);
-            SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait;
+            Core.LogMsg("[蛙哥] 准备注入SpriteDict"); SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait;
             Core.LogMsg("[蛙哥] 立绘加载成功 " + tex.width + "x" + tex.height);
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 立绘加载失败: " + ex.Message); }
     }
