@@ -79,7 +79,7 @@ public static class PatchRegistry
 		}
 		try
 		{
-			System.Func<StoreClient> wb = () => { try { var c = StoreClientListWanted.CreateWanted7(); if (c != null) { c.identifier = "wage_brother"; c.displayName = LangHelper.T("蛙哥", "Wage Brother"); } return c; } catch { return StoreClientListWanted.CreateWanted7(); } };
+			System.Func<StoreClient> wb = () => { try { var c = StoreClientListWanted.CreateWanted7(); if (c != null) { c.identifier = "wage_brother"; c.displayName = LangHelper.T("蛙哥", "Wage Brother"); c.spriteName = "wage_brother_portrait"; } return c; } catch { return StoreClientListWanted.CreateWanted7(); } };
 			StoreClientListDict.storeClientDict["wage_brother"] = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<StoreClient>>(wb);
 		}
 		catch (System.Exception exwb)
