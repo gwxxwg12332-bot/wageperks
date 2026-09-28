@@ -121,7 +121,7 @@ internal static partial class Patches
 							long before = result;
 							result = (long)(result * mult);
 							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " revRep=" + revRep + " ×" + mult.ToString("0.00") + " " + before + " -> " + result);
-							if (mult < 1.0) TryAddOdinFeature(item);
+							if (mult < 1.0) TryAddOdinFeature(item, mult);
 							if (!_odinNotified && mult < 1.0) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价已降低", "Infamy deterrent: Odin buyback reduced"), "red"); } catch { } }
 						}
 					}
@@ -494,21 +494,23 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
-	private static void TryAddOdinFeature(GameItem item)
+	private static void TryAddOdinFeature(GameItem item, double mult)
 	{
 		try
 		{
 			if (item == null || item.itemFeatures == null) return;
+			int pct = (int)System.Math.Round((1.0 - mult) * 100);
+			string txt = LangHelper.T("奥丁的怒火（收购价-" + pct + "%）", "Odin's Wrath (buyback -" + pct + "%)");
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "odin_pressure") return;
+				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "odin_pressure") { item.itemFeatures[i].publicDisplay = txt; item.itemFeatures[i].actualDisplay = txt; return; }
 			}
 			ItemFeature f = new ItemFeature();
 			f.identifier = "odin_pressure";
 			f.featureType = ItemFeature.FeatureType.TemporarySelling;
 			f.valueStage = ItemFeature.ValueStage.Market;
-			f.publicDisplay = LangHelper.T("声名狼藉威慑（奥丁-50%）", "Infamy deterrent (Odin -50%)");
-			f.actualDisplay = f.publicDisplay;
+			f.publicDisplay = txt;
+			f.actualDisplay = txt;
 			item.itemFeatures.Add(f);
 		}
 		catch { }
