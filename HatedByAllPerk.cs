@@ -33,7 +33,7 @@ internal sealed class HatedByAllPerk : CustomStartingPerk
             var ps = PlayerStore.Instance;
             if (ps == null) return;
 
-            int day = StoreStation.GetDayCounter();
+            int day = StoreStation.GetDayCounter(); Core.LogMsg("[人神共愤] day=" + day + " runID=" + (ps != null ? (ps.runID ?? "null") : "null"));
             // 基础：第一周500，一周后1500
             int baseMax = day <= 7 ? 500 : 1500;
             // 天数加成：每天+50
