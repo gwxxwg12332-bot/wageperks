@@ -23,7 +23,7 @@ public static partial class WageGirlSystem
         try
         {
             if (__instance == null) return;
-            if (__instance.identifier == ENTITY_ID) return; // 蛙娘自己不是客户时不受益
+            if (__instance.identifier == ENTITY_ID || __instance.identifier == "wage_brother") return; // 蛙娘自己+蛙哥固定预算不受好感倍率
             if (Patches._inBudgetOverride) return; // 防重入
             int budget = __instance.GetBudget();
             if (budget <= 0) return;

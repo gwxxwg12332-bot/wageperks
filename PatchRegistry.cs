@@ -79,7 +79,7 @@ public static class PatchRegistry
 		}
 		try
 		{
-			System.Func<StoreClient> wb = () => { try { var c = StoreClientListWanted.CreateWanted7(); if (c != null) { c.identifier = "wage_brother"; c.displayName = LangHelper.T("蛙哥", "Wage Brother"); c.spriteName = "wage_brother_portrait"; try { c.SetBudget(1109707341, 100); c.isWanted = false; c.isStealthWanted = false; c.reported = false; c.reportReward = 0; c.reputationPenalty = 0; c.wantedPosterId = null; c.realName = null; try { WageBrother.LoadPortrait(); } catch { } c.isNoContributeToEvidence = true; c.noAcceptingContraband = false; c.clientIntent = StoreClient.ClientIntent.BUY; } catch { } } return c; } catch { return StoreClientListWanted.CreateWanted7(); } };
+			System.Func<StoreClient> wb = () => { try { Core.LogMsg("[蛙哥] 工厂被调，创建前"); var c = StoreClientListWanted.CreateWanted7(); if (c != null) { c.identifier = "wage_brother"; c.displayName = LangHelper.T("蛙哥", "Wage Brother"); c.spriteName = "wage_brother_portrait"; try { c.SetBudget(1109707341, 100); c.isWanted = false; c.isStealthWanted = false; c.reported = false; c.reportReward = 0; c.reputationPenalty = 0; c.wantedPosterId = null; c.realName = null; try { WageBrother.LoadPortrait(); } catch { } c.isNoContributeToEvidence = true; c.noAcceptingContraband = false; c.clientIntent = StoreClient.ClientIntent.BUY; } catch { } } return c; } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 工厂异常: " + ex.Message); return StoreClientListWanted.CreateWanted7(); } };
 			StoreClientListDict.storeClientDict["wage_brother"] = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<StoreClient>>(wb);
 		}
 		catch (System.Exception exwb)
