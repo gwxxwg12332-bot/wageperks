@@ -180,6 +180,27 @@ internal static class WageBrother
             if (ps.playerCash < price) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
             ps.playerCash -= price;
             StartingPerk.RemovePerk(perkId);
+            // 消除声名狼藉：5势力声望差值补回0
+            if (perkId == "声名狼藉")
+            {
+                try
+                {
+                    string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
+                    foreach (var fid in factionIds)
+                    {
+                        try
+                        {
+                            var rep = StoreReputation.GetStoreReputation(fid);
+                            if (rep == null) continue;
+                            int cur = (int)rep.GetReputationExact();
+                            if (cur < 0) rep.ModReputation(-cur); // 负值补回0
+                        }
+                        catch { }
+                    }
+                    Core.LogMsg("[蛙哥] 声名狼藉已消除，5势力声望回正");
+                }
+                catch (Exception ex) { Core.LogMsg("[蛙哥] 声望回正异常: " + ex.Message); }
+            }
             Core.LogMsg("[蛙哥] 已消除 " + perkId + "，扣 " + price);
             StoreUIManager.Instance.Notify(LangHelper.T("蛙哥收了" + price + "块，" + perkId + "消了", "Wage Brother took " + price + ", removed " + perkId));
             // 清服务卡
