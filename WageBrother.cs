@@ -117,9 +117,12 @@ internal static class WageBrother
         try
         {
             if (_portrait != null) { SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait; return; }
-            string pngPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "wage_brother_portrait.png");
-            if (!System.IO.File.Exists(pngPath)) return;
-            byte[] png = System.IO.File.ReadAllBytes(pngPath);
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            string resName = null;
+            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith("wage_brother_portrait.png")) { resName = n; break; }
+            if (resName == null) return;
+            using var st = asm.GetManifestResourceStream(resName);
+            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
             Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Point;
             Type icType = null;

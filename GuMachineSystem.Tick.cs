@@ -26,20 +26,25 @@ public static partial class GuMachineSystem
                 int lastDay = RobinCrusoePerk.GetTagIntSafe(gu, GU_LAST_DAY_TAG);
                 if (lastDay < day)
                 {
-                    // 09-28 v1.3.1【补9/bug1】：遍历舱内所有加速器取最强（turbo_booster=+2，turbo_booster_adv=+3），不break
-                    // v1.3.1【涡轮互食】：多个 turbo_booster_adv 互吞叠加，每个额外 +2
+                    // 09-28 v1.3.1 涡轮互食：舱内 N 个 turbo_booster_adv → 吞噬 N-1 个留 1 个
                     int chargeStep = 1;
                     try
                     {
-                        int advCount = 0, normCount = 0;
+                        var advs = new System.Collections.Generic.List<GameItem>();
+                        int normCount = 0;
                         if (grid.childItems != null) foreach (var m in grid.childItems)
                         {
                             if (m == null) continue;
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
-                            if (mid == "turbo_booster_adv") advCount++;
+                            if (mid == "turbo_booster_adv") advs.Add(m);
                             else if (mid == "turbo_booster") normCount++;
                         }
-                        if (advCount > 0) chargeStep = 3 + 2 * (advCount - 1); // 首个+3，每个额外+2
+                        for (int j = advs.Count - 1; j >= 1; j--)
+                        {
+                            try { advs[j].parentInventory?.Expel(advs[j]); } catch { }
+                            try { advs[j].Destroy(); } catch { }
+                        }
+                        if (advs.Count > 0) chargeStep = 3 + 2 * (advs.Count - 1);
                         else if (normCount > 0) chargeStep = 2;
                     }
                     catch { }
