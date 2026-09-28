@@ -62,6 +62,7 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) return;
+            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
@@ -82,6 +83,25 @@ internal static class WageBrother
         catch (Exception ex) { Core.LogMsg("[蛙哥] OnClientArrived异常: " + ex.Message); }
     }
 
+    private static Sprite _portrait = null;
+    internal static void LoadPortrait()
+    {
+        try
+        {
+            if (_portrait != null) { SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait; return; }
+            string pngPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "wage_brother_portrait.png");
+            if (!System.IO.File.Exists(pngPath)) return;
+            byte[] png = System.IO.File.ReadAllBytes(pngPath);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            Type icType = null;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
+            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }).Invoke(null, new object[] { tex, png, true });
+            _portrait = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 208.33f);
+            SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait;
+            Core.LogMsg("[蛙哥] 立绘加载成功 " + tex.width + "x" + tex.height);
+        } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 立绘加载失败: " + ex.Message); }
+    }
     // 蛙哥走后清服务卡（每日调用）
     internal static void CleanupCardIfGone()
     {
