@@ -112,11 +112,17 @@ internal static partial class Patches
 						var bp = ps.currentClientInstance.GetClientBlueprint();
 						if (bp != null && bp.identifier == "wanted4Normal")
 						{
+							// 09-28 声望线性插值：revRep=-99 → ×0.5；revRep=0 → ×1.0
+							var rep = StoreReputation.GetStoreReputation("FACTION_REVOLUTION");
+							double revRep = rep != null ? rep.GetReputationExact() : 0;
+							double mult = 1.0 + (revRep / -99.0) * 0.5;
+							if (mult < 0.5) mult = 0.5;
+							if (mult > 1.0) mult = 1.0;
 							long before = result;
-							result = (long)(result * 0.5);
-							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " " + before + " -> " + result);
-							TryAddOdinFeature(item);
-							if (!_odinNotified) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价 -50%", "Infamy deterrent: Odin buyback -50%"), "red"); } catch { } }
+							result = (long)(result * mult);
+							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " revRep=" + revRep + " ×" + mult.ToString("0.00") + " " + before + " -> " + result);
+							if (mult < 1.0) TryAddOdinFeature(item);
+							if (!_odinNotified && mult < 1.0) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价已降低", "Infamy deterrent: Odin buyback reduced"), "red"); } catch { } }
 						}
 					}
 				}
