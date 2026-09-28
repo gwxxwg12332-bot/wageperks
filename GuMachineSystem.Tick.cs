@@ -27,16 +27,20 @@ public static partial class GuMachineSystem
                 if (lastDay < day)
                 {
                     // 09-28 v1.3.1【补9/bug1】：遍历舱内所有加速器取最强（turbo_booster=+2，turbo_booster_adv=+3），不break
+                    // v1.3.1【涡轮互食】：多个 turbo_booster_adv 互吞叠加，每个额外 +2
                     int chargeStep = 1;
                     try
                     {
+                        int advCount = 0, normCount = 0;
                         if (grid.childItems != null) foreach (var m in grid.childItems)
                         {
                             if (m == null) continue;
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
-                            int step = mid == "turbo_booster_adv" ? 3 : (mid == "turbo_booster" ? 2 : 1);
-                            if (step > chargeStep) chargeStep = step;
+                            if (mid == "turbo_booster_adv") advCount++;
+                            else if (mid == "turbo_booster") normCount++;
                         }
+                        if (advCount > 0) chargeStep = 3 + 2 * (advCount - 1); // 首个+3，每个额外+2
+                        else if (normCount > 0) chargeStep = 2;
                     }
                     catch { }
                     RobinCrusoePerk.AddTagInt(gu, GU_CHARGE_TAG, chargeStep);
@@ -275,16 +279,12 @@ public static partial class GuMachineSystem
         catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Tick] 异常: " + ex.Message); }
     }
 
-    // v1.3.1【6b】练兽互食：舱内>=2只rat自动互食，每天最多3次，存活者吸收LONGEVITY/IMMUNITY/MAX_HEALTH，年龄归0
+    // v1.3.1【6b】练兽互食：舱内>=2只rat自动互食，每天最多3次（鼠王豁免），存活者吸收四属性，年龄归0
     private static void TryBeastEat(GameItem gu, Il2Cpp.GameGridInventory grid, int day)
     {
         try
         {
             if (grid == null || grid.childItems == null) return;
-            // 每日互食次数上限3次（按day重置）
-            int lastDay = WageSaveStore.GetInt("GuBeast", "eat_day", -1);
-            int eatCount = lastDay == day ? WageSaveStore.GetInt("GuBeast", "eat_count", 0) : 0;
-            if (eatCount >= 3) return;
             // 收集舱内 rat（ANIMAL_ITEM_TAG，兜底 identifier=="rat"）
             var rats = new System.Collections.Generic.List<GameItem>();
             foreach (var m in grid.childItems)
@@ -295,25 +295,47 @@ public static partial class GuMachineSystem
                 rats.Add(m);
             }
             if (rats.Count < 2) return;
-            // 选存活者（LONGEVITY最高）+ 被吃者（第一只非存活）
-            GameItem survivor = rats[0], eaten = rats[1];
-            float bestLong = -1f;
-            foreach (var r in rats) { float lv = TagHelper.GetFloat(r, "ANIMAL_LONGEVITY_TAG"); if (lv > bestLong) { bestLong = lv; survivor = r; } }
-            foreach (var r in rats) { if (r != survivor) { eaten = r; break; } }
+            // 鼠王判定（wage_king_rat tag）
+            bool IsKing(GameItem r) { bool k = false; try { k = r.IsTag("wage_king_rat"); } catch { } return k; }
+            GameItem king = null;
+            foreach (var r in rats) if (IsKing(r)) { king = r; break; }
+            // 每日互食次数上限3次（鼠王在场豁免）
+            int lastDay = WageSaveStore.GetInt("GuBeast", "eat_day", -1);
+            int eatCount = lastDay == day ? WageSaveStore.GetInt("GuBeast", "eat_count", 0) : 0;
+            if (eatCount >= 3 && king == null) return;
+            // 选存活者：鼠王优先，否则 LONGEVITY 最高
+            GameItem survivor = null;
+            if (king != null) survivor = king;
+            else { float bestLong = -1f; foreach (var r in rats) { float lv = TagHelper.GetFloat(r, "ANIMAL_LONGEVITY_TAG"); if (lv > bestLong) { bestLong = lv; survivor = r; } } }
+            // 选被吃者：鼠王优先吞非鼠王；否则第一只非存活
+            GameItem eaten = null;
+            foreach (var r in rats) { if (r == survivor) continue; if (king != null && IsKing(r)) continue; eaten = r; break; }
+            if (eaten == null) foreach (var r in rats) { if (r != survivor) { eaten = r; break; } }
+            if (eaten == null) return;
             float cap = BuildConfig.GuBeastCap;
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_LONGEVITY_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_LONGEVITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_LONGEVITY_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_IMMUNITY_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_IMMUNITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG", Math.Min(cap, v)); } catch { }
-            try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0（int tag）
-            // 【5】练兽完成后：存活者饥饿值刷新 + 免疫设满（不患病）
+            try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0
+            // 练兽完成后：存活者饥饿值刷新 + 免疫设满（不患病）
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_HUNGER_TAG", 0); } catch { }
-            try { TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", 99999f); } catch { } // 练兽赢家完全不生病
+            try { TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", 99999f); } catch { }
+            // 吞噬后晋升鼠王（第一只互食成功的存活者打 tag + 改名）
+            if (!IsKing(survivor))
+            {
+                try { survivor.EnableTag("wage_king_rat"); } catch { }
+                try { survivor.SetName("鼠王"); } catch { }
+                try { StoreUIManager.Instance.Notify("老鼠吞噬了同类，进化成了鼠王！"); } catch { }
+            }
             try { eaten.parentInventory?.Expel(eaten); } catch { }
             try { eaten.Destroy(); } catch { }
-            WageSaveStore.SetInt("GuBeast", "eat_day", day);
-            WageSaveStore.SetInt("GuBeast", "eat_count", eatCount + 1);
-            Core.LogMsg("[练兽] 老鼠互食完成（第" + (eatCount+1) + "/3次，WageSaveStore计数）");
+            if (king == null) // 鼠王豁免每日计数
+            {
+                WageSaveStore.SetInt("GuBeast", "eat_day", day);
+                WageSaveStore.SetInt("GuBeast", "eat_count", eatCount + 1);
+            }
+            Core.LogMsg("[练兽] 老鼠互食完成" + (king != null ? "（鼠王，免计数）" : "（第" + (eatCount+1) + "/3次）"));
         }
         catch (System.Exception ex) { Core.LogMsg("[练兽] TryBeastEat异常: " + ex.Message); }
     }

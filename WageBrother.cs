@@ -62,7 +62,7 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) return;
-            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; } catch { }
+            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
