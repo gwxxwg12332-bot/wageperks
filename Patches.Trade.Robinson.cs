@@ -104,12 +104,16 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
-			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag")
-				|| LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item) // 09-26 修：虚空珠/妙妙箱不加 node buff（防批量吸收标签堆积）
-				|| !RobinCrusoePerk.IsActive())
+			if (item == null || item.itemFeatures == null) return;
+			// 09-28 自愈：清历史堆积的 wages_node_buff（09-26 前无判重遗留）
+			bool excludedType = item.IsTag("destiny_dice_tag") || LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item);
+			int keepMax = excludedType ? 0 : 1;
+			int found = 0;
+			for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
 			{
-				return;
+				if (item.itemFeatures[j] != null && item.itemFeatures[j].identifier == "wages_node_buff") { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
 			}
+			if (excludedType || !RobinCrusoePerk.IsActive()) return;
 			string tradeBuffDisplay = RobinCrusoePerk.GetTradeBuffDisplay();
 			if (tradeBuffDisplay.Length == 0)
 			{
@@ -172,11 +176,16 @@ itemFeature.isFeatureExposed = true;
 	{
 		try
 		{
-			if (item == null || item.itemFeatures == null || item.IsTag("destiny_dice_tag")
-				|| LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item)) // 09-26 修：容器不加 buy markup（同 node buff 防堆积）
+			if (item == null || item.itemFeatures == null) return;
+			// 09-28 自愈：清历史堆积的 wages_robin_buy
+			bool excludedType = item.IsTag("destiny_dice_tag") || LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item);
+			int keepMax = excludedType ? 0 : 1;
+			int found = 0;
+			for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
 			{
-				return;
+				if (item.itemFeatures[j] != null && item.itemFeatures[j].identifier == "wages_robin_buy") { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
 			}
+			if (excludedType) return;
 			string text = LangHelper.T("鲁滨逊·口粮双倍价", "Robinson·Ration x2");
 			long num = 0L;
 			try
