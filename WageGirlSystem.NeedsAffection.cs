@@ -174,6 +174,7 @@ public static partial class WageGirlSystem
         try
         {
             if (!Exists()) return; // 09-23 Perk 化：未出现不活动（双保险，修复没选 Perk 也偷钱）
+            if (GetStat(K_FENCE_PENDING) > 0 && GetStat(K_LEAVE) <= 0) { FenceReturn(); } // 孤立pending恢复：读档后遗留pending首个打烊自动结算
             int day = CurrentDay();
             int leaveDay = GetStat(K_LEAVE);
             // 1) 回归（到达回归日）→ 按原因分支 → 实体重新发放

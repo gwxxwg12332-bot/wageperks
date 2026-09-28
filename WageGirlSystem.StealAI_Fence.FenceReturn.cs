@@ -152,7 +152,7 @@ public static partial class WageGirlSystem
             if (!Exists()) return;
             if (Patches.CurrentUITradeMode != 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("交易模式下不能销赃", "Can't fence while trading"), "orange"); } catch { } return; }
             int leave = GetStat(K_LEAVE);
-            if (leave > 0 && CurrentDay() < leave) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("蛙娘不在店里", "Wage Girl is out"), "orange"); } catch { } return; }
+            if (leave > 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("蛙娘不在店里，返程结算后再安排", "Wage Girl is out, wait for return"), "orange"); } catch { } return; }
             int amt = GetStat(K_FENCE_AMT);
             if (amt <= 0) { try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("没有违禁品可销——先拖违禁品给蛙娘吃掉", "No contraband to fence - feed her contraband first"), "orange"); } catch { } return; }
             SetStat(K_FENCE_PENDING, amt);

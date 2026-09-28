@@ -22,7 +22,7 @@ public static partial class WageGirlSystem
         try
         {
             if (!Exists()) return;
-            if (GetStat(K_LEAVE) > 0) return; // 已外出
+            if (GetStat(K_LEAVE) > 0) { ReportLine(LangHelper.T("蛙娘不在店里，返程后再旅行", "Wage Girl is out, wait for return")); return; }
             if (GetAffection() < 20) { ReportLine(LangHelper.T("好感不够，她不愿出远门（需好感≥20）", "Affection too low for travel (need ≥20)")); return; }
             // 检查口粮库存（需提前给予口粮）
             if (GetStat(K_PROVISION) < 1) { ReportLine(LangHelper.T("没有口粮，她不愿出远门（点给予口粮备1份食物）", "No provisions (give food first)")); return; }
