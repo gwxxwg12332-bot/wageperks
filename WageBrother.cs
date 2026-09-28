@@ -62,17 +62,17 @@ internal static class WageBrother
     {
         try
         {
-            if (client == null || client.identifier != CLIENT_ID) return;
+            if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived: 是蛙哥,开始生成服务卡");
             try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.BUY; } catch { }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } RefreshClientSprite(client); } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
-            try { card = DirectoryMaster.Item(CARD_ID); } catch { }
+            try { card = DirectoryMaster.Item(CARD_ID); Core.LogMsg("[蛙哥] DirectoryMaster("+CARD_ID+")=" + (card!=null?"ok":"null")); } catch (Exception ex) { Core.LogMsg("[蛙哥] 创建CARD_ID异常: " + ex.Message); }
             if (card == null)
             {
                 // 未注册物品 fallback：用 cassette_player 占位
-                try { card = DirectoryMaster.Item("joe_card", true); } catch { }
+                try { card = DirectoryMaster.Item("joe_card", true); Core.LogMsg("[蛙哥] joe_card fallback=" + (card!=null?"ok":"null")); } catch (Exception ex) { Core.LogMsg("[蛙哥] joe_card异常: " + ex.Message); }
             }
             if (card != null)
             {
