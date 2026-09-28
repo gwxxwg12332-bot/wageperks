@@ -40,15 +40,15 @@ public static partial class WageGirlSystem
     {
         try
         {
-            var em = EmporiumEntry.Instance; if (em == null || em.backInvinvElement == null) return;
+            var em = EmporiumEntry.Instance; if (em == null || em.invElement == null) return;
             for (int i = 0; i < count; i++)
             {
                 GameItem it = null;
                 try { it = DirectoryMaster.Item(id, true); } catch { }
                 if (it == null) continue;
-                var slot = em.backInvinvElement.TryFindOneValidInventorySlot(it, false);
+                var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
                 if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
-                em.backInvinvElement.UncheckedAccept(it);
+                em.invElement.UncheckedAccept(it);
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveRewardItem异常: " + ex.Message); }

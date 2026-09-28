@@ -93,7 +93,7 @@ public static partial class WageGirlSystem
                 try
                 {
                     var em = EmporiumEntry.Instance;
-                    if (em != null && em.backInvinvElement != null)
+                    if (em != null && em.invElement != null)
                     {
                         string[] pool = { "energy_credit", "bottled_water", "processed_meat", "bandage_item", "metal_ingot" };
                         string pick = pool[Core.Rng.Next(pool.Length)];
@@ -102,9 +102,9 @@ public static partial class WageGirlSystem
                         {
                             try { it.DisableTag("STOLEN_TAG"); } catch { }
                             try { it.DisableTag("CONTRABAND_TAG"); } catch { }
-                            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(it, false);
-                            if (slot != null) { try { slot.TryAcceptOnce(); } catch { em.backInvinvElement.UncheckedAccept(it); } }
-                            else em.backInvinvElement.UncheckedAccept(it);
+                            var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
+                            if (slot != null) { try { slot.TryAcceptOnce(); } catch { em.invElement.UncheckedAccept(it); } }
+                            else em.invElement.UncheckedAccept(it);
                         }
                     }
                 }

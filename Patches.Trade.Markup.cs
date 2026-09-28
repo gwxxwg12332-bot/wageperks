@@ -120,7 +120,7 @@ internal static partial class Patches
 							if (mult > 1.0) mult = 1.0;
 							long before = result;
 							result = (long)(result * mult);
-							Core.LogMsg("[奥丁] wanted4Normal 压价 sell " + (item.identifier ?? "?") + " revRep=" + revRep + " ×" + mult.ToString("0.00") + " " + before + " -> " + result);
+							
 							if (mult < 1.0) TryAddOdinFeature(item, mult);
 							if (!_odinNotified && mult < 1.0) { _odinNotified = true; try { StoreUIManager.Instance.Notify(LangHelper.T("声名狼藉威慑：奥丁收购价已降低", "Infamy deterrent: Odin buyback reduced"), "red"); } catch { } }
 						}
