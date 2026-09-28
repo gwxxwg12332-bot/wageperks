@@ -135,8 +135,6 @@ internal static class WageBrother
                 try
                 {
                     if (perk.Cost >= 0) continue;
-                    // bug3: 只列治安眼线/狄仁杰/人神共愤三个
-                    if (!(perk is DarkGridInspectorPerk || perk is DetectivePerk || perk is HatedByAllPerk)) continue;
                     if (!StartingPerk.IsPerkActive(perk.Id)) continue;
                     int price = PriceForCost(perk.Cost);
                     string nm = perk.DisplayName;
