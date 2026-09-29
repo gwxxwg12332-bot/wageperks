@@ -75,6 +75,7 @@ internal static partial class RobinCrusoePerk
                         builder.AddLine(LangHelper.T("◆ 鼠王：吞噬同类进化而成，不受每日互食次数限制", "◆ Rat King: evolved by devouring peers, no daily eat limit"),
                             true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                     }
+                        try { float lon = TagHelper.GetFloat(item, "ANIMAL_LONGEVITY_TAG"); float imm = TagHelper.GetFloat(item, "ANIMAL_IMMUNITY_TAG"); float hp = TagHelper.GetFloat(item, "ANIMAL_MAX_HEALTH_TAG"); float gr = TagHelper.GetFloat(item, "ANIMAL_GROWTH_RATE_TAG"); builder.AddLine(LangHelper.T("寿命" + lon.ToString("0.00") + " 免疫" + imm.ToString("0.00") + " 血" + hp.ToString("0.00") + " 生长" + gr.ToString("0.00"), "Lifespan " + lon.ToString("0.00") + " Immunity " + imm.ToString("0.00") + " HP " + hp.ToString("0.00") + " Growth " + gr.ToString("0.00")), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
                     else
                     {
                         builder.AddLine(LangHelper.T("◆ 可用于养蛊机：放入两只以上自动互食，存活者吸收同类属性并重置年龄", "◆ Usable in Swarm Forge: two+ rats auto-devour, survivor absorbs stats and resets age"),
