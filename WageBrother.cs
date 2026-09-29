@@ -125,7 +125,7 @@ internal static class WageBrother
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
             Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); Core.LogMsg("[蛙哥] LoadImage前"); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppStructArray<byte>)png });
             Core.LogMsg("[蛙哥] LoadImage后 tex=" + tex.width + "x" + tex.height); _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 128f);
-            Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height); try { if (!RenderHandler.atlasCache.ContainsKey("custom_atlas")) RenderHandler.atlasCache["custom_atlas"] = new Il2CppSystem.Collections.Generic.Dictionary<string, Sprite>(); RenderHandler.atlasCache["custom_atlas"]["wage_brother_card_sprite"] = _cardSprite; Core.LogMsg("[蛙哥] atlasCache直写ok"); } catch (System.Exception exac) { Core.LogMsg("[蛙哥] atlasCache直写失败: " + exac.Message); }
+            Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height); // atlasCache直写注释：索引器导致卡死，走PrefixLoadFromAtlas拦截
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
