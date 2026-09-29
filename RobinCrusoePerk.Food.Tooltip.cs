@@ -124,6 +124,7 @@ internal static partial class RobinCrusoePerk
             else if (IsMachine(item) || item.IsTag("MODULE_TAG"))
             {
                 try { int chg = GetTagIntSafe(item, "wage_gu_charge"); if (chg != 0) builder.AddLine(LangHelper.T("◆ 养蛊充能：可炼" + chg + "次（基础3次+涡轮互食额外+" + (chg-3) + "/天，鼠王不限次数）", "◆ Swarm charge: " + chg + " uses (base 3 + turbo +" + (chg-3) + "/day, rat king unlimited)"), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
+                try { int dev = GetTagIntSafe(item, "wage_turbo_devoured"); if (dev > 0) builder.AddLine(LangHelper.T("◆ 已吞噬 " + dev + " 个涡轮增压器：充能额外 +" + (dev*2) + "/天", "◆ Devoured " + dev + " turbos: charge bonus +" + (dev*2) + "/day"), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
                 // 升级提示（用户拍板：显示在机器上储存区/机器箱子/模板）
                 int pct = GetTagIntSafe(item, "wageUpgradePct");
                 int effv = GetTagIntSafe(item, "wageUpgradeEff");
