@@ -99,7 +99,7 @@ public static class TurboBoostN
         {
             if (item == null) return;
             int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
-            if (n > 1) { builder.NewLine(); builder.BoldText(); builder.Text("互食加持：额外加速 " + (n - 1) + " 次"); builder.NormalText(); }
+            if (n > 1) { builder.AddLine("◆ 互食加持：额外加速 " + (n - 1) + " 次", bold: true); }
         }
         catch { }
     }
