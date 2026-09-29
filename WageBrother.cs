@@ -78,7 +78,7 @@ internal static class WageBrother
             {
                 try { card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。", "Double-click: pay credits to remove a negative perk."); } catch { }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { client.mainDialogue?.SetEndAction(null); } catch { } try { var clone = card.CloneLinked(); ps.AddDirectSellingItemToTable(clone, false, false, false, 0); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
-                ps.AddDirectSellingItemToTable(card, false, true, false, 100);
+                
                 _cardSpawned = true;
                 Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
             }
