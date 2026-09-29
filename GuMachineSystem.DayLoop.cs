@@ -11,10 +11,10 @@ public static partial class GuMachineSystem
     {
         try
         {
-            int day = DeterministicSchedule.CurrentDay;
+            int day = DeterministicSchedule.CurrentDay; Core.LogMsg("[养蛊机] OnDayStart day=" + day);
             // 09-19 修复：养蛊机充能原切 ModHook.OnHandlingNightlyServicesLate——钩子从未注册且 Demo 版 ModHook 不触发（09-17 注释"事件 0 触发"）
             // → 挂回 OnDayStart Postfix（与电池互吞/AI 抽卡同挂点，时序一致）
-            foreach (var gu in FindGuMachines())
+            var guList = FindGuMachines(); Core.LogMsg("[养蛊机] FindGuMachines=" + guList.Count); foreach (var gu in guList)
             {
                 TryGuMachineTick(gu, day);
             }
