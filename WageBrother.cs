@@ -64,7 +64,7 @@ internal static class WageBrother
         {
             if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived: 是蛙哥,开始生成服务卡");
             try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.BUY; } catch { }
-            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } RefreshClientSprite(client); } catch { }
+            try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { }
             if (_cardSpawned) return;
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
@@ -77,7 +77,7 @@ internal static class WageBrother
             if (card != null)
             {
                 try { card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。", "Double-click: pay credits to remove a negative perk."); } catch { }
-                try { card.EnableTag("wage_bro_card", true); } catch { }
+                try { card.EnableTag("wage_bro_card", true); } catch { } try { client.mainDialogue?.SetEndAction(null); } catch { } try { var clone = card.CloneLinked(); ps.AddDirectSellingItemToTable(clone, false, false, false, 0); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
                 ps.AddDirectSellingItemToTable(card, false, true, false, 100);
                 _cardSpawned = true;
                 Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
