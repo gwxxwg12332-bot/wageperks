@@ -18,10 +18,34 @@ public static class TurboBoostN
             int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
             if (n <= 1) return;
 
-            // TODO: 反查涡轮所在机器需拆包GameInventory结构，暂用日志
-            Core.LogMsg("[涡轮N] UPDATE n=" + n + " item=" + item.identifier + " parent=" + (item.parentInventory?.GetType()?.Name ?? "null"));
+            GameItem machine = null;
+            try { machine = item.parentInventory?.GetParentItem(); } catch { }
+            if (machine == null) return;
+
+            string mid = machine.identifier ?? "";
+            if (mid == "alarm_system" || mid == "mirage_projector") return;
+
+            _targetMachine = machine;
+            _remaining = n - 1;
+            _active = true;
+            Core.LogMsg("[涡轮N] 放机器 " + mid + " N=" + n + " 补" + _remaining + "次");
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] UpdateSprite异常: " + ex.Message); }
+    }
+
+    public static void PostfixFill(string quality, GameItem container, int volume)
+    {
+        if (!_active || _targetMachine == null || container == null) return;
+        try
+        {
+            if (container.parentInventory?.GetParentItem() != _targetMachine) return;
+            for (int i = 0; i < _remaining; i++)
+            {
+                try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
+            }
+            Finish();
+        }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); Finish(); }
     }
 
     public static void PostfixPurifyContainer(GameItem machine, GameItem waterContainer, bool ignoreBonus)
@@ -37,6 +61,21 @@ public static class TurboBoostN
             Finish();
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Purify异常: " + ex.Message); Finish(); }
+    }
+
+    public static void PostfixOnAgeWine(GameItem item)
+    {
+        if (!_active || _targetMachine == null || item == null) return;
+        try
+        {
+            if (item.parentInventory?.GetParentItem() != _targetMachine) return;
+            for (int i = 0; i < _remaining; i++)
+            {
+                try { WineHelper.OnAgeWine(item); } catch { }
+            }
+            Finish();
+        }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] OnAgeWine异常: " + ex.Message); Finish(); }
     }
 
     public static void PostfixContinueProgress(GameItem machine)
