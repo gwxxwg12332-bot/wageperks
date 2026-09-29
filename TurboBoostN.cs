@@ -22,7 +22,6 @@ public static class TurboBoostN
             try { machine = item.parentInventory?.GetParentItem(); } catch { }
             try { machine = item.parentInventory?.GetParentItem(); } catch { }
             _remaining = n - 1; _active = true; _targetMachine = machine;
-            _remaining = n - 1; _active = true; _targetMachine = machine;
             if (machine != null) { string mid = machine.identifier ?? ""; if (mid == "alarm_system" || mid == "mirage_projector") { _active = false; return; } Core.LogMsg("[涡轮N] 放机器 " + mid + " N=" + n); } else { Core.LogMsg("[涡轮N] machine=null n=" + n); }
 
 
