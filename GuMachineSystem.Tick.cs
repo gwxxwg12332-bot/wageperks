@@ -31,26 +31,6 @@ public static partial class GuMachineSystem
                 {
                     // 09-28 v1.3.1 涡轮互食：舱内 N 个 turbo_booster_adv → 吞噬 N-1 个留 1 个
                     int chargeStep = 1;
-                    try
-                    {
-                        var advs = new System.Collections.Generic.List<GameItem>();
-                        int normCount = 0;
-                        if (grid.childItems != null) { Core.LogMsg("[练兽] childItems数=" + grid.childItems.Count); foreach (var m in grid.childItems)
-                        {
-                            if (m == null) continue;
-                            string mid = ""; try { mid = m.identifier ?? ""; } catch { }
-                            if (mid != null && mid.StartsWith("turbo_booster_adv")) advs.Add(m);
-                            else if (mid == "turbo_booster") normCount++;
-                        } }
-                        for (int j = advs.Count - 1; j >= 1; j--)
-                        {
-                            try { advs[j].parentInventory?.Expel(advs[j]); } catch { }
-                            try { advs[j].Destroy(); } catch { }
-                        }
-                        if (advs.Count > 0) { chargeStep = 3 + 2 * (advs.Count - 1); try { advs[0].EnableTag("TURBO_READY_TAG"); try { RobinCrusoePerk.SetTagIntValue(advs[0], "CURRENT_CHARGE_TAG", 15 + (advs.Count - 1) * 15); } catch { } try { int oldN = RobinCrusoePerk.GetTagIntSafe(advs[0], "wage_turbo_n"); if (oldN <= 0) oldN = 1; RobinCrusoePerk.SetTagIntValue(advs[0], "wage_turbo_n", oldN + (advs.Count - 1)); } catch { } try { RobinCrusoePerk.SetTagIntValue(advs[0], "wage_turbo_devoured", advs.Count - 1); } catch { } } catch { } Core.LogMsg("[练兽] 涡轮互食 adv数=" + advs.Count + " chargeStep=" + chargeStep); }
-                        else if (normCount > 0) chargeStep = 2;
-                    }
-                    catch { }
                     RobinCrusoePerk.AddTagInt(gu, GU_CHARGE_TAG, chargeStep);
                     RobinCrusoePerk.SetTagIntValue(gu, GU_LAST_DAY_TAG, day);
                 }
