@@ -14,7 +14,7 @@ public static class TurboBoostN
     {
         try
         {
-            Core.LogMsg("[涡轮N] UpdateSprite触发 id=" + (item?.identifier) + " READY=" + (item!=null && item.IsTag("TURBO_READY_TAG")));
+            Core.LogMsg("[涡轮N] UpdateSprite触发 id=" + (item?.identifier) + " n=" + RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n"));
             int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
             if (n <= 1) return;
 
