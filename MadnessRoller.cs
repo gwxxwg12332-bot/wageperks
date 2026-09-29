@@ -48,7 +48,7 @@ internal static class MadnessRoller
         {
             Il2CppDict.List<StartingPerk> perks = StartingPerkList.Perks;
             if (perks == null) return;
-            ui.maxPerkCount += BuildConfig.MadnessExtraSlots;  // 09-22 直接加+3特性槽
+            // 删手动加槽：原生SelectPerk已按maxSlot自动加，双重叠加导致越界
 
             Core.LogMsg("[精神错乱] === 开始随机抽特性 ===");
             int currentPerkCount = ui.currentPerkCount;
@@ -255,7 +255,7 @@ internal static class MadnessRoller
                 if (string.IsNullOrEmpty(id) || Excluded.Contains(id) || chosenIds.Contains(id)) continue;
                 if (IsBlockedBy(id, chosenIds, incompat)) continue;
                 if (WouldBreakReputationFloor(id, currentRep)) continue;
-                if (perk.cost <= pointsLeft) candidates.Add(perk);
+                if (perk.cost <= pointsLeft && perk.maxSlot <= 0) candidates.Add(perk); // 阶段2只抽不加槽的perk
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
