@@ -76,7 +76,7 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。", "Double-click: pay credits to remove a negative perk."); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); } catch { }
+                try { LoadCardSprite(); card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。", "Double-click: pay credits to remove a negative perk."); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 2); card.SetShape(gsb.Build()); } catch { }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } try { var clone = card.CloneLinked(); ps.AddDirectSellingItemToTable(clone, false, false, false, 0); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
                 
                 _cardSpawned = true;
@@ -124,7 +124,7 @@ internal static class WageBrother
             Type icType = null;
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
             Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppStructArray<byte>)png });
-            _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
             Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height);
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
     }
