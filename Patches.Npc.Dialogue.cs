@@ -76,7 +76,7 @@ internal static partial class Patches
 			if (WagePowerPerk.IsActive() && !flag && !IsSecurityClient(currentClient) && (currentClient.clientIntent == StoreClient.ClientIntent.SELL || currentClient.clientIntent == StoreClient.ClientIntent.SELLNBUY))
 			{
 				WagePowerPerk.AddRandomItemsToCounter(currentClient);
-				WageBrother.OnClientArrived(currentClient); // v1.3.1【补11】蛙哥到场生成服务卡
+				// 蛙哥分支挪到SpecialNpcManager.HandleSpecialNpcArrived（柜台就绪时机）
 			}
 		}
 		catch (System.Exception ex)

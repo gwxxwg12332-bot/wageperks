@@ -273,6 +273,10 @@ internal static class SpecialNpcManager
                     DrJacksonFriendPerk.AddJacksonGoodsToCounter(client);
                 }
             }
+            else if (id == "wage_brother")
+            {
+                WageBrother.OnClientArrived(client);
+            }
             else
             {
                 // 普通NPC：出随机物品（从蛙哥随机商品池调用，仅在蛙哥牛逼激活时）
