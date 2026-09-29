@@ -12,7 +12,7 @@ public static partial class GuMachineSystem
         try
         {
             var grid = GetGuGrid(gu);
-            Core.LogMsg('[养蛊] tick: grid=' + (grid!=null?'ok':'null') + ' contentWindow=' + (gu.contentWindow!=null));
+            Core.LogMsg('[养蛊] tick: grid=' + (grid!=null?"ok":"null") + ' contentWindow=' + (gu.contentWindow!=null));
             if (grid == null) return;
             // v1.3.1【6b】练兽互食分支（独立于炼蛊充能，每日运行）：舱内>=2只rat自动互食，每天最多3次
             TryBeastEat(gu, grid, day);
