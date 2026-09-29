@@ -176,7 +176,7 @@ public static partial class GuMachineSystem
             if (!it.IsTag("MODULE_TAG")) { try { it.EnableTag("MODULE_TAG"); } catch { } } // 兜底（InitModuleItem 失败也不失模组身份）
             ApplyIcon(it, AI_MODULE_ICON, "system_module_overclock"); // 09-15 修复：之前误用 AI_ICON（生成器图标）——AI 模组必须用专属 ai_module 图标
             // 09-16 用户拍板：AI 模组 shape 2×2（mod 自建机器舱 8×8 可容纳；不借原生 1×1 shape）
-            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); Core.LogMsg("[AI模组] shape=2x2已设"); } catch (Exception exsh) { Core.LogMsg("[AI模组] SetShape失败: " + exsh.Message); }
+            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); Core.LogMsg("[AI模组] shape=2x2已设"); } catch (Exception exsh) { Core.LogMsg("[AI模组] SetShape失败: " + exsh.Message); }
             it.SetName(LangHelper.T("不稳定AI模组", "Unstable AI Module"));
             it.shortDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（上限：阉割75% / 不稳定150%），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (cap: Stable 75% / Unstable 150%), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
             it.longDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（上限：阉割75% / 不稳定150%），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (cap: Stable 75% / Unstable 150%), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
