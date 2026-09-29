@@ -244,6 +244,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(DestinyDice));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice));
+			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PostfixTarget", null, null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice));
 			Core.LogMsg("[Patch] 命运骰子拖放吸收已注册");
 			ManualPatcher.TryPatch(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, patchHost: typeof(WageBrother), parameterTypes: new System.Type[2]

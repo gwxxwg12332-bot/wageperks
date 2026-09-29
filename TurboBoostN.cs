@@ -6,6 +6,22 @@ namespace JacksonPerks;
 public static class TurboBoostN
 {
     private static int _pendingN;
+    private static GameItem _turboMachine;
+    private static int _turboN;
+    public static void PostfixTarget(GameItem __instance, GameItem targetItem)
+    {
+        try
+        {
+            if (__instance == null || targetItem == null) return;
+            if (__instance.identifier == null || !__instance.identifier.StartsWith("turbo_booster_adv")) return;
+            int n = RobinCrusoePerk.GetTagIntSafe(__instance, "wage_turbo_n");
+            Core.LogMsg("[涡轮N] Target source=" + __instance.identifier + " target=" + targetItem.identifier + " n=" + n);
+            if (n <= 1) return;
+            _turboMachine = targetItem;
+            _turboN = n;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Target异常: " + ex.Message); }
+    }
     public static void PostfixUpdateSprite(GameItem item, GameSlotInventory batterySlot)
     {
         try
@@ -40,15 +56,16 @@ public static class TurboBoostN
     {
         try
         {
-            int n = _pendingN;
-            if (n <= 1) { try { var machine = container?.parentInventory?.GetParentItem(); if (machine != null) { var inv = machine.contentWindow?.childElement?.TryCast<GameGridInventory>(); if (inv != null) foreach (var it in inv.childItems) { if (it != null && it.identifier != null && it.identifier.StartsWith("turbo_booster_adv")) { int t = RobinCrusoePerk.GetTagIntSafe(it, "wage_turbo_n"); if (t > 1) { n = t; break; } } } } } catch { } }
-            Core.LogMsg("[涡轮N] Fill n=" + n + " pendingN=" + _pendingN);
-            if (n <= 1) return;
-            for (int i = 0; i < n - 1; i++)
+            if (_turboMachine == null || _turboN <= 1) return;
+            var machine = container?.parentInventory?.GetParentItem();
+            if (machine != _turboMachine) return;
+            Core.LogMsg("[涡轮N] Fill补产 n=" + _turboN);
+            for (int i = 0; i < _turboN - 1; i++)
             {
                 try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
             }
-            Core.LogMsg("[涡轮N] 补产完成 " + (n - 1) + "次");
+            Core.LogMsg("[涡轮N] 补产完成 " + (_turboN - 1) + "次");
+            _turboN = 0; _turboMachine = null;
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); }
     }
