@@ -41,9 +41,9 @@ public static class TurboBoostN
         try
         {
             int n = _pendingN;
-            Core.LogMsg("[涡轮N] Fill pendingN=" + n);
+            if (n <= 1) { try { var machine = container?.parentInventory?.GetParentItem(); if (machine != null) { var inv = machine.contentWindow?.childElement?.TryCast<GameGridInventory>(); if (inv != null) foreach (var it in inv.childItems) { if (it != null && it.identifier != null && it.identifier.StartsWith("turbo_booster_adv")) { int t = RobinCrusoePerk.GetTagIntSafe(it, "wage_turbo_n"); if (t > 1) { n = t; break; } } } } } catch { } }
+            Core.LogMsg("[涡轮N] Fill n=" + n + " pendingN=" + _pendingN);
             if (n <= 1) return;
-            _pendingN = 1;
             for (int i = 0; i < n - 1; i++)
             {
                 try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
