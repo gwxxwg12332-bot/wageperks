@@ -148,6 +148,9 @@
     <EmbeddedResource Include="Icons\24_干燥空气.png" />
     <EmbeddedResource Include="Assets\wage_brother_card.png" />
     <EmbeddedResource Include="Assets\wage_brother_portrait.png" />
+    <EmbeddedResource Include="Assets\gu_machine.png" />
+    <EmbeddedResource Include="Assets\ai_generator.png" />
+    <EmbeddedResource Include="Assets\protector_core.png" />
 
   </ItemGroup>
 

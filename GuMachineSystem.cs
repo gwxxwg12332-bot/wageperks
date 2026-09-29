@@ -35,13 +35,32 @@ public static partial class GuMachineSystem
     {
         try
         {
-            _guSprite = SpriteFromPixels(GuMachineIcons.GuMachinePixels(), 32, 32);
-            _aiSprite = SpriteFromPixels(GuMachineIcons.AiGeneratorPixels(), 32, 32);
-            _protectorSprite = SpriteFromPixels(GuMachineIcons.ProtectorPixels(), 32, 32);
+            _guSprite = LoadPngSprite("gu_machine.png");
+            _aiSprite = LoadPngSprite("ai_generator.png");
+            _protectorSprite = LoadPngSprite("protector_core.png");
             _aiModuleSprite = SpriteFromPixels(GuMachineIcons.AiModulePixels(), 32, 32);
             Core.LogMsg("[养蛊机] 图标加载: " + (_guSprite != null ? "养蛊机✓" : "养蛊机✗") + " " + (_aiSprite != null ? "生成器✓" : "生成器✗") + " " + (_protectorSprite != null ? "保护器✓" : "保护器✗") + " " + (_aiModuleSprite != null ? "AI模组✓" : "AI模组✗"));
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 图标加载异常: " + ex.Message); }
+    }
+
+    private static Sprite LoadPngSprite(string fileName)
+    {
+        try {
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            string resName = null;
+            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith(fileName)) { resName = n; break; }
+            if (resName == null) { Core.LogMsg("[养蛊机] 图标资源未找到: " + fileName); return null; }
+            using var st = asm.GetManifestResourceStream(resName);
+            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            Type icType = null;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
+            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)png });
+            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+        } catch (Exception ex) { Core.LogMsg("[养蛊机] 图标加载失败 " + fileName + ": " + ex.Message); return null; }
     }
 
     // 像素数组 → Texture2D → Sprite（照 StorageBoxPixels/CreateCustomBoxSprite 先例；pixelsPerUnit=100，32px=0.32单位）
