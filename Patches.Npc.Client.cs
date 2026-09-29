@@ -41,7 +41,7 @@ internal static partial class Patches
 		}
 		try
 		{
-			DrJacksonFriendPerk.AddClientPatch.Postfix(storeClient); try { WageBrother.OnClientArrived(storeClient); } catch (System.Exception exwb) { Core.LogMsg("[蛙哥] OnClientArrived失败: " + exwb.Message); }
+			DrJacksonFriendPerk.AddClientPatch.Postfix(storeClient); // 蛙哥到店才调，排队不上卡
 		}
 		catch (System.Exception ex)
 		{
