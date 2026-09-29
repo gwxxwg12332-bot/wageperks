@@ -92,7 +92,7 @@ public static partial class GuMachineSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
-            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2, 2); it.SetShape(gsb2.Build()); } catch { }
+            it.EnableTag("STANDARD_MACHINE_TAG");
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge"));
             SetField(it, "_identifier_k__BackingField", GU_MACHINE_ID);
@@ -127,7 +127,7 @@ public static partial class GuMachineSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
-            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2, 2); it.SetShape(gsb2.Build()); } catch { }
+            it.EnableTag("STANDARD_MACHINE_TAG");
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator"));
             SetField(it, "_identifier_k__BackingField", AI_GENERATOR_ID);
