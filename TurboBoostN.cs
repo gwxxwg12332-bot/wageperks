@@ -35,10 +35,9 @@ public static class TurboBoostN
 
     public static void PostfixFill(string quality, GameItem container, int volume)
     {
-        Core.LogMsg("[涡轮N] FillPostfix active=" + _active); if (!_active || _targetMachine == null || container == null) return;
+        Core.LogMsg("[涡轮N] FillPostfix active=" + _active); if (!_active || container == null) return;
         try
         {
-            if (container.parentInventory?.GetParentItem() != _targetMachine) return;
             for (int i = 0; i < _remaining; i++)
             {
                 try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
