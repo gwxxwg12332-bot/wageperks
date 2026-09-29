@@ -20,16 +20,16 @@ public static class TurboBoostN
 
             GameItem machine = null;
             try { machine = item.parentInventory?.GetParentItem(); } catch { }
-            if (machine == null) return;
+            try { machine = item.parentInventory?.GetParentItem(); } catch { }
+            _remaining = n - 1; _active = true; _targetMachine = machine;
+            if (machine != null) { string mid = machine.identifier ?? ""; if (mid == "alarm_system" || mid == "mirage_projector") { _active = false; return; } Core.LogMsg("[涡轮N] 放机器 " + mid + " N=" + n + " 补" + _remaining + "次"); } else { Core.LogMsg("[涡轮N] machine=null n=" + n + " 待Fill匹配"); }
 
-            string mid = machine.identifier ?? "";
-            if (mid == "alarm_system" || mid == "mirage_projector") return;
 
-            _targetMachine = machine;
-            _remaining = n - 1;
-            _active = true;
-            Core.LogMsg("[涡轮N] 放机器 " + mid + " N=" + n + " 补" + _remaining + "次");
-        }
+
+
+
+
+
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] UpdateSprite异常: " + ex.Message); }
     }
 
