@@ -25,7 +25,7 @@ public static partial class GuMachineSystem
             {
                 // 09-19 P1 充能天数差分：同日打烊不重复 +1（根治双挂点重复计/读档后卡住）；LAST_DAY 创建时已记，随 tag 读档保留
                 int lastDay = RobinCrusoePerk.GetTagIntSafe(gu, GU_LAST_DAY_TAG);
-                if (lastDay < day)
+                // 涡轮互食每次tick都跑（不受day门控）
                 {
                     // 09-28 v1.3.1 涡轮互食：舱内 N 个 turbo_booster_adv → 吞噬 N-1 个留 1 个
                     int chargeStep = 1;
