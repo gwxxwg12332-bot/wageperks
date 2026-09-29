@@ -65,7 +65,7 @@ internal static class WageBrother
             if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived: 是蛙哥,开始生成服务卡");
             try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.BUY; } catch { }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { }
-            if (_cardSpawned) return;
+            // 不依赖门控，每次到场都加卡（柜台有卡则原生去重）`r`n            Core.LogMsg("[蛙哥] _cardSpawned=" + _cardSpawned + " 强制加卡");
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
             try { card = DirectoryMaster.Item(CARD_ID); Core.LogMsg("[蛙哥] DirectoryMaster("+CARD_ID+")=" + (card!=null?"ok":"null")); } catch (Exception ex) { Core.LogMsg("[蛙哥] 创建CARD_ID异常: " + ex.Message); }
@@ -130,7 +130,7 @@ internal static class WageBrother
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
     {
-        try { if (atlasPath == "custom_atlas" && name == CARD_SPRITE_KEY && _cardSprite != null) { __result = _cardSprite; return false; } } catch { }
+        try { Core.LogMsg("[蛙哥] LoadFromAtlas: " + atlasPath + "|" + name); if (atlasPath == "custom_atlas" && name == CARD_SPRITE_KEY && _cardSprite != null) { __result = _cardSprite; return false; } } catch { }
         return true;
     }
     internal static void LoadPortrait()
