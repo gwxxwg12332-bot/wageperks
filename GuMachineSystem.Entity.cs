@@ -47,7 +47,7 @@ public static partial class GuMachineSystem
         catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
         if (Core.DebugMode) Core.LogMsg("[养蛊机] ApplyIcon key=" + iconKey + " sp=" + (sp!=null?"ok":"null")); if (sp != null)
         {
-            try { it.SetSpriteAndShape(ICON_ATLAS, iconKey); return; } catch { }
+            try { it.SetSpriteAndShape(ICON_ATLAS, iconKey); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); return; } catch { }
         }
         BorrowNativeSprite(it, nativeId);
     }
