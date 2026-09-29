@@ -38,7 +38,7 @@ public static partial class GuMachineSystem
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
                             if (mid != null && mid.StartsWith("turbo_booster_adv")) advs.Add(m);
                             else if (mid == "turbo_booster") normCount++;
-                        }
+                        } }
                         for (int j = advs.Count - 1; j >= 1; j--)
                         {
                             try { advs[j].parentInventory?.Expel(advs[j]); } catch { }
