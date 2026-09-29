@@ -357,6 +357,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(MachinePurifier), "PurifyContainer", null, "PostfixPurifyContainer", null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(WineHelper), "OnAgeWine", null, "PostfixOnAgeWine", null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(MachineProgressHelper), "ContinueProgressTypeMachine", null, "PostfixContinueProgress", null, typeof(TurboBoostN));
+			ManualPatcher.TryPatch(typeof(MachineTurboBoosterAdv), "CreateMachineTooltip", null, "PostfixCreateTooltip", null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(WaterHelper), "RemoveContaminantFromContainer", null, "PostfixRemoveContaminantFromContainer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(RobinCrusoePerk));

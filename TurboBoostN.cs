@@ -93,6 +93,17 @@ public static class TurboBoostN
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] ContinueProgress异常: " + ex.Message); Finish(); }
     }
 
+    public static void PostfixCreateTooltip(RichTextBuilder builder, GameItem item)
+    {
+        try
+        {
+            if (item == null) return;
+            int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
+            if (n > 1) { builder.NewLine(); builder.BoldText(); builder.Text("互食加持：额外加速 " + (n - 1) + " 次"); builder.NormalText(); }
+        }
+        catch { }
+    }
+
     private static void Finish()
     {
         Core.LogMsg("[涡轮N] 补产完成，清零context");
