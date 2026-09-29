@@ -32,7 +32,7 @@ public static partial class GuMachineSystem
                     {
                         var advs = new System.Collections.Generic.List<GameItem>();
                         int normCount = 0;
-                        if (grid.childItems != null) foreach (var m in grid.childItems)
+                        if (grid.childItems != null) { if (Core.DebugMode) Core.LogMsg("[练兽] childItems数=" + grid.childItems.Count); foreach (var m in grid.childItems)
                         {
                             if (m == null) continue;
                             string mid = ""; try { mid = m.identifier ?? ""; } catch { }
