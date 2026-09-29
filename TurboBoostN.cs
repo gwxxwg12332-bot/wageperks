@@ -5,9 +5,8 @@ namespace JacksonPerks;
 
 public static class TurboBoostN
 {
-    private static GameItem _targetMachine;
-    private static int _remaining;
-    private static bool _active;
+    private static GameItem _lastMachine;
+    private static int _lastN;
 
     public static void PostfixUpdateSprite(GameItem item, GameSlotInventory batterySlot)
     {
@@ -18,78 +17,73 @@ public static class TurboBoostN
             if (n <= 1) return;
             GameItem machine = null;
             try { machine = item.parentInventory?.GetParentItem(); } catch { }
-            _remaining = n - 1;
-            _active = true;
-            _targetMachine = machine;
-            if (machine != null)
-            {
-                string mid = machine.identifier ?? "";
-                if (mid == "alarm_system" || mid == "mirage_projector") { _active = false; return; }
-                Core.LogMsg("[涡轮N] machine=" + mid + " N=" + n);
-            }
-            else
-            {
-                Core.LogMsg("[涡轮N] machine=null N=" + n);
-            }
+            _lastMachine = machine;
+            _lastN = n;
+            Core.LogMsg("[涡轮N] 记录 machine=" + (machine?.identifier ?? "null") + " N=" + n);
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] UpdateSprite异常: " + ex.Message); }
     }
 
     public static void PostfixFill(string quality, GameItem container, int volume)
     {
-        Core.LogMsg("[涡轮N] Fill active=" + _active);
-        if (!_active || container == null) return;
+        Core.LogMsg("[涡轮N] Fill触发 lastN=" + _lastN);
+        if (_lastN <= 1 || container == null) return;
         try
         {
-            for (int i = 0; i < _remaining; i++)
+            int remain = _lastN - 1;
+            for (int i = 0; i < remain; i++)
             {
                 try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
             }
-            Finish();
+            _lastN = 1;
+            Core.LogMsg("[涡轮N] 补产完成 " + remain + "次");
         }
-        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); Finish(); }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); }
     }
 
     public static void PostfixPurifyContainer(GameItem machine, GameItem waterContainer, bool ignoreBonus)
     {
-        if (!_active) return;
+        if (_lastN <= 1) return;
         try
         {
-            for (int i = 0; i < _remaining; i++)
+            int remain = _lastN - 1;
+            for (int i = 0; i < remain; i++)
             {
                 try { MachinePurifier.PurifyContainer(machine, waterContainer, ignoreBonus); } catch { }
             }
-            Finish();
+            _lastN = 1;
         }
-        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Purify异常: " + ex.Message); Finish(); }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] Purify异常: " + ex.Message); }
     }
 
     public static void PostfixOnAgeWine(GameItem item)
     {
-        if (!_active || item == null) return;
+        if (_lastN <= 1 || item == null) return;
         try
         {
-            for (int i = 0; i < _remaining; i++)
+            int remain = _lastN - 1;
+            for (int i = 0; i < remain; i++)
             {
                 try { WineHelper.OnAgeWine(item); } catch { }
             }
-            Finish();
+            _lastN = 1;
         }
-        catch (System.Exception ex) { Core.LogMsg("[涡轮N] OnAgeWine异常: " + ex.Message); Finish(); }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] OnAgeWine异常: " + ex.Message); }
     }
 
     public static void PostfixContinueProgress(GameItem machine)
     {
-        if (!_active) return;
+        if (_lastN <= 1) return;
         try
         {
-            for (int i = 0; i < _remaining; i++)
+            int remain = _lastN - 1;
+            for (int i = 0; i < remain; i++)
             {
                 try { MachineProgressHelper.ContinueProgressTypeMachine(machine); } catch { }
             }
-            Finish();
+            _lastN = 1;
         }
-        catch (System.Exception ex) { Core.LogMsg("[涡轮N] ContinueProgress异常: " + ex.Message); Finish(); }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] ContinueProgress异常: " + ex.Message); }
     }
 
     public static void PostfixCreateTooltip(RichTextBuilder builder, GameItem item)
@@ -101,13 +95,5 @@ public static class TurboBoostN
             if (n > 1) { builder.AddLine("◆ 互食加持：额外加速 " + (n - 1) + " 次", bold: true); }
         }
         catch { }
-    }
-
-    private static void Finish()
-    {
-        Core.LogMsg("[涡轮N] 补产完成");
-        _active = false;
-        _targetMachine = null;
-        _remaining = 0;
     }
 }
