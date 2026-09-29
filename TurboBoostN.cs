@@ -21,9 +21,9 @@ public static class TurboBoostN
     {
         try
         {
-            var inv = machine?.contentWindow?.childElement?.TryCast<GameGridInventory>();
-            if (inv == null) return 0;
-            foreach (var it in inv.childItems)
+            var bs = MachineHelper.GetBatterySlot(machine);
+            if (bs == null) return 0;
+            foreach (var it in bs.childItems)
             {
                 if (it != null && it.identifier != null && it.identifier.StartsWith("turbo_booster_adv"))
                 {
@@ -32,7 +32,7 @@ public static class TurboBoostN
                 }
             }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[涡轮N] FindTurboN异常: " + ex.Message); }
         return 0;
     }
 
