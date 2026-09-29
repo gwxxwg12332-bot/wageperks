@@ -76,6 +76,9 @@ internal static partial class RobinCrusoePerk
             b.AddProgressBar(sleep / 100f, "sleep");
             b.AddLabel(LangHelper.T("社交 ", "Social ") + social + "/100", "social_l");
             b.AddProgressBar(social / 100f, "social");
+            b.AddLabel(LangHelper.T("── 特性成长 ──", "-- Perk Growth --"), "growth_h");
+            b.AddLabel(LangHelper.T("每累计50天 +1点 +1槽（全局继承）", "Every 50 global days +1 pt +1 slot"), "growth_l1");
+            b.AddLabel(LangHelper.T("困难模式 +1槽 | 10点负面特性 +1槽", "Hard mode +1 slot | 10+ neg perks +1 slot"), "growth_l2");
             // v5.8-8：逐节点状态显示（六状态 + 心情，每个当前节点一行：名称 + 锁定/抽取效果）
             b.AddLabel(LangHelper.T("── 节点状态 ──", "── Node Status ──"), "node");
             int[] allNodes = { SatietyNode(), ThirstNode(), HealthNode(), CleanNode(), SleepNode(), SocialNode(), MoodNode() };
