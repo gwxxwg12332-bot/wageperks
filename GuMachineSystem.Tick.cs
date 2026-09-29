@@ -322,6 +322,11 @@ public static partial class GuMachineSystem
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_IMMUNITY_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_IMMUNITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG", Math.Min(cap, v)); } catch { }
             try { float v = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG") + TagHelper.GetFloat(eaten, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG", Math.Min(cap, v)); } catch { }
+            // ALLELE_A/B 同步写（面板读 (A+B)*0.5）
+            try { float lon = TagHelper.GetFloat(survivor, "ANIMAL_LONGEVITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_LONGEVITY_TAG_ALLELE_A", lon); TagHelper.SetFloat(survivor, "ANIMAL_LONGEVITY_TAG_ALLELE_B", lon); } catch { }
+            try { float imm = TagHelper.GetFloat(survivor, "ANIMAL_IMMUNITY_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG_ALLELE_A", imm); TagHelper.SetFloat(survivor, "ANIMAL_IMMUNITY_TAG_ALLELE_B", imm); } catch { }
+            try { float hp = TagHelper.GetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG_ALLELE_A", hp); TagHelper.SetFloat(survivor, "ANIMAL_MAX_HEALTH_TAG_ALLELE_B", hp); } catch { }
+            try { float gr = TagHelper.GetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG"); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG_ALLELE_A", gr); TagHelper.SetFloat(survivor, "ANIMAL_GROWTH_RATE_TAG_ALLELE_B", gr); } catch { }
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_AGE_TAG", 0); } catch { } // 存活者年龄归0
             // 练兽完成后：存活者饥饿值刷新 + 免疫设满（不患病）
             try { RobinCrusoePerk.SetTagIntValue(survivor, "ANIMAL_HUNGER_TAG", 0); } catch { }
