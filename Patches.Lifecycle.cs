@@ -311,7 +311,7 @@ internal static partial class Patches
 		try
 		{
 			MadnessRoller.ResetLock();
-			// ===== v1.3.2 特性成长：全局累计每50天 +1点 +1槽（新档也继承）=====
+			// ===== v1.3.2 特性成长：仅鲁滨逊档存活 ===== if (!RobinCrusoePerk.IsActive()) { if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10; return; }
 			try {
 				int day = StoreStation.GetDayCounter();
 				int globalTotal = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthTotalDays") + day;
