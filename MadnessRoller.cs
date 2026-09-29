@@ -125,7 +125,8 @@ internal static class MadnessRoller
                     if (p != null && p.cost > 0 && p.id != "精神错乱") { if (p.cost > bestCost) { bestCost = p.cost; toDrop = p; } }
                 }
                 if (toDrop == null) break;
-                try { DeselectPerkSafe(ui, toDrop); } catch { }
+                StartingPerkElement el = FindElement(ui.selectedPerks, toDrop.id) ?? FindElement(ui.availablePerks, toDrop.id);
+                try { if (el != null) ui.DeselectPerk(el); } catch { }
                 list.Remove(toDrop);
                 hashSet.Remove(toDrop.id);
                 Core.LogMsg($"[精神错乱] 阶段4 反选: {toDrop.id} cost={toDrop.cost}");
