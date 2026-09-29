@@ -5,12 +5,14 @@ namespace JacksonPerks;
 
 public static class TurboBoostN
 {
+    private static int _pendingN;
     public static void PostfixUpdateSprite(GameItem item, GameSlotInventory batterySlot)
     {
         try
         {
             int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
             Core.LogMsg("[涡轮N] UpdateSprite id=" + item.identifier + " n=" + n);
+            if (n > 1) _pendingN = n;
         }
         catch { }
     }
@@ -38,10 +40,10 @@ public static class TurboBoostN
     {
         try
         {
-            var machine = container?.parentInventory?.GetParentItem();
-            int n = FindTurboNInMachine(machine);
-            Core.LogMsg("[涡轮N] Fill n=" + n);
+            int n = _pendingN;
+            Core.LogMsg("[涡轮N] Fill pendingN=" + n);
             if (n <= 1) return;
+            _pendingN = 1;
             for (int i = 0; i < n - 1; i++)
             {
                 try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
