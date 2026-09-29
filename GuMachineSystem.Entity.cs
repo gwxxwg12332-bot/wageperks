@@ -136,6 +136,7 @@ public static partial class GuMachineSystem
             it.longDescription = LangHelper.T("蛙哥不稳定AI生成器：打烊自动抽卡（每天1次，需舱内≥2模组）：装保护器=阉割版（100%成功≤75%，消耗1个）/ 不装=不稳定版（50%成功≤150%，50%失败全报废）。违禁原因：私自合成自主AI模组，触犯空间站AI管制令。", "Wage's Unstable AI Generator: auto-draw at close (1/day, needs >=2 modules): with protector = Stable (100% success <=75%, consumes 1) / without = Unstable (50% success <=150%, 50% fail & total scrap). Contraband: unsanctioned AI synthesis violates station AI directives."); // 09-15 原生属性
             it.unitValue = BuildConfig.AiGenPrice; it.unitBaseValue = BuildConfig.AiGenPrice; // 拆包实锤 09-15：原生属性
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
+            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); it.modifiedShape = gsb2.Build(); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建生成器失败: " + ex.Message); return null; }
@@ -182,6 +183,7 @@ public static partial class GuMachineSystem
             it.longDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（上限：阉割75% / 不稳定150%），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (cap: Stable 75% / Unstable 150%), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
             it.unitValue = 0; it.unitBaseValue = 0; // 价值由合成时吞噬原料之和定
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
+            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); it.modifiedShape = gsb2.Build(); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建AI模组失败: " + ex.Message); return null; }
