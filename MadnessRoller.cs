@@ -112,6 +112,25 @@ internal static class MadnessRoller
                 Core.LogMsg($"[精神错乱] 阶段3 负面补偿: {refund.id}");
             }
 
+            // 阶段4：点数仍超→强制反选正perk释放点数
+            int guard = 0;
+            while (ui.currentPerkPoint > ui.maxPerkPoint && guard < 10)
+            {
+                guard++;
+                StartingPerk toDrop = null;
+                int bestCost = -999;
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    var p = list[i];
+                    if (p != null && p.cost > 0 && p.id != "精神错乱") { if (p.cost > bestCost) { bestCost = p.cost; toDrop = p; } }
+                }
+                if (toDrop == null) break;
+                try { DeselectPerkSafe(ui, toDrop); } catch { }
+                list.Remove(toDrop);
+                hashSet.Remove(toDrop.id);
+                Core.LogMsg($"[精神错乱] 阶段4 反选: {toDrop.id} cost={toDrop.cost}");
+            }
+
             try { ui.OnChange(); } catch { }
             try { ui.SortPerkContainer(ui.availablePerks); } catch { }
 
