@@ -45,7 +45,7 @@ public static partial class GuMachineSystem
             else if (iconKey == AI_MODULE_ICON) sp = _aiModuleSprite;
         }
         catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
-        if (sp != null)
+        if (Core.DebugMode) Core.LogMsg("[养蛊机] ApplyIcon key=" + iconKey + " sp=" + (sp!=null?"ok":"null")); if (sp != null)
         {
             try { it.SetSpriteAndShape(ICON_ATLAS, iconKey); return; } catch { }
         }
