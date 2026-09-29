@@ -35,7 +35,7 @@ public static class TurboBoostN
 
     public static void PostfixFill(string quality, GameItem container, int volume)
     {
-        if (!_active || _targetMachine == null || container == null) return;
+        Core.LogMsg("[涡轮N] FillPostfix active=" + _active); if (!_active || _targetMachine == null || container == null) return;
         try
         {
             if (container.parentInventory?.GetParentItem() != _targetMachine) return;
@@ -50,7 +50,7 @@ public static class TurboBoostN
 
     public static void PostfixPurifyContainer(GameItem machine, GameItem waterContainer, bool ignoreBonus)
     {
-        if (!_active || _targetMachine == null) return;
+        Core.LogMsg("[涡轮N] PurifyPostfix active=" + _active); if (!_active || _targetMachine == null) return;
         try
         {
             if (machine != _targetMachine) return;
@@ -80,7 +80,7 @@ public static class TurboBoostN
 
     public static void PostfixContinueProgress(GameItem machine)
     {
-        if (!_active || _targetMachine == null) return;
+        Core.LogMsg("[涡轮N] PurifyPostfix active=" + _active); if (!_active || _targetMachine == null) return;
         try
         {
             if (machine != _targetMachine) return;
