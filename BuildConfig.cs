@@ -318,6 +318,8 @@ melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
+melonPreferences_Category.CreateEntry("PerkGrowthTotalDays", default_value: 0, "特性成长：全局累计天数（自动）");
+melonPreferences_Category.CreateEntry("PerkGrowthApplied", default_value: 0, "特性成长：已应用到第几个50天（自动）");
 		melonPreferences_Category.CreateEntry("ContainerUpgradeEnabled", default_value: true, "容器/机器升级（关=不升级）");
 			melonPreferences_Category.CreateEntry("CleanDailyLoss", 2, "清洁每日衰减量");
 			melonPreferences_Category.CreateEntry("CleanScavCost", 2, "拾荒清洁消耗");

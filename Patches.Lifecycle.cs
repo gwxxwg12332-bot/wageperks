@@ -311,6 +311,22 @@ internal static partial class Patches
 		try
 		{
 			MadnessRoller.ResetLock();
+			// ===== v1.3.2 特性成长：全局累计每50天 +1点 +1槽（新档也继承）=====
+			try {
+				int day = StoreStation.GetDayCounter();
+				int globalTotal = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthTotalDays") + day;
+				MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthTotalDays", globalTotal);
+				int bonusDay = globalTotal / 50;
+				int lastApplied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
+				if (bonusDay > lastApplied) {
+					int gain = bonusDay - lastApplied;
+					__instance.maxPerkPoint += gain;
+					__instance.maxPerkCount += gain;
+					MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
+					Core.LogMsg("[特性] 全局成长 +" + gain + " 点 +" + gain + " 槽（累计" + globalTotal + "天）");
+				}
+				if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
+			} catch (System.Exception ex) { Core.LogMsg("[特性] 成长结算异常: " + ex.Message); }
 			CustomStartingPerks.EnsureRegistered();
 			Core.LogMsg("[特性UI] OpenUI时确保特性已注册");
 			CustomStartingPerks.EnsurePickerElements(__instance);
