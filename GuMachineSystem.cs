@@ -33,15 +33,8 @@ public static partial class GuMachineSystem
 
     static GuMachineSystem()
     {
-        try
-        {
-            _guSprite = LoadPngSprite("gu_machine.png");
-            _aiSprite = LoadPngSprite("ai_generator.png");
-            _protectorSprite = LoadPngSprite("protector_core.png");
-            _aiModuleSprite = SpriteFromPixels(GuMachineIcons.AiModulePixels(), 32, 32);
-            Core.LogMsg("[养蛊机] 图标加载: " + (_guSprite != null ? "养蛊机✓" : "养蛊机✗") + " " + (_aiSprite != null ? "生成器✓" : "生成器✗") + " " + (_protectorSprite != null ? "保护器✓" : "保护器✗") + " " + (_aiModuleSprite != null ? "AI模组✓" : "AI模组✗"));
-        }
-        catch (Exception ex) { Core.LogMsg("[养蛊机] 图标加载异常: " + ex.Message); }
+        try { _aiModuleSprite = SpriteFromPixels(GuMachineIcons.AiModulePixels(), 32, 32); }
+        catch (Exception ex) { Core.LogMsg("[养蛊机] AI模组图标异常: " + ex.Message); }
     }
 
     private static Sprite LoadPngSprite(string fileName)
