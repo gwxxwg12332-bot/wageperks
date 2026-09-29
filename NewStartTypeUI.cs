@@ -306,6 +306,7 @@ internal static class NewStartTypeUI
                     "容器容量减半：腰包、储存箱与机器内嵌箱子开局容量减半（主背包除外），可拖垃圾（junk）逐格升级恢复\n" +
                     "博士夜晚到访，出售食物与水\n" +
                     "水瓶打印机：电子元件升级瓶型（满级打印 6000ml 超大瓶），金属锭升级质量（100 出普通水、更高优质/纯水）\n\n" +
+                    "特性成长：每累计50天+1点+1槽（全局继承新档）；困难模式额外+1槽；选择10点以上负面特性额外+1槽\n\n" +
                     CustomStartingPerks.CommunityNote,
                     "A brand-new starting type with its own tab on the start screen. Stranded on the station, survive like Robinson Crusoe:\n" +
                     "Daily 2200 kcal & 2000 ml water; six survival stats: satiety, thirst, health, cleanliness, sleep, social\n\n" +
@@ -317,6 +318,7 @@ internal static class NewStartTypeUI
                     "Containers start halved: pouches, storage and machine bins (main backpack excluded); drag junk to upgrade back\n" +
                     "The Doctor visits at night, selling food and water\n" +
                     "Bottle printer: electronic parts upgrade bottle type (max 6000ml jug), metal ingots upgrade quality (100 = plain water, higher = premium/pure)\n\n" +
+                    "Perk growth: every 50 global days +1 point +1 slot (persists across saves); Hard mode +1 slot; picking 10+ cost negative perks +1 slot\n\n" +
                     CustomStartingPerks.CommunityNote);
             }
 

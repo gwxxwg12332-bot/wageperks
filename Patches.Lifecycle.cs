@@ -311,7 +311,7 @@ internal static partial class Patches
 		try
 		{
 			MadnessRoller.ResetLock();
-			// ===== v1.3.2 特性成长：仅鲁滨逊档存活 ===== if (!RobinCrusoePerk.IsActive()) { if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10; return; }
+			if (!RobinCrusoePerk.IsActive()) { if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10; return; }
 			try {
 				int day = StoreStation.GetDayCounter();
 				int globalTotal = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthTotalDays") + day;
@@ -326,6 +326,8 @@ internal static partial class Patches
 					Core.LogMsg("[特性] 全局成长 +" + gain + " 点 +" + gain + " 槽（累计" + globalTotal + "天）");
 				}
 				if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
+				try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) __instance.maxPerkCount += 1; } catch { }
+				try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) __instance.maxPerkCount += 1; } catch { }
 			} catch (System.Exception ex) { Core.LogMsg("[特性] 成长结算异常: " + ex.Message); }
 			CustomStartingPerks.EnsureRegistered();
 			Core.LogMsg("[特性UI] OpenUI时确保特性已注册");
@@ -336,7 +338,6 @@ internal static partial class Patches
 			Core.LogMsg("[特性UI] 打开失败: " + ex.Message);
 		}
 	}
-
 	// 09-24 保险丝：原生 OpenUI 内部调 LocHelper.Get() 可能崩溃（异步本地化未就绪）
 	// Finalizer 拦住异常，不让整个特性界面死掉
 	public static System.Exception FinalizerPerkUiOpen(PerkUIController __instance, System.Exception __exception)
