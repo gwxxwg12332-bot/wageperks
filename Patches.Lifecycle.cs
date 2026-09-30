@@ -182,6 +182,7 @@ internal static partial class Patches
 		try
 		{
 			CustomStartingPerks.NotifyDayStart();
+			PerkGrowthHelper.OnDayStart();
 		}
 		catch (System.Exception ex)
 		{
@@ -313,18 +314,7 @@ internal static partial class Patches
 			MadnessRoller.ResetLock();
 			if (!RobinCrusoePerk.IsActive()) { if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10; return; }
 			try {
-				int day = StoreStation.GetDayCounter();
-				int globalTotal = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthTotalDays") + day;
-				MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthTotalDays", globalTotal);
-				int bonusDay = globalTotal / 50;
-				int lastApplied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
-				if (bonusDay > lastApplied) {
-					int gain = bonusDay - lastApplied;
-					__instance.maxPerkPoint += gain;
-					__instance.maxPerkCount += gain;
-					MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
-					Core.LogMsg("[特性] 全局成长 +" + gain + " 点 +" + gain + " 槽（累计" + globalTotal + "天）");
-				}
+				PerkGrowthHelper.ApplyOnPerkUiOpen(__instance);
 				if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
 				try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) __instance.maxPerkCount += 1; } catch { }
 				try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) __instance.maxPerkCount += 1; } catch { }
