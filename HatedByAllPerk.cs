@@ -34,9 +34,9 @@ internal sealed class HatedByAllPerk : CustomStartingPerk
             if (ps == null) return;
 
             int day = StoreStation.GetDayCounter();
-            if (day <= 0) day = WageSaveStore.GetInt("hated_day", 1);
+            if (day <= 0) day = WageSaveStore.GetInt("hated", "day", 1);
             day++;
-            WageSaveStore.Set("hated_day", day);
+            WageSaveStore.SetInt("hated", "day", day);
             if (Core.DebugMode)
                 Core.LogMsg("[人神共愤] day=" + day + " runID=" + (ps != null ? (ps.runID ?? "null") : "null"));
             // 基础：第一周500，一周后1500
