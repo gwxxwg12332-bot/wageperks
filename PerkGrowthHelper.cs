@@ -26,7 +26,11 @@ namespace JacksonPerks
                 int cash = 0;
                 try { dynamic ps = PlayerStore.Instance; cash = ps.playerCash; } catch { }
                 Core.LogMsg("[特性成长] cash=" + cash + " bonusDay=" + bonusDay + " applied=" + applied);
-                if (cash > 0 && bonusDay > applied)
+                // 精神错乱条件：选了精神错乱才记
+                bool madnessActive = false;
+                try { madnessActive = MadnessPerk.IsActive(); } catch { }
+                Core.LogMsg("[特性成长] madnessActive=" + madnessActive);
+                if (cash > 0 && bonusDay > applied && madnessActive)
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
                     Core.LogMsg("[特性成长] 攒满50天, applied=" + bonusDay + " total=" + total);
