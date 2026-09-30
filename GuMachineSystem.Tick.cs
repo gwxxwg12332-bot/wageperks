@@ -14,8 +14,6 @@ public static partial class GuMachineSystem
             var grid = GetGuGrid(gu);
             Core.LogMsg("[养蛊] tick: grid=" + (grid!=null?"ok":"null") + " contentWindow=" + (gu.contentWindow!=null));
             if (grid == null) return;
-            // 涡轮互食每次tick都跑（不受charge门控）
-            try { var advs = new System.Collections.Generic.List<GameItem>(); if (grid.childItems != null) { Core.LogMsg("[练兽] childItems数=" + grid.childItems.Count); foreach (var m in grid.childItems) { if (m==null) continue; string mid=""; try{mid=m.identifier??"";}catch{}; Core.LogMsg("[练兽] 物品id=" + mid); if (mid.StartsWith("turbo_booster_adv")) advs.Add(m); } } for (int j=advs.Count-1;j>=1;j--) { try{advs[j].parentInventory?.Expel(advs[j]);}catch{} try{advs[j].Destroy();}catch{} } if (advs.Count>0) { try{advs[0].EnableTag("TURBO_READY_TAG"); try{MachineTurboBoosterAdv.UpdateSprite(advs[0],null);}catch{} RobinCrusoePerk.SetTagIntValue(advs[0],"CURRENT_CHARGE_TAG",15+(advs.Count-1)*15); int oldN=RobinCrusoePerk.GetTagIntSafe(advs[0],"wage_turbo_n"); if(oldN<=0)oldN=1; RobinCrusoePerk.SetTagIntValue(advs[0],"wage_turbo_n",oldN+(advs.Count-1));}catch{} Core.LogMsg("[练兽] 涡轮互食 adv数=" + advs.Count); } } catch { }
             // v1.3.1【6b】练兽互食分支（独立于炼蛊充能，每日运行）：舱内>=2只rat自动互食，每天最多3次
             TryBeastEat(gu, grid, day);
             int charge = RobinCrusoePerk.GetTagIntSafe(gu, GU_CHARGE_TAG);
