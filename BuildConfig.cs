@@ -421,12 +421,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("BatteryInterval", 8, "电池吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("InspectInterval", 15, "治安部眼线检查间隔(天)");
 			melonPreferences_Category.CreateEntry("GuMachinePrice", 3000, "养蛊机售价");
-			melonPreferences_Category.CreateEntry("GuChargeDays", 3, "养蛊机充能天数");
-			melonPreferences_Category.CreateEntry("GuForgeMult", 120, "炼蛊倍率(% 120=×1.2)");
-			melonPreferences_Category.CreateEntry("GuForgeCap", 150, "炼蛊属性上限");
 			melonPreferences_Category.CreateEntry("AiGenPrice", 1000, "AI生成器售价");
-			melonPreferences_Category.CreateEntry("GuBeastCap", 999, "练兽属性上限(练兽放开)");
-			melonPreferences_Category.CreateEntry("AiSuccessPct", 50, "AI抽卡成功率(%)");
 			melonPreferences_Category.CreateEntry("AiStableCap", 75, "阉割版属性上限");
 			melonPreferences_Category.CreateEntry("AiUnstableCap", 150, "不稳定版属性上限");
 			melonPreferences_Category.CreateEntry("ProtectorPrice", 1500, "保护器核心售价");
