@@ -66,12 +66,15 @@ public static class TurboBoostN
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); }
     }
 
+    private static bool _inTurboCatchUp = false;
     public static void PostfixPurifyContainer(GameItem machine, GameItem waterContainer, bool ignoreBonus)
     {
+        if (_inTurboCatchUp) return;
         try
         {
             int n = FindTurboNInMachine(machine);
             if (n <= 1) return;
+            _inTurboCatchUp = true;
             for (int i = 0; i < n - 1; i++)
             {
                 try { MachinePurifier.PurifyContainer(machine, waterContainer, ignoreBonus); } catch { }
@@ -79,15 +82,18 @@ public static class TurboBoostN
             Core.LogMsg("[涡轮N] Purify补产 " + (n - 1) + "次");
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Purify异常: " + ex.Message); }
+        finally { _inTurboCatchUp = false; }
     }
 
     public static void PostfixOnAgeWine(GameItem item)
     {
+        if (_inTurboCatchUp) return;
         try
         {
             var machine = item?.parentInventory?.GetParentItem();
             int n = FindTurboNInMachine(machine);
             if (n <= 1) return;
+            _inTurboCatchUp = true;
             for (int i = 0; i < n - 1; i++)
             {
                 try { WineHelper.OnAgeWine(item); } catch { }
@@ -95,14 +101,17 @@ public static class TurboBoostN
             Core.LogMsg("[涡轮N] Wine补产 " + (n - 1) + "次");
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Wine异常: " + ex.Message); }
+        finally { _inTurboCatchUp = false; }
     }
 
     public static void PostfixContinueProgress(GameItem machine)
     {
+        if (_inTurboCatchUp) return;
         try
         {
             int n = FindTurboNInMachine(machine);
             if (n <= 1) return;
+            _inTurboCatchUp = true;
             for (int i = 0; i < n - 1; i++)
             {
                 try { MachineProgressHelper.ContinueProgressTypeMachine(machine); } catch { }
@@ -110,6 +119,7 @@ public static class TurboBoostN
             Core.LogMsg("[涡轮N] Progress补产 " + (n - 1) + "次");
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Progress异常: " + ex.Message); }
+        finally { _inTurboCatchUp = false; }
     }
 
     public static void PostfixCreateTooltip(RichTextBuilder builder, GameItem item)
