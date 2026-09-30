@@ -82,10 +82,10 @@ internal static class WageBrother
                 _cardSpawned = true;
                 Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
             }
-            // 小概率携带售卖AI制造机
+            // 小概率携带售卖AI制造机/养蛊机/保护器
             try
             {
-                if (Core.Rng.Next(100) < 50) // 50%概率携带
+                if (Core.Rng.Next(100) < 50)
                 {
                     var aiGen = DirectoryMaster.Item("wage_ai_generator", true);
                     if (aiGen != null)
@@ -96,8 +96,30 @@ internal static class WageBrother
                         Core.LogMsg("[蛙哥] 携带AI制造机售卖");
                     }
                 }
+                if (Core.Rng.Next(100) < 30)
+                {
+                    var guMachine = DirectoryMaster.Item("wage_gu_machine", true);
+                    if (guMachine != null)
+                    {
+                        guMachine.DisableTag("not_purchased", true);
+                        guMachine.EnableTag("IS_OWNED_TAG", true);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(guMachine, true, false, false, 0);
+                        Core.LogMsg("[蛙哥] 携带养蛊机售卖");
+                    }
+                }
+                if (Core.Rng.Next(100) < 40)
+                {
+                    var protector = DirectoryMaster.Item("wage_protector_core", true);
+                    if (protector != null)
+                    {
+                        protector.DisableTag("not_purchased", true);
+                        protector.EnableTag("IS_OWNED_TAG", true);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(protector, true, false, false, 0);
+                        Core.LogMsg("[蛙哥] 携带保护器售卖");
+                    }
+                }
             }
-            catch (Exception exai) { Core.LogMsg("[蛙哥] AI制造机上柜台异常: " + exai.Message); }
+            catch (Exception exai) { Core.LogMsg("[蛙哥] 携带物品上柜台异常: " + exai.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] OnClientArrived异常: " + ex.Message); }
     }
