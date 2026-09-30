@@ -1,5 +1,6 @@
 using MelonLoader;
 using System;
+using Il2Cpp;
 
 namespace JacksonPerks
 {
@@ -20,7 +21,8 @@ namespace JacksonPerks
                 int applied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
 
                 // 现金正数才记
-                int cash = PlayerStore.Instance != null ? PlayerStore.Instance.playerCash : 0;
+                int cash = 0;
+                try { dynamic ps = PlayerStore.Instance; cash = ps.playerCash; } catch { }
                 if (cash > 0 && bonusDay > applied)
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
