@@ -316,8 +316,8 @@ internal static partial class Patches
 			try {
 				PerkGrowthHelper.ApplyOnPerkUiOpen(__instance);
 				if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
-				try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) __instance.maxPerkCount += 1; } catch { }
-				try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) __instance.maxPerkCount += 1; } catch { }
+				try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
+				try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
 			} catch (System.Exception ex) { Core.LogMsg("[特性] 成长结算异常: " + ex.Message); }
 			CustomStartingPerks.EnsureRegistered();
 			Core.LogMsg("[特性UI] OpenUI时确保特性已注册");
