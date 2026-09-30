@@ -257,16 +257,14 @@ public static class BuildConfig
 
 	public static int GuMachinePrice => GetInt("GuMachinePrice", 3000);
 
-	public static int GuChargeDays => GetInt("GuChargeDays", 3);
-
-	public static int GuForgeMult => GetInt("GuForgeMult", 120);
-
-	public static int GuForgeCap => GetInt("GuForgeCap", 150);
-	public static int GuBeastCap => GetInt("GuBeastCap", 999);	// v1.3.1【6】练兽属性上限（练兽放开，炼蛊150不变）
+	public const int GuChargeDays = 3;
+	public const int GuForgeMult = 120;
+	public const int GuForgeCap = 150;
+	public const int GuBeastCap = 999;
 
 	public static int AiGenPrice => GetInt("AiGenPrice", 1000);
 
-	public static int AiSuccessPct => GetInt("AiSuccessPct", 50);
+	public const int AiSuccessPct = 50;
 
 	public static int AiStableCap => GetInt("AiStableCap", 75);
 
