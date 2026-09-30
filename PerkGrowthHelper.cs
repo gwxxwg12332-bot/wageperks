@@ -30,6 +30,7 @@ namespace JacksonPerks
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
                     Core.LogMsg("[特性成长] 攒满50天, applied=" + bonusDay + " total=" + total);
+                    MelonLogger.Msg("[Wage's Perks] 🎉 特性成长里程碑：已累计50天，下次新开局自动 +" + bonusDay + "点 +" + bonusDay + "槽！");
                 }
             }
             catch (Exception ex) { Core.LogMsg("[特性成长] OnDayStart异常: " + ex.Message); }
