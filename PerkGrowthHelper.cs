@@ -19,7 +19,7 @@ namespace JacksonPerks
                 MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthTotalDays", total);
                 Core.LogMsg("[特性成长] total=" + total);
 
-                int bonusDay = total / 50;
+                int bonusDay = total / 1; // 测试：1天
                 int applied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
 
                 // 现金正数才记
