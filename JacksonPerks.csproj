@@ -151,6 +151,7 @@
     <EmbeddedResource Include="Assets\gu_machine.png" />
     <EmbeddedResource Include="Assets\ai_generator.png" />
     <EmbeddedResource Include="Assets\protector_core.png" />
+    <EmbeddedResource Include="Assets\rat_king.png" />
 
   </ItemGroup>
 
