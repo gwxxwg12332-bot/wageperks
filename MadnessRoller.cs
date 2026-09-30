@@ -66,15 +66,7 @@ internal static class MadnessRoller
 
             int count = 0;
 
-            // 阶段1：必选栏位天赋（加格子最多的）
-            StartingPerk slotPerk = PickSlotBonusPerk(perks, list, hashSet);
-            if (slotPerk != null && TrySelect(ui, slotPerk))
-            {
-                list.Add(slotPerk);
-                hashSet.Add(slotPerk.id);
-                count++;
-                Core.LogMsg($"[精神错乱] 阶段1 栏位天赋: {slotPerk.id}");
-            }
+            // 阶段1跳过：精神错乱本身maxSlot=3已加槽，不再选slotPerk避免双重加槽
 
             // 阶段2：随机抽满
             SysDict.Dictionary<string, SysDict.HashSet<string>> incompat = BuildIncompatMap(perks);

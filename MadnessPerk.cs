@@ -16,7 +16,7 @@ internal sealed class MadnessPerk : CustomStartingPerk
         "Give up thinking, let fate decide your perks. Auto-randomize all perks on game start. If not enough points, negative perks are guaranteed. Perks that add points/slots are prioritized.");
     internal override int Cost => 0;
     internal override int Type => 1;  // 负面红色
-    internal override int MaxSlot => 0;  // 09-30 对齐RandomPerk：不加槽（避免双重加槽）
+    internal override int MaxSlot => 3;  // 09-30 自带+3特性槽
 
     internal static bool IsActive()
     {
