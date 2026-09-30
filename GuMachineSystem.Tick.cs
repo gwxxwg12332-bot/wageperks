@@ -159,6 +159,16 @@ public static partial class GuMachineSystem
             if (lastDay == day) return; // 每天 1 次
             var grid = GetGuGrid(gen);
             if (grid == null) { return; }
+            // 涡轮互食（移植自养蛊机）：舱内 N 个 turbo_booster_adv → 吞噬 N-1 留 1
+            try {
+                var advs = new System.Collections.Generic.List<GameItem>();
+                if (grid.childItems != null) foreach (var m in grid.childItems) { if (m == null) continue; string mid = ""; try { mid = m.identifier ?? ""; } catch { }; if (mid.StartsWith("turbo_booster_adv")) advs.Add(m); }
+                for (int j = advs.Count - 1; j >= 1; j--) { try { advs[j].parentInventory?.Expel(advs[j]); } catch { } try { advs[j].Destroy(); } catch { } }
+                if (advs.Count > 0) {
+                    try { advs[0].EnableTag("TURBO_READY_TAG"); try { MachineTurboBoosterAdv.UpdateSprite(advs[0], null); } catch { } RobinCrusoePerk.SetTagIntValue(advs[0], "CURRENT_CHARGE_TAG", 15 + (advs.Count - 1) * 15); int oldN = RobinCrusoePerk.GetTagIntSafe(advs[0], "wage_turbo_n"); if (oldN <= 0) oldN = 1; RobinCrusoePerk.SetTagIntValue(advs[0], "wage_turbo_n", oldN + (advs.Count - 1)); } catch { }
+                    Core.LogMsg("[AI制造] 涡轮互食 adv数=" + advs.Count);
+                }
+            } catch { }
             // 收集模组 + 找保护器
             var mods = new System.Collections.Generic.List<GameItem>();
             GameItem protector = null;
@@ -181,12 +191,15 @@ public static partial class GuMachineSystem
                 try { protector.parentInventory?.Expel(protector); } catch { }
                 try { protector.Destroy(); } catch { }
             }
-            // 抽卡：不稳定版 50% 成功 / 50% 失败；阉割版 100%
+            // 抽卡：成功率=蛙娘心情节点（>=80→80%, <40→20%, 中间50%）；阉割版100%
             bool success = true;
             if (!safe)
             {
+                int mood = 50; try { mood = WageGirlSystem.State.GetStat("mood"); } catch { }
+                int successPct = mood >= 80 ? 80 : (mood < 40 ? 20 : 50);
                 int roll = 0; try { roll = Core.Rng.Next(100); } catch { roll = 0; }
-                success = roll < BuildConfig.AiSuccessPct;
+                success = roll < successPct;
+                Core.LogMsg("[AI制造] mood=" + mood + " successPct=" + successPct + " roll=" + roll + " success=" + success);
             }
             if (success)
             {
