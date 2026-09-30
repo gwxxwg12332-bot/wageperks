@@ -235,28 +235,11 @@ internal static class WageBrother
             if (ps.playerCash < price) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
             ps.playerCash -= price;
             StartingPerk.RemovePerk(perkId);
-            // 消除声名狼藉：5势力声望差值补回0（每个势力收3000）
+            // 消除声名狼藉：弹五势力选择窗口（每势力3000）
             if (perkId == "声名狼藉")
             {
-                try
-                {
-                    string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
-                    int repCost = 0;
-                    foreach (var fid in factionIds)
-                    {
-                        try
-                        {
-                            var rep = StoreReputation.GetStoreReputation(fid);
-                            if (rep == null) continue;
-                            int cur = (int)rep.GetReputationExact();
-                            if (cur < 0) { rep.ModReputation(-cur); repCost += 3000; }
-                        }
-                        catch { }
-                    }
-                    if (repCost > 0) ps.playerCash -= repCost;
-                    Core.LogMsg("[蛙哥] 声名狼藉已消除，5势力声望回正，扣" + repCost);
-                }
-                catch (Exception ex) { Core.LogMsg("[蛙哥] 声望回正异常: " + ex.Message); }
+                try { ShowRepFactionWindow(); return; }
+                catch (Exception ex) { Core.LogMsg("[蛙哥] 弹势力窗口异常: " + ex.Message); }
             }
             Core.LogMsg("[蛙哥] 已消除 " + perkId + "，扣 " + price);
             StoreUIManager.Instance.Notify(LangHelper.T("蛙哥收了" + price + "块，" + perkId + "消了", "Wage Brother took " + price + ", removed " + perkId));
@@ -267,6 +250,57 @@ internal static class WageBrother
             try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("wage_bro_window"); } catch { }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] DoRemovePerk异常: " + ex.Message); }
+    }
+
+    // 五势力声望恢复窗口（每势力3000）
+    private static void ShowRepFactionWindow()
+    {
+        try
+        {
+            var mgr = CustomUIManager.Instance; if (mgr == null) return;
+            if (mgr.IsOpen("wage_rep_window")) mgr.CloseWindow("wage_rep_window");
+            var w = mgr.CreateWindow("wage_rep_window", LangHelper.T("蛙哥 · 声望恢复", "Wage Brother · Rep Restore"), "overlay");
+            if (w == null) return;
+            w.SetSize(360, 400).SetPosition(Vector2.zero);
+            w.BeginColumn(4f);
+            w.AddLabel(LangHelper.T("蛙哥：声望恢复，每个势力3000，点哪个恢复哪个。", "Wage Brother: rep restore, 3000 per faction, click to restore."), "wr_hint");
+            var ps = PlayerStore.Instance;
+            w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wr_cash");
+            string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
+            string[] factionNames = { "治安部", "上层", "革命派", "下层", "黑市" };
+            for (int i = 0; i < factionIds.Length; i++)
+            {
+                string fid = factionIds[i];
+                string fnm = factionNames[i];
+                try
+                {
+                    var rep = StoreReputation.GetStoreReputation(fid);
+                    if (rep == null) continue;
+                    int cur = (int)rep.GetReputationExact();
+                    if (cur >= 0) continue; // 已恢复跳过
+                    string btnText = LangHelper.T(fnm + "（" + cur + "→0，3000块）", fnm + " (" + cur + "→0, 3000cr)");
+                    var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                    {
+                        try
+                        {
+                            var p = PlayerStore.Instance; if (p == null) return;
+                            if (p.playerCash < 3000) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
+                            p.playerCash -= 3000;
+                            var r = StoreReputation.GetStoreReputation(fid);
+                            if (r != null) { int c = (int)r.GetReputationExact(); if (c < 0) r.ModReputation(-c); }
+                            Core.LogMsg("[蛙哥] " + fnm + " 声望恢复，扣3000");
+                            StoreUIManager.Instance.Notify(LangHelper.T(fnm + "声望恢复", fnm + " rep restored"));
+                            ShowRepFactionWindow(); // 刷新
+                        }
+                        catch (Exception ex) { Core.LogMsg("[蛙哥] 恢复声望异常: " + ex.Message); }
+                    }));
+                    w.AddButton(btnText, act, "wr_fac_" + i);
+                }
+                catch { }
+            }
+            w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wage_rep_window"); } catch { } })), "wr_close");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] ShowRepFactionWindow异常: " + ex.Message); }
     }
 
     // 服务卡双击 Prefix（OpenContentAction 识别 wage_bro_card）
