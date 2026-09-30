@@ -63,7 +63,7 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived: 是蛙哥,开始生成服务卡");
-            try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.BUY; } catch { }
+            try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } catch { }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { }
             // 不依赖门控，每次到场都加卡（柜台有卡则原生去重）`r`n            Core.LogMsg("[蛙哥] _cardSpawned=" + _cardSpawned + " 强制加卡");
             var ps = PlayerStore.Instance; if (ps == null) return;
