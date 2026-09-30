@@ -264,7 +264,7 @@ public static class BuildConfig
 	public static int GuForgeCap => GetInt("GuForgeCap", 150);
 	public static int GuBeastCap => GetInt("GuBeastCap", 999);	// v1.3.1【6】练兽属性上限（练兽放开，炼蛊150不变）
 
-	public static int AiGenPrice => GetInt("AiGenPrice", 5000);
+	public static int AiGenPrice => GetInt("AiGenPrice", 1000);
 
 	public static int AiSuccessPct => GetInt("AiSuccessPct", 50);
 
@@ -424,7 +424,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("GuChargeDays", 3, "养蛊机充能天数");
 			melonPreferences_Category.CreateEntry("GuForgeMult", 120, "炼蛊倍率(% 120=×1.2)");
 			melonPreferences_Category.CreateEntry("GuForgeCap", 150, "炼蛊属性上限");
-			melonPreferences_Category.CreateEntry("AiGenPrice", 5000, "AI生成器售价");
+			melonPreferences_Category.CreateEntry("AiGenPrice", 1000, "AI生成器售价");
 			melonPreferences_Category.CreateEntry("GuBeastCap", 999, "练兽属性上限(练兽放开)");
 			melonPreferences_Category.CreateEntry("AiSuccessPct", 50, "AI抽卡成功率(%)");
 			melonPreferences_Category.CreateEntry("AiStableCap", 75, "阉割版属性上限");
