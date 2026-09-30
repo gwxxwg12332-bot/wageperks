@@ -54,6 +54,22 @@ namespace JacksonPerks
                     ui.maxPerkCount += bonusDay;
                     Core.LogMsg("[特性成长] 开局应用 +" + bonusDay + "点 +" + bonusDay + "槽");
                 }
+                // 困难模式额外各+1
+                try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) { ui.maxPerkPoint += 1; ui.maxPerkCount += 1; Core.LogMsg("[特性成长] HardMode额外+1点+1槽"); } } catch { }
+                // 负面特性>正面特性额外各+1
+                try
+                {
+                    int negCost = 0, posCost = 0;
+                    foreach (var pk in CustomStartingPerks.All)
+                    {
+                        if (StartingPerk.IsPerkActive(pk.Id))
+                        {
+                            if (pk.Cost < 0) negCost += -pk.Cost;
+                            else if (pk.Cost > 0) posCost += pk.Cost;
+                        }
+                    }
+                    if (negCost > posCost) { ui.maxPerkPoint += 1; ui.maxPerkCount += 1; Core.LogMsg("[特性成长] 负面>正面额外+1点+1槽 neg=" + negCost + " pos=" + posCost); }
+                } catch { }
                 _appliedThisRun = true;
             }
             catch (Exception ex) { Core.LogMsg("[特性成长] Apply异常: " + ex.Message); }
