@@ -368,6 +368,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget_WageBox", null, null, typeof(ContainerUpgradeV2));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget_WageBox", null, null, typeof(ContainerUpgradeV2));
 			ManualPatcher.TryPatch(typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot_WageBox", null, null, typeof(ContainerUpgradeV2));
+			ManualPatcher.TryPatch(typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot", null, null, typeof(GuMachineSystem));
 			ManualPatcher.TryPatch(typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(LuckScoutBackpackUpgrade));
 			ManualPatcher.TryPatch(typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(LuckScoutBackpackUpgrade));

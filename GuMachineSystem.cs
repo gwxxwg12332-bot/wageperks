@@ -22,6 +22,21 @@ public static partial class GuMachineSystem
     public const string PROTECTOR_ICON = "protector_core";
     public const string AI_MODULE_ICON = "ai_module"; // 09-15 第4图标（不稳定AI模组）
 
+    // 禁止把柜台上待售物品（not_purchased）拖进养蛊机/AI制造机
+    public static bool PrefixMayHaveValidInventorySlot(GameItem __instance, GameItem item, ref bool __result)
+    {
+        try
+        {
+            if (__instance == null || item == null) return true;
+            string instId = ""; try { instId = __instance.identifier ?? ""; } catch { }
+            if (instId != GU_MACHINE_ID && instId != AI_GENERATOR_ID) return true;
+            bool notPurchased = false; try { notPurchased = item.IsTag("not_purchased") || item.IsTag("TAG_NOT_PURCHASED"); } catch { }
+            if (notPurchased) { __result = false; return false; }
+        }
+        catch (Exception ex) { Core.LogMsg("[养蛊机] PrefixMayHaveValidInventorySlot异常: " + ex.Message); }
+        return true;
+    }
+
     private static Sprite _guSprite;
     private static Sprite _aiSprite;
     private static Sprite _protectorSprite;
