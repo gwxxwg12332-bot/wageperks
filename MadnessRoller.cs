@@ -246,7 +246,7 @@ internal static class MadnessRoller
                 if (perk == null) continue;
                 string id = perk.id;
                 if (string.IsNullOrEmpty(id) || Excluded.Contains(id) || chosenIds.Contains(id)) continue;
-                if (perk.cost < 0 && !IsBlockedBy(id, chosenIds, incompat) && !WouldBreakReputationFloor(id, currentRep))
+                if (perk.cost < 0 && perk.maxSlot <= 0 && !IsBlockedBy(id, chosenIds, incompat) && !WouldBreakReputationFloor(id, currentRep))
                 {
                     if (best == null || perk.cost < bestCost)
                     {
