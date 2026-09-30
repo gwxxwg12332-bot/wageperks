@@ -42,6 +42,7 @@ namespace JacksonPerks
             try
             {
                 int bonusDay = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
+                Core.LogMsg("[特性成长] Apply被调 bonusDay=" + bonusDay);
                 if (bonusDay > 0)
                 {
                     ui.maxPerkPoint += bonusDay;
