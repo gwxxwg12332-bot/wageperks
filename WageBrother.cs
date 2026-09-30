@@ -130,7 +130,7 @@ internal static class WageBrother
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
     {
-        try { if (atlasPath == "custom_atlas") { Core.LogMsg("[蛙哥] LoadFromAtlas: " + name + " cs=" + (_cardSprite!=null?"ok":"null")); if (name == CARD_SPRITE_KEY && _cardSprite != null) { Core.LogMsg("[蛙哥] 拦截!"); __result = _cardSprite; return false; } } } catch { }
+        try { if (atlasPath == "custom_atlas" && name == CARD_SPRITE_KEY) { Core.LogMsg("[蛙哥] LoadFromAtlas: " + name + " cs=" + (_cardSprite!=null?"ok":"null")); if (_cardSprite != null) { Core.LogMsg("[蛙哥] 拦截!"); __result = _cardSprite; return false; } } } catch { }
         return true;
     }
     internal static void LoadPortrait()
