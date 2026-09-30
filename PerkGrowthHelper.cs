@@ -31,7 +31,7 @@ namespace JacksonPerks
                 try { madnessActive = StartingPerk.IsPerkActive("精神错乱"); Core.LogMsg("[特性成长] IsPerkActive直接=" + madnessActive); } catch (Exception ex2) { Core.LogMsg("[特性成长] IsPerkActive异常: " + ex2.Message); }
                 try { madnessActive = madnessActive || MadnessPerk.IsActive(); } catch { }
                 Core.LogMsg("[特性成长] madnessActive=" + madnessActive);
-                if (cash > 0 && bonusDay > applied && madnessActive)
+                if (cash > 0 && bonusDay > applied) // 测试：临时去掉madnessActive条件
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
                     Core.LogMsg("[特性成长] 攒满50天, applied=" + bonusDay + " total=" + total);
