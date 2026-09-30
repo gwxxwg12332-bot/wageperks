@@ -82,6 +82,22 @@ internal static class WageBrother
                 _cardSpawned = true;
                 Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
             }
+            // 小概率携带售卖AI制造机
+            try
+            {
+                if (Core.Rng.Next(100) < 50) // 50%概率携带
+                {
+                    var aiGen = DirectoryMaster.Item("wage_ai_generator", true);
+                    if (aiGen != null)
+                    {
+                        aiGen.DisableTag("not_purchased", true);
+                        aiGen.EnableTag("IS_OWNED_TAG", true);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(aiGen, true, false, false, 0);
+                        Core.LogMsg("[蛙哥] 携带AI制造机售卖");
+                    }
+                }
+            }
+            catch (Exception exai) { Core.LogMsg("[蛙哥] AI制造机上柜台异常: " + exai.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] OnClientArrived异常: " + ex.Message); }
     }
