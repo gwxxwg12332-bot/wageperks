@@ -215,7 +215,7 @@ internal static class SpecialNpcManager
     {
         if (client == null || client.identifier == null) return false;
         string id = client.identifier;
-        return id == "retired_gunsmith" || id == "retired_water_merchant" || id == "retired_winemaker" || id == "inventorStorage" || id == "inventor_storage";
+        return id == "retired_gunsmith" || id == "retired_water_merchant" || id == "retired_winemaker" || id == "inventorStorage" || id == "inventor_storage" || id == "wage_brother";
     }
 
     // 获取当前客户
