@@ -103,26 +103,6 @@ internal static class MadnessRoller
                 Core.LogMsg($"[精神错乱] 阶段3 负面补偿: {refund.id}");
             }
 
-            // 阶段4：点数仍超→强制反选正perk释放点数
-            int guard = 0;
-            while (ui.currentPerkPoint > ui.maxPerkPoint && guard < 10)
-            {
-                guard++;
-                StartingPerk toDrop = null;
-                int bestCost = -999;
-                for (int i = list.Count - 1; i >= 0; i--)
-                {
-                    var p = list[i];
-                    if (p != null && p.cost > 0 && p.id != "精神错乱") { if (p.cost > bestCost) { bestCost = p.cost; toDrop = p; } }
-                }
-                if (toDrop == null) break;
-                StartingPerkElement el = FindElement(ui.selectedPerks, toDrop.id) ?? FindElement(ui.availablePerks, toDrop.id);
-                try { if (el != null) ui.DeselectPerk(el); } catch { }
-                list.Remove(toDrop);
-                hashSet.Remove(toDrop.id);
-                Core.LogMsg($"[精神错乱] 阶段4 反选: {toDrop.id} cost={toDrop.cost}");
-            }
-
             try { ui.OnChange(); } catch { }
             try { ui.SortPerkContainer(ui.availablePerks); } catch { }
 
@@ -237,7 +217,7 @@ internal static class MadnessRoller
                 if (perk == null) continue;
                 string id = perk.id;
                 if (string.IsNullOrEmpty(id) || Excluded.Contains(id) || chosenIds.Contains(id)) continue;
-                if (perk.cost < 0 && perk.maxSlot <= 0 && !IsBlockedBy(id, chosenIds, incompat) && !WouldBreakReputationFloor(id, currentRep))
+                if (perk.cost < 0 && !IsBlockedBy(id, chosenIds, incompat) && !WouldBreakReputationFloor(id, currentRep))
                 {
                     if (best == null || perk.cost < bestCost)
                     {
@@ -266,7 +246,7 @@ internal static class MadnessRoller
                 if (string.IsNullOrEmpty(id) || Excluded.Contains(id) || chosenIds.Contains(id)) continue;
                 if (IsBlockedBy(id, chosenIds, incompat)) continue;
                 if (WouldBreakReputationFloor(id, currentRep)) continue;
-                if (perk.cost <= pointsLeft && perk.maxSlot <= 0) candidates.Add(perk); // 阶段2只抽不加槽的perk
+                if (perk.cost <= pointsLeft) candidates.Add(perk);
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
