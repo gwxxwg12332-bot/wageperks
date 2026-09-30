@@ -216,7 +216,7 @@ internal static class WageBrother
                     int cpy = perk.Cost;
                     int pr = price;
                     var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(perk.Id, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消perk异常: " + ex.Message); } }));
-                    string btnText = LangHelper.T(nm + "（" + cpy + "点，" + pr + "块）", nm + " (" + cpy + "pt, " + pr + "cr)");
+                    string btnText = LangHelper.T(nm, nm);
                     w.AddButton(btnText, act, "wb_perk_" + listed);
                     listed++;
                 }
