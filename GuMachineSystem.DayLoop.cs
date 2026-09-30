@@ -30,8 +30,23 @@ public static partial class GuMachineSystem
         var result = new System.Collections.Generic.List<GameItem>();
         try
         {
-            var all = Il2Cpp.PlayerStore.Instance.FindAllItem(true);
-            if (all != null) foreach (var it in all) { if (it != null && it.identifier == GU_MACHINE_ID) result.Add(it); }
+            // 养蛊机是场景机器不在PlayerStore.FindAllItem里，遍历所有GameInventory找
+            var allInvs = Il2Cpp.EmporiumEntry.Instance;
+            if (allInvs == null) return result;
+            GameInventory[] invs = {
+                allInvs.backInvinvElement as GameInventory,
+                allInvs.showcaseElement as GameInventory,
+                allInvs.invElement as GameInventory,
+                allInvs.frontInvinvElement as GameInventory,
+            };
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                foreach (var it in inv.childItems)
+                {
+                    if (it != null && it.identifier == GU_MACHINE_ID) result.Add(it);
+                }
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
         return result;

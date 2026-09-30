@@ -120,6 +120,25 @@ internal static class WageBrother
                 }
             }
             catch (Exception exai) { Core.LogMsg("[蛙哥] 携带物品上柜台异常: " + exai.Message); }
+            // 清wanted7模板残留PEAT/JUICE
+            try
+            {
+                var emp = Il2Cpp.EmporiumEntry.Instance; if (emp == null) return;
+                var showcase = emp.showcaseElement as GameInventory;
+                if (showcase == null || showcase.childItems == null) return;
+                for (int i = showcase.childItems.Count - 1; i >= 0; i--)
+                {
+                    var it = showcase.childItems[i];
+                    if (it == null) continue;
+                    string id = it.identifier ?? "";
+                    if (id == "processed_meat" || id == "processed_juice" || id == "peat")
+                    {
+                        showcase.childItems.RemoveAt(i);
+                        Core.LogMsg("[蛙哥] 清柜台残留: " + id);
+                    }
+                }
+            }
+            catch (Exception exclean) { Core.LogMsg("[蛙哥] 清柜台异常: " + exclean.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] OnClientArrived异常: " + ex.Message); }
     }

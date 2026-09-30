@@ -95,6 +95,29 @@ internal static class MadnessRoller
                 Core.LogMsg($"[精神错乱] 阶段3 负面补偿: {refund.id}");
             }
 
+            // 阶段4：点数仍超→强制反选已选正perk释放点数
+            int guard = 0;
+            while (ui.currentPerkPoint > ui.maxPerkPoint && guard < 10)
+            {
+                guard++;
+                StartingPerk toDrop = null;
+                int bestCost = 0;
+                foreach (var p in list)
+                {
+                    if (p != null && p.cost > bestCost) { bestCost = p.cost; toDrop = p; }
+                }
+                if (toDrop == null) break;
+                try
+                {
+                    StartingPerkElement el = FindElement(ui.selectedPerks, toDrop.id);
+                    if (el != null) ui.SelectPerk(el);
+                }
+                catch { }
+                list.Remove(toDrop);
+                hashSet.Remove(toDrop.id);
+                Core.LogMsg($"[精神错乱] 阶段4 反选: {toDrop.id} cost={toDrop.cost}");
+            }
+
             try { ui.OnChange(); } catch { }
             try { ui.SortPerkContainer(ui.availablePerks); } catch { }
 
@@ -238,7 +261,7 @@ internal static class MadnessRoller
                 if (string.IsNullOrEmpty(id) || Excluded.Contains(id) || chosenIds.Contains(id)) continue;
                 if (IsBlockedBy(id, chosenIds, incompat)) continue;
                 if (WouldBreakReputationFloor(id, currentRep)) continue;
-                if (perk.cost <= pointsLeft) candidates.Add(perk);
+                if (perk.cost <= pointsLeft && perk.maxSlot <= 0) candidates.Add(perk);
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 异常: " + ex.Message); }
