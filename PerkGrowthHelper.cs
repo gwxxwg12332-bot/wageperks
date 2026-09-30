@@ -30,7 +30,7 @@ namespace JacksonPerks
             catch (Exception ex) { Core.LogMsg("[特性成长] OnDayStart异常: " + ex.Message); }
         }
 
-        public static void ApplyOnPerkUiOpen(PerkUIController ui)
+        public static void ApplyOnPerkUiOpen(dynamic ui)
         {
             if (_appliedThisRun) return;
             try
