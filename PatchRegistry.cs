@@ -354,7 +354,7 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(ModuleHelper), "ApplyPerformanceWaterRecyclerEffect", null, "PostfixApplyPerformanceWaterRecyclerEffect", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MachineMoistureFarm), "GetOutputVolume", null, "PostfixGetOutputVolume", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MachineTurboBoosterAdv), "UpdateSprite", null, "PostfixUpdateSprite", null, typeof(TurboBoostN));
-			ManualPatcher.TryPatch(typeof(MachineMoistureFarm), "Fill", null, "PostfixFill", null, typeof(TurboBoostN));
+			ManualPatcher.TryPatch(typeof(MachineMoistureFarm), "Fill", "PrefixFill", null, null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(MachinePurifier), "PurifyContainer", null, "PostfixPurifyContainer", null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(WineHelper), "OnAgeWine", null, "PostfixOnAgeWine", null, typeof(TurboBoostN));
 			ManualPatcher.TryPatch(typeof(MachineProgressHelper), "ContinueProgressTypeMachine", null, "PostfixContinueProgress", null, typeof(TurboBoostN));

@@ -52,19 +52,15 @@ public static class TurboBoostN
         return 0;
     }
 
-    public static void PostfixFill(string quality, GameItem container, int volume)
+    public static void PrefixFill(string quality, GameItem container, ref int volume)
     {
         try
         {
             if (_turboMachine == null || _turboN <= 1) return;
             var machine = container?.parentInventory?.GetParentItem();
             if (machine != _turboMachine) return;
-            Core.LogMsg("[涡轮N] Fill补产 n=" + _turboN);
-            for (int i = 0; i < _turboN - 1; i++)
-            {
-                try { MachineMoistureFarm.Fill(quality, container, volume); } catch { }
-            }
-            Core.LogMsg("[涡轮N] 补产完成 " + (_turboN - 1) + "次");
+            Core.LogMsg("[涡轮N] Fill放大 n=" + _turboN + " vol=" + volume);
+            volume *= _turboN;
             _turboN = 0; _turboMachine = null;
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Fill异常: " + ex.Message); }
