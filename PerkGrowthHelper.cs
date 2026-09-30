@@ -19,7 +19,7 @@ namespace JacksonPerks
                 MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthTotalDays", total);
                 Core.LogMsg("[特性成长] total=" + total);
 
-                int bonusDay = total / 1; // 测试：1天
+                int bonusDay = total / 50;
                 int applied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
 
                 // 现金正数才记
@@ -31,7 +31,7 @@ namespace JacksonPerks
                 try { madnessActive = StartingPerk.IsPerkActive("精神错乱"); Core.LogMsg("[特性成长] IsPerkActive直接=" + madnessActive); } catch (Exception ex2) { Core.LogMsg("[特性成长] IsPerkActive异常: " + ex2.Message); }
                 try { madnessActive = madnessActive || MadnessPerk.IsActive(); } catch { }
                 Core.LogMsg("[特性成长] madnessActive=" + madnessActive);
-                if (bonusDay > applied) // 测试：临时去掉cash>0条件
+                if (cash > 0 && bonusDay > applied && madnessActive)
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
                     Core.LogMsg("[特性成长] 攒满50天, applied=" + bonusDay + " total=" + total);
