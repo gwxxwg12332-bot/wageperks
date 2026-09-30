@@ -13,9 +13,11 @@ namespace JacksonPerks
         {
             try
             {
+                Core.LogMsg("[特性成长] OnDayStart触发");
                 int total = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthTotalDays");
                 total++;
                 MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthTotalDays", total);
+                Core.LogMsg("[特性成长] total=" + total);
 
                 int bonusDay = total / 50;
                 int applied = MelonPreferences.GetEntryValue<int>("WagesPerks", "PerkGrowthApplied");
@@ -23,6 +25,7 @@ namespace JacksonPerks
                 // 现金正数才记
                 int cash = 0;
                 try { dynamic ps = PlayerStore.Instance; cash = ps.playerCash; } catch { }
+                Core.LogMsg("[特性成长] cash=" + cash + " bonusDay=" + bonusDay + " applied=" + applied);
                 if (cash > 0 && bonusDay > applied)
                 {
                     MelonPreferences.SetEntryValue("WagesPerks", "PerkGrowthApplied", bonusDay);
