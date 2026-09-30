@@ -64,15 +64,6 @@ internal static class MadnessRoller
                 if (!string.IsNullOrEmpty(item.id)) hashSet.Add(item.id);
             }
 
-            // 先选精神错乱本身
-            var madnessPerk = FindInPool(perks, "精神错乱");
-            if (madnessPerk != null && TrySelect(ui, madnessPerk))
-            {
-                list.Add(madnessPerk);
-                hashSet.Add("精神错乱");
-                Core.LogMsg("[精神错乱] 已选精神错乱本身");
-            }
-
             int count = 0;
 
             // 阶段1：必选栏位天赋（加格子最多的）
