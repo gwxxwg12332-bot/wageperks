@@ -16,7 +16,7 @@ internal sealed class InfamousPerk : CustomStartingPerk
     internal const string PerkId = "声名狼藉";
 
     internal override string Id => PerkId;
-    internal override string DisplayName => LangHelper.T("声名狼藉", "Infamous");
+    internal override string DisplayName => LangHelper.T("声名狼藉-各个势力", "Infamous - Factions");
     internal override string Description => LangHelper.T(
         "你在空间站臭名昭著——五势力声望 -99，做一点坏事就被通缉。第二天会收到 5000 信用点补偿金。高风险高回报，活着回来再说。",
         "You are infamous across the station - all five factions at -99 rep. One wrong move and you are wanted. You get 5000 credits on day 2. High risk, high reward.");
