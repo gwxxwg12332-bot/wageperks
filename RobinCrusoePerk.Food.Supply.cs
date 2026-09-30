@@ -49,15 +49,10 @@ internal static partial class RobinCrusoePerk
             {
                 try { if (MerchantHelper.AddItemToCounter("wage_ai_generator", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖生成器（day " + day + "）"); } catch { }
             }
-            // 30 天起：保护器核心 3 个（wage_protector_core，1500）——每次到访补足 3 个
-            if (day >= 30)
+            // 30 天起：保护器核心小概率刷新（30%概率卖1个，1500）
+            if (day >= 30 && Core.Rng.Next(100) < 30)
             {
-                int pc = 0;
-                try { pc = CountGoodOnFront("wage_protector_core"); } catch { }
-                for (int pi = pc; pi < BuildConfig.ProtectorSupplyCount; pi++)
-                {
-                    try { if (MerchantHelper.AddItemToCounter("wage_protector_core", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖保护器（day " + day + "）"); } catch { }
-                }
+                try { if (MerchantHelper.AddItemToCounter("wage_protector_core", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店小概率卖保护器（day " + day + "）"); } catch { }
             }
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] TryDoctorSupply 异常: " + ex.Message); }
