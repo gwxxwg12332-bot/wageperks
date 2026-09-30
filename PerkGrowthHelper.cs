@@ -28,7 +28,8 @@ namespace JacksonPerks
                 Core.LogMsg("[特性成长] cash=" + cash + " bonusDay=" + bonusDay + " applied=" + applied);
                 // 精神错乱条件：选了精神错乱才记
                 bool madnessActive = false;
-                try { madnessActive = MadnessPerk.IsActive(); } catch { }
+                try { madnessActive = StartingPerk.IsPerkActive("精神错乱"); Core.LogMsg("[特性成长] IsPerkActive直接=" + madnessActive); } catch (Exception ex2) { Core.LogMsg("[特性成长] IsPerkActive异常: " + ex2.Message); }
+                try { madnessActive = madnessActive || MadnessPerk.IsActive(); } catch { }
                 Core.LogMsg("[特性成长] madnessActive=" + madnessActive);
                 if (cash > 0 && bonusDay > applied && madnessActive)
                 {
