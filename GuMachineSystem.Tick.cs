@@ -195,7 +195,7 @@ public static partial class GuMachineSystem
             bool success = true;
             if (!safe)
             {
-                int mood = 50; try { mood = WageGirlSystem.State.GetStat("mood"); } catch { }
+                int mood = 50; try { mood = WageGirlSystem.GetStat("mood"); } catch { }
                 int successPct = mood >= 80 ? 80 : (mood < 40 ? 20 : 50);
                 int roll = 0; try { roll = Core.Rng.Next(100); } catch { roll = 0; }
                 success = roll < successPct;
