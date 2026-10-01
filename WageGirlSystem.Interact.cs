@@ -165,7 +165,9 @@ public static partial class WageGirlSystem
                     int sip = Math.Min(200, ml);
                     int purity = -1; try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
                     int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4;
-                    gain = new[] { 25, 18, 12, 6, 2 }[tier];
+                    int baseGain = new[] { 25, 18, 12, 6, 2 }[tier];
+                    gain = (int)Math.Round(baseGain * (sip / 200f));
+                    if (gain < 1) gain = 1;
                     int hd = new[] { 5, 2, 0, -5, -10 }[tier];
                     SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
                     if (hd != 0) SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) + hd)));

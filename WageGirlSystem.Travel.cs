@@ -65,7 +65,14 @@ public static partial class WageGirlSystem
             if (GetStat(K_LEAVE) <= 0) return;
             if (GetStat(K_PROVISION) < 1)
             {
-                SetStat(K_LEAVE, day + 1);
+                // 10-01 修复：口粮耗尽只改 K_LEAVE 不回归 → 蛙娘永远停在 away 态
+                // 正确链 = 结算奖励(TravelReturn) + 清旅行态 + 切回在店 + 放回场景 + 刷新面板
+                SetStat(K_LEAVE, 0);
+                SetStat(K_LEAVE_REASON, 0);
+                TravelReturn(early: true);
+                _curState = ""; _curAnimSprites = _spIdle; // 回 idle（状态链无"here"，空态=idle，Anim.cs:215/293 同款）
+                TryGiveToBackpack();
+                ShowPanel();
                 ReportLine(LangHelper.T("口粮吃完了，她提前回来了", "She ran out of food and came back early"));
                 Core.LogMsg("[蛙娘旅行] 口粮耗尽提前结束");
             }
