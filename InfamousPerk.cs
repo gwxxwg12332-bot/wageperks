@@ -82,7 +82,7 @@ internal sealed class InfamousPerk : CustomStartingPerk
             var ps = Il2Cpp.PlayerStore.Instance;
             if (ps != null) { ps.playerCash += 5000; }
             NotifyHelper.NightLogRaw("声名狼藉：你收到了 5000 补偿金");
-            Core.LogMsg("[声名狼藉] 第1天送5000 OK");
+            Core.LogMsg("[声名狼藉] 第2天送5000 OK");
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
     }

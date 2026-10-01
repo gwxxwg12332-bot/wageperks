@@ -27,6 +27,16 @@ internal sealed class WineLoverPerk : CustomStartingPerk
         _hungover = false;
     }
 
+    internal override void OnDayStart()
+    {
+        if (!IsActive()) return;
+        if (_hungover)
+        {
+            try { NotifyHelper.NightLogRaw("好酒之徒：你昨晚宿醉了，今日客户预算-10%。"); } catch { }
+            ClearHangover();
+        }
+    }
+
     internal static bool IsActive()
     {
         return Core.PerkActive(PerkId);

@@ -31,12 +31,13 @@ internal sealed class RiskTakerPerk : CustomStartingPerk
     }
 
     // 获取违禁品价格加成
+    // 死代码：GetContrabandPriceBonus/GetInspectionChanceBonus 无调用方（倍率在Patches.Trade.Markup.cs），保留防误导
     public static float GetContrabandPriceBonus()
     {
         return IsActive() ? 1.20f : 1.0f;
     }
 
-    // 获取检查频率加成
+    // 死代码：GetInspectionChanceBonus 无调用方（检查频率在Patches.Inspection.cs）
     public static float GetInspectionChanceBonus()
     {
         return IsActive() ? 1.30f : 1.0f;

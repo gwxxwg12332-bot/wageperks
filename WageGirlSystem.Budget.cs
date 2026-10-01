@@ -27,6 +27,13 @@ public static partial class WageGirlSystem
             if (Patches._inBudgetOverride) return; // 防重入
             int budget = __instance.GetBudget();
             if (budget <= 0) return;
+            // 酒徒宿醉：预算-10%（=议价-10%）
+            if (WineLoverPerk.IsHungover())
+            {
+                long hungover = (long)(budget * 0.9f);
+                __instance.OverrideBudget((int)hungover);
+                return;
+            }
             // v1.3.1【7b】干燥空气：水酒客户预算+25%（不依赖蛙娘，独立 perk）
             if (DryAirPerk.IsActive() && BuysWaterOrBooze(__instance))
             {
