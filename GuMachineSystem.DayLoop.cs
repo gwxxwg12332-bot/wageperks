@@ -28,25 +28,35 @@ public static partial class GuMachineSystem
     private static System.Collections.Generic.List<GameItem> FindGuMachines()
     {
         var result = new System.Collections.Generic.List<GameItem>();
+        var seen = new System.Collections.Generic.HashSet<GameItem>();
         try
         {
-            // 养蛊机是场景机器不在PlayerStore.FindAllItem里，遍历所有GameInventory找
-            var allInvs = Il2Cpp.EmporiumEntry.Instance;
-            if (allInvs == null) return result;
-            GameInventory[] invs = {
-                allInvs.backInvinvElement as GameInventory,
-                allInvs.showcaseElement as GameInventory,
-                allInvs.invElement as GameInventory,
-                allInvs.frontInvinvElement as GameInventory,
-            };
-            foreach (var inv in invs)
+            // 路1：全物品遍历（覆盖仓库/其他mod储存区）
+            var all = Il2Cpp.PlayerStore.Instance.FindAllItem(true);
+            if (all != null) foreach (var it in all)
             {
-                if (inv == null || inv.childItems == null) continue;
-                foreach (var it in inv.childItems)
+                if (it != null && it.identifier == GU_MACHINE_ID && seen.Add(it)) result.Add(it);
+            }
+            // 路2：Emporium四容器（柜台区，防遗漏）
+            var allInvs = Il2Cpp.EmporiumEntry.Instance;
+            if (allInvs != null)
+            {
+                GameInventory[] invs = {
+                    allInvs.backInvinvElement as GameInventory,
+                    allInvs.showcaseElement as GameInventory,
+                    allInvs.invElement as GameInventory,
+                    allInvs.frontInvinvElement as GameInventory,
+                };
+                foreach (var inv in invs)
                 {
-                    if (it != null && it.identifier == GU_MACHINE_ID) result.Add(it);
+                    if (inv == null || inv.childItems == null) continue;
+                    foreach (var it in inv.childItems)
+                    {
+                        if (it != null && it.identifier == GU_MACHINE_ID && seen.Add(it)) result.Add(it);
+                    }
                 }
             }
+            Core.LogMsg("[养蛊] FindGuMachines=" + result.Count);
         }
         catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.DayLoop] 异常: " + ex.Message); }
         return result;
