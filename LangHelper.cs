@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 语言检测工具：mod 文本随游戏设置语言自动切换中英文。

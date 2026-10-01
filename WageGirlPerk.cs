@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 伙伴型特性：蛙娘（09-23 Perk 化——Cost 3 用户拍板）

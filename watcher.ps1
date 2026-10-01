@@ -1,11 +1,11 @@
-# watcher.ps1 - Wage's Perks 自测监视器
+﻿# watcher.ps1 - Wage's Perks 自测监视器
 # 常驻后台，每 IntervalSeconds 秒检查 WagesPerks.dll 是否有更新（大小/时间戳变化），
 # 检测到更新自动运行 run_test.bat（全自动自测：同步飞书任务 -> 开游戏 -> 测完自动关 -> 复制报告）。
 # 用法: powershell -ExecutionPolicy Bypass -File watcher.ps1    (可设开机自启)
 param(
     [int]$IntervalSeconds = 30,
     [string]$DllPath = "D:\Steam\steamapps\common\Probably Stolen Playtest\Mods\WagesPerks.dll",
-    [string]$RunScript = "D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\run_test.bat"
+    [string]$RunScript = "D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WagePerks\run_test.bat"
 )
 
 $ErrorActionPreference = "SilentlyContinue"

@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 特殊NPC管理器（v3 参考XIAOWO官方蓝图方式重写）

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     // 养蛊机系统图标（09-15 由 PNG 转嵌入像素数组——源文件 _图标素材_养蛊机系统\）
     public static class GuMachineIcons

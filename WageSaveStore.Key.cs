@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Il2Cpp;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 partial class WageSaveStore
 
 {

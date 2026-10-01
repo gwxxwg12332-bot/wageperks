@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 物品操作（类型判定 / 食物 / 水）——门面模式完整实现
 internal static class ItemHelper

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
@@ -7,7 +7,7 @@ using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // v1.3.1【补11】蛙哥周期到访：每 N 天来一次，服务卡消负面perk

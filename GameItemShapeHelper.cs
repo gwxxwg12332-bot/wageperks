@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 物品 shape 反射工具（优雅写 modifiedShape，不重置动画帧）

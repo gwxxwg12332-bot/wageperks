@@ -1,6 +1,6 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 批量拖拽升级：框选多个物品拖到容器上，一次性全部吸收/升级。

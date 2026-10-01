@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 水商之友特性
 // 解锁水商NPC，每周来一次，卖水相关物品

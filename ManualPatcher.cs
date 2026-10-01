@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 手动Patch基础类（防御性Patch模式，参考 AugPresenceGuard 27.4/27.6 经验）
 // 不用[HarmonyPatch] attribute，目标方法不存在时打日志继续，不崩溃

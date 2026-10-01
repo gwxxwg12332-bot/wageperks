@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -6,7 +6,7 @@ using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 internal static partial class RobinCrusoePerk
 {
     // 加速器缓存（防 tooltip 每帧遍历舱内卡手）

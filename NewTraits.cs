@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 混合特性：刀尖舔血

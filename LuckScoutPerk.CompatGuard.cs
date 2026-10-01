@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Reflection;
 using HarmonyLib;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ===== 第三方兼容守卫（09-26 设计稿《拾荒计数守卫+兼容共存升级》P0/P1）=====
 // 拆包实锤（CompatDiag 作者 Z.Qiao）：第三方钓鱼 mod TackleShop.FishingPerkRuntime 的

@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 第三方 mod 冲突预防（09-19）：统一探测 + 已知冲突表 + 主动让路 + 启动告警。

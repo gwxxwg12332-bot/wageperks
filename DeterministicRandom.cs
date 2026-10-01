@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Text;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 确定性随机数工具（参考XIAOWOTradePerks的FNV-1a hash实现）

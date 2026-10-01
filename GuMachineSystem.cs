@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 养蛊机系统（09-15 开工）：养蛊机 / AI 生成器 / 保护器核心

@@ -1,9 +1,9 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 using Il2CppInterop.Runtime;
 using System;
 using System.Reflection;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // tag 读写统一（自动 try/catch）
 internal static class TagHelper

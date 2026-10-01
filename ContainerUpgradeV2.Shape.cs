@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 partial class ContainerUpgradeV2
 
 {

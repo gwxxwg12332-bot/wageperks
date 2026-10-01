@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +19,7 @@ using Il2CppSystem;
 using Il2CppSystem.Collections.Generic;
 using Il2CppSystem.Reflection;
 using Il2CppTMPro;
-using JacksonPerks;
+using WagePerks;
 using MelonLoader;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -30,7 +30,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // 电池吞噬（Battery 特性）：电池自充电吞噬系统
-namespace JacksonPerks;
+namespace WagePerks;
 
 internal static class BatteryCannibalism
 {

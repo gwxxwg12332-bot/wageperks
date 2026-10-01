@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 修复：假酒卖给上层人时卖不了（点了没反应）
 // 根因：BarterHelper.DoesTraderAcceptThisItemAsPayment 对假酒返回0（不接受），交易按钮失效

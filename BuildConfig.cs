@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MelonLoader;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 public static class BuildConfig
 {

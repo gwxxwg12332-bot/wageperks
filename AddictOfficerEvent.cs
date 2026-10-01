@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,7 +7,7 @@ using MelonLoader;
 using UnityEngine;
 using Il2CppInterop.Runtime;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 成瘾警官巡查事件（通用世界事件，总是发生，不依赖任何特性）

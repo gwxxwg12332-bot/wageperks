@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +19,7 @@ using Il2CppSystem;
 using Il2CppSystem.Collections.Generic;
 using Il2CppSystem.Reflection;
 using Il2CppTMPro;
-using JacksonPerks;
+using WagePerks;
 using MelonLoader;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -29,7 +29,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 internal static partial class ModCannibalism
 {

@@ -1,6 +1,6 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // NPC 调度（排期 / 防重）
 internal static class NpcHelper

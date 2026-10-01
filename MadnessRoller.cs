@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using SysDict = System.Collections.Generic;
 using Il2Cpp;
 using Il2CppDict = Il2CppSystem.Collections.Generic;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 精神错乱：点击后自动随机抽满特性
 internal static class MadnessRoller

@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 人神共愤：每天扣现金
 internal sealed class HatedByAllPerk : CustomStartingPerk

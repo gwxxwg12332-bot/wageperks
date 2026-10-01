@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Reflection;
 
@@ -12,7 +12,7 @@ using UnityEngine;
 
 
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 
 

@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 狄仁杰之手：罪证收集速度 +50%，免疫王尔德销毁
 internal sealed class DetectivePerk : CustomStartingPerk

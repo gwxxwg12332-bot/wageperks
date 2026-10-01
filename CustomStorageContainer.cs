@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -6,7 +6,7 @@ using MelonLoader;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     /// <summary>
     /// 自定义储物容器 - 2×2外部占用，内部大容量

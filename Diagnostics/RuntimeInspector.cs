@@ -8,7 +8,7 @@ using UnityEngine.UI;
 using MelonLoader;
 using Il2Cpp;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     /// <summary>
     /// 运行时检视器 - 鼠标悬停显示对象的key/id/字段名

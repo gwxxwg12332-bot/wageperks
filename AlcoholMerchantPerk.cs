@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 收酒商特性
 // 解锁收酒商NPC，每周来一次，高价收购玩家自酿酒 + 售卖酿酒原料（葡萄/酵母/水）

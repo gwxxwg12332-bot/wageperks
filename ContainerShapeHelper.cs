@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 容器形状统一管理（升级/恢复同一张表）

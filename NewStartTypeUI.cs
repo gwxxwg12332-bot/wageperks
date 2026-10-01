@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
 using Il2CppInterop.Runtime;
 using Il2Cpp;
 using System.Reflection;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 【新开局职业 UI】克隆"牧场主"(tabRancher) tab → 第 14 职业「鲁滨逊的账本」
@@ -306,7 +306,7 @@ internal static class NewStartTypeUI
                     "容器容量减半：腰包、储存箱与机器内嵌箱子开局容量减半（主背包除外），可拖垃圾（junk）逐格升级恢复\n" +
                     "博士夜晚到访，出售食物与水\n" +
                     "水瓶打印机：电子元件升级瓶型（满级打印 6000ml 超大瓶），金属锭升级质量（100 出普通水、更高优质/纯水）\n\n" +
-                    "特性成长：选了精神错乱后，每累计存活50天且当天现金>0时+1点+1槽（全局继承新档）；困难模式额外+1点+1槽；负面特性>正面特性额外+1点+1槽\n\n" +
+                    "特性成长（限鲁滨逊档）：选了精神错乱后，每累计存活50天且当天现金>0时+1点+1槽（全局继承新档）；困难模式额外+1点+1槽；负面特性>正面特性额外+1点+1槽\n\n" +
                     CustomStartingPerks.CommunityNote,
                     "A brand-new starting type with its own tab on the start screen. Stranded on the station, survive like Robinson Crusoe:\n" +
                     "Daily 2200 kcal & 2000 ml water; six survival stats: satiety, thirst, health, cleanliness, sleep, social\n\n" +

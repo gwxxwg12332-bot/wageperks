@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 rem ============================================================
 rem  Wage's Perks Auto Test - one-click
 rem  1. Sync Feishu pending-test tasks -> test_targets.txt
@@ -7,7 +7,7 @@ rem  3. Copy report to fixed location
 rem ============================================================
 setlocal
 set "PY=C:\Users\1\AppData\Local\Python\pythoncore-3.14-64\python.exe"
-set "PROJ=D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks"
+set "PROJ=D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WagePerks"
 set "GAME=D:\Steam\steamapps\common\Probably Stolen Playtest"
 set "REPORT=%GAME%\TestReport"
 

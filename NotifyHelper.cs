@@ -1,6 +1,6 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 通知 / 夜报（统一 try/catch + 双语）
 internal static class NotifyHelper

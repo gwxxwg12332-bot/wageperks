@@ -2,7 +2,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 命运之骰特性：开局获得命运骰子（拖物品吸收价值，每400价值触发1随机事件）
 internal sealed class DestinyDicePerk : CustomStartingPerk

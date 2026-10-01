@@ -11,7 +11,7 @@ using UnityEngine;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 自动化测试运行器（TestRunner）

@@ -1,8 +1,8 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 using HarmonyLib;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 兼容层兜底 patch（P0）：

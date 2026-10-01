@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // 蛙娘系统（09-21 开工，话术 v9 拆包回填 9 项）

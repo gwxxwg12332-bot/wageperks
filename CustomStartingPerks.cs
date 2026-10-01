@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 internal static class CustomStartingPerks
 {

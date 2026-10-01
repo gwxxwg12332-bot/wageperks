@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 诊断统一总入口：所有诊断/测试/调试工具都在这里注册和分发。

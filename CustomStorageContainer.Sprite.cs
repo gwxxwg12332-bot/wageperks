@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -6,7 +6,7 @@ using MelonLoader;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 
-namespace JacksonPerks
+namespace WagePerks
 {
 
 public static partial class CustomStorageContainer

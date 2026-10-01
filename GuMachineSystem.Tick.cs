@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 public static partial class GuMachineSystem
 {

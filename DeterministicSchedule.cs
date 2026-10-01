@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Security.Cryptography;
 using System.Text;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 确定性调度工具（参考XIAOWO Trade Perks实现）

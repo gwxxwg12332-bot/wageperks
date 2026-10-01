@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     public static class StorageBoxPixels
     {

@@ -1,10 +1,10 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(JacksonPerks.Core), "Wage's Perks", "1.3.1", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(WagePerks.Core), "Wage's Perks", "1.3.1", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
-namespace JacksonPerks;
+namespace WagePerks;
 public class Core : MelonMod
 {
 	public static readonly System.Collections.Generic.List<string> NightReportQueue = new System.Collections.Generic.List<string>();

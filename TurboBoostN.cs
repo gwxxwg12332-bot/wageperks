@@ -1,7 +1,7 @@
-using Il2Cpp;
+﻿using Il2Cpp;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 public static class TurboBoostN
 {

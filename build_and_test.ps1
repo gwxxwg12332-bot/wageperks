@@ -1,8 +1,8 @@
-# build_and_test.ps1 - 编译 + 自动化测试
+﻿# build_and_test.ps1 - 编译 + 自动化测试
 param([int]$TimeoutSeconds = 120)
 
-$projectDir = "D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks"
-$sourceDll = Join-Path $projectDir "bin\Release\net6.0\JacksonPerks.dll"
+$projectDir = "D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WagePerks"
+$sourceDll = Join-Path $projectDir "bin\Release\net6.0\WagePerks.dll"
 $targetDll = "D:\Steam\steamapps\common\Probably Stolen Playtest\Mods\WagesPerks.dll"
 $runTestsScript = Join-Path $projectDir "run_tests.ps1"
 

@@ -2,7 +2,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 /// <summary>
 /// 商人特性通用工具类

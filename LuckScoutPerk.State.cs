@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 internal sealed partial class LuckScoutPerk : CustomStartingPerk
 {

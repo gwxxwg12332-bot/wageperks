@@ -1,4 +1,4 @@
-# Wage's Perks 开发者入口指南（DEVELOPER GUIDE）
+﻿# Wage's Perks 开发者入口指南（DEVELOPER GUIDE）
 
 > 本文档是"新特性/新补丁怎么加"的唯一入口。新人（含 AI）开工前先读本节，按 1/2 章流程走，
 > 3/4 章查挂点与持久化契约，第 6 章红线必须遵守。
@@ -26,7 +26,7 @@
 using System;
 using Il2Cpp;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 继承唯一特性基类。不要新建第二个基类（历史 WagePerkBase 已删）。
 internal sealed class NewPerk : CustomStartingPerk

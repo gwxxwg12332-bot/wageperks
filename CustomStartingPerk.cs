@@ -3,7 +3,7 @@ using System.Reflection;
 using Il2Cpp;
 using Il2CppSystem.Collections.Generic;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 阶段2 生命周期驱动层（2026-09-23）：
 // 本类是所有"特性"的统一生命周期载体。**不要**再新建第二个特性基类

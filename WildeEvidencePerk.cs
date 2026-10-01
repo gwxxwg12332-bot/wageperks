@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // 王尔德消除更多证据：线人(fixer)行动时额外消除证据
 // 最优雅方案：SecData.OnFixerUsed Postfix，原版执行完后追加效果，不碰原版逻辑

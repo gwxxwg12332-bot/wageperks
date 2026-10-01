@@ -5,7 +5,7 @@ using UnityEngine;
 using MelonLoader;
 using Il2Cpp;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     /// <summary>
     /// 容器诊断补丁 - 按F8 dump MiniSmugglerBay和MachineBayExt的完整结构

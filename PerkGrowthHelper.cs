@@ -1,8 +1,8 @@
-using MelonLoader;
+﻿using MelonLoader;
 using System;
 using Il2Cpp;
 
-namespace JacksonPerks
+namespace WagePerks
 {
     // 特性成长：每50天+1点+1槽，跨档累计
     public static class PerkGrowthHelper

@@ -1,4 +1,4 @@
-# Wage's Perks 统一入口文档（UNIFIED ENTRY）
+﻿# Wage's Perks 统一入口文档（UNIFIED ENTRY）
 
 > 版本：v1.2.10 · 2026-09-26
 > 本文件是**新 Perk 注册 / 新 Patch 挂载的唯一入口指南**。新增功能前先读本文件，
@@ -20,7 +20,7 @@
 ## 1. 新 Perk 注册（5 步）
 
 ### 1.1 建子类
-继承 `CustomStartingPerk`（`JacksonPerks\CustomStartingPerk.cs`，**唯一特性基类**）：
+继承 `CustomStartingPerk`（`WagePerks\CustomStartingPerk.cs`，**唯一特性基类**）：
 
 ```csharp
 internal sealed class MyNewPerk : CustomStartingPerk

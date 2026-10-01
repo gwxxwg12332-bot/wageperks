@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+﻿from PIL import Image, ImageDraw
 import os
 
 W = H = 64
@@ -21,6 +21,6 @@ for y in [8, 11]:
     pts = [(16,y),(21,y-2),(26,y),(31,y-2),(36,y),(41,y-2),(46,y)]
     d.line(pts, fill=WHITE, width=1)
 
-out = r"D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\Icons\24_干燥空气.png"
+out = r"D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WagePerks\Icons\24_干燥空气.png"
 img.save(out)
 print("saved", out, os.path.getsize(out))

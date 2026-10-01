@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace JacksonPerks;
+namespace WagePerks;
 
 // ============================================================
 // v1.3.1【8】蛙娘旅行（初版）：扩展 K_LEAVE/K_LEAVE_REASON 机制
