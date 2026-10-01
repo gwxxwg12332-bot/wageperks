@@ -17,7 +17,7 @@ internal sealed class BadReputationPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("信誉扫地", "Bad Reputation");
-    internal override string Description => LangHelper.T("你的名声很差，顾客不信任你。卖东西价格-20%，买东西价格+20%。想翻身：提升 4 个势力好感各到一星（≥20），全部达标后负面效果自动解除。", "Poor reputation. Sell price -20%, buy price +20%. To clear: raise all 4 factions to 1-star (≥20); effect auto-disables when all met.");
+    internal override string Description => LangHelper.T("你的名声很差，顾客不信任你。卖东西价格-20%，买东西价格+20%。想翻身：提升 5 个势力好感各到一星（≥20），全部达标后负面效果自动解除。", "Poor reputation. Sell price -20%, buy price +20%. To clear: raise all 5 factions to 1-star (≥20); effect auto-disables when all met.");
     internal override int Cost => -7;   // 返还7点（实际卖-20%/买+20%，4势力好感全20才解除，50天+）
     internal override int Type => 1;    // 负面特性显示为红色
 
@@ -33,25 +33,24 @@ internal sealed class BadReputationPerk : CustomStartingPerk
     {
         try
         {
+            string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
             int total = 0, cleared = 0;
-            StoreReputation[] factions = new StoreReputation[]
+            foreach (string fid in factionIds)
             {
-                StoreReputation.GetSecFaction(),
-                StoreReputation.GetRevFaction(),
-                StoreReputation.GetBMFaction(),
-                StoreReputation.GetULFaction()
-            };
-            foreach (StoreReputation fr in factions)
-            {
-                if (fr == null) continue;
-                total++;
-                int rep = 0;
-                try { rep = fr.GetReputation(); } catch (Exception ex) { Core.LogMsg("[信誉扫地] 读取好感失败: " + ex.Message); }
-                string fid = "";
-                try { fid = fr.factionId ?? ""; } catch { }
-                if (rep >= 20) cleared++;
+                try
+                {
+                    var fr = StoreReputation.GetStoreReputation(fid);
+                    if (fr == null) continue;
+                    total++;
+                    int rep = 0;
+                    try { rep = (int)fr.GetReputationExact(); } catch { }
+                    Core.LogMsg("[信誉扫地] " + fid + " = " + rep);
+                    if (rep >= 20) cleared++;
+                }
+                catch (Exception ex) { Core.LogMsg("[信誉扫地] " + fid + " 异常: " + ex.Message); }
             }
             bool all = total > 0 && cleared >= total;
+            Core.LogMsg("[信誉扫地] 解除检查: " + cleared + "/" + total + " all=" + all);
             return all;
         }
         catch (Exception ex)
