@@ -87,6 +87,7 @@ internal static partial class RobinCrusoePerk
             {
                 GameItem item = DirectoryMaster.Item(id, true);
                 if (item == null) continue;
+                try { Il2Cpp.GeneralHelper.SetItemOwned(item, true); } catch { }
                 // 重叠bug修复（用户拍板 09-09：参考 QuickItemSpawner F3 先例）：
                 // 正确链 = TryFindOneValidInventorySlot(item) → slot.TryAcceptOnce()（slot 持有格子坐标，真正落格）；
                 // 之前丢弃 slot 直接 UncheckedAccept → 不设坐标 → 同格重叠。TryAcceptOnce 失败才 UncheckedAccept 兜底。
@@ -109,6 +110,7 @@ internal static partial class RobinCrusoePerk
             {
                 GameItem item = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water"); // 09-20 设计稿：直接生成带水大瓶（删 DirectoryMaster.Item+AddWater 链——工厂产物 AddWater 静默失败 → 空瓶）
                 GameItem spawn = item;
+                try { Il2Cpp.GeneralHelper.SetItemOwned(spawn, true); } catch { }
                 try { spawn.DisableTag("stolen", true); } catch { }
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
