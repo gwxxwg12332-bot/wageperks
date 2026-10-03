@@ -310,6 +310,8 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleMinorClient", "PrefixHandleMinorClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", "PrefixPickClient", null, null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(MapUIManager), "OpenGoOutsideConfirm", "PrefixOpenGoOutsideConfirm", null, null, typeof(RobinCrusoePerk));
+			// 10-03 蛙哥交易站：地图按钮注入
+			ManualPatcher.TryPatch(typeof(MapUIManager), "OpenUI", null, "PostfixMapOpenUI", null, typeof(WageBrokerStation));
 			// 阶段2 迁移：鲁滨逊每日结算同迁 OnDayStart（原注释"原挂 StoreClientManager.OnNewDay 触发时机不可靠"已被拆包证实）
 			ManualPatcher.TryPatch(typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "HandleInspectionClient", "PrefixHandleInspectionClient", "PostfixHandleInspectionClient");
