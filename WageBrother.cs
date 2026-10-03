@@ -211,6 +211,8 @@ internal static class WageBrother
             if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，等下次再试"); return; } // 启动早期时序问题：PrefixLoadFromAtlas会反复调用
             Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); Core.LogMsg("[蛙哥] LoadImage前"); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppStructArray<byte>)png });
             Core.LogMsg("[蛙哥] LoadImage后 tex=" + tex.width + "x" + tex.height); _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 500f);
+            // 10-03 修：服务卡sprite必须进SpriteDict（读档重建渲染查字典，仅静态字段=旧档显示问号；立绘/许可同模式）
+            try { if (SpriteDict.Instance != null && SpriteDict.Instance.spriteDictionary != null && _cardSprite != null) { SpriteDict.Instance.spriteDictionary[CARD_SPRITE_KEY] = _cardSprite; Core.LogMsg("[蛙哥] 服务卡sprite已注入SpriteDict"); } else { Core.LogMsg("[蛙哥] SpriteDict未就绪，等服务卡渲染兜底重写"); } } catch (System.Exception exdict) { Core.LogMsg("[蛙哥] 服务卡注入SpriteDict异常: " + exdict.Message); }
             Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height); // atlasCache直写注释：索引器导致卡死，走PrefixLoadFromAtlas拦截
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
     }
@@ -225,6 +227,8 @@ internal static class WageBrother
             {
                 if (_cardSprite == null) LoadCardSprite();
                 if (_cardSprite != null) { __result = _cardSprite; return false; }
+                // 10-03 兜底：若上面注入失败（SpriteDict早期null），渲染时补写（此时字典必然就绪）
+                try { if (SpriteDict.Instance != null && SpriteDict.Instance.spriteDictionary != null && _cardSprite != null && !SpriteDict.Instance.spriteDictionary.ContainsKey(CARD_SPRITE_KEY)) { SpriteDict.Instance.spriteDictionary[CARD_SPRITE_KEY] = _cardSprite; } } catch { }
                 return true;
             }
 
