@@ -340,7 +340,7 @@ public static partial class WageGirlSystem
     }
     private static bool TryMoveStep()
     {
-        if (!BuildConfig.WageGirlAutoMove) return false; // 09-23 自动移动开关
+        return false; // 10-03 止血：好感≥50移动强制关（无视cfg，拆包实锤MonoMod崩溃点前不恢复；原: BuildConfig.WageGirlAutoMove 开关）
         try
         {
             var em = EmporiumEntry.Instance;
