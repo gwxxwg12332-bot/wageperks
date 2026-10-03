@@ -1,85 +1,91 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Il2Cpp;
-using UnityEngine;
 
 namespace WagePerks;
-partial class WageSaveStore
 
+// ============================================================
+// WageSaveStore 门面（2026-10-03 阶段B：提炼至 WageAPI 后旧类保留、方法体转发）
+// 评审补丁：删 Wage's Perks 自己的落盘挂点（PatchRegistryTable SaveStore 条目已删，防双落盘），
+// 统一落盘通道归 WageAPI（SaveGame/EndDay Postfix，priority=0 最后跑）。
+// 现有调用点零改动——签名与原实现完全一致。
+// ============================================================
+public static class WageSaveStore
 {
-private const string DIR_NAME = "WagesPerks";
-    private const string FILE_PREFIX = "wages_data_";
-    private const string PENDING_KEY = "pending";
-    private const string HEAD_RUNID = "#runID=";
-    private const string HEAD_SAVED = "#saved=";
-    private const string HEAD_VERSION = "#storeVersion=1";
-    private const int LOAD_DELAY_FRAMES = 30;   // 读档后延迟帧数（时序：容器/管理器未就绪）
+    public static string GetString(string ns, string key, string def = "")
+        => WageAPI.WageSaveStore.GetString(ns, key, def);
 
-    // ① 内存缓存 —— 唯一真相源，运行时只碰它
-    private static readonly Dictionary<string, string> _mem = new Dictionary<string, string>();
+    public static void SetString(string ns, string key, string value)
+        => WageAPI.WageSaveStore.SetString(ns, key, value);
 
-    // 旧层(PlayerPrefs)迁移专用：runID 缓存（读旧 key 前缀用，切档必须刷新）
-    private static string _legacyRunId = null;
+    public static int GetInt(string ns, string key, int def = 0)
+        => WageAPI.WageSaveStore.GetInt(ns, key, def);
 
-    private static string _curKey = null;        // 当前文件键（runID 或 pending）
-    private static bool _pendingLoad;            // 读档待加载标志（Postfix 只设它）
-    private static int _pendingLoadFrames;       // 帧延迟计数
-    private static bool _loadedOnce;             // 本次读档：键值文件是否已加载（键值不依赖容器就绪，LoadGame Postfix 即可读）
-    private static bool _loadingComplete = true;  // 09-26 写入门控：mod启动默认true，读档期间false，加载完true
-    internal static bool LoadComplete => _loadingComplete; // 09-26 暴露给外部读门控状态
-    private static bool _dirty;                  // 有未落盘改动
+    public static void SetInt(string ns, string key, int value)
+        => WageAPI.WageSaveStore.SetInt(ns, key, value);
 
-    // ===================== 路径 =====================
+    public static float GetFloat(string ns, string key, float def = 0f)
+        => WageAPI.WageSaveStore.GetFloat(ns, key, def);
 
-    private static string DirPath
+    public static void SetFloat(string ns, string key, float value)
+        => WageAPI.WageSaveStore.SetFloat(ns, key, value);
+
+    public static bool GetBool(string ns, string key, bool def = false)
+        => WageAPI.WageSaveStore.GetBool(ns, key, def);
+
+    public static void SetBool(string ns, string key, bool value)
+        => WageAPI.WageSaveStore.SetBool(ns, key, value);
+
+    public static void ClearNamespace(string ns)
+        => WageAPI.WageSaveStore.ClearNamespace(ns);
+
+    public static bool HasKey(string ns, string key)
+        => WageAPI.WageSaveStore.HasKey(ns, key);
+
+    public static void ResetForNewRun()
+        => WageAPI.WageSaveStore.ResetForNewRun();
+
+    public static void CleanLegacyDefaultRun(string perkId, string[] keys)
+        => WageAPI.WageSaveStore.CleanLegacyDefaultRun(perkId, keys);
+
+    public static string Serialize()
+        => WageAPI.WageSaveStore.Serialize();
+
+    public static void Deserialize(string content)
+        => WageAPI.WageSaveStore.Deserialize(content);
+
+    public static bool ValidateRunId()
+        => WageAPI.WageSaveStore.ValidateRunId();
+
+    public static bool ValidateAfterLoad()
+        => WageAPI.WageSaveStore.ValidateAfterLoad();
+
+    public static string GetRunIdRaw()
+        => WageAPI.WageSaveStore.GetRunIdRaw();
+
+    public static void Flush()
+        => WageAPI.WageSaveStore.Flush();
+
+    public static void PostfixSaveGame()
+        => WageAPI.WageSaveStore.PostfixSaveGame();
+
+    public static void PostfixEndDay()
+        => WageAPI.WageSaveStore.PostfixEndDay();
+
+    public static void OnLoadGame()
+        => WageAPI.WageSaveStore.OnLoadGame();
+
+    public static void LoadIfPending()
+        => WageAPI.WageSaveStore.LoadIfPending();
+
+    public static bool LoadComplete => WageAPI.WageSaveStore.LoadComplete;
+
+    public static int Count => WageAPI.WageSaveStore.Count;
+
+    public static bool HasPendingChange => WageAPI.WageSaveStore.HasPendingChange;
+
+    /// <summary>读档数据就绪事件透传（Wage's Perks 侧：NotifyGameLoaded + 重洗白扫描）。</summary>
+    public static event Action GameLoaded
     {
-        get
-        {
-            try { return Path.Combine(Application.dataPath, "..", "Mods", DIR_NAME); }
-            catch { return null; }
-        }
+        add { WageAPI.WageSaveStore.GameLoaded += value; }
+        remove { WageAPI.WageSaveStore.GameLoaded -= value; }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // 【开发诊断】当前内存项数 —— 供 Debug 面板 / 日志使用
-    internal static int Count { get { try { return _mem.Count; } catch { return 0; } } }
-    internal static bool HasPendingChange { get { return _dirty; } }
 }

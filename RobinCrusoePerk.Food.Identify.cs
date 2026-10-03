@@ -1,92 +1,38 @@
-﻿using System;
-using HarmonyLib;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using Il2Cpp;
-using Il2CppInterop.Runtime;
-using UnityEngine;
+﻿using Il2Cpp;
 
 namespace WagePerks;
+
+// ============================================================
+// RobinCrusoePerk 识别函数门面（2026-10-03 阶段B：提炼至 WageAPI.FoodIdentifyHelper 后方法体转发）
+// 方法名/签名原样保留（兼容补丁反射依赖方法名存在，cheatsheet:60）——现有调用点零改动。
+// ID 集合权威值在 WageAPI.FoodIdentifyHelper（拆包实锤；v0.1.2 复制版存在漂移，已按权威值修正）。
+// ============================================================
 internal static partial class RobinCrusoePerk
 {
-
     internal static bool IsContrabandItem(GameItem item)
-    {
-        try { if (ContrabandHelper.IsContraband(item)) return true; } catch { }
-        try { if (item.IsTag("CONTRABAND")) return true; } catch { }
-        try { if (item.IsTag("CONTRABAND_ITEM_TAG")) return true; } catch { }
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsContrabandItem(item);
 
     internal static bool IsFood(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (FOOD_IDS.Contains(GetId(item))) return true; } catch { }
-        try
-        {
-            bool hasCal = item.IsTag("CALORIE_VALUE_TAG") || item.IsTag("CALORIE");
-            if (!hasCal) return false;
-            if (IsMedicine(item)) return false; // 09-18 饮料类放开（有卡路里的饮料也算食物，按真实卡路里）；药品仍排除
-            string id = GetId(item);
-            if (id.Contains("wine") || id.Contains("beer") || id.Contains("_seed") || id.Contains("seed_") || id.Contains("pill")) return false;
-            return true;
-        }
-        catch { return false; }
-    }
+        => WageAPI.FoodIdentifyHelper.IsFood(item);
 
     internal static bool IsDrink(GameItem item)
-    {
-        if (item == null) return false;
-        try { return DRINK_IDS.Contains(GetId(item)); } catch { return false; }
-    }
+        => WageAPI.FoodIdentifyHelper.IsDrink(item);
 
     internal static bool IsMedicine(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (item.IsTag("MEDICAL")) return true; } catch { }
-        try { if (item.IsTag("medical")) return true; } catch { }
-        string id = GetId(item);
-        string[] kw = { "pill", "injector", "bandage", "salve", "antitoxin", "stim", "blood_bag", "zerochew", "smelling_salt", "syringe" };
-        foreach (string k in kw)
-            if (id.Contains(k, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsMedicine(item);
 
     internal static bool IsAlc(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (ALC_IDS.Contains(GetId(item))) return true; } catch { }
-        try { if (item.IsTag("ALCOHOL_VALUE")) return true; } catch { }
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsAlc(item);
 
     internal static bool IsTobacco(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (TOBACCO_IDS.Contains(GetId(item))) return true; } catch { }
-        try { if (item.IsTag("CIGARETTE_TAG")) return true; } catch { }
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsTobacco(item);
 
     internal static bool IsNarcotic(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (NARC_IDS.Contains(GetId(item))) return true; } catch { }
-        try { if (item.IsTag("NARCOTIC")) return true; } catch { }
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsNarcotic(item);
 
     internal static bool IsLottery(GameItem item)
-    {
-        if (item == null) return false;
-        try { if (LOTTERY_IDS.Contains(GetId(item))) return true; } catch { }
-        try { if (item.IsTag("LOTTERY_TICKET_TAG")) return true; } catch { }
-        return false;
-    }
+        => WageAPI.FoodIdentifyHelper.IsLottery(item);
 
-    internal static bool IsDailyNeed(GameItem item) // 09-21 改 internal：蛙娘喂食照顾共用判定
-    {
-        try { return item != null && DAILY_NEED_CLEAN.ContainsKey((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
-    }
-
+    internal static bool IsDailyNeed(GameItem item)
+        => WageAPI.FoodIdentifyHelper.IsDailyNeed(item);
 }

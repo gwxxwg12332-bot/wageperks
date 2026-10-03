@@ -105,6 +105,12 @@
 
     </Reference>
 
+    <Reference Include="WageAPI">
+
+      <HintPath>..\WageAPI\bin\Debug\net6.0\WageAPI.dll</HintPath>
+
+    </Reference>
+
   </ItemGroup>
 
   <ItemGroup>

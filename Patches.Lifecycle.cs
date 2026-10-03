@@ -467,7 +467,7 @@ internal static partial class Patches
 	{
 		try
 		{
-			try { WageSaveStore.OnLoadGame(); } catch { } // 09-23 阶段1：统一存储层读档标志（实际加载走 FrameUpdate 轮询）
+			try { WageSaveStore.OnLoadGame(); } catch { } // 09-23 阶段1：统一存储层读档标志（实际加载走 FrameUpdate 轮询；WageAPI 承载）
 			try { RobinCrusoePerk.ClearMemBlood(); } catch { } // 09-20 修：读档清鲁滨逊血量缓存
 			try { RobinCrusoePerk.ClearWantedQueued(); } catch { } // 09-20 修：读档清供应商排期标记
 			try { WageGirlSystem.ClearMemStats(); } catch { } // 09-20 修：读档清蛙娘内存缓存
@@ -478,6 +478,38 @@ internal static partial class Patches
 		{
 			Core.LogMsg("[LoadGame] PostfixOnLoadGame异常: " + ex.Message);
 		}
+	}
+
+	/// <summary>
+	/// 10-03 阶段B：WageAPI.WageSaveStore.GameLoaded 事件处理（原 WageSaveStore.LoadIfPending 阶段2迁来）。
+	/// 读档数据就绪（30帧后）：驱动全部特性 OnGameLoaded + 防御重洗白扫描。幂等（NotifyGameLoaded 契约）。
+	/// </summary>
+	public static void OnStoreGameLoaded()
+	{
+		try { CustomStartingPerks.NotifyGameLoaded(); }
+		catch (System.Exception ex2) { Core.LogMsg("[SaveStore] OnGameLoaded 驱动失败: " + ex2.Message); }
+		// 09-26 防御重洗白：读档数据就绪后扫全店，已洗白物品若恢复违禁 tag 则重新洗白
+		try
+		{
+			var em = Il2Cpp.EmporiumEntry.Instance;
+			if (em != null)
+			{
+				var all = em.GetAllItems();
+				foreach (var it in all)
+				{
+					try
+					{
+						if (it != null && it.IsTag("wage_washed") && Il2Cpp.ContrabandHelper.GetContrabandLevel(it) > 0)
+						{
+							Il2Cpp.ContrabandHelper.RemoveContrabandStatus(it);
+							Core.LogMsg("[蛙娘] 读档防御重洗白: " + it.identifier);
+						}
+					}
+					catch { }
+				}
+			}
+		}
+		catch (System.Exception ex3) { Core.LogMsg("[蛙娘] 读档重洗白扫描异常: " + ex3.Message); }
 	}
 
 	public static void UpdatePendingLoadGameRestore()

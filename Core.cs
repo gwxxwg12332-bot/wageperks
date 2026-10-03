@@ -70,6 +70,8 @@ public class Core : MelonMod
 		{
 		}
 		PatchRegistry.ApplyAll();
+		// 10-03 阶段B：读档数据就绪事件（WageAPI 30帧后触发）→ 驱动引用恢复 + 防御重洗白（原 WageSaveStore.LoadIfPending 阶段2逻辑迁来）
+		try { WageAPI.WageSaveStore.GameLoaded += Patches.OnStoreGameLoaded; } catch (System.Exception ex) { Log.Msg("[读档] GameLoaded 订阅失败: " + ex.Message); }
 		// 预加载所有自定义图标（修复懒加载死锁）
 		try { GuMachineSystem.LoadAllIcons(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 养蛊机异常: " + ex.Message); }
 		try { WageBrother.LoadCardSprite(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 服务卡异常: " + ex.Message); }
