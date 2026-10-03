@@ -28,13 +28,14 @@ internal static class WageBrother
         {
             var ps = PlayerStore.Instance;
             if (ps == null) return false;
-            if (!Core.PerkActive("蛙娘")) return false; // 门控：没点蛙娘 perk 不塞队
+            // 10-01: 删门控，蛙哥改为通用事件（不再要求点蛙娘 perk）
             int day = StoreStation.GetDayCounter();
             if (HasQueued()) return false;
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
             int lastSched = WageSaveStore.GetInt("wage_brother", "last_scheduled_day", -1);
             if (lastSched >= 0 && day - lastSched < interval) return false;
             WageSaveStore.SetInt("wage_brother", "last_scheduled_day", day);
+            Core.LogMsg("[蛙哥] 门控已删，day=" + day + " 尝试塞队 HasQueued=" + HasQueued());
             ps.QueueFuturClient(CLIENT_ID, 1);
             Core.LogMsg("[蛙哥] 已排队，明天到访");
             return true;
@@ -76,7 +77,9 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。消除声名狼藉时，声望恢复每势力另收3000。", "Double-click: pay credits to remove a negative perk. Removing Infamous also costs 3000 per faction for reputation restore."); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
+                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。消除声名狼藉时，声望恢复每势力另收3000。", "Double-click: pay credits to remove a negative perk. Removing Infamous also costs 3000 per faction for reputation restore."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                    try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
+                } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
                 
                 _cardSpawned = true;
@@ -92,7 +95,7 @@ internal static class WageBrother
                     {
                         aiGen.DisableTag("not_purchased", true);
                         aiGen.EnableTag("IS_OWNED_TAG", true);
-                        PlayerStore.Instance.AddDirectSellingItemToTable(aiGen, true, false, false, 0);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(aiGen, false, false, false, 0);
                         Core.LogMsg("[蛙哥] 携带AI制造机售卖");
                     }
                 }
@@ -103,7 +106,7 @@ internal static class WageBrother
                     {
                         guMachine.DisableTag("not_purchased", true);
                         guMachine.EnableTag("IS_OWNED_TAG", true);
-                        PlayerStore.Instance.AddDirectSellingItemToTable(guMachine, true, false, false, 0);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(guMachine, false, false, false, 0);
                         Core.LogMsg("[蛙哥] 携带养蛊机售卖");
                     }
                 }
@@ -114,7 +117,7 @@ internal static class WageBrother
                     {
                         protector.DisableTag("not_purchased", true);
                         protector.EnableTag("IS_OWNED_TAG", true);
-                        PlayerStore.Instance.AddDirectSellingItemToTable(protector, true, false, false, 0);
+                        PlayerStore.Instance.AddDirectSellingItemToTable(protector, false, false, false, 0);
                         Core.LogMsg("[蛙哥] 携带保护器售卖");
                     }
                 }
@@ -229,7 +232,7 @@ internal static class WageBrother
             {
                 if (it == null) continue;
                 bool isCard = false; try { isCard = it.IsTag("wage_bro_card"); } catch { }
-                if (isCard) { try { it.parentInventory?.Expel(it); } catch { } try { it.Destroy(); } catch { } }
+                if (isCard) { try { it.Destroy(); } catch { } } // 销毁语义：直接Destroy
             }
             Core.LogMsg("[蛙哥] 走了，服务卡已清");
         }
@@ -274,6 +277,22 @@ internal static class WageBrother
                     int pr = price;
                     var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(perk.Id, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消perk异常: " + ex.Message); } }));
                     string btnText = LangHelper.T(nm, nm);
+                    // 10-03 补：声名狼藉按钮加剩余总额（剩余负势力×3000）
+                    if (perk.Id == "声名狼藉")
+                    {
+                        int negCount = 0;
+                        try
+                        {
+                            string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
+                            foreach (var fid in factionIds)
+                            {
+                                var rep = Il2Cpp.StoreReputation.GetStoreReputation(fid);
+                                if (rep != null && (int)rep.GetReputationExact() < 0) negCount++;
+                            }
+                        }
+                        catch { }
+                        if (negCount > 0) btnText += LangHelper.T("（剩余 " + negCount + "×3000）", "（" + negCount + "×3000 left）");
+                    }
                     w.AddButton(btnText, act, "wb_perk_" + listed);
                     listed++;
                 }
@@ -289,15 +308,16 @@ internal static class WageBrother
         try
         {
             var ps = PlayerStore.Instance; if (ps == null) return;
-            if (ps.playerCash < price) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
-            ps.playerCash -= price;
-            StartingPerk.RemovePerk(perkId);
-            // 消除声名狼藉：弹五势力选择窗口（每势力3000）
+            // 10-02 改：声名狼藉先不扣2000、不RemovePerk——弹势力窗口，分次恢复，全正才消
             if (perkId == "声名狼藉")
             {
                 try { ShowRepFactionWindow(); return; }
                 catch (Exception ex) { Core.LogMsg("[蛙哥] 弹势力窗口异常: " + ex.Message); }
+                return;
             }
+            if (ps.playerCash < price) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
+            ps.playerCash -= price;
+            StartingPerk.RemovePerk(perkId);
             Core.LogMsg("[蛙哥] 已消除 " + perkId + "，扣 " + price);
             StoreUIManager.Instance.Notify(LangHelper.T("蛙哥收了" + price + "块，" + perkId + "消了", "Wage Brother took " + price + ", removed " + perkId));
             // 清服务卡
@@ -347,6 +367,18 @@ internal static class WageBrother
                             if (r != null) { int c = (int)r.GetReputationExact(); if (c < 0) r.ModReputation(-c); }
                             Core.LogMsg("[蛙哥] " + fnm + " 声望恢复，扣3000");
                             StoreUIManager.Instance.Notify(LangHelper.T(fnm + "声望恢复", fnm + " rep restored"));
+                            // 10-02 改：检查5势力全≥0→自动消声名狼藉
+                            if (CheckAllFactionsPositive())
+                            {
+                                StartingPerk.RemovePerk("声名狼藉");
+                                Core.LogMsg("[蛙哥] 5势力全正，声名狼藉已消");
+                                StoreUIManager.Instance.Notify(LangHelper.T("5势力全正，声名狼藉已消！", "All factions positive, Infamous removed!"));
+                                _cardSpawned = false;
+                                CleanupCardIfGone();
+                                try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("wage_rep_window"); } catch { }
+                                try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("wage_bro_window"); } catch { }
+                                return;
+                            }
                             ShowRepFactionWindow(); // 刷新
                         }
                         catch (Exception ex) { Core.LogMsg("[蛙哥] 恢复声望异常: " + ex.Message); }
@@ -358,6 +390,23 @@ internal static class WageBrother
             w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wage_rep_window"); } catch { } })), "wr_close");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] ShowRepFactionWindow异常: " + ex.Message); }
+    }
+
+    // 10-02 新增：检查5势力全≥0
+    private static bool CheckAllFactionsPositive()
+    {
+        try
+        {
+            string[] factionIds = { "FACTION_SECURITY", "FACTION_UPPER_LEVEL", "FACTION_REVOLUTION", "FACTION_LOWER_LEVEL", "FACTION_BLACK_MARKET" };
+            foreach (var fid in factionIds)
+            {
+                var rep = StoreReputation.GetStoreReputation(fid);
+                if (rep == null) return false;
+                if ((int)rep.GetReputationExact() < 0) return false;
+            }
+            return true;
+        }
+        catch { return false; }
     }
 
     // 服务卡双击 Prefix（OpenContentAction 识别 wage_bro_card）

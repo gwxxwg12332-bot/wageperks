@@ -74,7 +74,8 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(kit, false);
 
-                if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(kit))
+                bool _ok77 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(kit); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok77 = false; }
+                if (_ok77)
 
                 {
 
@@ -108,7 +109,8 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(scanner, false);
 
-                if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(scanner))
+                bool _ok111 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(scanner); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok111 = false; }
+                if (_ok111)
 
                 {
 
@@ -142,7 +144,8 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(bag, false);
 
-                if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(bag))
+                bool _ok145 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bag); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok145 = false; }
+                if (_ok145)
 
                 {
 

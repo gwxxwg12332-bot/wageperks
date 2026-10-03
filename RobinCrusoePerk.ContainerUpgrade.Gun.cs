@@ -87,7 +87,8 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
-    // C. Prefix StoreClientListGun 订单生成：拦截定制单（拆包 09-13 [L1]：原生有 null 防护——客户端照常来店但无定制要求）
+    // C. Prefix StoreClientListGun 订单生成：拦截定制单（特性意图：鲁滨逊档禁用枪械定制）。
+    // ⚠️ 无条件短路 return false——第三方同挂此方法会被跳过。若未来有mod依赖枪械订单需在此加判定。
     public static bool PrefixBlockGunOrder() { return false; }
 
     // B. Prefix DirectoryMaster.Item：枪械模组 id 重定向无害物品（拆包 09-13 [L1]：全游戏物品创建统一入口，商店/奖励/全量随机都走它；

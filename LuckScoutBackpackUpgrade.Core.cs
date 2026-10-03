@@ -304,7 +304,7 @@ partial class LuckScoutBackpackUpgrade
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(item, false);
 
-                bool accepted = ((GameInventory)emporium.backInvinvElement).UncheckedAccept(item);
+                bool accepted = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(item); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { accepted = false; }
 
                 if (accepted)
 

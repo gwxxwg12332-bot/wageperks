@@ -110,8 +110,8 @@ public static partial class WageGirlSystem
                             try { it.DisableTag("STOLEN_TAG"); } catch { }
                             try { it.DisableTag("CONTRABAND_TAG"); } catch { }
                             var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
-                            if (slot != null) { try { slot.TryAcceptOnce(); } catch { em.invElement.UncheckedAccept(it); } }
-                            else em.invElement.UncheckedAccept(it);
+                            if (slot != null) { try { slot.TryAcceptOnce(); } catch { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { } } }
+                            else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { } }
                         }
                     }
                 }

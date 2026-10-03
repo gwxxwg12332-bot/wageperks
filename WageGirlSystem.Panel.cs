@@ -97,8 +97,10 @@ public static partial class WageGirlSystem
                     b.AddButton(LangHelper.T("📞 花200信用点提前召回", "📞 Recall for 200 credits"), recallBtn, "wg_recall_btn");
                 }
             } catch { }
-            // 喂钱按钮
-            try {
+            // 喂钱按钮（外出中门控 10-02）
+            int _leaveChk2 = GetStat(K_LEAVE);
+            bool _isOut2 = _leaveChk2 > 0 && CurrentDay() < _leaveChk2;
+            if (!_isOut2) try {
                 int sel = _allowanceSel;
                 var allowanceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { GiveAllowance(sel); } catch (Exception ex) { Core.LogMsg("[蛙娘] 喂钱异常: " + ex.Message); } }));
                 b.AddButton(LangHelper.T("给零花钱：" + sel, "Allowance: " + sel), allowanceBtnOnClick, "wg_allowance_btn");

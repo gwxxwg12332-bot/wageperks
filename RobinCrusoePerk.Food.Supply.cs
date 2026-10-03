@@ -40,20 +40,21 @@ internal static partial class RobinCrusoePerk
             }
             // 养蛊机系统：博士夜晚商店卖新物品（防堆叠——柜台无同 id 才补）
             // 第 10 天起：养蛊机（wage_gu_machine，2000）——每天到访都补 1 个（柜台无则补）
-            if (day >= 10 && !HasGoodOnFront("wage_gu_machine"))
-            {
-                try { if (MerchantHelper.AddItemToCounter("wage_gu_machine", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖养蛊机（day " + day + "）"); } catch { }
-            }
+            // 10-02 用户拍板：博士商店不再卖这些物品（蛙哥好物池独占）
+            // if (day >= 10 && !HasGoodOnFront("wage_gu_machine"))
+            // {
+            //     try { if (MerchantHelper.AddItemToCounter("wage_gu_machine", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖养蛊机（day " + day + "）"); } catch { }
+            // }
             // 第 30 天起：AI 生成器（wage_ai_generator，1500）——柜台无则补
-            if (day >= 30 && !HasGoodOnFront("wage_ai_generator"))
-            {
-                try { if (MerchantHelper.AddItemToCounter("wage_ai_generator", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖生成器（day " + day + "）"); } catch { }
-            }
+            // if (day >= 30 && !HasGoodOnFront("wage_ai_generator"))
+            // {
+            //     try { if (MerchantHelper.AddItemToCounter("wage_ai_generator", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店卖生成器（day " + day + "）"); } catch { }
+            // }
             // 30 天起：保护器核心小概率刷新（30%概率卖1个，1500）
-            if (day >= 30 && Core.Rng.Next(100) < 30)
-            {
-                try { if (MerchantHelper.AddItemToCounter("wage_protector_core", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店小概率卖保护器（day " + day + "）"); } catch { }
-            }
+            // if (day >= 30 && Core.Rng.Next(100) < 30)
+            // {
+            //     try { if (MerchantHelper.AddItemToCounter("wage_protector_core", 0, false) != null) Core.LogMsg("[养蛊机] 博士夜晚商店小概率卖保护器（day " + day + "）"); } catch { }
+            // }
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] TryDoctorSupply 异常: " + ex.Message); }
     }

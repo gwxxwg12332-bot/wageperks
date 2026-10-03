@@ -76,7 +76,8 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             
             // 找一个有效槽位并添加到后背包
             emporium.backInvinvElement.TryFindOneValidInventorySlot(storageBox, false);
-            if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(storageBox))
+            bool _ok79 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(storageBox); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok79 = false; }
+            if (_ok79)
             {
                 emporium.TransferOwnershipBackInv();
                 emporium.TransferOwnedItemBackToInv();

@@ -95,6 +95,7 @@ internal static partial class Patches
 			{
 				return;
 			}
+			if (!BuildConfig.CompatWineNameProtect) return; // 10-03 补：开关
 			string identifier = __instance.identifier;
 			if (identifier == "wine_bottle")
 			{

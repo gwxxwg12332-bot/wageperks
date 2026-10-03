@@ -82,8 +82,7 @@ public static partial class GuMachineSystem
                 // 09-19 P2 失败语义：合成失败 = 原料销毁 + 产报废模组（不留悬垂原料）；充能归零重来
                 foreach (var m in mods)
                 {
-                    try { m.parentInventory?.Expel(m); } catch { }
-                    try { m.Destroy(); } catch { }
+                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
                 }
                 GameItem scrap = null;
                 try { scrap = DirectoryMaster.Item("system_module_ruined"); } catch { }
@@ -116,8 +115,7 @@ public static partial class GuMachineSystem
             // → TryAcceptAllMid(-1) 找不到空间静默失败（catch 吞掉）→ 产出丢失（用户反馈"炼蛊成功的模组消失"）
             foreach (var m in mods)
             {
-                try { m.parentInventory?.Expel(m); } catch { }
-                try { m.Destroy(); } catch { }
+                try { m.Destroy(); } catch { } // 销毁语义：直接Destroy
             }
             // 09-15 用户拍板：生产成果放入机器舱（玩家打开机器取出；TryAcceptAllMid 接受 GameGridInventory）
             try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
@@ -161,7 +159,7 @@ public static partial class GuMachineSystem
             try {
                 var advs = new System.Collections.Generic.List<GameItem>();
                 if (grid.childItems != null) foreach (var m in grid.childItems) { if (m == null) continue; string mid = ""; try { mid = m.identifier ?? ""; } catch { }; if (mid.StartsWith("turbo_booster_adv")) advs.Add(m); }
-                for (int j = advs.Count - 1; j >= 1; j--) { try { advs[j].parentInventory?.Expel(advs[j]); } catch { } try { advs[j].Destroy(); } catch { } }
+                for (int j = advs.Count - 1; j >= 1; j--) { try { advs[j].Destroy(); } catch { } }
                 if (advs.Count > 0) {
                     try { advs[0].EnableTag("TURBO_READY_TAG"); try { MachineTurboBoosterAdv.UpdateSprite(advs[0], null); } catch { } RobinCrusoePerk.SetTagIntValue(advs[0], "CURRENT_CHARGE_TAG", 15 + (advs.Count - 1) * 15); int oldN = RobinCrusoePerk.GetTagIntSafe(advs[0], "wage_turbo_n"); if (oldN <= 0) oldN = 1; RobinCrusoePerk.SetTagIntValue(advs[0], "wage_turbo_n", oldN + (advs.Count - 1)); } catch { }
                     Core.LogMsg("[AI制造] 涡轮互食 adv数=" + advs.Count);
@@ -185,24 +183,24 @@ public static partial class GuMachineSystem
             bool safe = protector != null;
             if (safe)
             {
-                // 阉割版：消耗 1 个保护器
-                try { protector.parentInventory?.Expel(protector); } catch { }
+                // 阉割版：消耗 1 个保护器（直接Destroy）
                 try { protector.Destroy(); } catch { }
             }
             // 抽卡：成功率=蛙娘心情节点（>=80→80%, <40→20%, 中间50%）；阉割版100%
             bool success = true;
+            int successPct = 100, roll = 0; // 提到外层供失败分支算倍率
             if (!safe)
             {
                 int mood = 50; try { mood = WageGirlSystem.GetStat("mood"); } catch { }
-                int successPct = mood >= 80 ? 80 : (mood < 40 ? 20 : 50);
-                int roll = 0; try { roll = Core.Rng.Next(100); } catch { roll = 0; }
+                successPct = mood >= 80 ? 80 : (mood < 40 ? 20 : 50);
+                try { roll = Core.Rng.Next(100); } catch { roll = 0; }
                 success = roll < successPct;
                 Core.LogMsg("[AI制造] mood=" + mood + " successPct=" + successPct + " roll=" + roll + " success=" + success);
             }
             if (success)
             {
                 // 09-15 用户拍板：生成器产出"不稳定AI模组"实物（不是机器属性吸收）——属性 = 投入模组之和，上限 cap
-                int cap = safe ? BuildConfig.AiStableCap : BuildConfig.AiUnstableCap;
+                // 10-01 用户拍板：不稳定版取消上限（无 cap）；保护器版×1.8倍（稳定保护奖励），无75%截断
                 int perf = 0, eff = 0, qual = 0;
                 foreach (var m in mods)
                 {
@@ -210,9 +208,10 @@ public static partial class GuMachineSystem
                     eff += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_EFFICIENCY_INT");
                     qual += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_QUALITY_INT");
                 }
-                int newP = Math.Min(cap, perf);
-                int newE = Math.Min(cap, eff);
-                int newQ = Math.Min(cap, qual);
+                double okMult = safe ? 1.8 : 1.0; // 保护器版×1.8
+                int newP = (int)(perf * okMult);
+                int newE = (int)(eff * okMult);
+                int newQ = (int)(qual * okMult);
                 long sumVal = 0; foreach (var mv in mods) { try { sumVal += mv.unitValue; } catch { } }
                 GameItem result = null;
                 try { result = DirectoryMaster.Item(AI_MODULE_ID); } catch { }
@@ -226,14 +225,13 @@ public static partial class GuMachineSystem
                     if (newE > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_EFFICIENCY_INT", newE);
                     if (newQ > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_QUALITY_INT", newQ);
                     try { result.EnableTag("MODULE_TAG"); } catch { }
-                    try { result.unitValue = (int)sumVal; result.unitBaseValue = (int)sumVal; } catch { } // 价值=吞噬原料之和
+                    try { result.unitValue = (int)(sumVal * okMult); result.unitBaseValue = (int)(sumVal * okMult); } catch { } // 价值=吞噬原料之和×倍率
                 }
                 // 09-19 吸取养蛊机教训：先清空原料腾格子、再入产出——原"先入产出后清空"导致 2×2 产出被原料占格
                 // → TryAcceptAllMid(-1) 静默失败（catch 吞掉）→ 产出丢失（"炼蛊成功的模组消失"同根因）
                 foreach (var m in mods)
                 {
-                    try { m.parentInventory?.Expel(m); } catch { }
-                    try { m.Destroy(); } catch { }
+                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
                 }
                 if (result != null)
                 {
@@ -250,27 +248,49 @@ public static partial class GuMachineSystem
             }
             else
             {
-                // 09-15 用户拍板：30% 失败 = 投入模组变报废模组（生成器保留）
+                // 10-01 用户拍板：失败不再全报废，而是产出打折模组——倍率 0.05~1.5，失败越惨倍率越低
+                // roll=successPct（刚过线）→倍率1.5；roll=99（最惨）→倍率0.05，线性插值
+                double failMult = 1.5 - (1.5 - 0.05) * (double)(roll - successPct) / (double)(99 - successPct);
+                if (failMult < 0.05) failMult = 0.05;
+                if (failMult > 1.5) failMult = 1.5;
+                int cap = 99999; // 失败也无上限（按用户要求）
+                int perf = 0, eff = 0, qual = 0;
                 foreach (var m in mods)
                 {
-                    try { m.parentInventory?.Expel(m); } catch { }
-                    try { m.Destroy(); } catch { }
+                    perf += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_PERFORMANCE_INT");
+                    eff += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_EFFICIENCY_INT");
+                    qual += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_QUALITY_INT");
                 }
-                GameItem scrap = null;
-                try { scrap = DirectoryMaster.Item("system_module_ruined"); } catch { }
-                if (scrap != null)
+                int newP = (int)(perf * failMult);
+                int newE = (int)(eff * failMult);
+                int newQ = (int)(qual * failMult);
+                long sumVal = 0; foreach (var mv in mods) { try { sumVal += mv.unitValue; } catch { } }
+                GameItem result = null;
+                try { result = DirectoryMaster.Item(AI_MODULE_ID); } catch { }
+                if (result != null)
                 {
-                    // 09-19 P2 失败语义：报废模组三属性清零（不参与后续吞噬、可卖）
-                    try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_PERFORMANCE_INT", 0); } catch { }
-                    try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_EFFICIENCY_INT", 0); } catch { }
-                    try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_QUALITY_INT", 0); } catch { }
-                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, scrap, -1); } catch { }
+                    try { RobinCrusoePerk.SetTagIntValue(result, "BONUS_PERCENTAGE_PERFORMANCE_INT", 0); } catch { }
+                    try { RobinCrusoePerk.SetTagIntValue(result, "BONUS_PERCENTAGE_EFFICIENCY_INT", 0); } catch { }
+                    try { RobinCrusoePerk.SetTagIntValue(result, "BONUS_PERCENTAGE_QUALITY_INT", 0); } catch { }
+                    if (newP > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_PERFORMANCE_INT", newP);
+                    if (newE > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_EFFICIENCY_INT", newE);
+                    if (newQ > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_QUALITY_INT", newQ);
+                    try { result.EnableTag("MODULE_TAG"); } catch { }
+                    try { result.unitValue = (int)(sumVal * failMult); result.unitBaseValue = (int)(sumVal * failMult); } catch { }
+                }
+                foreach (var m in mods)
+                {
+                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
+                }
+                if (result != null)
+                {
+                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
                 }
                 string line = LangHelper.T(
-                    "AI 生成器不稳定爆发：投入模组报废",
-                    "Neural Generator unstable burst: input modules scrapped");
+                    "AI 生成器不稳定波动：产出打折模组 · 倍率×" + failMult.ToString("0.00") + " 性能+" + newP + " 效率+" + newE + " 质量+" + newQ,
+                    "Neural Generator unstable fluctuation: debuffed module · x" + failMult.ToString("0.00") + " Perf+" + newP + " Eff+" + newE + " Qual+" + newQ);
                 try { StoreUIManager.Instance.Notify(line); } catch { }
-                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#7FC97F"); } catch { } // 09-22 统一柔和绿
+                try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#FF9966"); } catch { } // 失败橙
                 Core.AddNightReportLine(line);
             }
             RobinCrusoePerk.AddTagInt(gen, AI_LAST_DAY_TAG, day);
@@ -332,8 +352,7 @@ public static partial class GuMachineSystem
                 try { survivor.SetName("鼠王"); } catch { }
                 try { StoreUIManager.Instance.Notify("老鼠吞噬了同类，进化成了鼠王！"); } catch { }
             }
-            try { eaten.parentInventory?.Expel(eaten); } catch { }
-            try { eaten.Destroy(); } catch { }
+            try { eaten.Destroy(); } catch { } // 销毁语义：直接Destroy
             if (king == null) // 鼠王豁免每日计数
             {
                 WageSaveStore.SetInt("GuBeast", "eat_day", day);

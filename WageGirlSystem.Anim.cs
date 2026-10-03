@@ -388,43 +388,25 @@ public static partial class WageGirlSystem
             }
             {
             }
-            if (gw > 0 && gh > 0)
+            // 10-02 修：绕过TryInventorySlot（mod冲突JIT崩溃）→ Expel+TryFindOneValidInventorySlot（安全非虚）
+            try { if (!inv.Expel(g)) return false; } catch { return false; }
+            // 多次TryFindOne找不同空位（避免原地不动）
+            bool placed = false;
+            for (int i = 0; i < 3 && !placed; i++)
             {
-                int tryCount = 0, hitCount = 0;
-                for (int t = 0; t < 8; t++)
+                try
                 {
-                    try
-                    {
-                        tryCount++;
-                        int cx = Core.Rng.Next(0, gw);
-                        int cy = Core.Rng.Next(0, gh);
-                        // 09-23 拆包正确姿势：GridShapeBuilder(item.shape) + SetPosition(cx,cy) + 3参 TryInventorySlot + TryAcceptOnce
-                        // （5参 Vector2 像素点版是陷阱——GetGridPosition 换算后 clamp 0 → 总左上角）
-                        var b = new GridShapeBuilder(shape);
-                        b.SetPosition(cx, cy);
-                        var m = inv.TryInventorySlot(g, b.shape, null);
-                        if (m != null && m.IsValid())
-                        {
-                            hitCount++;
-                            m.TryAcceptOnce();
-                            return true;
-                        }
-                    }
-                    catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
+                    var slot = inv.TryFindOneValidInventorySlot(g, false);
+                    if (slot != null && slot.IsValid()) { slot.TryAcceptOnce(); placed = true; }
                 }
-                {
-                }
+                catch { }
             }
-            // 兜底：Expel + TryFindOneValidInventorySlot（至少能动，可能左上角）
-            if (!inv.Expel(g)) return false;
-            var slot = inv.TryFindOneValidInventorySlot(g, false);
-            if (slot != null && slot.IsValid())
+            // 兜底：UncheckedAcceptAll
+            if (!placed)
             {
-                slot.TryAcceptOnce();
-                return true;
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(g); inv.UncheckedAcceptAll(l); } catch { }
             }
-            inv.UncheckedAccept(g); // 兜底放回（绝不丢实体）
-            return false;
+            return true;
         }
         catch { return false; }
     }

@@ -48,7 +48,7 @@ public static partial class WageGirlSystem
                 if (it == null) continue;
                 var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
                 if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
-                em.invElement.UncheckedAccept(it);
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { }
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveRewardItem异常: " + ex.Message); }

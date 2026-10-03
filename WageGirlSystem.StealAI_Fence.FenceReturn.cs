@@ -57,7 +57,7 @@ public static partial class WageGirlSystem
                         var inv = (GameInventory)em.frontInvinvElement;
                         var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
                         if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
-                        else inv.UncheckedAccept(it);
+                        else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); } catch { } } // ③非虚替代UncheckedAccept（防虚JIT崩溃）
                         names.Add(ModCannibalism.GetName(it));
                     }
                 }
@@ -271,15 +271,15 @@ private static void FenceReturn()
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
                 return;
             }
-            // 拆件：随机件数（09-26 惊喜感：不锁件数，CFG 3~8）；单件目标 = 总目标/件数
-            int n = Math.Max(2, Math.Min(Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1), (int)(target / 300)));
+            // 拆件：随机件数（不限制数量——用户拍板）；单件目标 = 总目标/件数
+            int n = Core.Rng.Next(BuildConfig.WageGirlFenceItemMin, BuildConfig.WageGirlFenceItemMax + 1);
             long perTarget = target / Math.Max(1, n);
             long spent = 0;
             var names = new System.Collections.Generic.List<string>();
             for (int i = 0; i < n && spent < target; i++)
             {
                 long itemTarget = Math.Min(perTarget, target - spent);
-                // 09-26 C口径：30% 概率向上取整找货（geq=true），填平"只少不多"缺口；L263 的 ×1.3 防超仍生效
+                // 30% 概率向上取整找货（geq=true），填平"只少不多"缺口
                 bool geq = Core.Rng.Next(100) < 30;
                 GameItem it = FindItemNearValue(itemTarget, cat, geq); // 单件 ≤ 单件目标、最接近（30% 允许略超）
                 if (it == null) break;

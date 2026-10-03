@@ -154,7 +154,7 @@ internal static class BatteryCannibalism
 				string name2 = ModCannibalism.GetName(gameItem);
 				try
 				{
-					gameItem.parentInventory?.Expel(gameItem);
+					gameItem.Destroy(); // 销毁语义：直接Destroy
 				}
 				catch
 				{

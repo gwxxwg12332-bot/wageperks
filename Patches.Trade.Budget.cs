@@ -76,7 +76,10 @@ internal static partial class Patches
 				{
 					int clientCash = __result.clientCash;
 					// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
-					__result.clientCash = (int)((double)clientCash * (1.0 + (double)budgetBonusPct / 100.0));
+					int newCash = (int)((double)clientCash * (1.0 + (double)budgetBonusPct / 100.0));
+					// 09-26 修：防其他mod干扰后变成负数
+					if (newCash < 0) newCash = 0;
+					__result.clientCash = newCash;
 				}
 			}
 		}

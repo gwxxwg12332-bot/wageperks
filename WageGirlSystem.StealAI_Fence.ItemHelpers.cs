@@ -185,7 +185,7 @@ public static partial class WageGirlSystem
             EmporiumEntry em = EmporiumEntry.Instance;
             if (em == null || em.backInvinvElement == null) return;
             var inv = (GameInventory)em.backInvinvElement;
-            inv.UncheckedAccept(it); // 主仓库(后库)
+            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); } catch { } // ③主仓库(后库)
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
@@ -242,7 +242,7 @@ public static partial class WageGirlSystem
                 GameItem it = null;
                 try { it = DirectoryMaster.Item(id, true); } catch { }
                 if (it == null) { tries++; continue; }
-                try { inv.UncheckedAccept(it); spent += it.unitValue; filled++; } catch { tries++; }
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); spent += it.unitValue; filled++; } catch { tries++; }
             }
             // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环可能因违禁分流不符（5% 分支尤甚）、
             // 创建失败或 UncheckedAccept 抛错而一件都没塞进去 → 空箱。
@@ -259,7 +259,7 @@ public static partial class WageGirlSystem
                     GameItem it = null;
                     try { it = DirectoryMaster.Item(id, true); } catch { }
                     if (it == null) continue;
-                    try { inv.UncheckedAccept(it); filled++; } catch { }
+                    try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); filled++; } catch { }
                 }
             }
             filledValue = spent; // 09-24 修：返回实际塞入物品总价值，克扣按这个算

@@ -44,13 +44,11 @@ internal sealed class BadReputationPerk : CustomStartingPerk
                     total++;
                     int rep = 0;
                     try { rep = (int)fr.GetReputationExact(); } catch { }
-                    Core.LogMsg("[信誉扫地] " + fid + " = " + rep);
                     if (rep >= 20) cleared++;
                 }
                 catch (Exception ex) { Core.LogMsg("[信誉扫地] " + fid + " 异常: " + ex.Message); }
             }
             bool all = total > 0 && cleared >= total;
-            Core.LogMsg("[信誉扫地] 解除检查: " + cleared + "/" + total + " all=" + all);
             return all;
         }
         catch (Exception ex)

@@ -385,7 +385,13 @@ internal static partial class RobinCrusoePerk
             if (__instance == null || __instance.titleTMP == null) return;
             var pc = Il2Cpp.StorePhoneClient.GetPhoneClientByNumber(targetNumber);
             if (pc == null || string.IsNullOrEmpty(pc.displayName)) return;
-            __instance.titleTMP.text = pc.displayName;
+            string dn = pc.displayName;
+            // 10-03 补：4个硬编码译名表（按displayName匹配，对齐兼容补丁ChinesePhoneName）
+            if (dn.Contains("Winemaker") || dn.Contains("Wine Merchant")) { __instance.titleTMP.text = "酒商"; return; }
+            if (dn.Contains("Joe Wild") || dn.Contains("Assistant")) { __instance.titleTMP.text = "乔·王尔德的助手"; return; }
+            if (dn.Contains("Odin") || dn.Contains("Haraldson")) { __instance.titleTMP.text = "奥丁·哈拉尔德森"; return; }
+            if (dn.Contains("GP") || dn.Contains("Mining")) { __instance.titleTMP.text = "GP矿业老板"; return; }
+            __instance.titleTMP.text = dn;
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
@@ -431,7 +437,7 @@ internal static partial class RobinCrusoePerk
         {
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-            try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
+            // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
             Core.LogMsg("[奥丁] AutoCall拦截 number=51189 → 强制StartPhoneDialog");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
             return false;
@@ -446,7 +452,7 @@ internal static partial class RobinCrusoePerk
             long number = currentNumber;
             if (number != 51189) return true;
             if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-            try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
+            // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
             Core.LogMsg("[奥丁] HandleCall拦截 number=51189 → 强制StartPhoneDialog");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
             return false;
@@ -462,7 +468,7 @@ internal static partial class RobinCrusoePerk
             if (currentNumber == 51189)
             {
                 if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-                try { var rep = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION"); int revRep = rep != null ? (int)rep.GetReputationExact() : 0; if (revRep > -99) return true; } catch { }
+                // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
                 PlayerStore ps0 = PlayerStore.Instance; if (ps0 == null || ps0.storeClientManager == null) return true;
                 try { ps0.storeClientManager.RemoveDuplicateClientsByIdentifier("wanted4Normal"); } catch { }
                 ps0.QueueFuturClient("wanted4Normal", 2);

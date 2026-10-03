@@ -93,7 +93,7 @@ internal static partial class RobinCrusoePerk
                 // 之前丢弃 slot 直接 UncheckedAccept → 不设坐标 → 同格重叠。TryAcceptOnce 失败才 UncheckedAccept 兜底。
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
                 if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
-                inv.UncheckedAccept(item);
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(item); inv.UncheckedAcceptAll(l); } catch { }
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
@@ -115,7 +115,7 @@ internal static partial class RobinCrusoePerk
                 // 同 GiveToBackpack：slot.TryAcceptOnce 真正落格，防重叠
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(spawn, false);
                 if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
-                inv.UncheckedAccept(spawn);
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(spawn); inv.UncheckedAcceptAll(l); } catch { }
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }

@@ -470,7 +470,7 @@ namespace WagePerks
 
                 {
 
-                    try { absorbedItem.parentInventory?.Expel(absorbedItem); } catch { }
+                    try { absorbedItem.Destroy(); } catch { } // 销毁语义：直接Destroy
 
                 }
 

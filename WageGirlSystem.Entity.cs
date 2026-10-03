@@ -119,7 +119,7 @@ public static partial class WageGirlSystem
             // 照 GiveToBackpack 先例：TryFindOneValidInventorySlot → TryAcceptOnce（防同格重叠）；失败 UncheckedAccept 兜底
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(item, false);
             if (slot != null) { try { slot.TryAcceptOnce(); return; } catch (Exception) { } }
-            inv.UncheckedAccept(item);
+            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(item); inv.UncheckedAcceptAll(l); } catch { }
             Core.LogMsg("[蛙娘] 已发放实体到背包（全局常驻）");
         _returnTimer = 0.5f; _curState = ""; // 强制播return帧0.5s再切idle
         }

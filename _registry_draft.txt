@@ -1,0 +1,190 @@
+L96	typeof(StartingPerkList), "InitStartingPerk", null, "PostfixInitStartingPerks"
+L97	typeof(GameMaster), "NewGame", null, "PostfixOnNewGame"
+L98	typeof(NewGameData), "HandleInitialItem", null, "HandleInitialItemPostfix"
+L100	typeof(PlayerStore), "HandleSkipIntro", null, "PostfixHandleSkipIntro", null, typeof(WandererPerk)
+L106	typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay"
+L111	typeof(PlayerStore), "BeginDay", null, "PostfixOnBeginDay"
+L112	typeof(PlayerStore), "AddDirectSellingItemToTable", "PrefixAddDirectSellingItemToTable", null, null, typeof(WaterMerchantPerk)
+L120	type, "CreateAcidBottle", "PrefixCreateAcidBottle"
+L121	type, "CreateBaseBottle", "PrefixCreateBaseBottle"
+L127	typeof(StoreClientManager), "AddClient", null, "PostfixOnAddClient", new System.Type[1] { typeof(StoreClient) }
+L128	typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(LuckScoutPerk)
+L129	typeof(PlayerStore), "LoadGame", null, "PostfixOnLoadGame"
+L130	typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame", null, typeof(LuckScoutBackpackUpgrade)
+L131	typeof(TradeSheet), "GetFoundryShop", null, "PostfixTradeSheetFoundryShop"
+L132	typeof(TradeSheet), "GetEnergyFarmShop", null, "PostfixTradeSheetEnergyFarmShop"
+L133	typeof(StoreClientManager), "HandleContentUnlockClient", null, "PostfixOnHandleContentUnlockClient"
+L134	typeof(InputActionManager), "Update", null, "PostfixInputActionManagerUpdate"
+L135	typeof(InventorySortHelper), "Sort", null, "PostfixSort", null, typeof(RobinCrusoePerk)
+L136	typeof(StoreUIManager), "OnNextClientArrived", null, "PostfixSpecialNpcStartDialogue"
+L137	typeof(DialogUIManager), "DisplayClientText", "PrefixDisplayClientText", null, new System.Type[1] { typeof(Dialogue) }
+L138	typeof(ScavHelper), "GetMaxScavAttempts", null, "PostfixGetMaxScavAttempts", null, typeof(LuckScoutPerk)
+L139	typeof(ScavHelper), "GetScavTimeLeft", null, "PostfixGetScavTimeLeft", null, typeof(LuckScoutPerk)
+L140	typeof(ScavHelper), "CanScavenge", "PrefixCanScavenge", "PostfixCanScavenge", null, typeof(LuckScoutPerk)
+L141	typeof(ScavHelper), "ScavengeDumpingGrounds", "PrefixScavengeDumpingGrounds", "PostfixScavengeDumpingGrounds", null, typeof(LuckScoutPerk)
+L142	typeof(GameMaster), "QuitToMenu", null, "PostfixQuitToMenu", null, typeof(LuckScoutPerk)
+L143	typeof(EscapeUIManager), "OnMainMenu", null, "PostfixOnMainMenu", null, typeof(LuckScoutPerk)
+L144	typeof(GameMaster), "NewGame", null, "PostfixNewGame", null, typeof(LuckScoutPerk)
+L145	typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(LuckScoutPerk), -1000, "FinalizerGetRandomScavengedItem"
+L151	typeof(EmporiumEntry), "GetAllAfterhourOwnedItems", null, "PostfixGetAllAfterhourOwnedItems", null, typeof(LuckScoutPerk)
+L152	typeof(PerkUIController), "OpenUI", null, "PostfixPerkUiOpen", null, typeof(Patches), null, "FinalizerPerkUiOpen"
+L153	typeof(PerkUIController), "OnChange", null, null, null, typeof(Patches), null, "FinalizerPerkUiOnChange"
+L154	typeof(StartingPerkIconLoader), "Start", null, "PostfixIconLoaderStart"
+L155	typeof(NetworkUpgrade), "Unlock", "Prefix", "Postfix", null, typeof(DetectiveUpgradePatch)
+L156	typeof(SecData), "OnFixerUsed", "Prefix", null, null, typeof(DetectiveFixerPatch)
+L157	typeof(SecData), "CommitCrime", "Prefix", null, null, typeof(DetectiveCommitCrimePatch)
+L158	typeof(NegociationUIManager), "SellItem", null, "Postfix", null, typeof(SoldContrabandCounterPatch)
+L159	typeof(SecData), "OnNewDay", null, "Postfix", null, typeof(SoldEvidenceOnNewDayPatch)
+L160	typeof(SecData), "OnFixerUsed", null, "Postfix", null, typeof(WildeFixerPatch)
+L161	typeof(BarterHelper), "DoesTraderAcceptThisItemAsPayment", null, "Postfix", null, typeof(CounterfeitWineTradeFix)
+L163	typeof(StartingPerkElement), "Start", null, "PostfixStartingPerkElementStart"
+L164	typeof(GameItem), "GetNegociatedValue", "PrefixGameItemGetNegociatedValue", "PostfixGameItemGetNegociatedValue"
+L167	typeof(NegociationUIManager), "InitUIWithItemSellMode", null, "PostfixUIInitSellMode"
+L168	typeof(ClientCanExposeFunc), "ClientNoExposeInjector", "PrefixClientNoExposeInjector", null, new System.Type[1] { typeof(ItemFeature) }
+L169	typeof(ItemFeature), "GetClientExposeDialog", "PrefixGetClientExposeDialog"
+L170	typeof(NegociationUIManager), "InitUIWithItemBuyMode", null, "PostfixUIInitBuyMode"
+L171	typeof(NegociationUIManager), "CloseUI", null, "PostfixUIClose"
+L172	typeof(GameItem), "GetDisplayName", null, "PostfixGameItemGetDisplayName"
+L173	typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixDealMakerBonus", new System.Type[0]
+L183	typeof(StartOfDayUIManager), "OpenUI", null, "PostfixStartOfDayOpenUI"
+L184	typeof(StartOfDayUIManager), "ShowMorningReport", null, "PostfixStartOfDayShowMorningReport"
+L185	typeof(StartOfDayUIManager), "OnStartDayButtonClicked", null, "PostfixStartOfDayButtonClicked"
+L187	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas"
+L188	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(LuckScoutBackpackUpgrade)
+L189	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(DestinyDice)
+L190	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(GuMachineSystem)
+L191	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageGirlSystem)
+L192	typeof(RenderHandler), "LoadFromAtlas", "PrefixLoadFromAtlas", null, null, typeof(WageBrother)
+L193	typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageGirlSystem)
+L194	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WageGirlSystem)
+L195	typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(RobinCrusoePerk)
+L196	typeof(PlayerStore), "SaveGame", "PrefixSaveGame", null, null, typeof(ContainerUpgradeV2)
+L197	typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame", null, typeof(WageSaveStore), 0
+L198	typeof(PlayerStore), "EndDay", null, "PostfixEndDay", null, typeof(WageSaveStore)
+L211	typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(ModCannibalism)
+L212	typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(BatteryCannibalism)
+L216	typeof(StoreEventManager), "OnDayStart", null, "OnDayStartPostfix", null, typeof(GuMachineSystem)
+L217	typeof(StoreEventManager), "OnDayStart", null, "PostfixOnDayStart", null, typeof(WageGirlSystem)
+L219	typeof(StoreEventManager), "OnDayStart", null, "PostfixStoreEventOnDayStart", null, typeof(DestinyDice)
+L221	typeof(StoreEventManager), "OnDayStart", null, "PostfixUnifiedDayStart"
+L222	typeof(PlayerStore), "SaveGame", null, "PostfixSaveGame"
+L234	typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(DestinyDice)
+L235	typeof(NewsUIManager), "PopulateUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism)
+L236	typeof(ModuleHelper), "CreateModuleTooltip", null, "PostfixCreateModuleTooltip", null, typeof(ModCannibalism)
+L237	typeof(AdvCalendarUIManager), "OnNightlyReportButtonClicked", null, "PostfixOnNightlyReportButtonClicked", null, typeof(ModCannibalism)
+L238	typeof(AdvCalendarUIManager), "OpenUIFromNightlyReport", null, "PostfixOpenUIFromNightlyReport", null, typeof(ModCannibalism)
+L239	typeof(AdvCalendarUIManager), "OnStatusButtonClicked", null, "PostfixOnStatusButtonClicked", null, typeof(ModCannibalism)
+L240	typeof(NewsUIManager), "ToggleUI", null, "PostfixNewsPopulateUI", null, typeof(ModCannibalism)
+L241	typeof(NewsUIManager), "ToggleUI", null, "PostfixNewsToggleUI", null, typeof(DestinyDice)
+L242	typeof(NewsUIManager), "CloseUI", null, "PostfixNewsCloseUI", null, typeof(DestinyDice)
+L243	typeof(InputActionManager), "Update", null, "PostfixNewsInputUpdate", null, typeof(DestinyDice)
+L244	typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot", null, null, typeof(DestinyDice)
+L245	typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(DestinyDice)
+L246	typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(DestinyDice)
+L247	typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(DestinyDice)
+L248	typeof(GameItem), "Target", "PostfixTarget", null, null, typeof(TurboBoostN)
+L249	typeof(ItemMouseDoubleClickHandler), "DoubleClickAction", "PrefixDoubleClickAction", null, null, typeof(DestinyDice)
+L267	typeof(ContainerItemDirectory), "InitDirectory", null, "PostfixInitDirectory"
+L268	typeof(AmenitiesItemDirectory), "InitDirectory", null, "PostfixInitDirectory"
+L269	typeof(ModItemDirectory), "InitDirectory", null, "PostfixInitDirectory"
+L271	typeof(StartingPerkElement), "OnPointerClick", "PrefixOnPointerClick", "PostfixOnPointerClick", new System.Type[1] { typeof(PointerEventData) }
+L272	typeof(MainMenuUIController), "Awake", null, "PostfixAwake", null, typeof(NewStartTypeUI)
+L273	typeof(MainMenuUIController), "ResetAllTab", null, "PostfixResetAllTab", null, typeof(NewStartTypeUI)
+L274	typeof(NewGameData), "GetStartDisplayName", null, "PostfixGetStartDisplayName", patchHost: typeof(NewStartTypeUI), parameterTypes: new System.Type[1] { typeof(NewGameData.StartType) }
+L280	typeof(PlayerStore), "SaveGame", "PrefixSaveGame", "PostfixSaveGame", null, typeof(NewStartTypeUI)
+L282	typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame", null, typeof(NewStartTypeUI)
+L294	typeof(StoreClientManager), "HandleMinorClient", "PrefixHandleMinorClient", null, null, typeof(RobinCrusoePerk)
+L295	typeof(StoreClientManager), "PickClient", "PrefixPickClient", null, null, typeof(RobinCrusoePerk)
+L296	typeof(MapUIManager), "OpenGoOutsideConfirm", "PrefixOpenGoOutsideConfirm", null, null, typeof(RobinCrusoePerk)
+L298	typeof(StoreEventManager), "OnDayStart", null, "PostfixOnNewDay", null, typeof(RobinCrusoePerk)
+L299	typeof(StoreClientManager), "HandleInspectionClient", "PrefixHandleInspectionClient", "PostfixHandleInspectionClient"
+L300	typeof(StoreReputation), "IsPerkUnlocked", null, "PostfixIsPerkUnlocked"
+L313	typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(WageGirlSystem)
+L314	typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(WageGirlSystem)
+L315	typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(WageGirlSystem)
+L317	typeof(StoreClient), "CanClientExposeAnyFeature", "PrefixCanClientExposeAnyFeature", null, null, typeof(RobinCrusoePerk)
+L318	typeof(HusbandryHelper), "CreateItemTooltip", null, "PostfixCreateItemTooltip", null, typeof(RobinCrusoePerk)
+L320	typeof(HusbandryHelper), "CreateItemTooltip", null, "PostfixWageBoxTooltip", null, typeof(ContainerUpgradeV2)
+L321	typeof(HealthData), "ReceiveMinorWound", "PrefixReceiveWound", null, null, typeof(RobinCrusoePerk)
+L322	typeof(HealthData), "ReceiveMajorWound", "PrefixReceiveWound", null, null, typeof(RobinCrusoePerk)
+L324	typeof(HealthData), "ReceiveMinorWound", null, "PostfixReceiveMinorWound", null, typeof(RobinCrusoePerk)
+L325	typeof(HealthData), "ReceiveMajorWound", null, "PostfixReceiveMajorWound", null, typeof(RobinCrusoePerk)
+L326	typeof(ScavHelper), "CanScavenge", null, "PostfixCanScavenge", null, typeof(RobinCrusoePerk)
+L327	typeof(ScavHelper), "GetMaxScavAttempts", null, "PostfixGetMaxScavAttempts", null, typeof(RobinCrusoePerk)
+L328	typeof(ScavHelper), "GetScavTimeLeft", null, "PostfixGetScavTimeLeft", null, typeof(RobinCrusoePerk)
+L329	typeof(ScavHelper), "GetRandomScavengedItem", null, "PostfixGetRandomScavengedItem", null, typeof(RobinCrusoePerk), -1000, "FinalizerGetRandomScavengedItem"
+L330	typeof(MachineryHelper), "GetCurrentPerformanceBonus", null, "PostfixGetCurrentPerformanceBonus", null, typeof(RobinCrusoePerk)
+L331	typeof(MachineryHelper), "GetCurrentQualityBonus", null, "PostfixGetCurrentQualityBonus", null, typeof(RobinCrusoePerk)
+L355	typeof(ModuleHelper), "ApplyPerformanceWaterRecyclerEffect", null, "PostfixApplyPerformanceWaterRecyclerEffect", null, typeof(RobinCrusoePerk)
+L356	typeof(MachineMoistureFarm), "GetOutputVolume", null, "PostfixGetOutputVolume", null, typeof(RobinCrusoePerk)
+L357	typeof(MachineTurboBoosterAdv), "UpdateSprite", null, "PostfixUpdateSprite", null, typeof(TurboBoostN)
+L358	typeof(MachineMoistureFarm), "Fill", "PrefixFill", null, null, typeof(TurboBoostN)
+L359	typeof(MachinePurifier), "PurifyContainer", null, "PostfixPurifyContainer", null, typeof(TurboBoostN)
+L360	typeof(WineHelper), "OnAgeWine", null, "PostfixOnAgeWine", null, typeof(TurboBoostN)
+L361	typeof(MachineProgressHelper), "ContinueProgressTypeMachine", null, "PostfixContinueProgress", null, typeof(TurboBoostN)
+L362	typeof(MachineTurboBoosterAdv), "CreateMachineTooltip", null, "PostfixCreateTooltip", null, typeof(TurboBoostN)
+L363	typeof(WaterHelper), "RemoveContaminantFromContainer", null, "PostfixRemoveContaminantFromContainer", null, typeof(RobinCrusoePerk)
+L364	typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(RobinCrusoePerk)
+L365	typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(RobinCrusoePerk)
+L366	typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(RobinCrusoePerk)
+L367	typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot", null, null, typeof(RobinCrusoePerk)
+L368	typeof(GameItem), "MayTarget", "PrefixMayTarget_WageBox", null, null, typeof(ContainerUpgradeV2)
+L369	typeof(GameItem), "CanTarget", "PrefixCanTarget_WageBox", null, null, typeof(ContainerUpgradeV2)
+L370	typeof(GameItem), "Target", "PrefixTarget_WageBox", null, null, typeof(ContainerUpgradeV2)
+L371	typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot_WageBox", null, null, typeof(ContainerUpgradeV2)
+L372	typeof(GameItem), "MayHaveValidInventorySlot", "PrefixMayHaveValidInventorySlot", null, null, typeof(GuMachineSystem)
+L373	typeof(GameItem), "MayTarget", "PrefixMayTarget", null, null, typeof(LuckScoutBackpackUpgrade)
+L374	typeof(GameItem), "CanTarget", "PrefixCanTarget", null, null, typeof(LuckScoutBackpackUpgrade)
+L375	typeof(GameItem), "Target", "PrefixTarget", null, null, typeof(LuckScoutBackpackUpgrade)
+L376	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WandererPerk)
+L377	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(InfamousPerk)
+L379	typeof(Il2Cpp.StoreService), "UpdateCost", null, "PostfixUpdateCost", null, typeof(InfamousPerk)
+L380	typeof(Il2Cpp.ItemMultiSelectHandler), "EndGroupDrag", "PrefixEndGroupDrag", "PostfixEndGroupDrag", null, typeof(BatchDragUpgrade), null, "FinalizerEndGroupDrag"
+L382	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(RobinCrusoePerk)
+L383	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(DrJacksonFriendPerk)
+L384	typeof(PlayerStore), "StartNewGame", null, "PostfixStartNewGame", null, typeof(WaterMerchantPerk)
+L385	typeof(PlayerStore), "LoadGame", null, "PostfixLoadGame_IngotContainer", null, typeof(RobinCrusoePerk)
+L386	typeof(LiquidContainerHelper), "AutoSipFromContainer", "PrefixAutoSipFromContainer", null, null, typeof(RobinCrusoePerk)
+L387	typeof(StoreClientList), "PlaceSupplierInventory", null, "PostfixPlaceSupplierInventory", null, typeof(RobinCrusoePerk)
+L388	typeof(EmporiumEntry), "Start", null, "PostfixEmporiumEntryStart", null, typeof(RobinCrusoePerk)
+L390	typeof(MachineryHelper), "GetMachinePowerUsage", null, "PostfixGetMachinePowerUsage", null, typeof(RobinCrusoePerk)
+L391	typeof(PlayerStore), "HandleInsurance", "PrefixHandleInsurance", null, null, typeof(RobinCrusoePerk)
+L392	typeof(ScavHelper), "ScavengeDumpingGrounds", null, "PostfixScavengeDumpingGrounds", null, typeof(RobinCrusoePerk)
+L393	typeof(StoreClientManager), "CheckRentDay", "PrefixCheckRentDay", null, null, typeof(RobinCrusoePerk)
+L394	typeof(StoreClientUniqueList.__c), "_LandlordWholesale_b__22_0", "PrefixLandlordWholesaleStock", null, null, typeof(RobinCrusoePerk)
+L395	typeof(StoreClientManager), "HandleSupplierClient", null, "PostfixHandleSupplierClient", null, typeof(RobinCrusoePerk)
+L396	typeof(PlayerStore), "ExecuteGameOver", "PrefixExecuteGameOver", null, null, typeof(RobinCrusoePerk)
+L397	typeof(StoreClientManager), "HandleNormalClient", null, "PostfixHandleNormalClient", null, typeof(RobinCrusoePerk)
+L398	typeof(StorePhoneClient), "InitPhoneClientDict", null, "PostfixInitPhoneClientDict", null, typeof(RobinCrusoePerk)
+L399	typeof(PhoneUIManager), "WillAnswerCall", "PrefixWillAnswerCall", null, null, typeof(RobinCrusoePerk)
+L400	typeof(PhoneUIManager), "WillAnswerCall", null, "PostfixWillAnswerCall", null, typeof(RobinCrusoePerk)
+L401	typeof(PhoneUIManager), "StartPhoneDialog", "PrefixStartPhoneDialog", null, null, typeof(RobinCrusoePerk)
+L402	typeof(ContactElement), "OnInit", null, "PostfixOnContactInit", null, typeof(RobinCrusoePerk)
+L403	typeof(PhoneUIManager), "AutoCall", "PrefixAutoCall", null, null, typeof(RobinCrusoePerk)
+L404	typeof(PhoneUIManager), "HandleCall", "PrefixHandleCall", null, null, typeof(RobinCrusoePerk)
+L405	typeof(StoreClientListWanted), "CreateWanted6", null, "PostfixCreateWanted6", null, typeof(RobinCrusoePerk)
+L407	typeof(DirectoryMaster), "Item", "PrefixDirectoryMasterItem", null, null, typeof(RobinCrusoePerk)
+L408	typeof(WantedElement), "OnArrested", null, "PostfixWantedElementOnArrested", null, typeof(RobinCrusoePerk)
+L409	typeof(StoreUIManager), "OnGenericArrived", "PrefixStoreUIManagerOnGenericArrived", null, null, typeof(RobinCrusoePerk)
+L410	typeof(AugHelper), "CleanupKill", null, "PostfixAugHelperCleanupKill", null, typeof(RobinCrusoePerk)
+L411	typeof(AdvCalendarUIManager), "OnCalendarButtonClicked", null, "PostfixOnCalendarButtonClicked", null, typeof(RobinCrusoePerk)
+L412	typeof(StoreCalendar), "Update", null, "PostfixStoreCalendarUpdate", null, typeof(RobinCrusoePerk)
+L413	typeof(StartOfDayUIManager), "InitPanel", null, "PostfixStartOfDayInitPanel", null, typeof(RobinCrusoePerk)
+L414	typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixStoreClientApplyBudgetModifier", null, typeof(Patches)
+L415	typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)
+L416	typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)
+L417	typeof(GameItemElement), "ApplyAnimationFrame", "PrefixApplyAnimationFrame", null, null, typeof(WageGirlSystem)
+L418	typeof(GameItemElement), "ResolveSpriteByName", "PostfixResolveSpriteByName", null, null, typeof(WageGirlSystem)
+L427	typeof(StoreClientManager), "PickClient", null, "PostfixStoreClientManagerPickClient", null, typeof(Patches)
+L428	typeof(BargainUIManager), "OfferBuyingMarkup", "PrefixBargainUIManagerOfferBuyingMarkup", null, null, typeof(Patches)
+L429	typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(Patches)
+L430	typeof(ItemFeatureList), "BargainBuyingMarkup", null, "PostfixItemFeatureListBargainBuyingMarkup", null, typeof(Patches)
+L431	typeof(StoreClient), "OnDealAccepted", null, "PostfixStoreClientOnDealAccepted", null, typeof(Patches)
+L432	typeof(StoreClientListTier), "CreateThirstySpacer", null, "PostfixCreateThirstySpacer", null, typeof(RobinCrusoePerk)
+L433	typeof(StoreClientListTier), "CreateHungrySpacer", null, "PostfixCreateHungrySpacer", null, typeof(RobinCrusoePerk)
+L434	typeof(StoreClientListTier), "CreateSpacerChef", null, "PostfixCreateSpacerChef", null, typeof(RobinCrusoePerk)
+L435	typeof(StoreClientListTier), "CreateInjuredSpacer", null, "PostfixCreateInjuredSpacer", null, typeof(RobinCrusoePerk)
+L436	typeof(StoreClientListTier), "CreateSickChildCaretaker", null, "PostfixCreateSickChildCaretaker", null, typeof(RobinCrusoePerk)
+L437	typeof(StoreClientListTierSubstance), "CreateDesperateAddict", null, "PostfixCreateDesperateAddict", null, typeof(RobinCrusoePerk)
+L438	typeof(StoreClientListTierSubstance), "CreateWornOutSpacer", null, "PostfixCreateWornOutSpacer", null, typeof(RobinCrusoePerk)
+L439	typeof(StoreClientListMinor), "CreateSickLowers", null, "PostfixCreateSickLowers", null, typeof(RobinCrusoePerk)

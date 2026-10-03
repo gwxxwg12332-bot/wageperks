@@ -67,7 +67,7 @@ internal static partial class RobinCrusoePerk
                     {
                         var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bb, false);
                         if (slot != null) { try { slot.TryAcceptOnce(); bag = true; } catch { } }
-                        if (!bag) { try { ((GameInventory)em.backInvinvElement).UncheckedAccept(bb); bag = true; } catch { } }
+                        if (!bag) { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bb); ((GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); bag = true; } catch { } }
                     }
                 }
             }

@@ -116,7 +116,7 @@ internal static partial class RobinCrusoePerk
                     try { witem.DisableTag("stolen", true); } catch { }
                     var wslot = em2.backInvinvElement.TryFindOneValidInventorySlot(witem, false);
                     if (wslot != null) { try { wslot.TryAcceptOnce(); continue; } catch { } }
-                    inv2.UncheckedAccept(witem);
+                    try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(witem); inv2.UncheckedAcceptAll(l); } catch { }
                 }
             }
             try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了 2 份水，先撑住", "A kind customer sent 2 waters — hang in there"), "green"); } catch { }

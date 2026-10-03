@@ -9,12 +9,30 @@ using UnityEngine;
 namespace WagePerks;
 internal static partial class RobinCrusoePerk
 {
+    private static bool _wageSurvivalLoaded = false;
+    private static bool _wageSurvivalChecked = false;
+    private static bool IsWageSurvivalLoaded()
+    {
+        if (_wageSurvivalChecked) return _wageSurvivalLoaded;
+        _wageSurvivalChecked = true;
+        try
+        {
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (asm.GetName().Name == "WageSurvival") { _wageSurvivalLoaded = true; break; }
+            }
+        }
+        catch { }
+        return _wageSurvivalLoaded;
+    }
 
     public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
     {
         try
         {
             if (!IsActive() || newItem == null) return;
+            // 让路：检测WageSurvival是否加载，加载则跳过（避免双份生效）
+            if (IsWageSurvivalLoaded()) return;
             if (Patches.CurrentUITradeMode != 0) return;
             // v5.7 双击位置不限（背包/柜台/存储容器均可吃喝，用户反馈"背包吃不了"修复）；仅交易模式拦截
             // 博士夜晚商店（afterhourInventory）的货没买不能吃/喝/用药（用户反馈"博士晚上的食品没买就能食用"）

@@ -55,6 +55,8 @@ internal static class CompatibilityPatches
                 Core.LogMsg("[兼容] 预算兜底: " + __instance.clientBudget + " → " + orig + " (客户=" + __instance.identifier + ")");
                 __instance.clientBudget = orig;
             }
+            // 10-02 补：基础预算本身≤0的客户，加下限0
+            if (__instance.clientBudget < 0) __instance.clientBudget = 0;
         } catch { }
     }
 }

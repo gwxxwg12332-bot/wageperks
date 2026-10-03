@@ -1,0 +1,401 @@
+// 自动生成初稿，人工核对24个多挂方法
+new PatchEntry { Target = typeof(X), Method = "M", Prefix = ..., Postfix = ..., Host = ..., Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+
+// L96
+new PatchEntry { Target = typeof(StartingPerkList), Method = "InitStartingPerk", Prefix = null, Postfix = "PostfixInitStartingPerks", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L97
+new PatchEntry { Target = typeof(GameMaster), Method = "NewGame", Prefix = null, Postfix = "PostfixOnNewGame", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L98
+new PatchEntry { Target = typeof(NewGameData), Method = "HandleInitialItem", Prefix = null, Postfix = "HandleInitialItemPostfix", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L100
+new PatchEntry { Target = typeof(PlayerStore), Method = "HandleSkipIntro", Prefix = null, Postfix = "PostfixHandleSkipIntro", Host = typeof(WandererPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L106
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixOnNewDay", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L111
+new PatchEntry { Target = typeof(PlayerStore), Method = "BeginDay", Prefix = null, Postfix = "PostfixOnBeginDay", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L112
+new PatchEntry { Target = typeof(PlayerStore), Method = "AddDirectSellingItemToTable", Prefix = "PrefixAddDirectSellingItemToTable", Postfix = null, Host = typeof(WaterMerchantPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L120
+new PatchEntry { Target = type, Method = "CreateAcidBottle", Prefix = "PrefixCreateAcidBottle", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L121
+new PatchEntry { Target = type, Method = "CreateBaseBottle", Prefix = "PrefixCreateBaseBottle", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L127
+new PatchEntry { Target = typeof(StoreClientManager), Method = "AddClient", Prefix = null, Postfix = "PostfixOnAddClient", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L128
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L129
+new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixOnLoadGame", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L130
+new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixLoadGame", Host = typeof(LuckScoutBackpackUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L131
+new PatchEntry { Target = typeof(TradeSheet), Method = "GetFoundryShop", Prefix = null, Postfix = "PostfixTradeSheetFoundryShop", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L132
+new PatchEntry { Target = typeof(TradeSheet), Method = "GetEnergyFarmShop", Prefix = null, Postfix = "PostfixTradeSheetEnergyFarmShop", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L133
+new PatchEntry { Target = typeof(StoreClientManager), Method = "HandleContentUnlockClient", Prefix = null, Postfix = "PostfixOnHandleContentUnlockClient", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L134
+new PatchEntry { Target = typeof(InputActionManager), Method = "Update", Prefix = null, Postfix = "PostfixInputActionManagerUpdate", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L135
+new PatchEntry { Target = typeof(InventorySortHelper), Method = "Sort", Prefix = null, Postfix = "PostfixSort", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L136
+new PatchEntry { Target = typeof(StoreUIManager), Method = "OnNextClientArrived", Prefix = null, Postfix = "PostfixSpecialNpcStartDialogue", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L137
+new PatchEntry { Target = typeof(DialogUIManager), Method = "DisplayClientText", Prefix = "PrefixDisplayClientText", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L138
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetMaxScavAttempts", Prefix = null, Postfix = "PostfixGetMaxScavAttempts", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L139
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetScavTimeLeft", Prefix = null, Postfix = "PostfixGetScavTimeLeft", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L140
+new PatchEntry { Target = typeof(ScavHelper), Method = "CanScavenge", Prefix = "PrefixCanScavenge", Postfix = "PostfixCanScavenge", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L141
+new PatchEntry { Target = typeof(ScavHelper), Method = "ScavengeDumpingGrounds", Prefix = "PrefixScavengeDumpingGrounds", Postfix = "PostfixScavengeDumpingGrounds", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L142
+new PatchEntry { Target = typeof(GameMaster), Method = "QuitToMenu", Prefix = null, Postfix = "PostfixQuitToMenu", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L143
+new PatchEntry { Target = typeof(EscapeUIManager), Method = "OnMainMenu", Prefix = null, Postfix = "PostfixOnMainMenu", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L144
+new PatchEntry { Target = typeof(GameMaster), Method = "NewGame", Prefix = null, Postfix = "PostfixNewGame", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L145
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetRandomScavengedItem", Prefix = null, Postfix = "PostfixGetRandomScavengedItem", Host = typeof(LuckScoutPerk), Priority = -1000, System = "?", YieldMod = null, Note = "" },
+// L146
+new PatchEntry { Target = typeof(ScavHelper), Method = "CreateTooltip", Prefix = null, Postfix = "PostfixCreateTooltip", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L151
+new PatchEntry { Target = typeof(EmporiumEntry), Method = "GetAllAfterhourOwnedItems", Prefix = null, Postfix = "PostfixGetAllAfterhourOwnedItems", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L152
+new PatchEntry { Target = typeof(PerkUIController), Method = "OpenUI", Prefix = null, Postfix = "PostfixPerkUiOpen", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L153
+new PatchEntry { Target = typeof(PerkUIController), Method = "OnChange", Prefix = null, Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L154
+new PatchEntry { Target = typeof(StartingPerkIconLoader), Method = "Start", Prefix = null, Postfix = "PostfixIconLoaderStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L155
+new PatchEntry { Target = typeof(NetworkUpgrade), Method = "Unlock", Prefix = "Prefix", Postfix = "Postfix", Host = typeof(DetectiveUpgradePatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L156
+new PatchEntry { Target = typeof(SecData), Method = "OnFixerUsed", Prefix = "Prefix", Postfix = null, Host = typeof(DetectiveFixerPatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L157
+new PatchEntry { Target = typeof(SecData), Method = "CommitCrime", Prefix = "Prefix", Postfix = null, Host = typeof(DetectiveCommitCrimePatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L158
+new PatchEntry { Target = typeof(NegociationUIManager), Method = "SellItem", Prefix = null, Postfix = "Postfix", Host = typeof(SoldContrabandCounterPatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L159
+new PatchEntry { Target = typeof(SecData), Method = "OnNewDay", Prefix = null, Postfix = "Postfix", Host = typeof(SoldEvidenceOnNewDayPatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L160
+new PatchEntry { Target = typeof(SecData), Method = "OnFixerUsed", Prefix = null, Postfix = "Postfix", Host = typeof(WildeFixerPatch), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L161
+new PatchEntry { Target = typeof(BarterHelper), Method = "DoesTraderAcceptThisItemAsPayment", Prefix = null, Postfix = "Postfix", Host = typeof(CounterfeitWineTradeFix), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L163
+new PatchEntry { Target = typeof(StartingPerkElement), Method = "Start", Prefix = null, Postfix = "PostfixStartingPerkElementStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L164
+new PatchEntry { Target = typeof(GameItem), Method = "GetNegociatedValue", Prefix = "PrefixGameItemGetNegociatedValue", Postfix = "PostfixGameItemGetNegociatedValue", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L167
+new PatchEntry { Target = typeof(NegociationUIManager), Method = "InitUIWithItemSellMode", Prefix = null, Postfix = "PostfixUIInitSellMode", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L168
+new PatchEntry { Target = typeof(ClientCanExposeFunc), Method = "ClientNoExposeInjector", Prefix = "PrefixClientNoExposeInjector", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L169
+new PatchEntry { Target = typeof(ItemFeature), Method = "GetClientExposeDialog", Prefix = "PrefixGetClientExposeDialog", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L170
+new PatchEntry { Target = typeof(NegociationUIManager), Method = "InitUIWithItemBuyMode", Prefix = null, Postfix = "PostfixUIInitBuyMode", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L171
+new PatchEntry { Target = typeof(NegociationUIManager), Method = "CloseUI", Prefix = null, Postfix = "PostfixUIClose", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L172
+new PatchEntry { Target = typeof(GameItem), Method = "GetDisplayName", Prefix = null, Postfix = "PostfixGameItemGetDisplayName", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L173
+new PatchEntry { Target = typeof(BargainUIManager), Method = "GetDealMakerBonus", Prefix = null, Postfix = "PostfixDealMakerBonus", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L183
+new PatchEntry { Target = typeof(StartOfDayUIManager), Method = "OpenUI", Prefix = null, Postfix = "PostfixStartOfDayOpenUI", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L184
+new PatchEntry { Target = typeof(StartOfDayUIManager), Method = "ShowMorningReport", Prefix = null, Postfix = "PostfixStartOfDayShowMorningReport", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L185
+new PatchEntry { Target = typeof(StartOfDayUIManager), Method = "OnStartDayButtonClicked", Prefix = null, Postfix = "PostfixStartOfDayButtonClicked", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L187
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L188
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(LuckScoutBackpackUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L189
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L190
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(GuMachineSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L191
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L192
+new PatchEntry { Target = typeof(RenderHandler), Method = "LoadFromAtlas", Prefix = "PrefixLoadFromAtlas", Postfix = null, Host = typeof(WageBrother), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L193
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L194
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L195
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L196
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = "PrefixSaveGame", Postfix = null, Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L197
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(WageSaveStore), Priority = 0, System = "?", YieldMod = null, Note = "" },
+// L198
+new PatchEntry { Target = typeof(PlayerStore), Method = "EndDay", Prefix = null, Postfix = "PostfixEndDay", Host = typeof(WageSaveStore), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L211
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "OnDayStartPostfix", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L212
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "OnDayStartPostfix", Host = typeof(BatteryCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L216
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "OnDayStartPostfix", Host = typeof(GuMachineSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L217
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixOnDayStart", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L219
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixStoreEventOnDayStart", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L221
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixUnifiedDayStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L222
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L234
+new PatchEntry { Target = typeof(NewsUIManager), Method = "PopulateUI", Prefix = null, Postfix = "PostfixNewsPopulateUI", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L235
+new PatchEntry { Target = typeof(NewsUIManager), Method = "PopulateUI", Prefix = null, Postfix = "PostfixNewsPopulateUI", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L236
+new PatchEntry { Target = typeof(ModuleHelper), Method = "CreateModuleTooltip", Prefix = null, Postfix = "PostfixCreateModuleTooltip", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L237
+new PatchEntry { Target = typeof(AdvCalendarUIManager), Method = "OnNightlyReportButtonClicked", Prefix = null, Postfix = "PostfixOnNightlyReportButtonClicked", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L238
+new PatchEntry { Target = typeof(AdvCalendarUIManager), Method = "OpenUIFromNightlyReport", Prefix = null, Postfix = "PostfixOpenUIFromNightlyReport", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L239
+new PatchEntry { Target = typeof(AdvCalendarUIManager), Method = "OnStatusButtonClicked", Prefix = null, Postfix = "PostfixOnStatusButtonClicked", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L240
+new PatchEntry { Target = typeof(NewsUIManager), Method = "ToggleUI", Prefix = null, Postfix = "PostfixNewsPopulateUI", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L241
+new PatchEntry { Target = typeof(NewsUIManager), Method = "ToggleUI", Prefix = null, Postfix = "PostfixNewsToggleUI", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L242
+new PatchEntry { Target = typeof(NewsUIManager), Method = "CloseUI", Prefix = null, Postfix = "PostfixNewsCloseUI", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L243
+new PatchEntry { Target = typeof(InputActionManager), Method = "Update", Prefix = null, Postfix = "PostfixNewsInputUpdate", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L244
+new PatchEntry { Target = typeof(GameItem), Method = "MayHaveValidInventorySlot", Prefix = "PrefixMayHaveValidInventorySlot", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L245
+new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L246
+new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L247
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L248
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PostfixTarget", Postfix = null, Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L249
+new PatchEntry { Target = typeof(ItemMouseDoubleClickHandler), Method = "DoubleClickAction", Prefix = "PrefixDoubleClickAction", Postfix = null, Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L251
+new PatchEntry { Target = typeof(ItemMouseDoubleClickHandler), Method = "DoubleClickAction", Prefix = "PrefixDoubleClickAction", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L267
+new PatchEntry { Target = typeof(ContainerItemDirectory), Method = "InitDirectory", Prefix = null, Postfix = "PostfixInitDirectory", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L268
+new PatchEntry { Target = typeof(AmenitiesItemDirectory), Method = "InitDirectory", Prefix = null, Postfix = "PostfixInitDirectory", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L269
+new PatchEntry { Target = typeof(ModItemDirectory), Method = "InitDirectory", Prefix = null, Postfix = "PostfixInitDirectory", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L271
+new PatchEntry { Target = typeof(StartingPerkElement), Method = "OnPointerClick", Prefix = "PrefixOnPointerClick", Postfix = "PostfixOnPointerClick", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L272
+new PatchEntry { Target = typeof(MainMenuUIController), Method = "Awake", Prefix = null, Postfix = "PostfixAwake", Host = typeof(NewStartTypeUI), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L273
+new PatchEntry { Target = typeof(MainMenuUIController), Method = "ResetAllTab", Prefix = null, Postfix = "PostfixResetAllTab", Host = typeof(NewStartTypeUI), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L274
+new PatchEntry { Target = typeof(NewGameData), Method = "GetStartDisplayName", Prefix = null, Postfix = "PostfixGetStartDisplayName", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L275
+new PatchEntry { Target = typeof(SaveFiles), Method = "BuildPreviewFromStore", Prefix = null, Postfix = "PostfixBuildPreviewFromStore", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L280
+new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = "PrefixSaveGame", Postfix = "PostfixSaveGame", Host = typeof(NewStartTypeUI), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L282
+new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixLoadGame", Host = typeof(NewStartTypeUI), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L294
+new PatchEntry { Target = typeof(StoreClientManager), Method = "HandleMinorClient", Prefix = "PrefixHandleMinorClient", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L295
+new PatchEntry { Target = typeof(StoreClientManager), Method = "PickClient", Prefix = "PrefixPickClient", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L296
+new PatchEntry { Target = typeof(MapUIManager), Method = "OpenGoOutsideConfirm", Prefix = "PrefixOpenGoOutsideConfirm", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L298
+new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixOnNewDay", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L299
+new PatchEntry { Target = typeof(StoreClientManager), Method = "HandleInspectionClient", Prefix = "PrefixHandleInspectionClient", Postfix = "PostfixHandleInspectionClient", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L300
+new PatchEntry { Target = typeof(StoreReputation), Method = "IsPerkUnlocked", Prefix = null, Postfix = "PostfixIsPerkUnlocked", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L301
+new PatchEntry { Target = typeof(ItemMouseDoubleClickHandler), Method = "DoubleClickAction", Prefix = null, Postfix = "PostfixDoubleClickAction", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L307
+new PatchEntry { Target = typeof(ItemMouseDoubleClickHandler), Method = "DoubleClickAction", Prefix = null, Postfix = "PostfixDoubleClickAction", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L313
+new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L314
+new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L315
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L317
+new PatchEntry { Target = typeof(StoreClient), Method = "CanClientExposeAnyFeature", Prefix = "PrefixCanClientExposeAnyFeature", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L318
+new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixCreateItemTooltip", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L320
+new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixWageBoxTooltip", Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L321
+new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMinorWound", Prefix = "PrefixReceiveWound", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L322
+new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMajorWound", Prefix = "PrefixReceiveWound", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L324
+new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMinorWound", Prefix = null, Postfix = "PostfixReceiveMinorWound", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L325
+new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMajorWound", Prefix = null, Postfix = "PostfixReceiveMajorWound", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L326
+new PatchEntry { Target = typeof(ScavHelper), Method = "CanScavenge", Prefix = null, Postfix = "PostfixCanScavenge", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L327
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetMaxScavAttempts", Prefix = null, Postfix = "PostfixGetMaxScavAttempts", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L328
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetScavTimeLeft", Prefix = null, Postfix = "PostfixGetScavTimeLeft", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L329
+new PatchEntry { Target = typeof(ScavHelper), Method = "GetRandomScavengedItem", Prefix = null, Postfix = "PostfixGetRandomScavengedItem", Host = typeof(RobinCrusoePerk), Priority = -1000, System = "?", YieldMod = null, Note = "" },
+// L330
+new PatchEntry { Target = typeof(MachineryHelper), Method = "GetCurrentPerformanceBonus", Prefix = null, Postfix = "PostfixGetCurrentPerformanceBonus", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L331
+new PatchEntry { Target = typeof(MachineryHelper), Method = "GetCurrentQualityBonus", Prefix = null, Postfix = "PostfixGetCurrentQualityBonus", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L332
+new PatchEntry { Target = typeof(ModuleHelper), Method = "ApplyBasicModuleEffect", Prefix = null, Postfix = "PostfixApplyBasicModuleEffect", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L338
+new PatchEntry { Target = typeof(ModuleEffectHelper), Method = "ModifyTempStatFromBaseByPercentage", Prefix = null, Postfix = "PostfixModifyTempStatFromBaseByPercentage", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L343
+new PatchEntry { Target = typeof(ModuleHelper), Method = "AddModuleStatLine", Prefix = null, Postfix = "PostfixAddModuleStatLine", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L350
+new PatchEntry { Target = typeof(MachineryHelper), Method = "CreateMachineryTooltip", Prefix = null, Postfix = "PostfixCreateMachineryTooltip", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L355
+new PatchEntry { Target = typeof(ModuleHelper), Method = "ApplyPerformanceWaterRecyclerEffect", Prefix = null, Postfix = "PostfixApplyPerformanceWaterRecyclerEffect", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L356
+new PatchEntry { Target = typeof(MachineMoistureFarm), Method = "GetOutputVolume", Prefix = null, Postfix = "PostfixGetOutputVolume", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L357
+new PatchEntry { Target = typeof(MachineTurboBoosterAdv), Method = "UpdateSprite", Prefix = null, Postfix = "PostfixUpdateSprite", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L358
+new PatchEntry { Target = typeof(MachineMoistureFarm), Method = "Fill", Prefix = "PrefixFill", Postfix = null, Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L359
+new PatchEntry { Target = typeof(MachinePurifier), Method = "PurifyContainer", Prefix = null, Postfix = "PostfixPurifyContainer", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L360
+new PatchEntry { Target = typeof(WineHelper), Method = "OnAgeWine", Prefix = null, Postfix = "PostfixOnAgeWine", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L361
+new PatchEntry { Target = typeof(MachineProgressHelper), Method = "ContinueProgressTypeMachine", Prefix = null, Postfix = "PostfixContinueProgress", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L362
+new PatchEntry { Target = typeof(MachineTurboBoosterAdv), Method = "CreateMachineTooltip", Prefix = null, Postfix = "PostfixCreateTooltip", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L363
+new PatchEntry { Target = typeof(WaterHelper), Method = "RemoveContaminantFromContainer", Prefix = null, Postfix = "PostfixRemoveContaminantFromContainer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L364
+new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L365
+new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L366
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L367
+new PatchEntry { Target = typeof(GameItem), Method = "MayHaveValidInventorySlot", Prefix = "PrefixMayHaveValidInventorySlot", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L368
+new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget_WageBox", Postfix = null, Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L369
+new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget_WageBox", Postfix = null, Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L370
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget_WageBox", Postfix = null, Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L371
+new PatchEntry { Target = typeof(GameItem), Method = "MayHaveValidInventorySlot", Prefix = "PrefixMayHaveValidInventorySlot_WageBox", Postfix = null, Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L372
+new PatchEntry { Target = typeof(GameItem), Method = "MayHaveValidInventorySlot", Prefix = "PrefixMayHaveValidInventorySlot", Postfix = null, Host = typeof(GuMachineSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L373
+new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget", Postfix = null, Host = typeof(LuckScoutBackpackUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L374
+new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(LuckScoutBackpackUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L375
+new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget", Postfix = null, Host = typeof(LuckScoutBackpackUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L376
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(WandererPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L377
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(InfamousPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L379
+new PatchEntry { Target = typeof(Il2Cpp.StoreService), Method = "UpdateCost", Prefix = null, Postfix = "PostfixUpdateCost", Host = typeof(InfamousPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L380
+new PatchEntry { Target = typeof(Il2Cpp.ItemMultiSelectHandler), Method = "EndGroupDrag", Prefix = "PrefixEndGroupDrag", Postfix = "PostfixEndGroupDrag", Host = typeof(BatchDragUpgrade), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L382
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L383
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(DrJacksonFriendPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L384
+new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(WaterMerchantPerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L385
+new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixLoadGame_IngotContainer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L386
+new PatchEntry { Target = typeof(LiquidContainerHelper), Method = "AutoSipFromContainer", Prefix = "PrefixAutoSipFromContainer", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L387
+new PatchEntry { Target = typeof(StoreClientList), Method = "PlaceSupplierInventory", Prefix = null, Postfix = "PostfixPlaceSupplierInventory", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L388
+new PatchEntry { Target = typeof(EmporiumEntry), Method = "Start", Prefix = null, Postfix = "PostfixEmporiumEntryStart", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L390
+new PatchEntry { Target = typeof(MachineryHelper), Method = "GetMachinePowerUsage", Prefix = null, Postfix = "PostfixGetMachinePowerUsage", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L391
+new PatchEntry { Target = typeof(PlayerStore), Method = "HandleInsurance", Prefix = "PrefixHandleInsurance", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L392
+new PatchEntry { Target = typeof(ScavHelper), Method = "ScavengeDumpingGrounds", Prefix = null, Postfix = "PostfixScavengeDumpingGrounds", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L393
+new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckRentDay", Prefix = "PrefixCheckRentDay", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L394
+new PatchEntry { Target = typeof(StoreClientUniqueList.__c), Method = "_LandlordWholesale_b__22_0", Prefix = "PrefixLandlordWholesaleStock", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L395
+new PatchEntry { Target = typeof(StoreClientManager), Method = "HandleSupplierClient", Prefix = null, Postfix = "PostfixHandleSupplierClient", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L396
+new PatchEntry { Target = typeof(PlayerStore), Method = "ExecuteGameOver", Prefix = "PrefixExecuteGameOver", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L397
+new PatchEntry { Target = typeof(StoreClientManager), Method = "HandleNormalClient", Prefix = null, Postfix = "PostfixHandleNormalClient", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L398
+new PatchEntry { Target = typeof(StorePhoneClient), Method = "InitPhoneClientDict", Prefix = null, Postfix = "PostfixInitPhoneClientDict", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L399
+new PatchEntry { Target = typeof(PhoneUIManager), Method = "WillAnswerCall", Prefix = "PrefixWillAnswerCall", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L400
+new PatchEntry { Target = typeof(PhoneUIManager), Method = "WillAnswerCall", Prefix = null, Postfix = "PostfixWillAnswerCall", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L401
+new PatchEntry { Target = typeof(PhoneUIManager), Method = "StartPhoneDialog", Prefix = "PrefixStartPhoneDialog", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L402
+new PatchEntry { Target = typeof(ContactElement), Method = "OnInit", Prefix = null, Postfix = "PostfixOnContactInit", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L403
+new PatchEntry { Target = typeof(PhoneUIManager), Method = "AutoCall", Prefix = "PrefixAutoCall", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L404
+new PatchEntry { Target = typeof(PhoneUIManager), Method = "HandleCall", Prefix = "PrefixHandleCall", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L405
+new PatchEntry { Target = typeof(StoreClientListWanted), Method = "CreateWanted6", Prefix = null, Postfix = "PostfixCreateWanted6", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L407
+new PatchEntry { Target = typeof(DirectoryMaster), Method = "Item", Prefix = "PrefixDirectoryMasterItem", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L408
+new PatchEntry { Target = typeof(WantedElement), Method = "OnArrested", Prefix = null, Postfix = "PostfixWantedElementOnArrested", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L409
+new PatchEntry { Target = typeof(StoreUIManager), Method = "OnGenericArrived", Prefix = "PrefixStoreUIManagerOnGenericArrived", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L410
+new PatchEntry { Target = typeof(AugHelper), Method = "CleanupKill", Prefix = null, Postfix = "PostfixAugHelperCleanupKill", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L411
+new PatchEntry { Target = typeof(AdvCalendarUIManager), Method = "OnCalendarButtonClicked", Prefix = null, Postfix = "PostfixOnCalendarButtonClicked", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L412
+new PatchEntry { Target = typeof(StoreCalendar), Method = "Update", Prefix = null, Postfix = "PostfixStoreCalendarUpdate", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L413
+new PatchEntry { Target = typeof(StartOfDayUIManager), Method = "InitPanel", Prefix = null, Postfix = "PostfixStartOfDayInitPanel", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L414
+new PatchEntry { Target = typeof(StoreClient), Method = "ApplyBudgetModifier", Prefix = null, Postfix = "PostfixStoreClientApplyBudgetModifier", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L415
+new PatchEntry { Target = typeof(StoreClient), Method = "ApplyBudgetModifier", Prefix = null, Postfix = "PostfixApplyBudgetModifier", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L416
+new PatchEntry { Target = typeof(BargainUIManager), Method = "GetDealMakerBonus", Prefix = null, Postfix = "PostfixGetDealMakerBonus", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L417
+new PatchEntry { Target = typeof(GameItemElement), Method = "ApplyAnimationFrame", Prefix = "PrefixApplyAnimationFrame", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L418
+new PatchEntry { Target = typeof(GameItemElement), Method = "ResolveSpriteByName", Prefix = "PostfixResolveSpriteByName", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L427
+new PatchEntry { Target = typeof(StoreClientManager), Method = "PickClient", Prefix = null, Postfix = "PostfixStoreClientManagerPickClient", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L428
+new PatchEntry { Target = typeof(BargainUIManager), Method = "OfferBuyingMarkup", Prefix = "PrefixBargainUIManagerOfferBuyingMarkup", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L429
+new PatchEntry { Target = typeof(BargainUIManager), Method = "GetDealMakerBonus", Prefix = null, Postfix = "PostfixGetDealMakerBonus", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L430
+new PatchEntry { Target = typeof(ItemFeatureList), Method = "BargainBuyingMarkup", Prefix = null, Postfix = "PostfixItemFeatureListBargainBuyingMarkup", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L431
+new PatchEntry { Target = typeof(StoreClient), Method = "OnDealAccepted", Prefix = null, Postfix = "PostfixStoreClientOnDealAccepted", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L432
+new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateThirstySpacer", Prefix = null, Postfix = "PostfixCreateThirstySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L433
+new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateHungrySpacer", Prefix = null, Postfix = "PostfixCreateHungrySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L434
+new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSpacerChef", Prefix = null, Postfix = "PostfixCreateSpacerChef", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L435
+new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateInjuredSpacer", Prefix = null, Postfix = "PostfixCreateInjuredSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L436
+new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSickChildCaretaker", Prefix = null, Postfix = "PostfixCreateSickChildCaretaker", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L437
+new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateDesperateAddict", Prefix = null, Postfix = "PostfixCreateDesperateAddict", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L438
+new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateWornOutSpacer", Prefix = null, Postfix = "PostfixCreateWornOutSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },
+// L439
+new PatchEntry { Target = typeof(StoreClientListMinor), Method = "CreateSickLowers", Prefix = null, Postfix = "PostfixCreateSickLowers", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "?", YieldMod = null, Note = "" },

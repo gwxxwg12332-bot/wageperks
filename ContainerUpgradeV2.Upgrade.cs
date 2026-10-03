@@ -140,7 +140,8 @@ partial class ContainerUpgradeV2
             second.DisableTag("TAG_NOT_PURCHASED", true);
             second.DisableTag("not_purchased", true);
             emporium.backInvinvElement.TryFindOneValidInventorySlot(second, false);
-            if (((GameInventory)emporium.backInvinvElement).UncheckedAccept(second))
+            bool _ok143 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(second); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok143 = false; }
+            if (_ok143)
             {
                 emporium.TransferOwnershipBackInv();
                 emporium.TransferOwnedItemBackToInv();

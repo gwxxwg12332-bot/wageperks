@@ -97,7 +97,7 @@ public static partial class CustomStorageContainer
                             // 标记为已拥有，避免显示"(未拥有)"
                             try { lockedBox.DisableTag("TAG_NOT_PURCHASED", true); } catch { }
                             try { lockedBox.DisableTag("not_purchased", true); } catch { }
-                            internalInv.UncheckedAccept(lockedBox);
+                            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(lockedBox); internalInv.UncheckedAcceptAll(l); } catch { }
                         }
                         
                         // 创建指挥卡 cmd_keycard（不再用研发卡 sci_keycard 或其他钥匙卡）
@@ -107,7 +107,7 @@ public static partial class CustomStorageContainer
                             // 标记为已拥有，避免显示"(未拥有)"
                             try { keycard.DisableTag("TAG_NOT_PURCHASED", true); } catch { }
                             try { keycard.DisableTag("not_purchased", true); } catch { }
-                            internalInv.UncheckedAccept(keycard);
+                            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(keycard); internalInv.UncheckedAcceptAll(l); } catch { }
                         }
                     }
                     catch (Exception ex)

@@ -201,7 +201,7 @@ internal static partial class ModCannibalism
 				}
 				try
 				{
-					gameItem2.parentInventory?.Expel(gameItem2);
+					gameItem2.Destroy(); // 销毁语义：直接Destroy
 				}
 				catch
 				{

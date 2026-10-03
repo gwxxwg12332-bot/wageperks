@@ -158,7 +158,7 @@ namespace WagePerks
 
                     try { emporium.backInvinvElement.TryFindOneValidInventorySlot(dice, false); } catch { }
 
-                    bool accepted = ((GameInventory)emporium.backInvinvElement).UncheckedAccept(dice);
+                    bool accepted = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(dice); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { accepted = false; }
 
                     if (accepted)
 

@@ -85,6 +85,8 @@ internal static partial class Patches
 		DrJacksonFriendPerk.EmporiumEntryShowAfterhourPatch.Prefix(__instance);
 	}
 
+	// 特性意图：禁用化学瓶创建（防刷/平衡性）。保留短路但加注释说明理由——第三方同挂会被跳过，
+	// 若未来有mod依赖化学瓶创建需在此加判定。
 	public static bool PrefixCreateAcidBottle(ref GameItem __result)
 	{
 		__result = null;

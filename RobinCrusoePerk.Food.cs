@@ -131,6 +131,14 @@ internal static partial class RobinCrusoePerk
         { "toilet_paper", BuildConfig.CleanToiletPaper },
         { "shampoo", BuildConfig.CleanShampoo },
         { "paper_towel", BuildConfig.CleanPaperTowel },
+        // 09-26 放宽日用品判定（用户拍板）：加 household 清单
+        { "box_tampon", BuildConfig.CleanToiletPaper },      // 卫生棉条≈卫生纸
+        { "pack_condom", BuildConfig.CleanToiletPaper },     // 避孕套≈日用品
+        { "skincare_cream", BuildConfig.CleanShampoo },      // 护肤霜≈洗发水
+        { "salve", BuildConfig.CleanToothpaste },            // 药膏≈牙膏
+        { "rubbing_alcohol", BuildConfig.CleanToiletPaper }, // 消毒酒精≈日用品
+        { "neuroactive_perfume", BuildConfig.CleanShampoo }, // 神经香水≈洗发水
+        { "pheromone_perfume", BuildConfig.CleanShampoo },   // 信息素香水≈洗发水
     };
 
 

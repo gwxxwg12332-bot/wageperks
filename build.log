@@ -1,0 +1,17 @@
+﻿  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+C:\Program Files\dotnet\sdk\6.0.428\Microsoft.Common.CurrentVersion.targets(2302,5): warning MSB3270: 所生成项目的处理器架构“MSIL”与引用“MelonLoader”的处理器架构“AMD64”不匹配。这种不匹配可能会导致运行时失败。请考虑通过配置管理器更改您的项目的目标处理器架构，以使您的项目与引用间的处理器架构保持一致，或者为引用关联一个与您的项目的目标处理器架构相符的处理器架构。 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\GuMachineSystem.Tick.cs(256,21): warning CS0219: 变量“cap”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\RobinCrusoePerk.Food.Consume.cs(19,17): error CS0234: 命名空间“MelonLoader”中不存在类型或命名空间名“MelonState”(是否缺少程序集引用?) [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WageGirlSystem.StealAI_Fence.ItemHelpers.cs(236,18): warning CS0219: 变量“wantContraband”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+
+生成失败。
+
+C:\Program Files\dotnet\sdk\6.0.428\Microsoft.Common.CurrentVersion.targets(2302,5): warning MSB3270: 所生成项目的处理器架构“MSIL”与引用“MelonLoader”的处理器架构“AMD64”不匹配。这种不匹配可能会导致运行时失败。请考虑通过配置管理器更改您的项目的目标处理器架构，以使您的项目与引用间的处理器架构保持一致，或者为引用关联一个与您的项目的目标处理器架构相符的处理器架构。 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\GuMachineSystem.Tick.cs(256,21): warning CS0219: 变量“cap”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WageGirlSystem.StealAI_Fence.ItemHelpers.cs(236,18): warning CS0219: 变量“wantContraband”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\RobinCrusoePerk.Food.Consume.cs(19,17): error CS0234: 命名空间“MelonLoader”中不存在类型或命名空间名“MelonState”(是否缺少程序集引用?) [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\JacksonPerks\WagePerks.csproj]
+    3 个警告
+    1 个错误
+
+已用时间 00:00:02.80

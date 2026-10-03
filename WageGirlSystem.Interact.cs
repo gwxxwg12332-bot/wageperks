@@ -54,6 +54,7 @@ public static partial class WageGirlSystem
         try
         {
             if (item == null) return false;
+            if (GetStat(K_LEAVE) > 0) return false; // 10-02 修：外出中（leave>0）禁止喂食/洗白/照顾六维
 
             // 口粮拖拽模式：拖食物到蛙娘身上 → 存入口粮库存，不喂食
             if (ProvisionMode)
@@ -62,8 +63,7 @@ public static partial class WageGirlSystem
                 if (isFood)
                 {
                     SetStat(K_PROVISION, GetStat(K_PROVISION) + 1);
-                    try { item.parentInventory?.Expel(item); } catch { }
-                    try { item.Destroy(); } catch { }
+                    try { item.Destroy(); } catch { } // 销毁语义：直接Destroy
                     ProvisionMode = false;
                     ReportLine(LangHelper.T("已收1份口粮（当前" + GetStat(K_PROVISION) + "份）", "Stored 1 provision (total: " + GetStat(K_PROVISION) + ")"));
                     ShowPanel();

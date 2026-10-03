@@ -62,8 +62,9 @@ public static class ModCompat
     }
 
     // ===== 已知冲突表（已拆包实锤；新重叠点拆包确认后追加）=====
-    // 分级：主动让路（YieldOnLoad=true）= 功能可降级，检测到对方已加载即跳过（防双 detour 崩）
-    //       共存告警（YieldOnLoad=false）= 数据/注册核心不让（让了=职业失效/存档错乱），靠被动 GetPatchInfo + 实测
+    // 10-02 单源派生：主动让路（YieldOnLoad=true）已全部收编进 PatchRegistryTable.REGISTRY.YieldMod——
+    // ShouldYield 不再查本表，改从 REGISTRY 自动派生（让路条件单源，硬编码表只保留"共存告警"）。
+    // 本表剩余条目 = 共存告警（YieldOnLoad=false）：数据/注册核心不让（让了=职业失效/存档错乱），靠被动 GetPatchInfo + 实测
     private static readonly List<ConflictEntry> KNOWN_CONFLICTS = new List<ConflictEntry>
     {
         // --- EmptyNukeBarrel_Rare：拾荒域（09-16 玩家 15 mods 崩溃实锤）---
@@ -74,18 +75,7 @@ public static class ModCompat
         new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetMaxScavAttempts", false),
         new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "GetScavTimeLeft", false),
         new ConflictEntry("EmptyNukeBarrel_Rare", "ScavHelper", "CanScavenge", false),
-        // --- NestedStorage（QoL）：ContainerHelper.InitContainerItem 同方法双 Postfix（09-19 拆包实锤）---
-        // 我方鲁滨逊容器初始化减半/段位标记让路（职业特性弱化，游戏正常）
-        new ConflictEntry("NestedStorage", "ContainerHelper", "InitContainerItem", true),
-        // --- PerkPointMod（QoL）：PerkUIController.OpenUI 同方法（我方特性面板增强让路——特性选择流程保原生更安全）---
-        new ConflictEntry("PerkPointMod", "PerkUIController", "OpenUI", true),
-        // --- XIAOWOTradePerks：交易/特性域 8 方法重叠（09-19 拆包实锤 28 文件）---
-        // 可让（面板/图标/事件增强降级）：
-        new ConflictEntry("XIAOWOTradePerks", "PerkUIController", "OpenUI", true),
-        new ConflictEntry("XIAOWOTradePerks", "StartingPerkElement", "Start", true),
-        new ConflictEntry("XIAOWOTradePerks", "StartingPerkIconLoader", "Start", true),
-        new ConflictEntry("XIAOWOTradePerks", "StoreEventManager", "OnDayStart", true),
-        // 不让（数据/注册核心，共存告警 + 被动检测兜底）：
+        // --- XIAOWOTradePerks：数据/注册核心，共存告警 + 被动检测兜底（主动让路 4 方法已在 REGISTRY.YieldMod）---
         new ConflictEntry("XIAOWOTradePerks", "PlayerStore", "LoadGame", false),
         new ConflictEntry("XIAOWOTradePerks", "PlayerStore", "SellItem", false),
         new ConflictEntry("XIAOWOTradePerks", "GameItem", "GetNegociatedValue", false),
@@ -115,11 +105,7 @@ public static class ModCompat
         new ConflictEntry("CharacterForgeRuntime", "PlayerStore", "BeginDay", false),
         new ConflictEntry("CharacterForgeRuntime", "PlayerStore", "LoadGame", false),
         new ConflictEntry("CharacterForgeRuntime", "PlayerStore", "AddDirectSellingItemToTable", false),
-        // --- BrewingExpansion 酿酒拓展 v1.0（09-19 拆包实锤，zip 解压后 36 cs 全分析）---
-        // MachineBottlePrinter.TryPrint 闭包类方法（DisplayClass 内 (string,int)）——它 TargetMethod 动态选中我们 WaterMerchantPerk
-        // 同挂的 __c__DisplayClass6_0 方法——同方法双 Prefix 顺序敏感 → 主动让路（水商之友瓶印机映射降级，避免打架）
-        new ConflictEntry("BrewingExpansion", "MachineBottlePrinter", "TryPrint", true),
-        // 核心数据/交易方法 → 共存告警（我方加价链 vs 它酿酒价格，同方法双 Postfix 顺序敏感，实测定）
+        // --- BrewingExpansion 酿酒拓展：核心数据/交易方法共存告警（主动让路 TryPrint 已在 REGISTRY.YieldMod）---
         new ConflictEntry("BrewingExpansion", "PlayerStore", "BeginDay", false),
         new ConflictEntry("BrewingExpansion", "PlayerStore", "LoadGame", false),
         new ConflictEntry("BrewingExpansion", "PlayerStore", "SellItem", false),
@@ -148,19 +134,25 @@ public static class ModCompat
         catch { return false; }
     }
 
-    /// <summary>patch 前调用：目标方法是否命中"主动让路"条目且对应 mod 已加载</summary>
+    /// <summary>patch 前调用：目标方法是否命中"主动让路"条目且对应 mod 已加载（10-02 单源：从 REGISTRY.YieldMod 派生，不再查硬编码表）</summary>
     public static bool ShouldYield(Type type, string methodName, out string modName)
     {
         modName = "";
         try
         {
-            string tn = type?.FullName ?? "";
-            foreach (var e in KNOWN_CONFLICTS)
+            if (type == null || string.IsNullOrEmpty(methodName)) return false;
+            string tn = type.FullName ?? "";
+            foreach (var e in PatchRegistryTable.REGISTRY)
             {
-                if (e.YieldOnLoad && e.Matches(tn, methodName) && IsLoaded(e.ModAssembly))
+                if (string.IsNullOrEmpty(e.YieldMod) || e.Target == null) continue;
+                // 宽松匹配（与旧 KNOWN_CONFLICTS.Matches 一致：TypeName Contains + 方法名忽略大小写）
+                if (!tn.Contains(e.Target.FullName ?? "")) continue;
+                if (!string.Equals(e.Method, methodName, StringComparison.OrdinalIgnoreCase)) continue;
+                // YieldMod 支持多值（分号分隔，如 OpenUI → "XIAOWOTradePerks;PerkPointMod"）
+                foreach (var mod in e.YieldMod.Split(';'))
                 {
-                    modName = e.ModAssembly;
-                    return true;
+                    string m = mod.Trim();
+                    if (m.Length > 0 && IsLoaded(m)) { modName = m; return true; }
                 }
             }
         }
@@ -173,14 +165,28 @@ public static class ModCompat
     {
         try
         {
+            // 共存告警（KNOWN_CONFLICTS 剩余条目全为 YieldOnLoad=false）
             var seen = new HashSet<string>();
             foreach (var e in KNOWN_CONFLICTS)
             {
                 if (!seen.Add(e.ModAssembly)) continue;
                 if (!IsLoaded(e.ModAssembly)) continue;
-                string act = e.YieldOnLoad ? "对应重叠方法将主动让路（功能降级）" : "与对方共存（核心方法不让路，注意测试）";
-                Core.LogMsg($"[兼容] 检测到第三方 mod「{e.ModAssembly}」已加载——{act}");
+                Core.LogMsg($"[兼容] 检测到第三方 mod「{e.ModAssembly}」已加载——与对方共存（核心方法不让路，注意测试）");
             }
+            // 主动让路（REGISTRY.YieldMod 派生，单源）
+            var yieldedMods = new HashSet<string>();
+            foreach (var e in PatchRegistryTable.REGISTRY)
+            {
+                if (string.IsNullOrEmpty(e.YieldMod)) continue;
+                foreach (var mod in e.YieldMod.Split(';'))
+                {
+                    string m = mod.Trim();
+                    if (m.Length > 0 && IsLoaded(m)) yieldedMods.Add(m);
+                }
+            }
+            foreach (var m in yieldedMods)
+                if (seen.Add(m))
+                    Core.LogMsg($"[兼容] 检测到第三方 mod「{m}」已加载——对应重叠方法将主动让路（功能降级）");
         }
         catch (System.Exception ex) { Core.LogMsg("[ModCompat] 异常: " + ex.Message); }
     }

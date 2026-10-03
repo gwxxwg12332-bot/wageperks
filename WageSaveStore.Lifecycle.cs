@@ -18,6 +18,15 @@ partial class WageSaveStore
         Flush();
     }
 
+    /// <summary>打烊落盘第二挂点（PlayerStore.EndDay Postfix）。
+    /// 10-02 L1实锤：原生SaveGame只在进游戏/场景初始化时调一次（InitialSave），打烊不存档。
+    /// 补挂EndDay Postfix，打烊结算后落盘——修"游戏内数据只进内存、读档回初始"。</summary>
+    public static void PostfixEndDay()
+    {
+        try { Core.LogMsg("[SaveStore] EndDay Postfix → Flush（打烊落盘）"); } catch { }
+        Flush();
+    }
+
     // ===================== ③ 读档 =====================
 
     /// <summary>读档（PlayerStore.LoadGame Postfix 调）。

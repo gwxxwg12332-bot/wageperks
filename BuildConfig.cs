@@ -310,7 +310,7 @@ public static class BuildConfig
 			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
 					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
 		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
-melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: true, "蛙娘自动走动（关=蛙娘原地待机）");
+melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: false, "蛙娘自动走动（关=蛙娘原地待机）✅10-02绕过TryInventorySlot改Expel+UncheckedAcceptAll");
 melonPreferences_Category.CreateEntry("CompatTradeClamp", default_value: true, "兼容：交易价格兜底（负价→0）");
 melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true, "兼容：客户预算兜底恢复");
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");

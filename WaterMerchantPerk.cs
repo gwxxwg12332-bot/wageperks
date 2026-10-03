@@ -58,7 +58,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             {
                 var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bottle, false);
                 if (slot != null) { slot.TryAcceptOnce(); }
-                else { ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAccept(bottle); }
+                else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bottle); ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); } catch { } }
                 Core.LogMsg("[水商之友] 开局赠送大水瓶");
             }
         } catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送吞噬瓶失败: " + ex.Message); }

@@ -163,7 +163,7 @@ internal sealed class WandererPerk : CustomStartingPerk
             if (em == null || em.invElement == null) return null; // 09-20 用户拍板：流浪者 6 件发桌面（invElement，与原生四件同位置）；原发背包
             var slot = em.invElement.TryFindOneValidInventorySlot(item, false);
             if (slot != null) { try { slot.TryAcceptOnce(); return item; } catch { } }
-            ((GameInventory)em.invElement).UncheckedAccept(item);
+            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(item); ((GameInventory)em.invElement).UncheckedAcceptAll(l); } catch { }
             return item;
         }
         catch { return null; }
