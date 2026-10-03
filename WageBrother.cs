@@ -21,6 +21,41 @@ internal static class WageBrother
     internal const string CARD_ID = "wage_brother_card";
     private static bool _cardSpawned = false;
 
+    // 10-03 服务卡注册进物品库（PS_DebugTool/玩家生成工具调出=未注册ID→问号占位；照抄养蛊机RegisterOne模式）
+    public static void RegisterCard(ItemDirectory dir)
+    {
+        try
+        {
+            if (dir == null) return;
+            if (((Directory<GameItem>)(object)dir).Has(CARD_ID)) { Core.LogMsg("[蛙哥] 服务卡已在物品库"); return; }
+            Il2CppSystem.Func<GameItem> factory = null;
+            System.Func<GameItem> sf = () => CreateCard();
+            factory = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<GameItem>>((System.Delegate)sf);
+            bool ok = ((Directory<GameItem>)(object)dir).Add(CARD_ID, factory);
+            Core.LogMsg("[蛙哥] 服务卡 " + (ok ? "★ 已注册" : "⚠️ 注册失败") + " " + CARD_ID);
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 服务卡注册异常: " + ex.Message); }
+    }
+    // 服务卡工厂：只建物品（不含上柜台；上柜台走 OnClientArrived）
+    internal static GameItem CreateCard()
+    {
+        try
+        {
+            LoadCardSprite();
+            GameItem card = ItemDirectory.CreateEmptyItem(null); // 无参构造不存在，照养蛊机CreateGuMachine:79
+            card.identifier = CARD_ID;
+            card.SetName("蛙哥名片");
+            card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。消除声名狼藉时，声望恢复每势力另收3000。", "Double-click: pay credits to remove a negative perk. Removing Infamous also costs 3000 per faction for reputation restore.");
+            var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
+            card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
+            card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+            try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
+            try { card.EnableTag("wage_bro_card", true); } catch { }
+            return card;
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] CreateCard异常: " + ex.Message); return null; }
+    }
+
     // 周期塞队（照博士 ScheduleJacksonToday）
     internal static bool ScheduleToday()
     {
