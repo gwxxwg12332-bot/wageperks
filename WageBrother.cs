@@ -44,7 +44,7 @@ internal static class WageBrother
             LoadCardSprite();
             GameItem card = ItemDirectory.CreateEmptyItem(null); // 无参构造不存在，照养蛊机CreateGuMachine:79
             card.identifier = CARD_ID;
-            card.SetName("蛙哥名片");
+            card.SetName("蛙哥名片·消perk 500~8000");
             card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Removing Infamous: +3000 per faction.");
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
@@ -112,7 +112,7 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Removing Infamous: +3000 per faction."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片·消perk 500~8000"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Removing Infamous: +3000 per faction."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
                     try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
                 } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
@@ -522,6 +522,8 @@ internal static class WageBrother
                     int pr = price;
                     var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(perk.Id, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消perk异常: " + ex.Message); } }));
                     string btnText = LangHelper.T(nm, nm);
+                    // 10-03 补：非声名狼藉perk按钮加对应价格（声名狼藉走特殊每势力3000计费）
+                    if (perk.Id != "声名狼藉") btnText += LangHelper.T(" · " + pr + "信用点", " · " + pr + " cr");
                     // 10-03 补：声名狼藉按钮加剩余总额（剩余负势力×3000）
                     if (perk.Id == "声名狼藉")
                     {
