@@ -64,14 +64,14 @@ internal static partial class RobinCrusoePerk
         {
             if (!IsActive() || item == null) return;
             var ts = item.GetTagReadonly("CURRENT_PROCESSING_SPEED_TAG");
-            if (ts != null && ts.valueInt > 0) SetTagIntValue(item, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * 0.5)));
+            if (ts != null && ts.valueInt > 0 && BuildConfig.CrusoeEffHalfEnabled) SetTagIntValue(item, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * BuildConfig.CrusoeEffHalfRatio)));
             // v5.9 效率升级（用户拍板 09-09：金属锭拖机器 +1%，无限叠加）：速度 = 原×0.5 + 机器效率升级数
             // wageUpgradeEff 直接加（不减半），写 item 无则取 system
             GameItem target = item;
             if (target.GetTagReadonly("wageUpgradeEff") == null && system != null) target = system;
             var eff = target.GetTagReadonly("wageUpgradeEff");
             if (eff != null && eff.valueInt > 0 && ts != null && ts.valueInt > 0)
-                SetTagIntValue(target, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * 0.5) + eff.valueInt));
+                SetTagIntValue(target, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * (BuildConfig.CrusoeEffHalfEnabled ? BuildConfig.CrusoeEffHalfRatio : 1f)) + eff.valueInt));
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
@@ -81,10 +81,11 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (!IsActive() || item == null) return;
+            float ratio = BuildConfig.CrusoeEffHalfEnabled ? BuildConfig.CrusoeEffHalfRatio : 1f;
             foreach (string t in new[] { "TEMP_PERCENTAGE_PERFORMANCE_INT", "TEMP_PERCENTAGE_EFFICIENCY_INT", "TEMP_PERCENTAGE_QUALITY_INT" })
             {
                 var ts = item.GetTagReadonly(t);
-                if (ts != null && ts.valueInt > 0) SetTagIntValue(item, t, Math.Max(0, (int)(ts.valueInt * 0.5)));
+                if (ts != null && ts.valueInt > 0) SetTagIntValue(item, t, Math.Max(0, (int)(ts.valueInt * ratio)));
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }

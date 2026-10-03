@@ -52,6 +52,26 @@ public static class BuildConfig
 		}
 	}
 
+	// 10-04 CFG：鲁滨逊机器效率减半开关（关=不减半）
+	public static bool CrusoeEffHalfEnabled
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "CrusoeEffHalfEnabled"); }
+			catch { return true; }
+		}
+	}
+
+	// 10-04 CFG：鲁滨逊机器效率减半比例（0.5=减半；1=不减；0.8=八成）
+	public static float CrusoeEffHalfRatio
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<float>("WagesPerks", "CrusoeEffHalfRatio"); }
+			catch { return 0.5f; }
+		}
+	}
+
 	// 09-22 CFG：精神错乱额外槽位数
 	public static int MadnessExtraSlots
 	{
@@ -310,6 +330,8 @@ public static class BuildConfig
 			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
 					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
 		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
+melonPreferences_Category.CreateEntry("CrusoeEffHalfEnabled", default_value: true, "鲁滨逊机器效率减半开关（关=效率不减半）");
+melonPreferences_Category.CreateEntry("CrusoeEffHalfRatio", default_value: 0.5f, "鲁滨逊机器效率减半比例（0.5=减半；1=不减；0.8=八成）");
 melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: false, "蛙娘自动走动（关=蛙娘原地待机）✅10-02绕过TryInventorySlot改Expel+UncheckedAcceptAll");
 melonPreferences_Category.CreateEntry("CompatTradeClamp", default_value: true, "兼容：交易价格兜底（负价→0）");
 melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true, "兼容：客户预算兜底恢复");
