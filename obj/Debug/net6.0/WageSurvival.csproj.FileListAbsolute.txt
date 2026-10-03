@@ -88,3 +88,5 @@ D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mod
 D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\obj\Debug\net6.0\refint\WageSurvival.dll
 D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\obj\Debug\net6.0\WageSurvival.pdb
 D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\obj\Debug\net6.0\ref\WageSurvival.dll
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\bin\Debug\net6.0\WageAPI.dll
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\bin\Debug\net6.0\WageAPI.pdb

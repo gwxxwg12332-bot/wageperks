@@ -203,12 +203,13 @@ internal static partial class SurvivalFood
         }
     }
 
-    // 客户预算加成：心情/Nodes/昂扬影响客户预算
+    // 客户预算加成：心情/Nodes/昂扬影响客户预算（10-03 阶段C：非鲁滨逊专用——鲁滨逊由 SurvivalTrade 门控，防双跑）
     internal static void PostfixPickClient(StoreClient __result)
     {
         try
         {
             if (__result == null) return;
+            if (SurvivalTrade.IsRobinsonRun()) return;
             int bonus = GetBudgetBonusPct();
             if (bonus > 0 && !__result.useClientBudget)
             {

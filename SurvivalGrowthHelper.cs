@@ -35,7 +35,7 @@ namespace WageSurvival
             catch (Exception ex) { Core.LogMsg("[特性成长] OnDayStart异常: " + ex.Message); }
         }
 
-        public static void ApplyOnPerkUiOpen(object ui)
+        public static void ApplyOnPerkUiOpen(Il2Cpp.PerkUIController __instance)
         {
             if (_appliedThisRun) return;
             try
@@ -44,9 +44,8 @@ namespace WageSurvival
                 Core.LogMsg($"[特性成长] Apply被调 bonusDay={bonusDay}");
                 if (bonusDay > 0)
                 {
-                    dynamic uiDyn = ui;
-                    uiDyn.maxPerkPoint += bonusDay;
-                    uiDyn.maxPerkCount += bonusDay;
+                    __instance.maxPerkPoint += bonusDay;
+                    __instance.maxPerkCount += bonusDay;
                     Core.LogMsg($"[特性成长] 开局应用 +{bonusDay}点 +{bonusDay}槽");
                 }
                 _appliedThisRun = true;

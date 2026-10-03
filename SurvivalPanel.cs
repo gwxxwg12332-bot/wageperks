@@ -19,33 +19,31 @@ internal static partial class SurvivalFood
             int m = Math.Min(100, GetMood() + amount);
             SetMood(m);
             try { StoreUIManager.Instance.Notify(LangHelper.T("心情 +" + amount + "（" + reason + "）", "Mood +" + amount + " (" + reason + ")"), "yellow"); } catch { }
-            RefreshStatusPanel(); // 心情实时刷新常驻面板
+            RefreshStatusPanel();
         }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] BoostMood 异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] BoostMood 异常: " + ex.Message); }
     }
 
-    // ===== v5.7 玩家常驻状态面板（拆包回填4：CustomUIManager overlay + 进度条，重建法最稳）=====
-    // 饱食/口渴/健康进度条 + 具体数值（用户要求直观数值），心情与加成 label
+    // ===== 生存状态面板（Z键打开）=====
     internal static void RefreshStatusPanel(bool force = false)
     {
         try
         {
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) return;
-            bool isOpen = mgr.IsOpen("rc_status");
-            if (!isOpen && !force && !_autoPopup) return;  // 面板没打开且不强制且不自动弹→不刷新
-            if (mgr.IsOpen("rc_status")) mgr.CloseWindow("rc_status");
-            var b = mgr.CreateWindow("rc_status", LangHelper.T("鲁滨逊 · 生存状态", "Robinson · Survival"), "overlay");
+            bool isOpen = mgr.IsOpen("ws_status");
+            if (!isOpen && !force && !_autoPopup) return;
+            if (mgr.IsOpen("ws_status")) mgr.CloseWindow("ws_status");
+            var b = mgr.CreateWindow("ws_status", LangHelper.T("生存状态", "Survival"), "overlay");
             if (b == null) return;
             int sat = GetSatiety(), th = GetThirstPct(), h = GetHealth();
-            // 显示具体单位：饱食 100%=2200 kcal（v5.7 锁定）、口渴 100%=2000 ml（与喝水 200ml=10% 自洽）
             int satCal = (int)(sat * 22f);
             int thMl = (int)(th * 20f);
             b.SetSize(300, 500).SetPosition(Vector2.zero);
-            // 固定右上角（09-10 用户拍板：锚点(1,1) pivot(1,1) 右上角内侧 16px，不随分辨率变化）
+            // 固定右上角
             try
             {
-                var w = mgr.GetWindow("rc_status");
+                var w = mgr.GetWindow("ws_status");
                 if (w != null)
                 {
                     var rt = w.Rect;
@@ -53,7 +51,7 @@ internal static partial class SurvivalFood
                     rt.anchoredPosition = new Vector2(-16, -16);
                 }
             }
-            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
+            catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 面板定位异常: " + ex.Message); }
             b.BeginColumn(4f);
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + satCal + "/2200 kcal", "sat_l");
             b.AddProgressBar(sat / 100f, "sat");
@@ -63,14 +61,13 @@ internal static partial class SurvivalFood
             b.AddProgressBar(h / 100f, "h");
             b.AddLabel(LangHelper.T("血量 ", "Blood ") + GetBlood() + "/6000", "blood_l");
             b.AddProgressBar(GetBlood() / (float)BLOOD_MAX, "blood");
-            var sellBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TrySellBlood(); } catch (Exception ex) { Core.LogMsg("[鲁滨逊] 面板卖血异常: " + ex.Message); } }));
+            var sellBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TrySellBlood(); } catch (Exception ex) { Core.LogMsg("[WageSurvival] 面板卖血异常: " + ex.Message); } }));
             b.AddButton(LangHelper.T("卖血 -500ml", "Sell Blood -500ml"), sellBtnOnClick, "sell_blood_btn");
-            // 09-22 自动弹出开关
-            var autoPopupBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { _autoPopup = !_autoPopup; try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "鲁滨逊面板：自动弹开启" : "鲁滨逊面板：自动弹关闭", "Crusoe panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { } RefreshStatusPanel(); }));
-            b.AddButton(LangHelper.T("自动弹出：" + (_autoPopup ? "开" : "关"), "Auto-popup: " + (_autoPopup ? "ON" : "OFF")), autoPopupBtn, "auto_popup_btn"); // 09-20 用户拍板：面板按钮为唯一采血入口（替代采血包）
+            var autoPopupBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { _autoPopup = !_autoPopup; try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "生存面板：自动弹开启" : "生存面板：自动弹关闭", "Survival panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { } RefreshStatusPanel(); }));
+            b.AddButton(LangHelper.T("自动弹出：" + (_autoPopup ? "开" : "关"), "Auto-popup: " + (_autoPopup ? "ON" : "OFF")), autoPopupBtn, "auto_popup_btn");
             if (IsForcedRest()) b.AddLabel("昏迷中 · 剩余 " + SaveStore.GetInt("blood_rest", 0) + " 天", "blood_rest_l");
             else if (IsBloodWeak()) b.AddLabel(LangHelper.T("虚弱（血量过低）", "Too weak (low blood)"), "blood_weak_l");
-            // 新三状态（v5.7+ 用户拍板）：清洁/睡眠/社交 进度条+数值
+            // 新三状态：清洁/睡眠/社交
             int clean = GetClean(), sleep = GetSleep(), social = GetSocial();
             b.AddLabel(LangHelper.T("清洁 ", "Cleanliness ") + clean + "/100", "clean_l");
             b.AddProgressBar(clean / 100f, "clean");
@@ -81,7 +78,7 @@ internal static partial class SurvivalFood
             b.AddLabel(LangHelper.T("── 特性成长 ──", "-- Perk Growth --"), "growth_h");
             b.AddLabel(LangHelper.T("每累计50天 +1点 +1槽（全局继承）", "Every 50 global days +1 pt +1 slot"), "growth_l1");
             b.AddLabel(LangHelper.T("困难模式 +1槽 | 10点负面特性 +1槽", "Hard mode +1 slot | 10+ neg perks +1 slot"), "growth_l2");
-            // v5.8-8：逐节点状态显示（六状态 + 心情，每个当前节点一行：名称 + 锁定/抽取效果）
+            // 节点状态
             b.AddLabel(LangHelper.T("── 节点状态 ──", "── Node Status ──"), "node");
             int[] allNodes = { SatietyNode(), ThirstNode(), HealthNode(), CleanNode(), SleepNode(), SocialNode(), MoodNode() };
             string domKey = GetStoredNodeKey();
@@ -91,7 +88,7 @@ internal static partial class SurvivalFood
                 NodeDef d = NODES[n];
                 string fxDesc = "";
                 foreach (string f in d.Lock) { string lb = FxLabel(f); if (lb.Length > 0) fxDesc += lb + " "; }
-                if (d.Key == domKey) // 主导节点：追加本次抽取效果
+                if (d.Key == domKey)
                 {
                     string cur = GetNodeFx();
                     if (!string.IsNullOrEmpty(cur) && cur != "flavor") { string lb = FxLabel(cur); if (lb.Length > 0) fxDesc += lb + " "; }
@@ -101,12 +98,11 @@ internal static partial class SurvivalFood
                 b.AddLabel(line, "node");
             }
             int sellB = GetSellBonusPct(), budB = GetBudgetBonusPct(), moodNow = GetMood();
-            // 09-21 改：心情加成单独标识，总售价单独一行
             int moodSell = moodNow >= 60 ? 10 : (moodNow < 40 ? -10 : 0);
             string moodLine = LangHelper.T("心情 ", "Mood ") + moodNow;
             if (moodSell != 0) moodLine += "｜" + LangHelper.T("售价", "Sell") + (moodSell > 0 ? "+" : "") + moodSell + "%";
             b.AddLabel(moodLine, "mood");
-            // 总加成单独一行（列出所有分项）
+            // 售价加成明细
             int granaryB = (GetGranaryDays() >= GRANARY_DAYS) ? 5 : 0;
             int elevB = Math.Min(ELEV_MAX, GetElevCount());
             int fxSellB = FxNum("sell");
@@ -120,7 +116,7 @@ internal static partial class SurvivalFood
             if (moodSellB != 0) b.AddLabel(LangHelper.T("心情 ", "Mood ") + (moodSellB > 0 ? "+" : "") + moodSellB + "%", "sell_mood");
             b.AddLabel(LangHelper.T("总售价 ", "Total Sell ") + (sellB > 0 ? "+" : "") + sellB + "%", "sell_total");
             if (budB != 0) b.AddLabel(LangHelper.T("总预算 ", "Total Budget ") + (budB > 0 ? "+" : "") + budB + "%", "budget_total");
-            // 10-03 哨兵监控区块（简版：1行状态+濒死第二行警告）
+            // 哨兵监控
             try
             {
                 if (Il2Cpp.HealthData.IsSentinel())
@@ -140,11 +136,11 @@ internal static partial class SurvivalFood
                     }
                 }
             }
-            catch (Exception ex) { Core.LogMsg("[哨兵面板] 异常: " + ex.Message); }
+            catch (Exception ex) { Core.LogMsg("[WageSurvival] 哨兵面板异常: " + ex.Message); }
             b.End();
             b.Show();
         }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 状态面板异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] 状态面板异常: " + ex.Message); }
     }
 
 }
