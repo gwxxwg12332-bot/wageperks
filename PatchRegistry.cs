@@ -73,6 +73,7 @@ public static class PatchRegistry
 		ManualPatcher.LogPatchSummary();
 	}
 
+	// [阶段6后废弃] 本区块及以下 Register* 方法已由 PatchRegistryTable.ApplyAll() 全权接管（PatchRegistry.ApplyAll 只调 PatchRegistryTable.ApplyAll，见 :65），零调用点死代码，勿在此注册新补丁
 	private static void RegisterCoreAndWanted()
 	{
 		try
