@@ -266,8 +266,8 @@ public static partial class WageGirlSystem
                 _pauseTimer += dt;
                 if (_pauseTimer >= _pauseDuration)
                 {
-                    // 09-20 优化：前半好感（<50）不走动、不播放 walk 动画
-                    if (GetAffection() < 50) { _pauseDuration = 10f; return; } // 好感<50：待在角落不动
+                    // 10-03 用户实测：好感判定<101（100封顶永达不到）→ 移动永不触发 → 闪退消失；恢复走动需先拆包实锤崩点（原50）
+                    if (GetAffection() < 101) { _pauseDuration = 10f; return; } // 好感<101：待在角落不动
                     _walking = true;
                     _stepsTaken = 0;
                     _walkSteps = 3 + Core.Rng.Next(0, 5);            // 走 3-7 步
@@ -340,7 +340,7 @@ public static partial class WageGirlSystem
     }
     private static bool TryMoveStep()
     {
-        return false; // 10-03 止血：好感≥50移动强制关（无视cfg，拆包实锤MonoMod崩溃点前不恢复；原: BuildConfig.WageGirlAutoMove 开关）
+        if (!BuildConfig.WageGirlAutoMove) return false; // 09-23 自动移动开关（10-03 恢复：:270 已按用户实测改 <101 硬关移动）
         try
         {
             var em = EmporiumEntry.Instance;
