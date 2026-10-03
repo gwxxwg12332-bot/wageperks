@@ -1,0 +1,23 @@
+﻿  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+C:\Program Files\dotnet\sdk\6.0.428\Microsoft.Common.CurrentVersion.targets(2302,5): warning MSB3270: 所生成项目的处理器架构“MSIL”与引用“MelonLoader”的处理器架构“AMD64”不匹配。这种不匹配可能会导致运行时失败。请考虑通过配置管理器更改您的项目的目标处理器架构，以使您的项目与引用间的处理器架构保持一致，或者为引用关联一个与您的项目的目标处理器架构相符的处理器架构。 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\PatchRegistry.cs(12,45): error CS0117: “MelonHandler”未包含“IsModLoaded”的定义 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalBlood.cs(79,13): warning CS0162: 检测到无法访问的代码 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalBlood.cs(89,9): warning CS0162: 检测到无法访问的代码 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(101,24): warning CS0414: 字段“SurvivalFood._foodCalBackup”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(97,24): warning CS0414: 字段“SurvivalFood._doctorSupplyDay”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(102,25): warning CS0414: 字段“SurvivalFood._foodCalBackupValid”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+
+生成失败。
+
+C:\Program Files\dotnet\sdk\6.0.428\Microsoft.Common.CurrentVersion.targets(2302,5): warning MSB3270: 所生成项目的处理器架构“MSIL”与引用“MelonLoader”的处理器架构“AMD64”不匹配。这种不匹配可能会导致运行时失败。请考虑通过配置管理器更改您的项目的目标处理器架构，以使您的项目与引用间的处理器架构保持一致，或者为引用关联一个与您的项目的目标处理器架构相符的处理器架构。 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalBlood.cs(79,13): warning CS0162: 检测到无法访问的代码 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalBlood.cs(89,9): warning CS0162: 检测到无法访问的代码 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(101,24): warning CS0414: 字段“SurvivalFood._foodCalBackup”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(97,24): warning CS0414: 字段“SurvivalFood._doctorSupplyDay”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\SurvivalFood.cs(102,25): warning CS0414: 字段“SurvivalFood._foodCalBackupValid”已被赋值，但从未使用过它的值 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\PatchRegistry.cs(12,45): error CS0117: “MelonHandler”未包含“IsModLoaded”的定义 [D:\DoubaoWork\Project_001_WagesPerks\07_开发资产\ProbablyStolen_DevFiles\Mods_开发源码与临时文件\WageSurvival\WageSurvival.csproj]
+    6 个警告
+    1 个错误
+
+已用时间 00:00:01.84

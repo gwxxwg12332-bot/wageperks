@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\DoubaoWork\\Project_001_WagesPerks\\07_开发资产\\ProbablyStolen_DevFiles\\Mods_开发源码与临时文件\\WageSurvival\\WageSurvival.csproj": {}
+  },
+  "projects": {
+    "D:\\DoubaoWork\\Project_001_WagesPerks\\07_开发资产\\ProbablyStolen_DevFiles\\Mods_开发源码与临时文件\\WageSurvival\\WageSurvival.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\DoubaoWork\\Project_001_WagesPerks\\07_开发资产\\ProbablyStolen_DevFiles\\Mods_开发源码与临时文件\\WageSurvival\\WageSurvival.csproj",
+        "projectName": "WageSurvival",
+        "projectPath": "D:\\DoubaoWork\\Project_001_WagesPerks\\07_开发资产\\ProbablyStolen_DevFiles\\Mods_开发源码与临时文件\\WageSurvival\\WageSurvival.csproj",
+        "packagesPath": "C:\\Users\\1\\.nuget\\packages\\",
+        "outputPath": "D:\\DoubaoWork\\Project_001_WagesPerks\\07_开发资产\\ProbablyStolen_DevFiles\\Mods_开发源码与临时文件\\WageSurvival\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\1\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

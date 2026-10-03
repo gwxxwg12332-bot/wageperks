@@ -1,0 +1,215 @@
+﻿using System;
+using HarmonyLib;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Il2Cpp;
+using Il2CppInterop.Runtime;
+using UnityEngine;
+
+namespace WageSurvival;
+
+internal static partial class SurvivalFood
+{
+    // ===== 面板卖血按钮（09-20 用户拍板：替代采血包双击——唯一采血入口；删采血包物品+双击链）=====
+    public static bool TrySellBlood()
+    {
+        try
+        {
+            if (!IsActive()) return false;
+            if (Patches.CurrentUITradeMode != 0) return false;          // 交易模式不抽
+            if (IsBloodWeak() || IsForcedRest())
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱/恢复期，无法抽血", "Too weak - cannot draw blood"), "red"); } catch { }
+                return false;
+            }
+            int blood = GetBlood();
+            if (blood < 500)
+            {
+                try { StoreUIManager.Instance.Notify(LangHelper.T("血量不足 500cc，无法抽血", "Not enough blood (need 500cc)"), "red"); } catch { }
+                return false;
+            }
+            AddBlood(-500);
+            // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）；昏迷当天立即禁出门/禁采血（IsForcedRest 即时生效）
+            if (IsBloodWeak())
+            {
+                SaveStore.SetInt("blood_rest", 3);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("你因为失血过多昏迷了三天", "You passed out from blood loss - 3-day coma"), "red"); } catch { }
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
+                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 你因为失血过多昏迷了三天", "[Robinson] Passed out from blood loss - 3-day coma"));
+                ForceComaSkip(); // 09-20 拍板：昏迷当天立刻强制过夜 ×3（跳过 3 天）
+                try { RefreshStatusPanel(); } catch { }
+            }
+            bool bag = false;
+            try
+            {
+                // 09-20 M2 拍板：产普通血袋 blood_bag（价值 200，走原生医疗品销路）；删 blue_blood_bag 路径
+                GameItem bb = DirectoryMaster.Item("blood_bag", true);
+                if (bb != null)
+                {
+                    try { bb.SetValue(200); } catch { }
+                    var em = EmporiumEntry.Instance;
+                    if (em != null && em.backInvinvElement != null)
+                    {
+                        var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bb, false);
+                        if (slot != null) { try { slot.TryAcceptOnce(); bag = true; } catch { } }
+                        if (!bag) { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bb); ((GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); bag = true; } catch { } }
+                    }
+                }
+            }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+            if (!bag) Core.LogMsg("[卖血] blood_bag 不存在或发放失败");
+            try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000)"), "green"); } catch { }
+            RefreshStatusPanel();
+            return true;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+        return false;
+    }
+
+    // ===== 卖血系统（09-17 用户拍板：面板卖血按钮 500cc→血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
+    internal const int BLOOD_MAX = 6000;
+    private static int _memBlood = -1; // 09-20 修：血量内存缓存（打烊才落盘，防读档刷血）
+    internal static int GetBlood() {
+        try {
+            if (_memBlood >= 0) return _memBlood;
+            int saved = SaveStore.GetInt("blood", BLOOD_MAX);
+            // 09-26 修：读档空窗期返回默认值但不物化进缓存（防默认值6000污染存档）
+            if (true) return saved;
+            _memBlood = saved;
+            return saved;
+        } catch { return BLOOD_MAX; }
+    }
+    internal static void SetBlood(int v) { try { _memBlood = Math.Max(0, Math.Min(BLOOD_MAX, v)); } catch { } }
+    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 读档清缓存
+    internal static int AddBlood(int delta)
+    {
+        try
+        {
+            int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
+            SetBlood(b);
+            if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } }
+            return b;
+        }
+        catch { return BLOOD_MAX; }
+    }
+
+    internal static bool IsBloodWeak() { try { return GetBlood() < 3000; } catch { return false; } }
+    // 09-20 M5 拍板：虚弱强化——强制休息期判定（休息中禁采血/禁出门）
+    internal static bool IsForcedRest()
+    {
+        try { return SaveStore.GetInt("blood_rest", 0) > 0; }
+        catch { return false; }
+    }
+    // 09-20 M5：虚弱强制休息 3 天 → 结束 ±20% 血量（默认 50/50）；每日结算调用
+    internal static void TickBloodRest()
+    {
+        try
+        {
+            int rest = SaveStore.GetInt("blood_rest", 0);
+            if (rest > 0)
+            {
+                rest--;
+                SaveStore.SetInt("blood_rest", rest);
+                if (rest == 0)
+                {
+                    bool good = Core.Rng.Next(2) == 0;
+                    int delta = (int)(BLOOD_MAX * 0.2f); // 1200
+                    AddBlood(good ? delta : -delta);
+                    // 09-24 修：恢复期结束强制回血到安全线 3000——防止"结束随机扣血→仍<3000→下方 else-if 再设 rest=3"的
+                    // 虚弱永续循环（卖血超过阈值后永远昏迷/禁出门/禁采血=游戏卡死）。虚弱期结束=身体恢复，必须给出安全出口。
+                    if (GetBlood() < 3000) { AddBlood(3000 - GetBlood()); }
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体恢复期结束：血量 " + GetBlood() + "/6000", "Recovery over: blood " + GetBlood() + "/6000"), GetBlood() >= 3000 ? "green" : "red"); } catch { }
+                }
+                else
+                {
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱，强制休息（剩余 " + rest + " 天）", "Too weak - forced rest (" + rest + "d left)"), "red"); } catch { }
+                }
+                RefreshStatusPanel();
+            }
+            else if (IsBloodWeak())
+            {
+                SaveStore.SetInt("blood_rest", 3);
+                try { StoreUIManager.Instance.Notify(LangHelper.T("身体虚弱到极限，强制休息 3 天", "At your limit - forced 3-day rest"), "red"); } catch { }
+                try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"), "#7FC97F"); } catch { } // ① 原生夜报（09-22 统一柔和绿）
+                Core.AddNightReportLine(LangHelper.T("[鲁滨逊] 血量过低，强制休息 3 天", "[Robinson] Too weak - forced 3-day rest"));
+                RefreshStatusPanel();
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+    }
+
+    public static bool PrefixReceiveWound()
+    {
+        try
+        {
+            if (!IsActive()) return true;
+            if (IsHomebrewWineBuffActive()) return false; // 顶级自酿 buff：连续3天不受伤（用户拍板 09-10）
+            int pct = GetMoodWoundPct(); // ≥80 -20% / <40 +20%（受伤几率修正）
+            float avoid = 0.3f * (1f + pct / 100f); // 免伤基底 30%：≥80→36%（更不易伤）/<40→24%（更容易伤）
+            if (IsBloodWeak()) avoid -= 0.3f; // 卖血虚弱（<3000）：受伤概率 +30%（09-17）
+            if (UnityEngine.Random.value < avoid) return false;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+        return true;
+    }
+    // 受伤扣血（09-17 卖血）：轻伤 -200 / 重伤 -500（ReceiveMinorWound/MajorWound Postfix）
+    public static void PostfixReceiveMinorWound()
+    {
+        try { if (!IsActive()) return; AddBlood(-200); RefreshStatusPanel(); } catch { }
+    }
+    public static void PostfixReceiveMajorWound()
+    {
+        try { if (!IsActive()) return; AddBlood(-500); RefreshStatusPanel(); } catch { }
+    }
+    // 保存点快照：SaveGame 时存 6 维生存状态 + Flush落盘
+    public static void PostfixSaveGame()
+    {
+        try
+        {
+            if (_memBlood >= 0) SaveStore.SetInt("blood", _memBlood);
+            SaveStore.SetInt("saved_sat", GetSatiety());
+            SaveStore.SetInt("saved_th", GetThirstPct());
+            SaveStore.SetInt("saved_hp", GetHealth());
+            SaveStore.SetInt("saved_clean", GetClean());
+            SaveStore.SetInt("saved_sleep", GetSleep());
+            SaveStore.SetInt("saved_social", GetSocial());
+            SaveStore.Flush(); // 打烊落盘
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival.Blood] PostfixSaveGame 异常: " + ex.Message); }
+    }
+    // 10-03 补：打烊落盘（踩WagePerks老坑——SaveGame只在进游戏时调一次，打烊不存档）
+    public static void PostfixEndDay()
+    {
+        try
+        {
+            PostfixSaveGame();
+            Core.LogMsg("[WageSurvival] EndDay Postfix → Flush落盘");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival.Blood] PostfixEndDay 异常: " + ex.Message); }
+    }
+    // 受伤判定：woundState > 0（[L1] PlayerStore.healthData@0x2B8 → HealthData.woundState@0x24；IsSeriouslyWounded=woundState>5）
+    private static bool IsWounded()
+    {
+        try
+        {
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null || ps.healthData == null) return false;
+            return ps.healthData.woundState > 0;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+        return false;
+    }
+    // 伤口稳定判定（打绷带/治疗后 isWoundStable=true，与捡漏直觉同语义；[L1] 原版 HealthData 字段）
+    private static bool IsWoundStable()
+    {
+        try
+        {
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null || ps.healthData == null) return false;
+            return ps.healthData.isWoundStable;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
+        return false;
+    }
+}
