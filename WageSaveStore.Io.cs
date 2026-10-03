@@ -81,6 +81,14 @@ partial class WageSaveStore
     /// <summary>打烊落盘（PlayerStore.SaveGame Postfix 调）。全量写内存快照，原子替换。</summary>
     internal static void Flush()
     {
+        // 10-03 读档门控守卫：LoadGame 异步（ES3 在 b__215_0 回调恢复 runID，PlayerStore.txt:38247），
+        // PostfixOnLoadGame 时 runID 未就绪→TryDoLoad 失败→_mem 空；此时若打烊 Flush 落盘=空数据覆盖正式文件
+        // （87B 空档铁证）→ 轮询补读读到空文件→状态全默认→"读档回归第一天"。读档未完成禁止落盘。
+        if (!_loadingComplete)
+        {
+            try { Core.LogMsg("[SaveStore] 读档未完成，跳过落盘（防空数据覆盖正式档）"); } catch { }
+            return;
+        }
         try
         {
             string key = ResolveKey();

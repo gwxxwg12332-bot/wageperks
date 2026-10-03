@@ -123,6 +123,31 @@ internal static class WageBrother
                 }
             }
             catch (Exception exai) { Core.LogMsg("[蛙哥] 携带物品上柜台异常: " + exai.Message); }
+
+            // 蛙哥的许可货架（阶梯解锁：买一级开二级，买二级开三级）
+            try
+            {
+                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 800); // 一级常驻
+                if (WageBrokerPermitHelper.HasPermit(1))
+                    AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 1500);
+                if (WageBrokerPermitHelper.HasPermit(2))
+                    AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 2500);
+                Core.LogMsg("[蛙哥] 许可货架已上，等级=" + WageBrokerPermitHelper.GetMaxPermitLevel());
+            }
+            catch (Exception expermit) { Core.LogMsg("[蛙哥] 许可货架异常: " + expermit.Message); }
+
+            // 蛙哥的充电器货架（阶梯解锁）
+            try
+            {
+                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 500); // 一级常驻
+                if (WageBrokerChargerHelper.HasCharger(1))
+                    AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 1000);
+                if (WageBrokerChargerHelper.HasCharger(2))
+                    AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 2000);
+                Core.LogMsg("[蛙哥] 充电器货架已上，等级=" + WageBrokerChargerHelper.GetMaxChargerLevel());
+            }
+            catch (Exception excharger) { Core.LogMsg("[蛙哥] 充电器货架异常: " + excharger.Message); }
+
             // 清wanted7模板残留PEAT/JUICE
             try
             {
@@ -183,6 +208,7 @@ internal static class WageBrother
             tex.filterMode = FilterMode.Point; tex.wrapMode = TextureWrapMode.Clamp; tex.mipMapBias = 0;
             Type icType = null;
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
+            if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，等下次再试"); return; } // 启动早期时序问题：PrefixLoadFromAtlas会反复调用
             Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); Core.LogMsg("[蛙哥] LoadImage前"); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppStructArray<byte>)png });
             Core.LogMsg("[蛙哥] LoadImage后 tex=" + tex.width + "x" + tex.height); _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 500f);
             Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height); // atlasCache直写注释：索引器导致卡死，走PrefixLoadFromAtlas拦截
@@ -190,8 +216,51 @@ internal static class WageBrother
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
     {
-        try { if (atlasPath == "custom_atlas" && name == CARD_SPRITE_KEY) { Core.LogMsg("[蛙哥] LoadFromAtlas: " + name + " cs=" + (_cardSprite!=null?"ok":"null")); if (_cardSprite != null) { Core.LogMsg("[蛙哥] 拦截!"); __result = _cardSprite; return false; } } } catch { }
+        try
+        {
+            if (atlasPath != "custom_atlas") return true;
+
+            // 服务卡
+            if (name == CARD_SPRITE_KEY)
+            {
+                if (_cardSprite == null) LoadCardSprite();
+                if (_cardSprite != null) { __result = _cardSprite; return false; }
+                return true;
+            }
+
+            // 许可/充电器——懒加载兜底
+            Sprite sp = GetPermitChargerSprite(name);
+            if (sp != null) { __result = sp; return false; }
+        }
+        catch { }
         return true;
+    }
+
+    // 懒加载许可/充电器图标
+    private static Sprite GetPermitChargerSprite(string spriteKey)
+    {
+        try
+        {
+            // 先查SpriteDict
+            if (SpriteDict.Instance.spriteDictionary.ContainsKey(spriteKey))
+                return SpriteDict.Instance.spriteDictionary[spriteKey];
+
+            // 现场加载
+            string fileName = null;
+            if (spriteKey == "wage_permit_1_sprite") fileName = "wage_permit_1.png";
+            else if (spriteKey == "wage_permit_2_sprite") fileName = "wage_permit_2.png";
+            else if (spriteKey == "wage_permit_3_sprite") fileName = "wage_permit_3.png";
+            else if (spriteKey == "wage_charger_1_sprite") fileName = "wage_charger_1.png";
+            else if (spriteKey == "wage_charger_2_sprite") fileName = "wage_charger_2.png";
+            else if (spriteKey == "wage_charger_3_sprite") fileName = "wage_charger_3.png";
+            if (fileName == null) return null;
+
+            LoadPermitChargerIcon(fileName, spriteKey);
+            if (SpriteDict.Instance.spriteDictionary.ContainsKey(spriteKey))
+                return SpriteDict.Instance.spriteDictionary[spriteKey];
+            return null;
+        }
+        catch { return null; }
     }
     internal static void LoadPortrait()
     {
@@ -217,6 +286,143 @@ internal static class WageBrother
             UnityEngine.Object.DontDestroyOnLoad(tex); UnityEngine.Object.DontDestroyOnLoad(_portrait); SpriteDict.Instance.spriteDictionary["wage_brother_portrait"] = _portrait; Core.LogMsg("[蛙哥] 立绘加载成功");
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 立绘加载失败: " + ex.Message); }
     }
+    // 上许可物品到柜台
+    private static void AddPermitToCounter(string permitId, int price)
+    {
+        try
+        {
+            var item = DirectoryMaster.Item(permitId, true);
+            if (item == null) return;
+
+            // 设置名称和描述
+            if (permitId == WageBrokerPermitHelper.PERMIT_1_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥的许可（一级）", "Wage's Permit (Tier 1)"));
+                item.shortDescription = LangHelper.T("每晚外出次数 +1（可叠加）。拾荒时仍可能受伤。", "+1 night outing per night (stacks). Scavenging may still cause injuries.");
+            }
+            else if (permitId == WageBrokerPermitHelper.PERMIT_2_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥的许可（二级）", "Wage's Permit (Tier 2)"));
+                item.shortDescription = LangHelper.T("每晚外出次数 +1（可叠加）。拾荒受伤概率减半。", "+1 night outing per night (stacks). Scavenging injury chance halved.");
+            }
+            else if (permitId == WageBrokerPermitHelper.PERMIT_3_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥的许可（三级）", "Wage's Permit (Tier 3)"));
+                item.shortDescription = LangHelper.T("每晚外出次数 +1（可叠加）。拾荒时完全不会受伤。", "+1 night outing per night (stacks). Complete immunity to scavenging injuries.");
+            }
+
+            item.unitValue = price;
+            item.unitBaseValue = price;
+
+            item.DisableTag("not_purchased", true);
+            item.EnableTag("IS_OWNED_TAG", true);
+            Core.LogMsg("[蛙哥] " + permitId + " 上柜前标签: owned=" + SafeIsTag(item, "IS_OWNED_TAG") + " np=" + SafeIsTag(item, "not_purchased") + " np2=" + SafeIsTag(item, "TAG_NOT_PURCHASED"));
+            PlayerStore.Instance.AddDirectSellingItemToTable(item, false, false, false, 0);
+            Core.LogMsg("[蛙哥] 上许可: " + permitId + " 价格=" + price);
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] AddPermitToCounter异常: " + permitId + " " + ex.Message); }
+    }
+
+    // 预加载许可/充电器图标（修复懒加载死锁）
+    internal static void LoadAllIcons()
+    {
+        try
+        {
+            LoadCardSprite(); // 服务卡
+            // 许可图标
+            LoadPermitChargerIcon("wage_permit_1.png", "wage_permit_1_sprite");
+            LoadPermitChargerIcon("wage_permit_2.png", "wage_permit_2_sprite");
+            LoadPermitChargerIcon("wage_permit_3.png", "wage_permit_3_sprite");
+            // 充电器图标
+            LoadPermitChargerIcon("wage_charger_1.png", "wage_charger_1_sprite");
+            LoadPermitChargerIcon("wage_charger_2.png", "wage_charger_2_sprite");
+            LoadPermitChargerIcon("wage_charger_3.png", "wage_charger_3_sprite");
+            Core.LogMsg("[蛙哥] 许可/充电器图标预加载完成");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] LoadAllIcons异常: " + ex.Message); }
+    }
+
+    // 10-03 图标ppu：许可v2铺满256 POT画布，ppu=425→显示0.6单位（实测：0.64全好拖/0.5勉强/0.32拖不动，命中区随渲染尺寸；0.6最接近全好拖档且消除NPOT变量）；充电器保持440f
+    private static float GetIconPPU(string spriteKey)
+    {
+        switch (spriteKey)
+        {
+            case "wage_permit_1_sprite":
+            case "wage_permit_2_sprite":
+            case "wage_permit_3_sprite":
+                return 425f; // 256px→0.60单位
+            default: return 440f;
+        }
+    }
+
+    // 加载许可/充电器图标到SpriteDict
+    private static void LoadPermitChargerIcon(string fileName, string spriteKey)
+    {
+        try
+        {
+            if (SpriteDict.Instance == null) { Core.LogMsg("[蛙哥] SpriteDict未就绪，跳过预加载(懒加载兜底): " + spriteKey); return; } // 10-03 启动早期时序守卫（原预加载NRE根因）
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            string resName = null;
+            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith(fileName)) { resName = n; break; }
+            if (resName == null) { Core.LogMsg("[蛙哥] 图标资源未找到: " + fileName); return; }
+
+            using var st = asm.GetManifestResourceStream(resName);
+            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+
+            Type icType = null;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
+            if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，跳过(懒加载兜底): " + spriteKey); return; }
+            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)png });
+
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), GetIconPPU(spriteKey)); // 许可=0.6单位（v2铺满256POT），充电器=440f
+            SpriteDict.Instance.spriteDictionary[spriteKey] = sp;
+            UnityEngine.Object.DontDestroyOnLoad(tex);
+            UnityEngine.Object.DontDestroyOnLoad(sp);
+            Core.LogMsg("[蛙哥] 图标加载: " + spriteKey + " " + tex.width + "x" + tex.height);
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] LoadPermitChargerIcon异常 " + fileName + ": " + ex.Message + " | " + (ex.StackTrace != null ? ex.StackTrace.Split('\n')[0] : "")); }
+    }
+
+    // 上充电器物品到柜台
+    private static void AddChargerToCounter(string chargerId, int price)
+    {
+        try
+        {
+            var item = DirectoryMaster.Item(chargerId, true);
+            if (item == null) return;
+
+            // 设置名称和描述
+            if (chargerId == WageBrokerChargerHelper.CHARGER_1_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥充电器（一级）", "Wage's Charger (Tier 1)"));
+                item.shortDescription = LangHelper.T("每晚自动给背包所有电池充3点电量（拥有即生效，不消耗）。", "Automatically charges all batteries in your backpack by 3 per night (persistent, not consumed).");
+            }
+            else if (chargerId == WageBrokerChargerHelper.CHARGER_2_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥充电器（二级）", "Wage's Charger (Tier 2)"));
+                item.shortDescription = LangHelper.T("每晚自动给背包所有电池充6点电量（拥有即生效，不消耗）。", "Automatically charges all batteries in your backpack by 6 per night (persistent, not consumed).");
+            }
+            else if (chargerId == WageBrokerChargerHelper.CHARGER_3_ID)
+            {
+                item.SetName(LangHelper.T("蛙哥充电器（三级）", "Wage's Charger (Tier 3)"));
+                item.shortDescription = LangHelper.T("每晚自动给背包所有电池充满电（拥有即生效，不消耗）。", "Fully charges all batteries in your backpack every night (persistent, not consumed).");
+            }
+
+            item.unitValue = price;
+            item.unitBaseValue = price;
+
+            item.DisableTag("not_purchased", true);
+            item.EnableTag("IS_OWNED_TAG", true);
+            Core.LogMsg("[蛙哥] " + chargerId + " 上柜前标签: owned=" + SafeIsTag(item, "IS_OWNED_TAG") + " np=" + SafeIsTag(item, "not_purchased") + " np2=" + SafeIsTag(item, "TAG_NOT_PURCHASED"));
+            PlayerStore.Instance.AddDirectSellingItemToTable(item, false, false, false, 0);
+            Core.LogMsg("[蛙哥] 上充电器: " + chargerId + " 价格=" + price);
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] AddChargerToCounter异常: " + chargerId + " " + ex.Message); }
+    }
+
     // 蛙哥走后清服务卡（每日调用）
     internal static void CleanupCardIfGone()
     {
@@ -422,5 +628,11 @@ internal static class WageBrother
             return false; // 拦截原生打开
         }
         catch { return true; }
+    }
+
+    // 10-03 诊断辅助：安全读标签
+    private static bool SafeIsTag(GameItem it, string tag)
+    {
+        try { return it.IsTag(tag); } catch { return false; }
     }
 }

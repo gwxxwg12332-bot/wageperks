@@ -79,6 +79,14 @@ internal static partial class Patches
 		}
 		try
 		{
+			WageGirlSystem.ProcessPendingDestroy(); // 蛙娘延迟销毁：拖拽栈内Destroy改帧尾统一处理（防多mod叠加hook use-after-free闪退）
+		}
+		catch
+		{
+			// 每帧防御：蛙娘延迟销毁异常跳过
+		}
+		try
+		{
 			LuckScoutBackpackUpgrade.OnUpdateRestore();
 		}
 		catch

@@ -8,6 +8,36 @@ namespace WagePerks;
 
 public static partial class WageGirlSystem
 {
+    // 延迟销毁列表：拖拽栈内不直接Destroy，挂pending，帧尾统一Destroy
+    // 修复：拖拽事件栈内item.Destroy() + 多mod叠加hook = use-after-free闪退
+    private static List<GameItem> _pendingDestroy = new List<GameItem>();
+
+    // 加入延迟销毁列表（拖拽栈内调用）
+    internal static void QueueDestroy(GameItem item)
+    {
+        try
+        {
+            if (item != null && !_pendingDestroy.Contains(item))
+                _pendingDestroy.Add(item);
+        }
+        catch { }
+    }
+
+    // 帧尾统一处理销毁（FrameUpdate调用）
+    internal static void ProcessPendingDestroy()
+    {
+        try
+        {
+            if (_pendingDestroy.Count == 0) return;
+            foreach (var item in _pendingDestroy)
+            {
+                try { if (item != null) item.Destroy(); } catch { }
+            }
+            _pendingDestroy.Clear();
+        }
+        catch { }
+    }
+
     public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)
     {
         try
@@ -63,7 +93,7 @@ public static partial class WageGirlSystem
                 if (isFood)
                 {
                     SetStat(K_PROVISION, GetStat(K_PROVISION) + 1);
-                    try { item.Destroy(); } catch { } // 销毁语义：直接Destroy
+                    QueueDestroy(item); // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理（防多mod叠加hook use-after-free闪退）
                     ProvisionMode = false;
                     ReportLine(LangHelper.T("已收1份口粮（当前" + GetStat(K_PROVISION) + "份）", "Stored 1 provision (total: " + GetStat(K_PROVISION) + ")"));
                     ShowPanel();
@@ -106,7 +136,7 @@ public static partial class WageGirlSystem
                     if (v <= 0) { try { v = item.unitValue; } catch { } }
                     if (v <= 0) return false;
                     bool _destroyed = false;
-                    try { item.Destroy(); _destroyed = true; } catch (Exception _exD) { Core.LogMsg("[蛙娘销赃] Destroy失败: " + _exD.Message); try { item.parentInventory?.Expel(item); _destroyed = true; } catch (Exception _exE) { Core.LogMsg("[蛙娘销赃] Expel也失败: " + _exE.Message); } }
+                    QueueDestroy(item); _destroyed = true; // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理
                     Core.LogMsg("[蛙娘销赃] 吃掉 " + (item.identifier ?? "?") + " v=" + v + " destroyed=" + _destroyed);
                     int cur = GetStat(K_FENCE_AMT);
                     int total = cur + (int)v;
@@ -125,11 +155,11 @@ public static partial class WageGirlSystem
             int curAff = GetAffection();
             // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
             int affBase = curAff < 30 ? 1 : (curAff < 70 ? 2 : 1);
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); try { item.Destroy(); } catch { } } // 09-26 删 return true：走公共收尾（好感/提示/面板刷新一次补齐）
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); QueueDestroy(item); } // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理
             else if (RobinCrusoePerk.IsFood(item)) {
                 // 普通食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
                 int cal2 = RobinCrusoePerk.GetCalLeft(item);
-                if (cal2 <= 0) { item.Destroy(); return true; }
+                if (cal2 <= 0) { QueueDestroy(item); return true; }
                 int bite = cal2 <= 100 ? cal2 : Math.Max(100, (cal2 + 1) / 2);
                 int left = cal2 - bite;
                 gain = Math.Max(1, (int)Math.Round(bite / 22f));
@@ -138,7 +168,7 @@ public static partial class WageGirlSystem
                 aff = affBase;
                 msg = LangHelper.T("蛙娘吃饱了！饱食 +" + gain, "Wage Girl ate! Satiety +" + gain);
                 // 吃完才 Destroy，剩→SetCalLeft+EATEN_TAG
-                if (left <= 0) { item.Destroy(); }
+                if (left <= 0) { QueueDestroy(item); }
                 else { RobinCrusoePerk.SetCalLeft(item, left); try { item.EnableTag("EATEN_TAG", true); } catch { } }
             }
             else if (RobinCrusoePerk.IsDrink(item)) {
@@ -159,7 +189,7 @@ public static partial class WageGirlSystem
                     SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
                     aff = affBase;
                     msg = LangHelper.T("蛙娘喝了一杯！口渴 +" + gain + "（按价值 " + dval + "）", "Wage Girl had a drink! Thirst +" + gain + " (value " + dval + ")");
-                    try { item.Destroy(); } catch { } // 酒喝完销毁酒瓶
+                    QueueDestroy(item); // 延迟销毁：酒喝完销毁酒瓶
                 }
                 else {
                     int sip = Math.Min(200, ml);

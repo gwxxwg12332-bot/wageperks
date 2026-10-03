@@ -118,6 +118,27 @@ internal static partial class RobinCrusoePerk
             if (moodSellB != 0) b.AddLabel(LangHelper.T("心情 ", "Mood ") + (moodSellB > 0 ? "+" : "") + moodSellB + "%", "sell_mood");
             b.AddLabel(LangHelper.T("总售价 ", "Total Sell ") + (sellB > 0 ? "+" : "") + sellB + "%", "sell_total");
             if (budB != 0) b.AddLabel(LangHelper.T("总预算 ", "Total Budget ") + (budB > 0 ? "+" : "") + budB + "%", "budget_total");
+            // 10-03 哨兵监控区块（同步自WageSurvival）
+            try
+            {
+                if (Il2Cpp.HealthData.IsSentinel())
+                {
+                    var ps = PlayerStore.Instance;
+                    if (ps != null && ps.healthData != null)
+                    {
+                        b.AddLabel(LangHelper.T("── 哨兵 ──", "-- Sentinel --"), "sentinel_h");
+                        int days = ps.healthData.daysSinceSentinelInjection;
+                        int pool = ps.healthData.sentinelPool;
+                        string icon = days < 7 ? "✅" : (days < 10 ? "💡" : (days < 14 ? "⚠️" : "🚨"));
+                        string suggest = days < 7 ? "" : (days < 10 ? "准备打针" : (days < 14 ? "尽快打针" : "立即打针"));
+                        string line = icon + LangHelper.T("距打针 ", "Days: ") + days + LangHelper.T("天 | 池 ", " | Pool: ") + pool;
+                        if (!string.IsNullOrEmpty(suggest)) line += " | " + suggest;
+                        b.AddLabel(line, "sentinel_status");
+                        if (days >= 14) b.AddLabel("🚨 " + LangHelper.T("立即打真品免疫宁！", "Inject genuine Immunivax NOW!"), "sentinel_critical");
+                    }
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[哨兵面板] 异常: " + ex.Message); }
             b.End();
             b.Show();
         }

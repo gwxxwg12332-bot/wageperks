@@ -52,6 +52,19 @@ public static partial class GuMachineSystem
         catch (Exception ex) { Core.LogMsg("[养蛊机] AI模组图标异常: " + ex.Message); }
     }
 
+    // 主mod初始化时一次性加载所有图标（修复懒加载死锁：物品创建时_guSprite还是null → 走BorrowNativeSprite → sprite被改 → 懒加载永远触发不了）
+    internal static void LoadAllIcons()
+    {
+        try
+        {
+            _guSprite = LoadPngSprite("gu_machine.png");
+            _aiSprite = LoadPngSprite("ai_generator.png"); // 10-03 修复：内嵌资源名无wage_前缀（csproj:152），原wage_ai_generator.png永远找不到→预加载失败→懒加载死锁→贴图丢
+            _protectorSprite = LoadPngSprite("protector_core.png"); // 10-03 同上（csproj:153）
+            Core.LogMsg("[养蛊机] 图标预加载: gu=" + (_guSprite!=null?"✓":"✗") + " ai=" + (_aiSprite!=null?"✓":"✗") + " prot=" + (_protectorSprite!=null?"✓":"✗"));
+        }
+        catch (Exception ex) { Core.LogMsg("[养蛊机] LoadAllIcons异常: " + ex.Message); }
+    }
+
     private static Sprite LoadPngSprite(string fileName)
     {
         try {

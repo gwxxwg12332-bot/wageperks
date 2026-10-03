@@ -26,7 +26,7 @@ namespace WagePerks;
 internal static partial class RobinCrusoePerk
 {
     internal const string PERK_ID = "RobinCrusoe";
-    internal const int START_TYPE = 14;
+    internal const int START_TYPE = 15;
 
     // 新三状态（用户拍板 09-09：清洁度/睡眠/社交）
     internal static int CLEAN_START => BuildConfig.CleanStart;      // 清洁度初始（CFG 可调）

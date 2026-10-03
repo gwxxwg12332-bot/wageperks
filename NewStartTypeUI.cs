@@ -26,7 +26,7 @@ namespace WagePerks;
 // ============================================================
 internal static class NewStartTypeUI
 {
-    private const int NEW_START_TYPE = 14;
+    private const int NEW_START_TYPE = 15;
     private const string CLONE_NAME = "tab_RobinCrusoe";
     private const string NEW_START_MARKER_KEY = "WagesNewStartType_Run";       // 老单 key（v3 方案甲，仅兼容旧档）
     private const string NEW_START_MARKER_PREFIX = "WagesNewStartType_Run_";  // 09-19 per-runID key：多鲁滨逊档互不覆盖
@@ -105,7 +105,7 @@ internal static class NewStartTypeUI
             var template = tabSrc.gameObject;
             var clone = UnityEngine.Object.Instantiate<GameObject>(template, template.transform.parent);
             clone.name = CLONE_NAME;
-            clone.transform.SetAsLastSibling();
+            clone.transform.SetAsFirstSibling();
 
             // 克隆体上所有文字统一改为"空间站鲁滨逊"
             // 递归遍历子物体（GetComponentsInChildren 泛型在 Il2Cpp 下不稳定，改逐层 GetComponents）

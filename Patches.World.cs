@@ -63,10 +63,11 @@ internal static partial class Patches
 		}
 		try
 		{
+			WageBrokerItems.RegisterToDirectory(__instance);
 		}
 		catch (System.Exception ex4)
 		{
-			Core.LogMsg("[采血包] PostfixInitDirectory: " + ex4.Message);
+			Core.LogMsg("[蛙哥物品] PostfixInitDirectory: " + ex4.Message);
 		}
 	}
 

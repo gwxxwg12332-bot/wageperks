@@ -152,6 +152,12 @@
     <EmbeddedResource Include="Assets\ai_generator.png" />
     <EmbeddedResource Include="Assets\protector_core.png" />
     <EmbeddedResource Include="Assets\rat_king.png" />
+    <EmbeddedResource Include="Assets\wage_permit_1.png" />
+    <EmbeddedResource Include="Assets\wage_permit_2.png" />
+    <EmbeddedResource Include="Assets\wage_permit_3.png" />
+    <EmbeddedResource Include="Assets\wage_charger_1.png" />
+    <EmbeddedResource Include="Assets\wage_charger_2.png" />
+    <EmbeddedResource Include="Assets\wage_charger_3.png" />
 
   </ItemGroup>
 

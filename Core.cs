@@ -70,6 +70,10 @@ public class Core : MelonMod
 		{
 		}
 		PatchRegistry.ApplyAll();
+		// 预加载所有自定义图标（修复懒加载死锁）
+		try { GuMachineSystem.LoadAllIcons(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 养蛊机异常: " + ex.Message); }
+		try { WageBrother.LoadCardSprite(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 服务卡异常: " + ex.Message); }
+		try { WageBrother.LoadAllIcons(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 许可/充电器异常: " + ex.Message); }
 		try
 		{
 			Log.Msg("[Patch] 蛙哥牛逼特性补丁应用成功（AddClient/DismissClient/NewDay）");
