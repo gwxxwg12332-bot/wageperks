@@ -21,7 +21,14 @@ namespace WagePerks
 
             try { ModdedEventLinks(); }
             catch (Exception ex2) { Core.LogMsg("[Wage's Perks] 事件联动异常: " + ex2.Message); }
-            // v2 激活制：每日打烊门槛回落一档（threshold>400 → -400，直到400）；value 不受影响
+            // 10-05 门槛回落挪到 EndDay（打烊即回落）；此处不再回落（见 PostfixEndDayDiceThreshold）
+
+        }
+        // 10-05 新增：打烊(EndDay)门槛回落——用户拍板"打烊回落"；旧实现挂 OnDayStart 等新一天才开始回落
+        public static void PostfixEndDayDiceThreshold()
+
+        {
+
             try { RecedeDiceThreshold(); }
             catch (Exception ex3) { Core.LogMsg("[命运骰子] 门槛回落异常: " + ex3.Message); }
 

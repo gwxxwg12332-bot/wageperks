@@ -65,13 +65,16 @@ internal static class WageBrother
             if (ps == null) return false;
             // 10-01: 删门控，蛙哥改为通用事件（不再要求点蛙娘 perk）
             int day = StoreStation.GetDayCounter();
-            if (HasQueued()) return false;
+            bool queued = HasQueued();
+            if (queued) { Core.LogMsg("[蛙哥] 诊断: day=" + day + " HasQueued=true → 跳过（残留队列/在场）"); return false; }
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
             int lastSched = WageSaveStore.GetInt("wage_brother", "last_scheduled_day", -1);
-            if (lastSched >= 0 && day - lastSched < interval) return false;
+            if (lastSched >= 0 && day - lastSched < interval) { Core.LogMsg("[蛙哥] 诊断: day=" + day + " lastSched=" + lastSched + " 间隔不足(" + (day - lastSched) + "<" + interval + ") → 跳过"); return false; }
+            Core.LogMsg("[蛙哥] 门控已删，day=" + day + " lastSched=" + lastSched + " 间隔=" + (day - lastSched) + " 尝试塞队 HasQueued=" + queued);
+            // 10-05 时序修复：先排队成功再记 lastSched（原代码先记后排——若排队失败 lastSched 已更新 → 白等 7 天；用户"第3天来后第11天不来"候选根因）
+            try { ps.QueueFuturClient(CLIENT_ID, 1); }
+            catch (Exception ex) { Core.LogMsg("[蛙哥] 排队失败(不记 lastSched，明天重试): " + ex.Message); return false; }
             WageSaveStore.SetInt("wage_brother", "last_scheduled_day", day);
-            Core.LogMsg("[蛙哥] 门控已删，day=" + day + " 尝试塞队 HasQueued=" + HasQueued());
-            ps.QueueFuturClient(CLIENT_ID, 1);
             Core.LogMsg("[蛙哥] 已排队，明天到访");
             return true;
         }

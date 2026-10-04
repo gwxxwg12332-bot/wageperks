@@ -1,7 +1,7 @@
 ﻿using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WagePerks.Core), "Wage's Perks", "1.3.3", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(WagePerks.Core), "Wage's Perks", "1.3.3fix", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WagePerks;
@@ -44,7 +44,7 @@ public class Core : MelonMod
 	{
 		BuildConfig.InitPrefs();
 		Log = base.LoggerInstance;
-		Log.Msg("Wage's Perks v1.3.3 已加载 - 手动Patch模式");
+		Log.Msg("Wage's Perks v1.3.3fix 已加载 - 手动Patch模式");
 		Log.Msg("【深空当铺】Wage's Perks QQ群：1109707341");
 		ManualPatcher.Init(base.HarmonyInstance);
 		try

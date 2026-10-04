@@ -474,6 +474,10 @@ namespace WagePerks
 
                 }
 
+                // 10-05 清理：吸收后清掉骰子身上被原版"新鲜"机制带到/堆叠的价格标签（截图实锤 5 条"售价: +30% (fresh)"）
+                // 骰子不是商品不卖，TemporarySelling 类 feature 无意义且会堆叠显示
+                try { CleanupDicePriceFeatures(dice); } catch { }
+
             }
 
             catch (Exception ex)
@@ -484,6 +488,34 @@ namespace WagePerks
 
             }
 
+        }
+
+        // 10-05 标签堆叠止血：清掉骰子身上的价格/售价类 feature（原版"新鲜"TemporarySelling 被带到骰子并堆叠，截图实锤 5 条"售价: +30% (fresh)"）
+        // 骰子不参与销售，价格 feature 无意义；只清 TemporarySelling 类，不动 DICE_* tag 与其他 feature
+        private static void CleanupDicePriceFeatures(GameItem dice)
+        {
+            try
+            {
+                if (dice == null || dice.itemFeatures == null || dice.itemFeatures.Count == 0) return;
+                int removed = 0;
+                for (int i = dice.itemFeatures.Count - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        var f = dice.itemFeatures[i];
+                        if (f == null) continue;
+                        if (f.featureType == Il2Cpp.ItemFeature.FeatureType.TemporarySelling)
+                        {
+                            dice.itemFeatures.RemoveAt(i);
+                            removed++;
+                        }
+                    }
+                    catch { }
+                }
+                if (removed > 0)
+                    Core.LogMsg("[命运骰子] 清理价格标签: " + removed + " 条 (吸收后)");
+            }
+            catch (System.Exception ex) { Core.LogMsg("[命运骰子] 清理价格标签异常: " + ex.Message); }
         }
 
 
@@ -600,24 +632,34 @@ namespace WagePerks
         catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
-    // 每日打烊门槛回落：threshold>400 → -400（直到400为止）；value 永不受影响
+    // 每日打烊门槛回落：threshold 归位到 DICE_BASE_THRESHOLD；value 永不受影响
+    // 10-05 修复（玩家反馈"一直涨"实锤）：
+    // ① 挂点从 OnDayStart 挪到 EndDay（打烊即回落，不再等新一天开始；见 PatchRegistryTable EndDay 条目）
+    // ② 幅度从 -400/天 改为直接归 400——旧实现每天只回一档，玩家当天掷 2 次(+800)只回-400 → 净涨400/天
+    // ③ 遍历用原版 EmporiumEntry.GetAllItems()（全店递归含容器内部），骰子放哪都能回落
     public static void RecedeDiceThreshold()
     {
         try
         {
             var emporium = EmporiumEntry.Instance;
-            if (emporium == null) return;
-            var invs = new GameInventory[] { emporium.backInvinvElement, emporium.backInvinvElementCounter, emporium.showcaseElement, emporium.invElement };
-            foreach (var inv in invs)
+            if (emporium == null) { Core.LogMsg("[命运骰子] 回落: emporium null"); return; }
+            int found = 0, reset = 0;
+            foreach (var it in emporium.GetAllItems())
             {
-                if (inv == null) continue;
-                foreach (var it in inv.childItems)
+                if (it == null || !IsDice(it)) continue;
+                found++;
+                int tt = GetTagInt(it, DICE_THRESHOLD_TAG);
+                if (tt > DICE_BASE_THRESHOLD)
                 {
-                    if (it == null || !IsDice(it)) continue;
-                    int tt = GetTagInt(it, DICE_THRESHOLD_TAG);
-                    if (tt > DICE_BASE_THRESHOLD) SetTagInt(it, DICE_THRESHOLD_TAG, tt - DICE_BASE_THRESHOLD);
+                    SetTagInt(it, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD);
+                    reset++;
+                    // 10-05 实锤：只改 tag 不改名称 → 玩家打烊后看骰子名称仍是旧门槛（"没回落"假象）
+                    // 归位后立即刷新名称显示（UpdateDicePanelTitle 内部幂等剥除事件文本，无害）
+                    try { UpdateDicePanelTitle(it, GetTagInt(it, DICE_VALUE_TAG)); } catch { }
                 }
             }
+            // 10-05 调试日志：区分"回落没跑" vs "扫不到骰子"（玩家反馈1600好多天不变）
+            Core.LogMsg("[命运骰子] 回落执行: 扫到骰子=" + found + " 归位=" + reset);
         }
         catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }

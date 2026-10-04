@@ -131,24 +131,11 @@ public static partial class WageGirlSystem
         {
             var em = EmporiumEntry.Instance;
             if (em == null) return null;
-            GameInventory[] grids = new GameInventory[]
+            // 10-05 修复：旧实现硬编码4容器（漏 backInvCounter/hiddenElement + 不递归容器内部）→ 蛙娘放暗格/箱内找不到。
+            // 改用原版 GetAllItems()（全店递归含容器内部，暗格巡查同用）
+            foreach (var it in em.GetAllItems())
             {
-                em.invElement as GameInventory,
-                em.frontInvinvElement as GameInventory,
-                em.showcaseElement as GameInventory,
-                em.backInvinvElement as GameInventory
-            };
-            foreach (var gi in grids)
-            {
-                if (gi == null || gi.childItems == null) continue;
-                for (int i = 0; i < gi.childItems.Count; i++)
-                {
-                    var c = gi.childItems[i];
-                    if (c == null) continue;
-                    if (c.identifier == ENTITY_ID) {
-                        return c;
-                    }
-                }
+                if (it != null && it.identifier == ENTITY_ID) return it;
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Entity] 异常: " + ex.Message); }
