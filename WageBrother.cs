@@ -545,6 +545,9 @@ internal static class WageBrother
             // 10-04 合成升级入口（蛙哥服务合成：许可/充电器 2、3 级）
             var craftAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowCraftWindow(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 合成窗口异常: " + ex.Message); } }));
             w.AddButton(LangHelper.T("合成升级 · 升级蛙哥的货", "Craft Upgrade"), craftAct, "wb_craft");
+            // 10-05 引导 MVP：蛙哥指南按钮（3 窗口共用总览）
+            var wbGuideBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowWageBrotherGuide(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("📖 蛙哥指南", "📖 Guide"), wbGuideBtn, "wb_guide_btn");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] ShowWindow异常: " + ex.Message); }
     }
@@ -633,6 +636,9 @@ internal static class WageBrother
                 }
                 catch { }
             }
+            // 10-05 引导 MVP：蛙哥指南按钮
+            var wbGuideBtn2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowWageBrotherGuide(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("📖 蛙哥指南", "📖 Guide"), wbGuideBtn2, "wb_guide_btn");
             w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wage_rep_window"); } catch { } })), "wr_close");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] ShowRepFactionWindow异常: " + ex.Message); }
@@ -871,7 +877,48 @@ internal static class WageBrother
             };
             var actC3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_2_ID, WageBrokerChargerHelper.CHARGER_3_ID, 1000, c3Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
             w.AddButton(LangHelper.T("蛙哥的充电器 → 三级 · 1000信用点 + 涡轮×2 + 阵列×5 + 充能器×5", "Charger → Tier 3 · 1000 cr + turbo x2 + array x5 + recharger x5"), actC3, "wc_charger3");
+            // 10-05 引导 MVP：蛙哥指南按钮
+            var wbGuideBtn3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowWageBrotherGuide(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("📖 蛙哥指南", "📖 Guide"), wbGuideBtn3, "wb_guide_btn");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] ShowCraftWindow异常: " + ex.Message); }
+    }
+
+    // ============================================================
+    // 10-05 引导 MVP：蛙哥总览指南（复制蛙娘照顾指南 wg_guide 模式）
+    // 入口：消业障/声望/合成 3 窗口「📖 蛙哥指南」按钮
+    // ============================================================
+    internal static void ShowWageBrotherGuide()
+    {
+        try
+        {
+            var mgr = CustomUIManager.Instance; if (mgr == null) return;
+            if (mgr.IsOpen("wb_guide")) mgr.CloseWindow("wb_guide");
+            var w = mgr.CreateWindow("wb_guide", LangHelper.T("蛙哥 · 服务指南", "Wage Brother · Service Guide"), "overlay");
+            if (w == null) return;
+            w.SetSize(420, 500).SetPosition(Vector2.zero);
+            try
+            {
+                var gw = mgr.GetWindow("wb_guide");
+                if (gw != null)
+                {
+                    var rt = gw.Rect;
+                    rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 1);
+                    rt.anchoredPosition = new Vector2(-16, -200);
+                }
+            }
+            catch (System.Exception ex) { Core.LogMsg("[蛙哥] 指南定位异常: " + ex.Message); }
+            w.BeginColumn(4f);
+            w.AddLabel(LangHelper.T("【1】蛙哥是谁？", "[1] Who is Wage Brother?"), "wb_g1");
+            w.AddLabel(LangHelper.T("他会定期到店拜访，柜台出现服务卡。双击服务卡打开他的服务界面：消业障、声望恢复、合成升级。", "He visits periodically; a service card appears at the counter. Double-click it to open his services: remove burdens, restore rep, craft upgrades."), "wb_g1d");
+            w.AddLabel(LangHelper.T("【2】消业障", "[2] Remove Burden"), "wb_g2");
+            w.AddLabel(LangHelper.T("花钱消除已选负面特性（按 Cost 计价，如霉运缠身 -10=2000 块）。声名狼藉特殊：5 势力逐个恢复，全部转正才消除。", "Pay to remove an active negative perk (priced by Cost, e.g. Bad Luck -10 = 2000 cr). Infamous is special: restore all 5 factions, it clears only when all are positive."), "wb_g2d");
+            w.AddLabel(LangHelper.T("【3】声望恢复", "[3] Rep Restore"), "wb_g3");
+            w.AddLabel(LangHelper.T("每个负势力 3000 块恢复至 0。5 势力全部转正自动消除声名狼藉。", "Restore any negative faction rep to 0 for 3000 cr each. All 5 positive = Infamous auto-removed."), "wb_g3d");
+            w.AddLabel(LangHelper.T("【4】合成升级", "[4] Craft Upgrade"), "wb_g4");
+            w.AddLabel(LangHelper.T("把低一级的货交给他补差价升级：许可 700/1000 块；充电器 500/1000 块 + 涡轮/能量阵列/充能器（二级各 1、三级 2/5/5）。", "Give him the lower tier and pay the difference: Permit 700/1000 cr; Charger 500/1000 cr + turbo/power array/recharger (T2: 1 each, T3: 2/5/5)."), "wb_g4d");
+            w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wb_guide"); } catch { } })), "wb_guide_close");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); }
     }
 }

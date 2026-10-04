@@ -59,7 +59,7 @@ public static partial class WageGirlSystem
                     string[] cats = { LangHelper.T("物资箱", "Supply Crate"), LangHelper.T("食物饮品", "Food/Drink"), LangHelper.T("日用品", "Daily"), LangHelper.T("武器工具", "Weapon/Tool"), LangHelper.T("随机", "Random"), LangHelper.T("指挥卡", "Keycard"), LangHelper.T("医药品", "Medicine"), LangHelper.T("模板", "Module") };
                     int curCat = GetStat(K_FENCE_CAT);
                     var catBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int c = GetStat(K_FENCE_CAT) + 1; if (c > 7) c = 0; SetStat(K_FENCE_CAT, c); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 类别切换异常: " + ex.Message); } }));
-                    b.AddButton(LangHelper.T("销赃类别（可选择）：" + cats[curCat], "Fence type (selectable): " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
+                    b.AddButton(LangHelper.T("🔀 销赃类别（可选择）：" + cats[curCat], "🔀 Fence type (selectable): " + cats[curCat]), catBtnOnClick, "wg_fence_cat_btn");
                 }
                 catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
                 // 销赃按钮（09-22 用户拍板：喂入违禁品累计，点按钮才出发；按钮文本带待销价值）
@@ -67,11 +67,11 @@ public static partial class WageGirlSystem
                 {
                     int famt = GetStat(K_FENCE_AMT);
                     var fenceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryFence(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 销赃异常: " + ex.Message); } }));
-                    b.AddButton(LangHelper.T("销赃（待销 " + famt + "）", "Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
+                    b.AddButton(LangHelper.T("💰 销赃（待销 " + famt + "）", "💰 Fence (" + famt + ")"), fenceBtnOnClick, "wg_fence_btn");
                     // 09-23 改：违禁品模式切换按钮（洗白 ↔ 销赃）
                     int wmode = GetStat(K_WASH_MODE);
                     var modeBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { int m = GetStat(K_WASH_MODE) == 0 ? 1 : 0; SetStat(K_WASH_MODE, m); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 模式切换异常: " + ex.Message); } }));
-                    b.AddButton(LangHelper.T("违禁品模式（当前：" + (wmode == 0 ? "洗白" : "销赃") + "）", "Contraband mode (current: " + (wmode == 0 ? "Launder" : "Fence") + ")"), modeBtnOnClick, "wg_mode_btn");
+                    b.AddButton(LangHelper.T("⚖️ 违禁品模式（当前：" + (wmode == 0 ? "洗白" : "销赃") + "）", "⚖️ Contraband mode (current: " + (wmode == 0 ? "Launder" : "Fence") + ")"), modeBtnOnClick, "wg_mode_btn");
                     // 模式说明
                     b.AddLabel(LangHelper.T(wmode == 0 ? "拖违禁品给蛙娘 → 洗白（消除标签，按等级扣费）" : "拖违禁品给蛙娘 → 累计销赃（点「销赃」按钮出发）", wmode == 0 ? "Feed contraband → launder (remove tag, cost by level)" : "Feed contraband → accumulate fence (press Fence to go)"), "wg_mode_hint");
                 }
@@ -103,9 +103,9 @@ public static partial class WageGirlSystem
             if (!_isOut2) try {
                 int sel = _allowanceSel;
                 var allowanceBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { GiveAllowance(sel); } catch (Exception ex) { Core.LogMsg("[蛙娘] 喂钱异常: " + ex.Message); } }));
-                b.AddButton(LangHelper.T("给零花钱：" + sel, "Allowance: " + sel), allowanceBtnOnClick, "wg_allowance_btn");
+                b.AddButton(LangHelper.T("💵 给零花钱：" + sel, "💵 Allowance: " + sel), allowanceBtnOnClick, "wg_allowance_btn");
                 var cycleBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CycleAllowanceSel(); } catch { } }));
-                b.AddButton(LangHelper.T("换档位（下档）", "Switch tier"), cycleBtnOnClick, "wg_allowance_cycle");
+                b.AddButton(LangHelper.T("🔄 换档位（下档）", "🔄 Switch tier"), cycleBtnOnClick, "wg_allowance_cycle");
                 // 09-23 照顾指南按钮
                 var guideBtnOnClick = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowGuide(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 指南异常: " + ex.Message); } }));
                 b.AddButton(LangHelper.T("📖 照顾指南", "📖 Care Guide"), guideBtnOnClick, "wg_guide_btn");

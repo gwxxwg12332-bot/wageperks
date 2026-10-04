@@ -66,6 +66,9 @@ internal static partial class RobinCrusoePerk
             // 09-22 自动弹出开关
             var autoPopupBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { _autoPopup = !_autoPopup; try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "鲁滨逊面板：自动弹开启" : "鲁滨逊面板：自动弹关闭", "Crusoe panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { } RefreshStatusPanel(); }));
             b.AddButton(LangHelper.T("自动弹出：" + (_autoPopup ? "开" : "关"), "Auto-popup: " + (_autoPopup ? "ON" : "OFF")), autoPopupBtn, "auto_popup_btn"); // 09-20 用户拍板：面板按钮为唯一采血入口（替代采血包）
+            // 10-05 引导 MVP：生存指南按钮（复制蛙娘照顾指南 wg_guide 模式）
+            var guideBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowCrusoeGuide(); } catch (Exception ex) { Core.LogMsg("[鲁滨逊] 指南按钮异常: " + ex.Message); } }));
+            b.AddButton(LangHelper.T("📖 生存指南", "📖 Survival Guide"), guideBtn, "rc_guide_btn");
             if (IsForcedRest()) b.AddLabel(LangHelper.T("昏迷中 · 剩余 " + WageSaveStore.GetInt(PERK_ID, "blood_rest", 0) + " 天", "Coma - " + WageSaveStore.GetInt(PERK_ID, "blood_rest", 0) + "d left"), "blood_rest_l");
             else if (IsBloodWeak()) b.AddLabel(LangHelper.T("虚弱（血量过低）", "Too weak (low blood)"), "blood_weak_l");
             // 新三状态（v5.7+ 用户拍板）：清洁/睡眠/社交 进度条+数值
