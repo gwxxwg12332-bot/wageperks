@@ -87,6 +87,59 @@ internal static partial class Patches
 		}
 	}
 
+	// ============================================================
+	// 10-04 本地化四挂点补迁（对齐 cheatsheet 16.1.1）
+	// ① 特性显示名（选择界面+状态栏）：Prefix 短路 return false
+	//    与 XIAOWO 的 PerkNamePatch Postfix 同方法——Prefix return false 后原方法+后续 Postfix 均不执行，安全共存
+	// ============================================================
+	public static bool PrefixPerkDisplayName(StartingPerk __instance, ref string __result)
+	{
+		try
+		{
+			if (__instance != null && !string.IsNullOrEmpty(__instance.id) && CustomStartingPerks.TryGetLoc(__instance.id, out var name, out _) && !string.IsNullOrEmpty(name))
+			{
+				__result = name;
+				return false; // 短路原方法（XIAOWO Postfix 不执行）
+			}
+		}
+		catch (System.Exception ex) { Core.LogMsg("[本地化] 特性名短路失败: " + ex.Message); }
+		return true;
+	}
+
+	// ② 特性描述：Prefix 短路 return false
+	public static bool PrefixPerkDescription(StartingPerk __instance, ref string __result)
+	{
+		try
+		{
+			if (__instance != null && !string.IsNullOrEmpty(__instance.id) && CustomStartingPerks.TryGetLoc(__instance.id, out _, out var desc) && !string.IsNullOrEmpty(desc))
+			{
+				__result = desc;
+				return false;
+			}
+		}
+		catch (System.Exception ex) { Core.LogMsg("[本地化] 特性描述短路失败: " + ex.Message); }
+		return true;
+	}
+
+	// ④ Tooltip 文本直写（cheatsheet 16.1.1 最关键点：仅挂 LocHelper 不足，tooltip 走 SetTooltipContent）
+	public static void PostfixPerkTooltip(StartingPerkElement __instance, StartingPerk perk)
+	{
+		try
+		{
+			StartingPerk target = __instance != null && __instance.perk != null ? __instance.perk : perk;
+			if (target == null || string.IsNullOrEmpty(target.id)) return;
+			if (!CustomStartingPerks.TryGetLoc(target.id, out var name, out var desc)) return;
+			PerkUIController ui = PerkUIController.Instance;
+			if (ui == null) return;
+			try { if (ui.startingPerkTooltipTitle != null) ((Il2CppTMPro.TMP_Text)ui.startingPerkTooltipTitle).text = name; } catch (System.Exception ex) { Core.LogMsg("[本地化] tooltip标题失败: " + ex.Message); }
+			try { if (ui.startingPerkTooltipDescription != null) ((Il2CppTMPro.TMP_Text)ui.startingPerkTooltipDescription).text = desc; } catch (System.Exception ex) { Core.LogMsg("[本地化] tooltip描述失败: " + ex.Message); }
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[本地化] Tooltip失败: " + ex.Message);
+		}
+	}
+
 	public static void PostfixGameItemGetDisplayName(GameItem __instance, ref string __result)
 	{
 		try

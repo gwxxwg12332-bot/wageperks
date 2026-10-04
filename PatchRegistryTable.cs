@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Il2Cpp;
 using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppSystem;
 using Il2CppSystem.Collections.Generic;
 
@@ -58,9 +59,16 @@ namespace WagePerks
             new PatchEntry { Target = typeof(ScavHelper), Method = "GetRandomScavengedItem", Prefix = null, Postfix = "PostfixGetRandomScavengedItem", Host = typeof(LuckScoutPerk), Priority = -1000, System = "LuckScout", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(ScavHelper), Method = "CreateTooltip", Prefix = null, Postfix = "PostfixCreateTooltip", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(EmporiumEntry), Method = "GetAllAfterhourOwnedItems", Prefix = null, Postfix = "PostfixGetAllAfterhourOwnedItems", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(PerkUIController), Method = "OpenUI", Prefix = null, Postfix = "PostfixPerkUiOpen", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = "XIAOWOTradePerks;PerkPointMod", Note = "多值让路：XIAOWO+PerkPointMod（分号分隔，ShouldYield Split 解析）" },
+            new PatchEntry { Target = typeof(PerkUIController), Method = "OpenUI", Prefix = null, Postfix = "PostfixPerkUiOpen", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO/PerkPointMod 不提供我方perk元素，让路=特性不可选；EnsurePickerElements自带防重复" },
             new PatchEntry { Target = typeof(PerkUIController), Method = "OnChange", Prefix = null, Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StartingPerkIconLoader), Method = "Start", Prefix = null, Postfix = "PostfixIconLoaderStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = "XIAOWOTradePerks", Note = "" },
+            new PatchEntry { Target = typeof(StartingPerkIconLoader), Method = "Start", Prefix = null, Postfix = "PostfixIconLoaderStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO 不注册我方assetId图标，让路=图标消失；只注入我方HasCustomIcon条目安全" },
+            // ===== 10-04 本地化四挂点补迁（对齐 cheatsheet 16.1.1）=====
+            // 阶段6迁移时漏迁 LocHelper.GetLocalizedPerkTable（旧区块 PatchRegistry.cs:179 已废弃死代码）→ 当前版翻译必然失效。
+            // 补迁 ③ + 补挂 ①②④：Prefix 短路（return false）→ XIAOWO 同方法 Postfix 不执行，安全共存。
+            new PatchEntry { Target = typeof(StartingPerk), Method = "GetLocalizedDisplayName", Prefix = "PrefixPerkDisplayName", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "①特性名（选择界面+状态栏）：Prefix短路 return false" },
+            new PatchEntry { Target = typeof(StartingPerk), Method = "GetLocalizedDescription", Prefix = "PrefixPerkDescription", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "②特性描述：Prefix短路 return false" },
+            new PatchEntry { Target = typeof(LocHelper), Method = "GetLocalizedPerkTable", Prefix = null, Postfix = "PostfixGetLocalizedPerkTable", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "③perk_{id}_name/desc查表：阶段6漏迁恢复", ParameterTypes = new System.Type[] { typeof(string), typeof(Il2CppReferenceArray<Il2CppSystem.Object>) } },
+            new PatchEntry { Target = typeof(StartingPerkElement), Method = "SetTooltipContent", Prefix = null, Postfix = "PostfixPerkTooltip", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "④tooltip文本直写（cheatsheet 16.1.1 最关键点）", ParameterTypes = new System.Type[] { typeof(StartingPerk) } },
             new PatchEntry { Target = typeof(NetworkUpgrade), Method = "Unlock", Prefix = "Prefix", Postfix = "Postfix", Host = typeof(DetectiveUpgradePatch), Priority = DEFAULT_PRIORITY, System = "Detective", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(SecData), Method = "OnFixerUsed", Prefix = "Prefix", Postfix = null, Host = typeof(DetectiveFixerPatch), Priority = DEFAULT_PRIORITY, System = "Detective", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(SecData), Method = "CommitCrime", Prefix = "Prefix", Postfix = null, Host = typeof(DetectiveCommitCrimePatch), Priority = DEFAULT_PRIORITY, System = "Detective", YieldMod = null, Note = "" },
@@ -68,7 +76,7 @@ namespace WagePerks
             new PatchEntry { Target = typeof(SecData), Method = "OnNewDay", Prefix = null, Postfix = "Postfix", Host = typeof(SoldEvidenceOnNewDayPatch), Priority = DEFAULT_PRIORITY, System = "SoldEvidence", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(SecData), Method = "OnFixerUsed", Prefix = null, Postfix = "Postfix", Host = typeof(WildeFixerPatch), Priority = DEFAULT_PRIORITY, System = "Wilde", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(BarterHelper), Method = "DoesTraderAcceptThisItemAsPayment", Prefix = null, Postfix = "Postfix", Host = typeof(CounterfeitWineTradeFix), Priority = DEFAULT_PRIORITY, System = "CounterfeitWine", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StartingPerkElement), Method = "Start", Prefix = null, Postfix = "PostfixStartingPerkElementStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = "XIAOWOTradePerks", Note = "" },
+            new PatchEntry { Target = typeof(StartingPerkElement), Method = "Start", Prefix = null, Postfix = "PostfixStartingPerkElementStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO 不处理我方元素，让路=元素裸奔（名字/图标无）" },
             new PatchEntry { Target = typeof(GameItem), Method = "GetNegociatedValue", Prefix = "PrefixGameItemGetNegociatedValue", Postfix = "PostfixGameItemGetNegociatedValue", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Trade", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(NegociationUIManager), Method = "InitUIWithItemSellMode", Prefix = null, Postfix = "PostfixUIInitSellMode", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Trade", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(ClientCanExposeFunc), Method = "ClientNoExposeInjector", Prefix = "PrefixClientNoExposeInjector", Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Trade", YieldMod = null, Note = "" },
