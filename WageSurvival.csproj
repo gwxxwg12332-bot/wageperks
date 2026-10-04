@@ -55,9 +55,7 @@
     <Reference Include="Il2CppInterop.Common">
       <HintPath>D:\Steam\steamapps\common\Probably Stolen Demo\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
     </Reference>
-    <Reference Include="WageAPI">
-      <HintPath>..\WageAPI\bin\Debug\net6.0\WageAPI.dll</HintPath>
-    </Reference>
+    <!-- 10-04 内置：WageAPI 源码内嵌（WageApiEmbedded\），单文件自包含，不再引用独立 WageAPI.dll -->
   </ItemGroup>
 
 </Project>
