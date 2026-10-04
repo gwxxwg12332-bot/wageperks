@@ -381,17 +381,10 @@ internal static class WageBrother
         catch (Exception ex) { Core.LogMsg("[蛙哥] LoadAllIcons异常: " + ex.Message); }
     }
 
-    // 10-03 图标ppu：许可v2铺满256 POT画布，ppu=425→显示0.6单位（实测：0.64全好拖/0.5勉强/0.32拖不动，命中区随渲染尺寸；0.6最接近全好拖档且消除NPOT变量）；充电器保持440f
+    // 10-04 贴图重制：许可/充电器全部 64x64 POT（对齐养蛊机），ppu=200→显示0.32单位=游戏2×2占格原生标准（cheatsheet: PPU=图宽/(占格×0.16)=64/0.32=200）
     private static float GetIconPPU(string spriteKey)
     {
-        switch (spriteKey)
-        {
-            case "wage_permit_1_sprite":
-            case "wage_permit_2_sprite":
-            case "wage_permit_3_sprite":
-                return 425f; // 256px→0.60单位
-            default: return 440f;
-        }
+        return 200f; // 64px→0.32单位（2×2物品原生标准）
     }
 
     // 加载许可/充电器图标到SpriteDict
@@ -416,7 +409,7 @@ internal static class WageBrother
             if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，跳过(懒加载兜底): " + spriteKey); return; }
             icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)png });
 
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), GetIconPPU(spriteKey)); // 许可=0.6单位（v2铺满256POT），充电器=440f
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), GetIconPPU(spriteKey)); // 64x64@200f=0.32单位（2×2原生标准）
             SpriteDict.Instance.spriteDictionary[spriteKey] = sp;
             UnityEngine.Object.DontDestroyOnLoad(tex);
             UnityEngine.Object.DontDestroyOnLoad(sp);
