@@ -677,45 +677,76 @@ internal static class WageBrother
     // 规则：许可合成只补差价（700/1000）；充电器合成补差价+原版充电涡轮（500+1涡轮 / 1000+2涡轮）
     private const string CRAFT_TURBO_ID = "turbo_booster"; // 原版充电涡轮（游戏原生物品）
 
-    // 统计玩家已持有（已购买/已拥有）的物品数：not_purchased 标签已清除 = 归玩家（MerchantHelper 经验 4922）
-    private static int CountOwnedItems(string itemId)
+    // 递归收集容器内部物品（含嵌套容器；深度上限防环——吸取容器遍历炸/死循环教训，全 try-catch + null 守卫 + 索引访问）
+    // 容器内部库存走 AddictOfficerEvent.GetInnerInventory（contentWindow反射+GetContainerGrid 双通道，拆包实锤 L1）
+    private static void CollectContainerItemsRecursive(GameItem container, System.Collections.Generic.List<GameItem> outList, int depth)
     {
-        int n = 0;
+        if (container == null || depth > 8) return;
         try
         {
-            var em = Il2Cpp.EmporiumEntry.Instance;
-            if (em == null) return 0;
-            foreach (var item in em.GetAllItems())
+            var inner = AddictOfficerEvent.GetInnerInventory(container);
+            if (inner == null || inner.childItems == null) return;
+            for (int i = 0; i < inner.childItems.Count; i++)
             {
-                if (item == null) continue;
-                string id = ""; try { id = item.identifier ?? ""; } catch { }
-                if (id != itemId) continue;
-                bool owned = true;
-                try { owned = !item.IsTag("not_purchased") && !item.IsTag("TAG_NOT_PURCHASED"); } catch { }
-                if (owned) n++;
+                GameItem c = null;
+                try { c = inner.childItems[i]; } catch { continue; }
+                if (c == null) continue;
+                outList.Add(c);
+                CollectContainerItemsRecursive(c, outList, depth + 1);
             }
         }
         catch { }
+    }
+
+    // 收集全当铺所有物品：EmporiumEntry 顶层 + 每个容器内部递归（GetAllItems 不递归容器内部——游戏API.md 实锤）
+    private static System.Collections.Generic.List<GameItem> CollectAllItems()
+    {
+        var list = new System.Collections.Generic.List<GameItem>();
+        try
+        {
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null) return list;
+            foreach (var item in em.GetAllItems())
+            {
+                if (item == null) continue;
+                list.Add(item);
+                CollectContainerItemsRecursive(item, list, 0);
+            }
+        }
+        catch { }
+        return list;
+    }
+
+    // 是否归玩家所有：not_purchased 标签已清除 = 已购买/已拥有（MerchantHelper 经验 4922，防柜台白嫖）
+    private static bool IsOwnedByPlayer(GameItem item)
+    {
+        if (item == null) return false;
+        try { return !item.IsTag("not_purchased") && !item.IsTag("TAG_NOT_PURCHASED"); } catch { return false; }
+    }
+
+    // 统计玩家已持有的物品数（全容器递归）
+    private static int CountOwnedItems(string itemId)
+    {
+        int n = 0;
+        foreach (var item in CollectAllItems())
+        {
+            if (item == null) continue;
+            string id = ""; try { id = item.identifier ?? ""; } catch { }
+            if (id != itemId) continue;
+            if (IsOwnedByPlayer(item)) n++;
+        }
         return n;
     }
 
     private static GameItem FindOwnedItem(string itemId)
     {
-        try
+        foreach (var item in CollectAllItems())
         {
-            var em = Il2Cpp.EmporiumEntry.Instance;
-            if (em == null) return null;
-            foreach (var item in em.GetAllItems())
-            {
-                if (item == null) continue;
-                string id = ""; try { id = item.identifier ?? ""; } catch { }
-                if (id != itemId) continue;
-                bool owned = true;
-                try { owned = !item.IsTag("not_purchased") && !item.IsTag("TAG_NOT_PURCHASED"); } catch { }
-                if (owned) return item;
-            }
+            if (item == null) continue;
+            string id = ""; try { id = item.identifier ?? ""; } catch { }
+            if (id != itemId) continue;
+            if (IsOwnedByPlayer(item)) return item;
         }
-        catch { }
         return null;
     }
 
@@ -737,24 +768,18 @@ internal static class WageBrother
             ps.playerCash -= diff;
             // 5. 销毁低级物品
             try { low.Destroy(); } catch (Exception exd) { Core.LogMsg("[蛙哥] 合成销毁低级异常: " + exd.Message); }
-            // 6. 销毁材料（原版充电涡轮）
+            // 6. 销毁材料（原版充电涡轮，全容器递归找）
             if (materialCount > 0)
             {
                 int need = materialCount;
-                var em = Il2Cpp.EmporiumEntry.Instance;
-                if (em != null)
+                foreach (var item in CollectAllItems())
                 {
-                    foreach (var item in em.GetAllItems())
-                    {
-                        if (need <= 0) break;
-                        if (item == null) continue;
-                        string id = ""; try { id = item.identifier ?? ""; } catch { }
-                        if (id != CRAFT_TURBO_ID) continue;
-                        bool owned = true;
-                        try { owned = !item.IsTag("not_purchased") && !item.IsTag("TAG_NOT_PURCHASED"); } catch { }
-                        if (!owned) continue;
-                        try { item.Destroy(); need--; } catch { }
-                    }
+                    if (need <= 0) break;
+                    if (item == null) continue;
+                    string id = ""; try { id = item.identifier ?? ""; } catch { }
+                    if (id != CRAFT_TURBO_ID) continue;
+                    if (!IsOwnedByPlayer(item)) continue;
+                    try { item.Destroy(); need--; } catch { }
                 }
             }
             // 7. 发放高级物品（isOwend=true 直接归玩家）
