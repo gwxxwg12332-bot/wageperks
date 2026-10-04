@@ -169,7 +169,17 @@ internal static partial class SurvivalFood
 
     private static bool IsEmptyBottle(GameItem item)
     {
-        try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "empty_beer_bottle"; } catch { return false; }
+        try
+        {
+            if (item == null) return false;
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            if (id == "empty_beer_bottle") return true;
+            // 10-05 实锤：玩家"空酒瓶"实际 id=wine_bottle（F8生成/商店购买），IsAlc关键词命中"wine"被当酒喝掉消失
+            // 空瓶判定：酒瓶类 id + 无水量 → 空瓶（保留装水/酿酒用）
+            if (id == "wine_bottle" || id == "beer_bottle" || id.Contains("bottle")) return GetWaterMl(item) <= 0;
+            return false;
+        }
+        catch { return false; }
     }
 
     private static void DrinkSip(GameItem item)

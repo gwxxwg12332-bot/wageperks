@@ -40,7 +40,103 @@ public static class WageSaveStore
     public static bool LoadComplete => _loadingComplete;
 
     /// <summary>读档数据就绪事件（LoadIfPending 30 帧后触发一次）。各 mod 订阅做引用恢复/迁移。</summary>
-    public static event Action GameLoaded;
+    public static event Action GameLoaded
+    {
+        add
+        {
+            if (HostAvailable && HostEventAdd(value)) return;
+            _gameLoaded += value;
+        }
+        remove
+        {
+            if (HostAvailable && HostEventRemove(value)) return;
+            _gameLoaded -= value;
+        }
+    }
+    private static event Action _gameLoaded;
+
+    // ===================== 宿主转发（10-04 双实例防护） =====================
+    // WagePerks.dll 也内置 WageAPI（同命名空间、同文件路径 Mods\WagesPerks\wages_data_*.txt）。
+    // 同装时若双方各持独立 _mem → Flush 全量互覆盖（丢数据）+ 重复挂点（XIAOWO 冲突检测红字）。
+    // 故：WagePerks 在场 → 本类所有 Get/Set/事件转发到 WagePerks 的 WageAPI.WageSaveStore（共享实例），
+    // 落盘由 WagePerks 的 priority=0 挂点统一管；本程序集不再注册挂点（见 WageApiEmbedded\Core.Init）。
+    // WagePerks 不在场（WageSurvival 独立运行）→ 走本地 _mem + 本地挂点，原逻辑不变。
+    private static System.Type _hostType;
+    private static System.Type HostType
+    {
+        get
+        {
+            if (_hostType != null) return _hostType;
+            try
+            {
+                foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (a == null) continue;
+                    string n = "";
+                    try { n = a.GetName().Name ?? ""; } catch { }
+                    if (n == "WagePerks")
+                    {
+                        _hostType = a.GetType("WageAPI.WageSaveStore");
+                        if (_hostType != null) break;
+                    }
+                }
+            }
+            catch { }
+            return _hostType;
+        }
+    }
+    private static bool HostAvailable => HostType != null;
+    private static bool HostCall(string method, object[] args)
+    {
+        try
+        {
+            var t = HostType;
+            if (t == null) return false;
+            var m = t.GetMethod(method, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (m == null) return false;
+            m.Invoke(null, args);
+            return true;
+        }
+        catch { return false; }
+    }
+    private static object HostCallResult(string method, object[] args)
+    {
+        try
+        {
+            var t = HostType;
+            if (t == null) return null;
+            var m = t.GetMethod(method, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (m == null) return null;
+            return m.Invoke(null, args);
+        }
+        catch { return null; }
+    }
+    private static bool HostEventAdd(Action handler)
+    {
+        try
+        {
+            var t = HostType;
+            if (t == null) return false;
+            var ev = t.GetEvent("GameLoaded", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (ev == null) return false;
+            ev.AddEventHandler(null, handler);
+            return true;
+        }
+        catch { return false; }
+    }
+    private static bool HostEventRemove(Action handler)
+    {
+        try
+        {
+            var t = HostType;
+            if (t == null) return false;
+            var ev = t.GetEvent("GameLoaded", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (ev == null) return false;
+            ev.RemoveEventHandler(null, handler);
+            return true;
+        }
+        catch { return false; }
+    }
 
     // ===================== 路径 =====================
 
@@ -101,6 +197,11 @@ public static class WageSaveStore
 
     public static string GetString(string ns, string key, string def = "")
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(GetString), new object[] { ns, key, def });
+            return r as string ?? def;
+        }
         try
         {
             string k = ns + "." + key;
@@ -121,6 +222,11 @@ public static class WageSaveStore
 
     public static void SetString(string ns, string key, string value)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(SetString), new object[] { ns, key, value ?? "" });
+            return;
+        }
         try
         {
             if (!_loadingComplete) return; // 读档空窗期：丢弃所有写入，防默认值污染
@@ -132,6 +238,11 @@ public static class WageSaveStore
 
     public static int GetInt(string ns, string key, int def = 0)
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(GetInt), new object[] { ns, key, def });
+            return r is int i ? i : def;
+        }
         try
         {
             string k = ns + "." + key;
@@ -151,11 +262,21 @@ public static class WageSaveStore
 
     public static void SetInt(string ns, string key, int value)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(SetInt), new object[] { ns, key, value });
+            return;
+        }
         SetString(ns, key, value.ToString());
     }
 
     public static float GetFloat(string ns, string key, float def = 0f)
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(GetFloat), new object[] { ns, key, def });
+            return r is float f ? f : def;
+        }
         try
         {
             string k = ns + "." + key;
@@ -175,11 +296,21 @@ public static class WageSaveStore
 
     public static void SetFloat(string ns, string key, float value)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(SetFloat), new object[] { ns, key, value });
+            return;
+        }
         SetString(ns, key, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     public static bool GetBool(string ns, string key, bool def = false)
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(GetBool), new object[] { ns, key, def });
+            return r is bool b ? b : def;
+        }
         try
         {
             string k = ns + "." + key;
@@ -199,12 +330,22 @@ public static class WageSaveStore
 
     public static void SetBool(string ns, string key, bool value)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(SetBool), new object[] { ns, key, value });
+            return;
+        }
         SetString(ns, key, value ? "1" : "0");
     }
 
     // 清空指定命名空间的所有键（新游戏/重置用）
     public static void ClearNamespace(string ns)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(ClearNamespace), new object[] { ns });
+            return;
+        }
         try
         {
             string prefix = ns + ".";
@@ -221,6 +362,11 @@ public static class WageSaveStore
 
     public static bool HasKey(string ns, string key)
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(HasKey), new object[] { ns, key });
+            return r is bool hb && hb;
+        }
         try
         {
             if (_mem.ContainsKey(ns + "." + key)) return true;
@@ -235,6 +381,11 @@ public static class WageSaveStore
     /// <summary>枚举指定命名空间下的全部完整 key（"ns.key"）。迁移用。</summary>
     public static List<string> EnumerateKeys(string ns)
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(EnumerateKeys), new object[] { ns }) as List<string>;
+            return r ?? new List<string>();
+        }
         var result = new List<string>();
         try
         {
@@ -251,6 +402,11 @@ public static class WageSaveStore
     /// <summary>删除指定完整 key（"ns.key"）。迁移清旧用。</summary>
     public static void RemoveKey(string fullKey)
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(RemoveKey), new object[] { fullKey });
+            return;
+        }
         try
         {
             if (_mem.Remove(fullKey)) _dirty = true;
@@ -261,6 +417,11 @@ public static class WageSaveStore
     /// <summary>读内存快照（迁移复制用，防枚举中修改）。</summary>
     public static List<KeyValuePair<string, string>> Snapshot()
     {
+        if (HostAvailable)
+        {
+            var r = HostCallResult(nameof(Snapshot), new object[0]) as List<KeyValuePair<string, string>>;
+            return r ?? new List<KeyValuePair<string, string>>();
+        }
         var result = new List<KeyValuePair<string, string>>();
         try { foreach (var kv in _mem) result.Add(kv); } catch { }
         return result;
@@ -270,6 +431,11 @@ public static class WageSaveStore
 
     public static void ResetForNewRun()
     {
+        if (HostAvailable)
+        {
+            HostCall(nameof(ResetForNewRun), new object[0]);
+            return;
+        }
         try
         {
             _mem.Clear();
@@ -344,6 +510,12 @@ public static class WageSaveStore
     /// <summary>打烊落盘（SaveGame/EndDay Postfix 调）。全量写内存快照，原子替换。</summary>
     public static void Flush()
     {
+        // 宿主在场：落盘归 WagePerks 的 priority=0 挂点（本程序集不注册挂点，见 Core.Init）
+        if (HostAvailable)
+        {
+            HostCall(nameof(Flush), new object[0]);
+            return;
+        }
         // 读档门控守卫：LoadGame 异步（ES3 回调恢复 runID），读档未完成禁止落盘（防空数据覆盖正式档）
         if (!_loadingComplete)
         {
@@ -461,6 +633,12 @@ public static class WageSaveStore
     /// <summary>轮询驱动（每帧调，轻量）。文件未读则下帧补读；已读则只等延迟帧驱动 GameLoaded。</summary>
     public static void LoadIfPending()
     {
+        // 宿主在场：读档驱动归 WagePerks 的 WageAPI（本程序集 Core.Update 也调，转发即可）
+        if (HostAvailable)
+        {
+            HostCall(nameof(LoadIfPending), new object[0]);
+            return;
+        }
         if (!_pendingLoad) return;
         try
         {
@@ -472,7 +650,9 @@ public static class WageSaveStore
             if (++_pendingLoadFrames < LOAD_DELAY_FRAMES) return;
             _pendingLoad = false;
             // 阶段2：文件数据就绪后触发各 mod 的读档恢复（挂点在 LoadGame Postfix 之外——容器 childItems 未就绪）
-            try { GameLoaded?.Invoke(); }
+            // 宿主在场：本侧 _pendingLoad 不被置位（LoadIfPending 已转发 WagePerks），触发由 WagePerks 的
+            // GameLoaded（已通过 HostEventAdd 订阅）驱动；本地触发走 backing field。
+            try { _gameLoaded?.Invoke(); }
             catch (Exception ex2) { Core.LogMsg("[SaveStore] GameLoaded 驱动失败: " + ex2.Message); }
         }
         catch (Exception ex)

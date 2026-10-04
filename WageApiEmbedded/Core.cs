@@ -30,6 +30,17 @@ public static class Core
 
         _harmony = new HarmonyLib.Harmony("com.wageapi");
 
+        // ===== 双注册防护（10-04 用户实测 XIAOWO 冲突检测红字）=====
+        // WagePerks.dll 也内置 WageAPI（同 Harmony id "com.wageapi"），SaveGame/EndDay/LoadGame 落盘挂点
+        // 已由其注册（priority=0 最后跑）。同装时若本程序集也注册 → 三方冲突检测报"重复后置补丁共注册 2 次"。
+        // WageSaveStore 已实现宿主转发（WagePerks 在场 → Get/Set/Flush/事件全走 WagePerks 实例），
+        // 数据由 WagePerks 挂点统一落盘；本程序集不再重复注册。WagePerks 不在场（WageSurvival 独立）→ 正常注册。
+        if (IsWagePerksLoaded())
+        {
+            Log.Msg("[WageAPI] 检测到 WagePerks 已加载（含内置 WageAPI 统一落盘），跳过 SaveGame/EndDay/LoadGame 挂点注册（防双注册）");
+            return;
+        }
+
         // ===== 统一落盘通道（原 Wage's Perks PatchRegistryTable:92/93 迁入）=====
         // priority=0（最后跑）语义必须保留：各系统 SaveGame Postfix（如 Patches.Lifecycle 的 400）
         // 先写内存，WageAPI 最后统一原子落盘。同方法双 Postfix 顺序由 Harmony priority 保证。
@@ -61,6 +72,23 @@ public static class Core
     public static void Update()
     {
         try { WageSaveStore.LoadIfPending(); } catch { }
+    }
+
+    /// <summary>检测 WagePerks.dll 是否已加载（内置 WageAPI 宿主）。双注册防护用。</summary>
+    private static bool IsWagePerksLoaded()
+    {
+        try
+        {
+            foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (a == null) continue;
+                string n = "";
+                try { n = a.GetName().Name ?? ""; } catch { }
+                if (n == "WagePerks") return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     /// <summary>统一日志（WageAPI 内部用；DebugMode 门控同老 mod 习惯，开发版全开）。</summary>
