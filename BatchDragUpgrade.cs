@@ -27,12 +27,14 @@ internal static class BatchDragUpgrade
             if (hover == null) return;
 
             // 识别目标类型
-            bool isDice = false, isBox = false, isBead = false;
+            bool isDice = false, isBox = false, isBead = false, isBottlePrinter = false;
             try { isDice = DestinyDice.IsDice(hover); } catch { }
             try { isBox = ContainerUpgradeV2.IsWageBox(hover); } catch { }
             try { isBead = LuckScoutBackpackUpgrade.IsBead(hover); } catch { }
+            // 10-04 水瓶机批量：水商之友或鲁滨逊激活 + 目标是 bottle_printer（金属锭升质量，与单拖 TryUpgradeMachine 同一路径）
+            try { isBottlePrinter = (RobinCrusoePerk.IsActive() || WaterMerchantPerk.IsActive()) && (hover.identifier ?? "").ToLowerInvariant() == "bottle_printer"; } catch { }
 
-            if (!isDice && !isBox && !isBead) return; // 不是目标容器，不处理
+            if (!isDice && !isBox && !isBead && !isBottlePrinter) return; // 不是目标容器，不处理
 
             // 遍历 selectedItems，排除目标本身
             var selected = __instance.selectedItems;
@@ -106,6 +108,15 @@ internal static class BatchDragUpgrade
                         else fail++;
                         continue;
                     }
+
+                    // 水瓶机（10-04）：只吃金属锭，调单拖同路径 TryUpgradeMachine（+2 质量/锭）
+                    if ((RobinCrusoePerk.IsActive() || WaterMerchantPerk.IsActive()) && (_target.identifier ?? "").ToLowerInvariant() == "bottle_printer")
+                    {
+                        if (!IsMetalIngotId(item)) { fail++; continue; } // 非金属锭不吃
+                        if (RobinCrusoePerk.TryUpgradeMachine(item, _target)) ok++;
+                        else fail++;
+                        continue;
+                    }
                 }
                 catch (System.Exception ex)
                 {
@@ -129,6 +140,11 @@ internal static class BatchDragUpgrade
             _pending.Clear();
             _target = null;
         }
+    }
+
+    private static bool IsMetalIngotId(GameItem item)
+    {
+        try { return item != null && (item.identifier ?? "").ToLowerInvariant() == "metal_ingot"; } catch { return false; }
     }
 
     public static System.Exception FinalizerEndGroupDrag(Il2Cpp.ItemMultiSelectHandler __instance, System.Exception __exception)

@@ -161,7 +161,8 @@ internal static partial class RobinCrusoePerk
     // 机器/模板升级：消耗金属锭。机器=独立 tag wageUpgradePct/wageUpgradeEff（STANDARD 机器 Getter Postfix 不减半加回，
     // 避免被模块聚合重写覆盖；非 STANDARD 机器无聚合读 TOTAL_PERCENTAGE_* → 走模板路径）；
     // 模板=TOTAL 性能/质量 +2（聚合读模板 tag 后 Getter ×0.5，实 +1）
-    private static bool TryUpgradeMachine(GameItem ingot, GameItem target)
+    // 10-04 internal：批量升级（BatchDragUpgrade 水瓶机分支）复用此方法
+    internal static bool TryUpgradeMachine(GameItem ingot, GameItem target)
     {
         try
         {
