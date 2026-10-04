@@ -167,10 +167,15 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (IsMoreUpdateOwnedMachine(target)) return false; // MoreUpdate 兼容让路：配方机器归 MoreUpdate 独占
-            // 09-15 瓶印机专用升级：只写质量（TOTAL_PERCENTAGE_QUALITY_BONUS_INT +2，水商之友 Getter 无减半 → 实 +2/次；鲁滨逊 ×0.5 → 实 +1/次）
+            // 09-15 瓶印机专用升级：只写质量。10-05 修复：原写聚合 tag TOTAL_PERCENTAGE_QUALITY_BONUS_INT
+            // （拆包实锤：场景机器 tags 不随档→读档归零；且聚合 tag 会被模块聚合重算覆盖）
+            // → 改独立 tag wageBottleQlty（免疫聚合覆盖）+ WageSaveStore 双写（读档恢复兜底，按场景顺序索引关联）
             if (IsBottlePrinter(target))
             {
-                AddTagInt(target, "TOTAL_PERCENTAGE_QUALITY_BONUS_INT", 2);
+                AddTagInt(target, "wageBottleQlty", 2);
+                int q = GetTagIntSafe(target, "wageBottleQlty");
+                int idx = WaterMerchantPerk.GetBottlePrinterIndex(target);
+                try { WageSaveStore.SetInt(PERK_ID, "wage_bottle_q" + idx, q); } catch { }
                 ConsumeOne(ingot);
                 return true;
             }

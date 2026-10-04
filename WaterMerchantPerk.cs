@@ -223,7 +223,8 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
         {
             var printer = __instance.machine;
             int quality = 0;
-            try { quality = Il2Cpp.MachineryHelper.GetCurrentQualityBonus(printer); } catch { }
+            // 10-05 修复：优先读独立 tag wageBottleQlty（升级改写此 tag + 跨档恢复写回）；无则回退原版 Getter（兼容其他来源）
+            try { quality = GetBottleQuality(printer); } catch { }
             int grade = -1;
             if (quality >= 200) grade = 0;        // 纯水（毕业）
             else if (quality >= 150) grade = 1;   // 高质水
@@ -255,5 +256,145 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             return grid.childItems.Count;
         }
         catch { return -1; }
+    }
+
+    // ===================== 10-05 水瓶机质量跨档修复（拆包实锤：场景机器 tags 不随档→读档归零）=====================
+    // 升级写独立 tag wageBottleQlty + WageSaveStore 双写（wage_bottle_qN，N=场景顺序索引）；
+    // 读档后遍历玩家库存网格按出现顺序恢复（虚空珠同款模式：PostfixLoadGame 立即试 + 帧重试）
+
+    private static int _bottleRestoreFramesLeft = 0;
+
+    // 判级读端：独立 tag 优先（当档/跨档恢复后都在此），无则回退原版 Getter（兼容第三方写的聚合 tag）
+    internal static int GetBottleQuality(GameItem printer)
+    {
+        try
+        {
+            int q = RobinCrusoePerk.GetTagIntSafe(printer, "wageBottleQlty");
+            if (q > 0) return q;
+        }
+        catch { }
+        try { return Il2Cpp.MachineryHelper.GetCurrentQualityBonus(printer); } catch { }
+        return 0;
+    }
+
+    // 玩家所有库存网格（虚空珠同款：后背包/计数器/展示柜/主库存/暗格 + 递归容器）
+    internal static List<GameInventory> GetPlayerInventories()
+    {
+        var allInvs = new List<GameInventory>();
+        try
+        {
+            EmporiumEntry emporium = EmporiumEntry.Instance;
+            if (emporium != null)
+            {
+                try { var v = emporium.backInvinvElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+                try { var v = emporium.backInvinvElementCounter as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+                try { var v = emporium.showcaseElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+                try { var v = emporium.invElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+                try { var v = emporium.hiddenElement as GameInventory; if (v != null) allInvs.Add(v); } catch { }
+
+                var visited = new HashSet<IntPtr>();
+                var stack = new Stack<GameInventory>(allInvs);
+                while (stack.Count > 0)
+                {
+                    var inv = stack.Pop();
+                    if (inv == null || inv.childItems == null) continue;
+                    for (int i = 0; i < inv.childItems.Count; i++)
+                    {
+                        var it = inv.childItems[i];
+                        if (it == null || !visited.Add(it.Pointer)) continue;
+                        try
+                        {
+                            var cw = it.contentWindow;
+                            if (cw == null || cw.childElement == null) continue;
+                            var inner = cw.childElement.TryCast<GameGridInventory>();
+                            if (inner != null && !allInvs.Contains(inner)) { allInvs.Add(inner); stack.Push(inner); }
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+        catch { }
+        return allInvs;
+    }
+
+    // 水瓶机在玩家库存网格中的顺序索引（升级双写/读档恢复关联用；-1=不在库存网格（柜台/地上）→ 不双写）
+    internal static int GetBottlePrinterIndex(GameItem target)
+    {
+        try
+        {
+            int n = 0;
+            foreach (var inv in GetPlayerInventories())
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    string id = ""; try { id = it.identifier ?? ""; } catch { }
+                    if (id.ToLowerInvariant() == "bottle_printer")
+                    {
+                        if (it.Pointer == target.Pointer) return n;
+                        n++;
+                    }
+                }
+            }
+        }
+        catch { }
+        return -1;
+    }
+
+    // 读档恢复：遍历库存网格按出现顺序把 WageSaveStore 双写值写回独立 tag
+    private static bool RestoreAllBottlePrinters()
+    {
+        int n = 0;
+        bool any = false;
+        try
+        {
+            foreach (var inv in GetPlayerInventories())
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    string id = ""; try { id = it.identifier ?? ""; } catch { }
+                    if (id.ToLowerInvariant() != "bottle_printer") continue;
+                    any = true;
+                    int saved = WageSaveStore.GetInt("RobinCrusoe", "wage_bottle_q" + n, -1);
+                    if (saved > 0)
+                    {
+                        int cur = RobinCrusoePerk.GetTagIntSafe(it, "wageBottleQlty");
+                        if (cur < saved) { RobinCrusoePerk.SetTagIntValue(it, "wageBottleQlty", saved); Core.LogMsg("[水商] 水瓶机读档恢复质量: " + saved + " (idx=" + n + ")"); }
+                    }
+                    n++;
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[水商] 水瓶机恢复异常: " + ex.Message); }
+        return any;
+    }
+
+    // 读档挂点：立即试一次 + 帧重试（容器内容延迟加载，虚空珠同款）
+    public static void PostfixLoadGameBottlePrinter()
+    {
+        try
+        {
+            if (RestoreAllBottlePrinters()) { _bottleRestoreFramesLeft = 0; return; }
+            _bottleRestoreFramesLeft = 180;
+        }
+        catch (Exception ex) { Core.LogMsg("[水商] 水瓶机恢复挂点异常: " + ex.Message); }
+    }
+
+    // Core 帧循环调用：延迟重试恢复
+    public static void OnUpdateRestoreBottlePrinters()
+    {
+        try
+        {
+            if (_bottleRestoreFramesLeft <= 0) return;
+            _bottleRestoreFramesLeft--;
+            if (RestoreAllBottlePrinters()) _bottleRestoreFramesLeft = 0;
+        }
+        catch { }
     }
 }

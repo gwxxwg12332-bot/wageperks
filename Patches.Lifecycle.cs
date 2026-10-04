@@ -95,6 +95,14 @@ internal static partial class Patches
 		}
 		try
 		{
+			WaterMerchantPerk.OnUpdateRestoreBottlePrinters();
+		}
+		catch
+		{
+			// 每帧防御：水瓶机质量读档恢复异常跳过
+		}
+		try
+		{
 			UpdatePendingLoadGameRestore();
 		}
 		catch
