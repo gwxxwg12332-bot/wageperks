@@ -159,27 +159,27 @@ internal static class WageBrother
             }
             catch (Exception exai) { Core.LogMsg("[蛙哥] 携带物品上柜台异常: " + exai.Message); }
 
-            // 蛙哥的许可货架（阶梯解锁：买一级开二级，买二级开三级）
+            // 蛙哥的许可货架（10-04 用户拍板：一次只卖初级；阶梯解锁曾因HasPermit扫Emporium全量含货架→连锁全开，先停用等成长机制确认）
             try
             {
-                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 800); // 一级常驻
-                if (WageBrokerPermitHelper.HasPermit(1))
-                    AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 1500);
-                if (WageBrokerPermitHelper.HasPermit(2))
-                    AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 2500);
-                Core.LogMsg("[蛙哥] 许可货架已上，等级=" + WageBrokerPermitHelper.GetMaxPermitLevel());
+                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 800); // 只卖一级
+                // if (WageBrokerPermitHelper.HasPermit(1))
+                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 1500);
+                // if (WageBrokerPermitHelper.HasPermit(2))
+                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 2500);
+                Core.LogMsg("[蛙哥] 许可货架已上（仅一级），等级=" + WageBrokerPermitHelper.GetMaxPermitLevel());
             }
             catch (Exception expermit) { Core.LogMsg("[蛙哥] 许可货架异常: " + expermit.Message); }
 
-            // 蛙哥的充电器货架（阶梯解锁）
+            // 蛙哥的充电器货架（10-04 同上：一次只卖初级）
             try
             {
-                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 500); // 一级常驻
-                if (WageBrokerChargerHelper.HasCharger(1))
-                    AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 1000);
-                if (WageBrokerChargerHelper.HasCharger(2))
-                    AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 2000);
-                Core.LogMsg("[蛙哥] 充电器货架已上，等级=" + WageBrokerChargerHelper.GetMaxChargerLevel());
+                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 500); // 只卖一级
+                // if (WageBrokerChargerHelper.HasCharger(1))
+                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 1000);
+                // if (WageBrokerChargerHelper.HasCharger(2))
+                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 2000);
+                Core.LogMsg("[蛙哥] 充电器货架已上（仅一级），等级=" + WageBrokerChargerHelper.GetMaxChargerLevel());
             }
             catch (Exception excharger) { Core.LogMsg("[蛙哥] 充电器货架异常: " + excharger.Message); }
 
