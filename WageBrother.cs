@@ -676,6 +676,17 @@ internal static class WageBrother
     // ===================== 合成升级（10-04 用户拍板：蛙哥服务合成） =====================
     // 规则：许可合成只补差价（700/1000）；充电器合成补差价+原版充电涡轮（500+1涡轮 / 1000+2涡轮）
     private const string CRAFT_TURBO_ID = "turbo_booster"; // 原版充电涡轮（游戏原生物品）
+    private const string CRAFT_POWER_ARRAY_ID = "powerblock"; // 能量阵列（价值200实锤：all_item_values.txt:127 + 游戏日志"能量阵列(200)"）
+    private const string CRAFT_RECHARGER_ID = "recharger"; // 充能器（价值150实锤：all_item_values.txt:126）
+
+    // 材料显示名（不足提示用）
+    private static string CraftMatName(string id)
+    {
+        if (id == CRAFT_TURBO_ID) return LangHelper.T("原版充电涡轮", "Turbo Booster");
+        if (id == CRAFT_POWER_ARRAY_ID) return LangHelper.T("能量阵列", "Power Array");
+        if (id == CRAFT_RECHARGER_ID) return LangHelper.T("充能器", "Recharger");
+        return id;
+    }
 
     // 递归收集容器内部物品（含嵌套容器；深度上限防环——吸取容器遍历炸/死循环教训，全 try-catch + null 守卫 + 索引访问）
     // 容器内部库存走 AddictOfficerEvent.GetInnerInventory（contentWindow反射+GetContainerGrid 双通道，拆包实锤 L1）
@@ -750,8 +761,8 @@ internal static class WageBrother
         return null;
     }
 
-    // 执行合成：低级物品 → 高级物品
-    private static void DoCraft(string lowId, string highId, int diff, int materialCount)
+    // 执行合成：低级物品 → 高级物品（materials = 需求材料列表 (id, 数量)；许可传空表）
+    private static void DoCraft(string lowId, string highId, int diff, System.Collections.Generic.List<System.Tuple<string, int>> materials)
     {
         try
         {
@@ -761,25 +772,39 @@ internal static class WageBrother
             if (low == null) { StoreUIManager.Instance.Notify(LangHelper.T("需要先持有低一级的货（买过才行）", "Need lower tier item (purchased)")); return; }
             // 2. 现金够差价
             if (ps.playerCash < diff) { StoreUIManager.Instance.Notify(LangHelper.T("差价不够：" + diff + " 信用点", "Need " + diff + " cr")); return; }
-            // 3. 材料够（充电器才要原版涡轮）
-            if (materialCount > 0 && CountOwnedItems(CRAFT_TURBO_ID) < materialCount)
-            { StoreUIManager.Instance.Notify(LangHelper.T("充电涡轮不够（需持有 " + materialCount + " 个原版充电涡轮）", "Need " + materialCount + " turbo boosters")); return; }
+            // 3. 材料够（充电器才要材料；缺哪样提示哪样，全容器递归统计）
+            if (materials != null)
+            {
+                foreach (var m in materials)
+                {
+                    int owned = CountOwnedItems(m.Item1);
+                    if (owned < m.Item2)
+                    {
+                        string matName = CraftMatName(m.Item1);
+                        StoreUIManager.Instance.Notify(LangHelper.T(matName + "不够（需 " + m.Item2 + " 个）", "Need " + m.Item2 + " " + m.Item1));
+                        return;
+                    }
+                }
+            }
             // 4. 扣差价
             ps.playerCash -= diff;
             // 5. 销毁低级物品
             try { low.Destroy(); } catch (Exception exd) { Core.LogMsg("[蛙哥] 合成销毁低级异常: " + exd.Message); }
-            // 6. 销毁材料（原版充电涡轮，全容器递归找）
-            if (materialCount > 0)
+            // 6. 销毁材料（全容器递归找，逐材料销毁足额）
+            if (materials != null)
             {
-                int need = materialCount;
-                foreach (var item in CollectAllItems())
+                foreach (var m in materials)
                 {
-                    if (need <= 0) break;
-                    if (item == null) continue;
-                    string id = ""; try { id = item.identifier ?? ""; } catch { }
-                    if (id != CRAFT_TURBO_ID) continue;
-                    if (!IsOwnedByPlayer(item)) continue;
-                    try { item.Destroy(); need--; } catch { }
+                    int need = m.Item2;
+                    foreach (var item in CollectAllItems())
+                    {
+                        if (need <= 0) break;
+                        if (item == null) continue;
+                        string id = ""; try { id = item.identifier ?? ""; } catch { }
+                        if (id != m.Item1) continue;
+                        if (!IsOwnedByPlayer(item)) continue;
+                        try { item.Destroy(); need--; } catch { }
+                    }
                 }
             }
             // 7. 发放高级物品（isOwend=true 直接归玩家）
@@ -796,7 +821,9 @@ internal static class WageBrother
                 catch (Exception exh) { Core.LogMsg("[蛙哥] 合成发放高级异常: " + exh.Message); }
             }
             StoreUIManager.Instance.Notify(LangHelper.T("合成完成：" + highId + " 已入账", "Crafted: " + highId));
-            Core.LogMsg("[蛙哥] 合成: " + lowId + " → " + highId + " 扣" + diff + " 材料x" + materialCount);
+            string matLog = "";
+            if (materials != null) { foreach (var m in materials) matLog += " " + m.Item1 + "x" + m.Item2; }
+            Core.LogMsg("[蛙哥] 合成: " + lowId + " → " + highId + " 扣" + diff + " 材料:" + matLog);
             // 关合成窗口
             try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("wage_craft_window"); } catch { }
         }
@@ -814,21 +841,33 @@ internal static class WageBrother
             if (w == null) return;
             w.SetSize(380, 440).SetPosition(Vector2.zero);
             w.BeginColumn(4f);
-            w.AddLabel(LangHelper.T("蛙哥：把低一级的货交给我，补差价帮你升一级。充电器升级还要原版充电涡轮。", "Wage Brother: give me the lower tier, pay the difference to upgrade. Chargers also need turbo boosters."), "wc_hint");
+            w.AddLabel(LangHelper.T("蛙哥：把低一级的货交给我，补差价帮你升一级。充电器升级还要原版充电涡轮、能量阵列和充能器。", "Wage Brother: give me the lower tier, pay the difference to upgrade. Chargers also need turbo, power array and recharger."), "wc_hint");
             var ps = PlayerStore.Instance;
             w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wc_cash");
 
             // 许可（只补差价）
-            var actP2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_1_ID, WageBrokerPermitHelper.PERMIT_2_ID, 700, 0); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
+            var actP2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_1_ID, WageBrokerPermitHelper.PERMIT_2_ID, 700, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
             w.AddButton(LangHelper.T("蛙哥的许可 → 二级 · 700信用点", "Permit → Tier 2 · 700 cr"), actP2, "wc_permit2");
-            var actP3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_2_ID, WageBrokerPermitHelper.PERMIT_3_ID, 1000, 0); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
+            var actP3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_2_ID, WageBrokerPermitHelper.PERMIT_3_ID, 1000, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
             w.AddButton(LangHelper.T("蛙哥的许可 → 三级 · 1000信用点", "Permit → Tier 3 · 1000 cr"), actP3, "wc_permit3");
 
-            // 充电器（差价+原版充电涡轮）
-            var actC2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_1_ID, WageBrokerChargerHelper.CHARGER_2_ID, 500, 1); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的充电器 → 二级 · 500信用点 + 涡轮×1", "Charger → Tier 2 · 500 cr + turbo x1"), actC2, "wc_charger2");
-            var actC3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_2_ID, WageBrokerChargerHelper.CHARGER_3_ID, 1000, 2); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的充电器 → 三级 · 1000信用点 + 涡轮×2", "Charger → Tier 3 · 1000 cr + turbo x2"), actC3, "wc_charger3");
+            // 充电器（差价+原版涡轮+能量阵列+充能器；二级各1，三级各5）
+            var c2Mats = new System.Collections.Generic.List<System.Tuple<string, int>>
+            {
+                System.Tuple.Create(CRAFT_TURBO_ID, 1),
+                System.Tuple.Create(CRAFT_POWER_ARRAY_ID, 1),
+                System.Tuple.Create(CRAFT_RECHARGER_ID, 1)
+            };
+            var actC2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_1_ID, WageBrokerChargerHelper.CHARGER_2_ID, 500, c2Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的充电器 → 二级 · 500信用点 + 涡轮×1 + 阵列×1 + 充能器×1", "Charger → Tier 2 · 500 cr + turbo x1 + array x1 + recharger x1"), actC2, "wc_charger2");
+            var c3Mats = new System.Collections.Generic.List<System.Tuple<string, int>>
+            {
+                System.Tuple.Create(CRAFT_TURBO_ID, 2),
+                System.Tuple.Create(CRAFT_POWER_ARRAY_ID, 5),
+                System.Tuple.Create(CRAFT_RECHARGER_ID, 5)
+            };
+            var actC3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_2_ID, WageBrokerChargerHelper.CHARGER_3_ID, 1000, c3Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的充电器 → 三级 · 1000信用点 + 涡轮×2 + 阵列×5 + 充能器×5", "Charger → Tier 3 · 1000 cr + turbo x2 + array x5 + recharger x5"), actC3, "wc_charger3");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] ShowCraftWindow异常: " + ex.Message); }
     }
