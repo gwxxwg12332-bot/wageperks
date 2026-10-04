@@ -21,6 +21,16 @@ internal static partial class SurvivalFood
             if (IsInDoctorNightInventory(newItem)) {  return; }
             // v1.1.6 未购买物品禁止吃喝用（拆包 09-12 [L1]：柜台 isOwend=false → SetItemOwned 去 IS_OWNED_TAG；权威读口 GeneralHelper.IsItemOwned=IsTag("IS_OWNED_TAG")。not_purchased 是 GameCharacterItem 静态常量非商品 tag，TAG_NOT_PURCHASED 不存在——原 IsTag 双查无效已删）
             if (!Il2Cpp.GeneralHelper.IsItemOwned(newItem)) { return; }
+            // 10-05 引导 MVP：首次吃喝提示按Z开面板（一次性 flag，防刷屏）
+            try
+            {
+                if (WageAPI.WageSaveStore.GetInt("SurvivalGlobal", "guided_eat", 0) == 0)
+                {
+                    WageAPI.WageSaveStore.SetInt("SurvivalGlobal", "guided_eat", 1);
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("[生存] 双击食物/水=吃喝！按 Z 键打开生存面板查看状态", "[Survival] Double-click food/water to eat & drink! Press Z for the survival panel"), "green"); } catch { }
+                }
+            }
+            catch { }
             // v5.7 心情主动提升：酒/烟/毒/彩票优先于吃喝（酒也是饮品，先判酒）
             // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
             if (IsAlc(newItem)) { LogMsg("[WageSurvival] 酒: " + newItem.identifier); DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）

@@ -65,6 +65,9 @@ internal static partial class SurvivalFood
             b.AddButton(LangHelper.T("卖血 -500ml", "Sell Blood -500ml"), sellBtnOnClick, "sell_blood_btn");
             var autoPopupBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { _autoPopup = !_autoPopup; try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T(_autoPopup ? "生存面板：自动弹开启" : "生存面板：自动弹关闭", "Survival panel: auto-popup " + (_autoPopup ? "ON" : "OFF"))); } catch { } RefreshStatusPanel(); }));
             b.AddButton(LangHelper.T("自动弹出：" + (_autoPopup ? "开" : "关"), "Auto-popup: " + (_autoPopup ? "ON" : "OFF")), autoPopupBtn, "auto_popup_btn");
+            // 10-05 引导 MVP：生存指南按钮（复制蛙娘照顾指南模式）
+            var guideBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowSurvivalGuide(); } catch (Exception ex) { LogMsg("[WageSurvival] 指南按钮异常: " + ex.Message); } }));
+            b.AddButton(LangHelper.T("📖 生存指南", "📖 Survival Guide"), guideBtn, "ws_guide_btn");
             if (IsForcedRest()) b.AddLabel("昏迷中 · 剩余 " + SaveStore.GetInt("blood_rest", 0) + " 天", "blood_rest_l");
             else if (IsBloodWeak()) b.AddLabel(LangHelper.T("虚弱（血量过低）", "Too weak (low blood)"), "blood_weak_l");
             // 新三状态：清洁/睡眠/社交
@@ -141,6 +144,49 @@ internal static partial class SurvivalFood
             b.Show();
         }
         catch (Exception ex) { Core.LogMsg("[WageSurvival] 状态面板异常: " + ex.Message); }
+    }
+
+    // ============================================================
+    // 10-05 引导 MVP：生存指南（复制蛙娘照顾指南 wg_guide 模式）
+    // 入口：ws_status 面板「📖 生存指南」按钮
+    // ============================================================
+    internal static void ShowSurvivalGuide()
+    {
+        try
+        {
+            var mgr = Il2Cpp.CustomUIManager.Instance;
+            if (mgr == null) return;
+            if (mgr.IsOpen("ws_guide")) mgr.CloseWindow("ws_guide");
+            var b = mgr.CreateWindow("ws_guide", LangHelper.T("生存 · 指南", "Survival · Guide"), "overlay");
+            if (b == null) return;
+            b.SetSize(420, 560).SetPosition(Vector2.zero);
+            try
+            {
+                var w = mgr.GetWindow("ws_guide");
+                if (w != null)
+                {
+                    var rt = w.Rect;
+                    rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 1);
+                    rt.anchoredPosition = new Vector2(-16, -200);
+                }
+            }
+            catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 指南定位异常: " + ex.Message); }
+            b.BeginColumn(4f);
+            b.AddLabel(LangHelper.T("【1】生存系统是什么？", "[1] What is Survival?"), "ws_g1");
+            b.AddLabel(LangHelper.T("双击食物/水吃喝，每天打烊结算饱食/口渴/健康/清洁/睡眠/社交六维。状态太差会生病、被迫休息甚至昏迷。按 Z 键随时打开本面板。", "Double-click food/water to eat & drink. Six stats settle at closing: Satiety/Thirst/Health/Clean/Sleep/Social. Too low = illness, forced rest, coma. Press Z to open this panel anytime."), "ws_g1d");
+            b.AddLabel(LangHelper.T("【2】怎么吃喝？", "[2] How to Eat & Drink"), "ws_g2");
+            b.AddLabel(LangHelper.T("双击食物/水直接吃喝。食物按需吃一口；水按水质恢复（优质>普通>脏水，脏水掉健康）；酒+心情，麻醉品+心情睡眠，日用品/清洁用品+清洁。未购买的商品不能吃喝。", "Double-click food/water. Food: one bite as needed; Water: by purity (Pure>Plain>Dirty, dirty hurts health); Alcohol: mood; Narcotics: mood+sleep; Daily/Clean goods: cleanliness. Unpurchased items cannot be used."), "ws_g2d");
+            b.AddLabel(LangHelper.T("【3】六维是什么？", "[3] The Six Stats"), "ws_g3");
+            b.AddLabel(LangHelper.T("饱食 100%=2200 卡，口渴 100%=2000ml，健康、清洁、睡眠、社交。每天衰减，低状态出问题：清洁低易生病、睡眠低心情差、社交低掉心情。", "Satiety 100%=2200kcal, Thirst 100%=2000ml, plus Health/Clean/Sleep/Social. Daily decay; low stats cause trouble: low clean = illness, low sleep = bad mood, low social = mood loss."), "ws_g3d");
+            b.AddLabel(LangHelper.T("【4】卖血", "[4] Selling Blood"), "ws_g4");
+            b.AddLabel(LangHelper.T("面板点「卖血 -500ml」按钮，血袋价值 200 信用点。血量上限 6000，过低会虚弱、被迫休息甚至昏迷三天。进食/喝水回少量血。", "Press 'Sell Blood -500ml' on the panel. Blood bag worth 200 cr. Max 6000; too low = weak, forced rest, 3-day coma. Eating/drinking regains a little blood."), "ws_g4d");
+            b.AddLabel(LangHelper.T("【5】节点系统", "[5] Node System"), "ws_g5");
+            b.AddLabel(LangHelper.T("每天打烊结算抽取节点：锁定或抽取效果影响售价、外出等。主导节点追加本次抽取效果。面板逐节点显示当前状态。", "Nodes settle at closing: locked/drawn effects affect sell price, outings, etc. The dominant node adds its draw effect. The panel lists each node's current state."), "ws_g5d");
+            b.AddLabel(LangHelper.T("【6】特性成长", "[6] Perk Growth"), "ws_g6");
+            b.AddLabel(LangHelper.T("每累计 50 天 +1 特性点 +1 槽（全局继承）；困难模式 +1 槽；10 点以上负面特性 +1 槽。", "Every 50 global days: +1 point +1 slot (global inheritance); Hard mode +1 slot; 10+ negative perks +1 slot."), "ws_g6d");
+            b.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("ws_guide"); } catch { } })), "ws_guide_close");
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] 指南异常: " + ex.Message); }
     }
 
 }
