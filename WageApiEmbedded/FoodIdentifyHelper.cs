@@ -104,6 +104,15 @@ public static class FoodIdentifyHelper
         if (item == null) return false;
         try { if (ALC_IDS.Contains(GetId(item))) return true; } catch { }
         try { if (item.IsTag("ALCOHOL_VALUE")) return true; } catch { }
+        // 10-04 扩展：其他 mod 酒精兜底（ID 含酒精关键词；排除已知食物/水/药品/烟草/酿酒原料防误判）
+        string id = GetId(item);
+        if (string.IsNullOrEmpty(id)) return false;
+        if (FOOD_IDS.Contains(id) || DRINK_IDS.Contains(id) || NARC_IDS.Contains(id) || TOBACCO_IDS.Contains(id)) return false;
+        if (id.Equals("wine_yeast", StringComparison.OrdinalIgnoreCase) || id.Equals("wine_superyeast", StringComparison.OrdinalIgnoreCase)
+            || id.Equals("wine_berry", StringComparison.OrdinalIgnoreCase) || id.Equals("bloomberry", StringComparison.OrdinalIgnoreCase)) return false;
+        string[] kw = { "wine", "beer", "vodka", "whiskey", "whisky", "rum", "gin", "tequila", "brandy", "liqueur", "liquor", "alcohol", "cider", "mead", "sake", "baijiu", "moonshine" };
+        foreach (string k in kw)
+            if (id.Contains(k, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 

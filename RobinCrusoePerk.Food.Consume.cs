@@ -66,18 +66,27 @@ internal static partial class RobinCrusoePerk
         int sip = Math.Min(SIP_ML, ml); // 一口 200ml（仿喝水）
         bool homebrew = IsHomebrewWine(item);
         int mood = BuildConfig.AlcoholMood;
+        int bv = GetItemBaseValue(item);
+        int sleepAdd = 0;
         if (homebrew)
         {
-            int bv = GetItemBaseValue(item);
             mood = bv >= 300 ? 30 : (bv >= 150 ? 20 : (bv >= 50 ? 15 : 10));
             if (bv >= 1000)
             {
-                SetSleep(Math.Min(100, GetSleep() + 25)); // 顶级自酿额外睡眠 +25
+                sleepAdd = 25; // 顶级自酿额外睡眠 +25
+                SetSleep(Math.Min(100, GetSleep() + sleepAdd));
                 WageSaveStore.SetInt(PERK_ID, "hbuffDay", DeterministicSchedule.CurrentDay); // 存档：连续3天不受伤+拾荒+1
                 try { StoreUIManager.Instance.Notify(LangHelper.T("顶级自酿：连续3天不受伤、拾荒次数+1", "Top Homebrew: 3d no wound, scav+1"), "green"); } catch { }
             }
         }
+        else
+        {
+            // 10-04 扩展：普通酒/其他 mod 酒精按价值加睡眠
+            sleepAdd = bv >= 300 ? 20 : (bv >= 150 ? 15 : (bv >= 50 ? 10 : 5));
+            if (sleepAdd > 0) SetSleep(Math.Min(100, GetSleep() + sleepAdd));
+        }
         BoostMood(mood, homebrew ? LangHelper.T("自酿酒", "Homebrew") : LangHelper.T("喝酒", "Drinking"));
+        if (!homebrew && sleepAdd > 0) { try { StoreUIManager.Instance.Notify(LangHelper.T("睡眠 +" + sleepAdd + "%", "Sleep +" + sleepAdd + "%"), "green"); } catch { } }
         if (ml > 0) { try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 喝酒Remove异常 " + ex.Message); } }
         TryExpel(item); // 整件消失（09-13 用户拍板：双击酒类使用后消失）
         RefreshStatusPanel();
