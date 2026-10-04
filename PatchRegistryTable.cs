@@ -238,7 +238,9 @@ namespace WagePerks
 
             // ===== 补迁11条（TryPatchByName ×8 + DoubleClickAction ×3） =====
             // 8条 TryPatchByName
-            new PatchEntry { Target = typeof(MachineBottlePrinter.__c__DisplayClass6_0), Method = "Method_Internal_Void_String_Int32_0", Prefix = "PrefixTryPrint", Postfix = "PostfixTryPrint", Host = typeof(WaterMerchantPerk), Priority = DEFAULT_PRIORITY, System = "WaterMerchant", YieldMod = "BrewingExpansion", Note = "酿酒打印桶增产", UseByName = true },
+            // 10-04 修复：YieldMod=BrewingExpansion 会让路瓶印机装水挂点 → 装了酿酒拓展就打印无水（Latest.log 实锤已加载）
+            // 双方 Harmony patch 安全共存：对方=酒桶增产（不同 bottleId），我方=瓶印机装水（仅 large_bottled_water→water_jug+质量装水），互不干扰
+            new PatchEntry { Target = typeof(MachineBottlePrinter.__c__DisplayClass6_0), Method = "Method_Internal_Void_String_Int32_0", Prefix = "PrefixTryPrint", Postfix = "PostfixTryPrint", Host = typeof(WaterMerchantPerk), Priority = DEFAULT_PRIORITY, System = "WaterMerchant", YieldMod = null, Note = "瓶印机装水(水商之友)；与BrewingExpansion酒桶共存", UseByName = true },
             new PatchEntry { Target = typeof(MachineFeedDispenser.__c__DisplayClass7_0), Method = "_CreateFeedDispenser_b__3", Prefix = "PrefixFeedDispenserB3", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "饲料机", UseByName = true },
             new PatchEntry { Target = typeof(StoreClient), Method = "GetTradeRepMultiplier", Prefix = null, Postfix = "PostfixGetTradeRepMultiplier", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Trade", YieldMod = null, Note = "交易声望倍率", UseByName = true },
             new PatchEntry { Target = typeof(BargainUIManager), Method = "ComputeRepPer1000Credits", Prefix = null, Postfix = "PostfixComputeRepPer1000Credits", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Trade", YieldMod = null, Note = "声望换算", UseByName = true },
