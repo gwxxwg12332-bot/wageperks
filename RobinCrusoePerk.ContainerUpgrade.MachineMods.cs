@@ -121,6 +121,7 @@ internal static partial class RobinCrusoePerk
 
     // ===== 面板显示 0.5（用户拍板 09-09："机器面板显示的数字"；拆包：CreateModuleTooltip/AddModuleStatLine 直读 tag
     // 不经 Getter → 面板显示原值、产出已减半，两者不同源。此 Postfix 在统计显示行统一减半性能/效率/质量，面板=实际）=====
+    // 10-04 修：原硬编码 ×0.5 → 吃 CrusoeEffHalf 配置（关掉减半后面板同步恢复全量）
     public static void PostfixAddModuleStatLine(string statName, ref int baseValue, ref int tempValue)
     {
         try
@@ -132,8 +133,10 @@ internal static partial class RobinCrusoePerk
             if (n.Contains("performance") || n.Contains("efficiency") || n.Contains("quality")
                 || n.Contains("性能") || n.Contains("效率") || n.Contains("质量"))
             {
-                if (baseValue > 0) baseValue = Math.Max(0, (int)(baseValue * 0.5));
-                if (tempValue > 0) tempValue = Math.Max(0, (int)(tempValue * 0.5));
+                if (!BuildConfig.CrusoeEffHalfEnabled) return; // 关=面板显示全量
+                float ratio = BuildConfig.CrusoeEffHalfRatio;
+                if (baseValue > 0) baseValue = Math.Max(0, (int)(baseValue * ratio));
+                if (tempValue > 0) tempValue = Math.Max(0, (int)(tempValue * ratio));
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
@@ -141,33 +144,51 @@ internal static partial class RobinCrusoePerk
 
     // ===== 机器 0.5 总系数（用户拍板 09-09；拆包 2.5.27 [L1]：逐台 Postfix ×0.5 含基础，不写 tag——写 -50 只有 2 条路径天然减半）=====
     // water_recycler 效率：ApplyPerformanceWaterRecyclerEffect(GameItem) 后效率 tag ×0.5（含 50 基础；船舶系统）
+    // 10-04 修：吃 CrusoeEffHalf 配置（与集水器/净化器同类漏网）
     public static void PostfixApplyPerformanceWaterRecyclerEffect(GameItem __0)
     {
         try
         {
             if (!IsActive() || __0 == null) return;
             var ts = __0.GetTagReadonly("WATER_RECYCLER_CURRENT_EFFICIENCY_INT");
-            if (ts != null && ts.valueInt > 0) SetTagIntValue(__0, "WATER_RECYCLER_CURRENT_EFFICIENCY_INT", Math.Max(0, (int)(ts.valueInt * 0.5)));
+            if (ts != null && ts.valueInt > 0)
+            {
+                float ratio = BuildConfig.CrusoeEffHalfEnabled ? BuildConfig.CrusoeEffHalfRatio : 1f;
+                SetTagIntValue(__0, "WATER_RECYCLER_CURRENT_EFFICIENCY_INT", Math.Max(0, (int)(ts.valueInt * ratio)));
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
     // ===== 机器 0.5 总系数（拆包 2.5.28 补齐）=====
     // moisture_farm 产出量：MachineMoistureFarm.GetOutputVolume(GameItem)→int ×0.5（含基础）
+    // 10-04 修：原硬编码 ×0.5 不吃 CrusoeEffHalf 配置 → 用户关效率减半后集水器仍 500；改为吃 Enabled/Ratio
     public static void PostfixGetOutputVolume(ref int __result)
     {
         try {
             if (__result <= 0) return;
-            if (IsActive()) __result = Math.Max(1, (int)(__result * 0.5));
+            if (IsActive())
+            {
+                float ratio = BuildConfig.CrusoeEffHalfEnabled ? BuildConfig.CrusoeEffHalfRatio : 1f;
+                __result = Math.Max(1, (int)(__result * ratio));
+            }
             // v1.3.1【7】干燥空气：集水器产出再×0.5（独立 perk 叠加）
             if (DryAirPerk.IsActive()) __result = Math.Max(1, (int)(__result * DryAirPerk.GetEvaporatorOutputMult()));
         } catch { }
     }
 
     // water_purifier 基础半：WaterHelper.RemoveContaminantFromContainer 返回移除量 ×0.5（净化慢一半；加成半已被模板0.5覆盖）
+    // 10-04 修：吃 CrusoeEffHalf 配置（同类漏网）
     public static void PostfixRemoveContaminantFromContainer(ref int __result)
     {
-        try { if (IsActive() && __result > 0) __result = Math.Max(1, (int)(__result * 0.5)); } catch { }
+        try
+        {
+            if (IsActive() && __result > 0)
+            {
+                float ratio = BuildConfig.CrusoeEffHalfEnabled ? BuildConfig.CrusoeEffHalfRatio : 1f;
+                __result = Math.Max(1, (int)(__result * ratio));
+            }
+        } catch { }
     }
 
 }
