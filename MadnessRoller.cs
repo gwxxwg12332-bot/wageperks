@@ -25,13 +25,43 @@ internal static class MadnessRoller
         { "声名狼藉", new SysDict.Dictionary<string, int> { { "SECURITY", -198 }, { "UPPER_LEVEL", -198 }, { "REVOLUTION", -198 }, { "LOWER_LEVEL", -198 }, { "BLACK_MARKET", -99 } } }
     };
 
-    // 排除列表（不和这些特性抽）
-    private static readonly SysDict.HashSet<string> Excluded = new SysDict.HashSet<string>
+    // 内置排除列表（不和这些特性抽）——10-04 改为动态：内置 + cfg(MadnessExcludedPerks) 追加，用户可调不想选到的特性
+    private static readonly SysDict.HashSet<string> BuiltInExcluded = new SysDict.HashSet<string>
     {
         "xiaowo_trade_owner_deal",
         "xiaowo_trade_precision_bay_expansion",
         "精神错乱"
     };
+
+    private static SysDict.HashSet<string> _excluded;
+    private static SysDict.HashSet<string> Excluded
+    {
+        get
+        {
+            if (_excluded == null) RebuildExcluded();
+            return _excluded;
+        }
+    }
+
+    // 重建排除集：内置 + cfg 追加（每次 Roll 前刷新，改 cfg 即时生效）
+    private static void RebuildExcluded()
+    {
+        var set = new SysDict.HashSet<string>(BuiltInExcluded);
+        try
+        {
+            string cfg = BuildConfig.MadnessExcludedPerks;
+            if (!string.IsNullOrEmpty(cfg))
+            {
+                foreach (var part in cfg.Split(new[] { ',', '，', ';', '；' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string t = part.Trim();
+                    if (t.Length > 0) set.Add(t);
+                }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[MadnessRoller] 重建排除集异常: " + ex.Message); }
+        _excluded = set;
+    }
 
     internal static bool IsLocked { get; private set; }
 
@@ -46,6 +76,7 @@ internal static class MadnessRoller
         if (ui == null) return;
         try
         {
+            RebuildExcluded(); // 10-04: cfg 可调排除列表，每次抽前刷新（改 cfg 即时生效）
             Il2CppDict.List<StartingPerk> perks = StartingPerkList.Perks;
             if (perks == null) return;
             // 删手动加槽：原生SelectPerk已按maxSlot自动加，双重叠加导致越界

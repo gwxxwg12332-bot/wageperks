@@ -82,6 +82,16 @@ public static class BuildConfig
 		}
 	}
 
+	// 10-04 CFG：精神错乱额外排除特性ID（逗号分隔，不想被随机抽到的特性写这里；内置排除=业主密约/精密湾扩展/精神错乱）
+	public static string MadnessExcludedPerks
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<string>("WagesPerks", "MadnessExcludedPerks"); }
+			catch { return ""; }
+		}
+	}
+
 	// 09-20 CFG 开关：容器/机器/模板升级（拖 junk 升级）
 	public static bool ContainerUpgradeEnabled
 	{
@@ -338,6 +348,7 @@ melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
+	melonPreferences_Category.CreateEntry("MadnessExcludedPerks", default_value: "", "精神错乱排除特性ID(逗号分隔,如:声名狼藉,好运连连)");
 melonPreferences_Category.CreateEntry("PerkGrowthTotalDays", default_value: 0, "特性成长：全局累计天数（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthApplied", default_value: 0, "特性成长：已应用到第几个50天（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "特性成长：上次记录天数（自动）");
