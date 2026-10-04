@@ -54,6 +54,17 @@ internal static partial class RobinCrusoePerk
                     if (it == null || !visited.Add(it.Pointer)) continue;
                     try
                     {
+                        // 10-04 容器冲突修复（篡夺的意志作者分析实锤）：BFS 只递归"我们自己拥有/升级过的容器"，
+                        // 其他 mod 自定义容器（如篡夺戒指 6×3）一律不读 contentWindow——防触发其内部异常导致
+                        // 鲁滨逊 Z面板/热量/进食整链失效。判定只走 tag（不碰 contentWindow，安全）。
+                        bool ours = false;
+                        try { ours = ContainerUpgradeV2.IsWageBox(it); } catch { }
+                        if (!ours)
+                        {
+                            try { if (ContainerUpgradeV2.GetTagIntSafe(it, "wageUpgradeCap") > 0) ours = true; } catch { }
+                            try { if (ContainerUpgradeV2.GetTagIntSafe(it, "wb_stage") > 0) ours = true; } catch { }
+                        }
+                        if (!ours) continue;
                         var cw = it.contentWindow;
                         if (cw == null || cw.childElement == null) continue;
                         var inner = cw.childElement.TryCast<GameGridInventory>();
