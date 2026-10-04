@@ -61,7 +61,35 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
                 else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bottle); ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); } catch { } }
                 Core.LogMsg("[水商之友] 开局赠送大水瓶");
             }
+            // 10-04 cfg：开局自带满级水瓶打印机（6000ml+纯水）
+            TryGiveMaxBottlePrinter();
         } catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送吞噬瓶失败: " + ex.Message); }
+    }
+
+    // 10-04 cfg StartMaxBottlePrinter：开局自带满级水瓶打印机（水商之友/鲁滨逊共用）
+    // 满级=瓶型 BOTTLE_PRINTER_UPGRADE_COUNT_TAG≥9（B2 注释实锤：原生≥9大瓶档→替换 water_jug 6000ml）
+    //      + 质量 TOTAL_PERCENTAGE_QUALITY_BONUS_INT=400（水商 Getter 无减半→400=纯水 grade0；鲁滨逊×0.5→200=纯水 grade0）
+    // 克隆隔离：CloneLinked 改 tag 不污染共享实例（cheatsheet 30.3）
+    internal static void TryGiveMaxBottlePrinter()
+    {
+        try
+        {
+            if (!BuildConfig.StartMaxBottlePrinter) return;
+            if (!IsActive() && !RobinCrusoePerk.IsActive()) return;
+            EmporiumEntry em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            GameItem src = Il2Cpp.DirectoryMaster.Item("bottle_printer", true);
+            if (src == null) return;
+            GameItem printer = src.CloneLinked();
+            if (printer == null) return;
+            ContainerUpgradeV2.AddTagInt(printer, "BOTTLE_PRINTER_UPGRADE_COUNT_TAG", 9);
+            ContainerUpgradeV2.AddTagInt(printer, "TOTAL_PERCENTAGE_QUALITY_BONUS_INT", 400);
+            try { Il2Cpp.GeneralHelper.SetItemOwned(printer, true); } catch { }
+            var slot = em.backInvinvElement.TryFindOneValidInventorySlot(printer, false);
+            if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水)"); return; } catch { } }
+            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(printer); ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水,兜底)"); } catch { }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送满级水瓶打印机失败: " + ex.Message); }
     }
 
     internal static bool IsActive()

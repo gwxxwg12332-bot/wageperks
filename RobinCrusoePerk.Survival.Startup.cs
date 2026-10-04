@@ -64,6 +64,8 @@ internal static partial class RobinCrusoePerk
             WandererPerk.ClearBackpack(); // 清原版发放（magnifier/labeler/topical_bandage_item/fanny_pack + dossier 文档）
             bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 09-20 修：不依赖PerkStatePersistence时序——直接读原生开局开关（偶尔StartNewGame先跑导致读旧档残留0）
             if (!hard) GiveStartingGoods();
+            // 10-04 cfg StartMaxBottlePrinter：开局自带满级水瓶打印机（cfg 显式开启=不受 HardMode 无物资限制）
+            WaterMerchantPerk.TryGiveMaxBottlePrinter();
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixStartNewGame 异常: " + ex.Message); }
     }

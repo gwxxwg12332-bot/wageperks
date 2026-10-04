@@ -92,6 +92,16 @@ public static class BuildConfig
 		}
 	}
 
+	// 10-04 CFG：开局自带满级水瓶打印机（水商之友/鲁滨逊，瓶型6000ml + 质量纯水）
+	public static bool StartMaxBottlePrinter
+	{
+		get
+		{
+			try { return MelonPreferences.GetEntryValue<bool>("WagesPerks", "StartMaxBottlePrinter"); }
+			catch { return false; }
+		}
+	}
+
 	// 09-20 CFG 开关：容器/机器/模板升级（拖 junk 升级）
 	public static bool ContainerUpgradeEnabled
 	{
@@ -349,6 +359,7 @@ melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: tr
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
 	melonPreferences_Category.CreateEntry("MadnessExcludedPerks", default_value: "", "精神错乱排除特性ID(逗号分隔,如:声名狼藉,好运连连)");
+	melonPreferences_Category.CreateEntry("StartMaxBottlePrinter", default_value: false, "开局自带满级水瓶打印机(水商之友/鲁滨逊,6000ml+纯水)");
 melonPreferences_Category.CreateEntry("PerkGrowthTotalDays", default_value: 0, "特性成长：全局累计天数（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthApplied", default_value: 0, "特性成长：已应用到第几个50天（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "特性成长：上次记录天数（自动）");
