@@ -21,6 +21,8 @@ internal static partial class SurvivalFood
             if (IsInDoctorNightInventory(newItem)) {  return; }
             // v1.1.6 未购买物品禁止吃喝用（拆包 09-12 [L1]：柜台 isOwend=false → SetItemOwned 去 IS_OWNED_TAG；权威读口 GeneralHelper.IsItemOwned=IsTag("IS_OWNED_TAG")。not_purchased 是 GameCharacterItem 静态常量非商品 tag，TAG_NOT_PURCHASED 不存在——原 IsTag 双查无效已删）
             if (!Il2Cpp.GeneralHelper.IsItemOwned(newItem)) { return; }
+            // 10-05 物品分类区分：机器类/容器类/酒瓶容器/酿造未完成 不参与双击吃喝用（用户需求——防水瓶机/集水器被当水喝、酒瓶被误喝、发酵酒被打断）
+            if (IsNonEdibleItem(newItem)) { LogMsg("[WageSurvival] 非食用物品跳过: " + newItem.identifier); return; }
             // 10-05 引导 MVP：首次吃喝提示按Z开面板（一次性 flag，防刷屏）
             try
             {
@@ -51,6 +53,43 @@ internal static partial class SurvivalFood
 
         }
         catch (Exception ex) { LogMsg("[空间站鲁滨逊] 双击异常: " + ex.Message); }
+    }
+
+    // ===== 10-05 物品分类区分：机器/容器/酒瓶/酿造未完成 不参与双击吃喝用 =====
+    // 酒瓶容器白名单（装水/酿酒用，双击不消耗——用户："酒瓶不应该吃"；独立酒饮品如 whiskey/vodka 不在此列，仍可喝）
+    private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle" });
+    // 机器白名单全集（与 WagePerks RobinCrusoePerk.ContainerUpgrade.Upgrade.cs:149 同源：
+    // STANDARD_MACHINE_TAG 拆包 2.5.30 仅 8 台；"所有机器可升级"→ 自定义全集判定）
+    private static readonly HashSet<string> NON_EDIBLE_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
+
+    /// 机器类：STANDARD_MACHINE_TAG（8台）+ 机器白名单全集
+    private static bool IsNonEdibleMachine(GameItem item)
+    {
+        try
+        {
+            if (item.IsTag("STANDARD_MACHINE_TAG")) return true;
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            return NON_EDIBLE_MACHINE_IDS.Contains(id);
+        }
+        catch { return false; }
+    }
+
+    /// 双击吃喝用分类排除：机器/容器/酒瓶/酿造未完成 → 不吃不喝不消耗
+    /// 容器=CONTAINER_TAG（ContainerUpgradeV2.Detect.cs:52 同款判定；虚空珠储物袋 EnableTag CONTAINER_TAG）
+    /// 酿造未完成=WINE_CONTAINER_STATE==1（拆包 10-05 WineHelper 实锤：开始发酵置 1；GetTagValue 安全读，不存在=0）
+    private static bool IsNonEdibleItem(GameItem item)
+    {
+        if (item == null) return false;
+        try
+        {
+            if (IsNonEdibleMachine(item)) return true;        // 机器类（水瓶机/集水器/充电器等——含水量易被误判为水）
+            if (item.IsTag("CONTAINER_TAG")) return true;     // 容器类（虚空珠/背包/盒子/储物袋等）
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            if (NON_EDIBLE_BOTTLE_IDS.Contains(id)) return true; // 酒瓶容器
+            if (item.GetTagValue("WINE_CONTAINER_STATE", 0) == 1) return true; // 酿造未完成（发酵中）
+        }
+        catch { }
+        return false;
     }
 
     private static void DrinkAlcohol(GameItem item)
