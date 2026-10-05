@@ -51,6 +51,8 @@ internal static partial class RobinCrusoePerk
             catch { }
             // v5.7 心情主动提升：酒/烟/毒/彩票优先于吃喝（酒也是饮品，先判酒）
             // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
+            // 10-05 对齐 WS 修正：酒瓶容器分类先行（wine_bottle 酿造完成 state==2 成品酒放行喝；装水/酿造中/空瓶=容器跳过——原生打开容器，不追加吃喝不消失）
+            if (IsBottleContainerOnly(newItem)) return;
             if (IsAlc(newItem)) { DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）
             else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
             else if (IsNarcotic(newItem)) UseNarcotic(newItem); // 09-19 麻醉品：心情+按价值档位加睡眠（原只 +20 心情）
@@ -66,6 +68,25 @@ internal static partial class RobinCrusoePerk
 
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 双击异常: " + ex.Message); }
+    }
+
+    // 10-05 对齐 WS 双击分类：酒瓶/啤酒箱容器（装水/酿造中/空瓶=容器不开窗不消耗；成品酒 wine_bottle state==2 放行喝）
+    // 拆包实锤：FinishFermentation 成品=ALCOHOL 可喝；beer_case_0=啤酒箱容器（PRE_CONTAINER_TAG 双击=开箱）
+    private static bool IsBottleContainerOnly(GameItem item)
+    {
+        try
+        {
+            if (item == null) return false;
+            string id = (item.identifier ?? "").ToLowerInvariant();
+            if (id == "wine_bottle")
+            {
+                int wineState = RobinCrusoePerk.GetTagIntSafe(item, "WINE_CONTAINER_STATE");
+                return wineState != 2; // 非成品酒（装水0/酿造中1/空瓶）=容器跳过
+            }
+            if (id == "beer_bottle" || id == "empty_beer_bottle" || id == "beer_case_0") return true; // 啤酒容器跳过
+            return false;
+        }
+        catch { return false; }
     }
 
     private static void DrinkAlcohol(GameItem item)
