@@ -235,6 +235,9 @@ public static partial class WageGirlSystem
             long spent = 0; int tries = 0, filled = 0;
             bool wantContraband = false; // 09-27 C4 拍板：箱内 100% 合法（删 5% 违禁陷阱——眼线已 -15 点，不再被随机坑）
             var pool = new System.Collections.Generic.List<string>(basePool);
+            // 10-05 方案A（群友拍板·池过滤）：排除低价值物（基础价值<5），防"带回垃圾+差额"观感（raw_meat/bandage 等不再入箱）
+            try { pool.RemoveAll(id => WagePowerPerk.GetItemBaseValue(id) < 5); } catch { }
+            if (pool.Count == 0) pool = new System.Collections.Generic.List<string>(basePool); // 全池都是低价值时回退全池（防空箱）
             while (spent < targetValue && tries < 40 && pool.Count > 0)
             {
                 int idx = Core.Rng.Next(pool.Count);

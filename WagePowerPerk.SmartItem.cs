@@ -46,7 +46,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
     private static readonly Dictionary<string, long> _itemValueCache = new Dictionary<string, long>();
 
     // 获取物品基础价值（带缓存）
-    private static long GetItemBaseValue(string itemId)
+    internal static long GetItemBaseValue(string itemId)
     {
         if (_itemValueCache.TryGetValue(itemId, out long cached))
             return cached;
