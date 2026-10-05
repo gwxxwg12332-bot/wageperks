@@ -108,6 +108,9 @@ internal static class SurvivalTrade
     {
         try
         {
+            // 10-05 修复：交易记数全局生效（社交日结算 StoreEventManager.OnDayStart 对所有档跑，
+            // 普通档交易也必须 RecordDeal，否则 deals 恒 0 → 打烊结算社交只掉(无交易-5)不加）
+            RecordDeal();
             if (!IsRobinsonRun()) return;
             string mk = MoodKey(__instance);
             if (__instance != null && mk != null && _moodBoostedClients.Add(mk))

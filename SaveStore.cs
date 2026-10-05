@@ -67,6 +67,7 @@ internal static class SaveStore
         {
             Core.LogMsg("[WageSurvival] StartNewGame——清 SurvivalGlobal + 设默认值");
             WageAPI.WageSaveStore.ClearNamespace(PERK_ID);
+            SurvivalFood.ClearMemBlood(); // 10-05 拆包实锤：血量跨档串值=内存缓存残留（档2继承档1 _memBlood），新档清缓存
             SurvivalFood._pendingSkipDays = 0;
             SurvivalFood._jumping = false;
             SurvivalFood._jumpStartDay = -1;

@@ -620,6 +620,7 @@ public static class WageSaveStore
         try
         {
             _mem.Clear();
+            WageSurvival.SurvivalFood.ClearMemBlood(); // 10-05 拆包实锤：读档同机制残留（跨档读档串血量），读档清缓存
             _loadingComplete = false; // 读档期间禁止写入，防空窗期默认值污染存档
             _pendingLoad = true;
             _pendingLoadFrames = 0;
