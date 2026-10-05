@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.7", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.8", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WageSurvival;
@@ -21,7 +21,7 @@ public class Core : MelonMod
     public override void OnInitializeMelon()
     {
         Log = base.LoggerInstance;
-        Log.Msg("Wage Survival v0.1.7 已加载 - 阶段C：独立生存mod（WageAPI 内置）");
+        Log.Msg("Wage Survival v0.1.8 已加载 - 阶段C：独立生存mod（WageAPI 内置）");
         Log.Msg("QQ群：1109707341");
 
         // 10-05 派活单：WagePerks 在场 → 让路（不注册业务挂点）
