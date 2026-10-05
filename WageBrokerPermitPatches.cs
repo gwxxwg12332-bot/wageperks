@@ -32,16 +32,33 @@ internal static class WageBrokerPermitPatches
     // 拾荒受伤免疫（10-05 拆包实锤：ScavHelper.RollMinorWound/RollMajorWound 全库 0 调用点=死 API，
     // 真实受伤链=ScavengeDumpingGrounds→HealthData.RollLuck→ReceiveMinorWound/ReceiveMajorWound（唯一施加点）。
     // 照鲁滨逊先例（RobinCrusoePerk.PrefixReceiveWound）改挂 HealthData。Prefix return false → 原生+Postfix 都不跑。
+    // 10-05 北极星实锤：HandleNightlyWound=混合单方法（受伤判定+伤口日结恢复同方法）→ Prefix 拦全=已有重伤永不恢复
+    // → 重伤锁门（StoreDoor IsSeriouslyWounded=woundState>5）困死 4-7 天。修复：免疫生效时清已有重伤（woundState=0）。
     private static bool PermitImmune()
     {
         try
         {
             int level = WageBrokerPermitHelper.GetMaxPermitLevel();
-            if (level >= 3) return false; // 三级：完全免疫
-            if (level >= 2) return UnityEngine.Random.value >= 0.5f; // 二级：50%免伤 = 概率减半
+            if (level >= 3) { ClearExistingWounds(); return false; } // 三级：完全免疫 + 清旧伤
+            if (level >= 2) { if (UnityEngine.Random.value >= 0.5f) { ClearExistingWounds(); return false; } } // 二级：50%免伤 + 清旧伤
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥许可] PermitImmune异常: " + ex.Message); }
         return true; // 一级/无：走原生
+    }
+
+    // 免疫生效时清已有重伤（woundState=0）——重伤锁门（StoreDoor IsSeriouslyWounded=woundState>5）解除，玩家能出门
+    private static void ClearExistingWounds()
+    {
+        try
+        {
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps != null && ps.healthData != null && ps.healthData.woundState > 0)
+            {
+                ps.healthData.woundState = 0;
+                Core.LogMsg("[蛙哥许可] 免疫生效，清已有重伤（woundState→0，重伤锁门解除）");
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥许可] ClearExistingWounds异常: " + ex.Message); }
     }
 
     // 拾荒轻伤免疫（HealthData.ReceiveMinorWound Prefix）
