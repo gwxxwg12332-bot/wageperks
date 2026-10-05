@@ -47,7 +47,10 @@ private static readonly byte[] EMBEDDED_VOID_BEAD_PNG = new byte[] { 0x89, 0x50,
 
     private static DateTime _lastConsume = DateTime.MinValue;
     // 09-19 修复：防抖改 per-bead（原 static 全局共享——珠 A 升级后 0.5s 内拖 junk 到珠 B 被误挡 → "虚空珠有时升级不动"）
-    private static readonly Dictionary<IntPtr, DateTime> _lastConsumeByBead = new Dictionary<IntPtr, DateTime>();
+    // 10-05 拆包：Pointer 可能被新对象复用→防抖误判，改 identifier 键
+    private static readonly Dictionary<string, DateTime> _lastConsumeByBead = new Dictionary<string, DateTime>();
+    // 10-05 拆包修复：批量拖拽崩溃——已入库存物品延迟销毁（帧尾 Flush，防原版刷新链悬垂）
+    private static readonly List<GameItem> _pendingDestroy = new List<GameItem>();
 
 
 

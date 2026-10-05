@@ -104,7 +104,8 @@ internal static class BatchDragUpgrade
                         if (!LuckScoutBackpackUpgrade.IsJunk(item)) { fail++; continue; } // 09-26 修：非垃圾不吃
                         // 每个物品调用前清空防抖（否则上一个成功后写了记录，下一个被拦）
                         try { LuckScoutBackpackUpgrade.ClearDebounce(); } catch { }
-                        if (LuckScoutBackpackUpgrade.DoUpgrade(item, _target)) ok++;
+                        // 10-05 批量模式 applyShape=false：循环内不逐个 SetShape（防连续 Validate 重排悬垂），循环后统一 ApplyBeadShape
+                        if (LuckScoutBackpackUpgrade.DoUpgrade(item, _target, false)) ok++;
                         else fail++;
                         continue;
                     }
@@ -126,6 +127,9 @@ internal static class BatchDragUpgrade
             }
 
             Core.LogMsg("[批量升级] 完成: 成功 " + ok + " 失败 " + fail);
+
+            // 10-05 批量统一应用形状（虚空珠升级：循环内不逐个 SetShape，此处一次）
+            try { if (LuckScoutBackpackUpgrade.IsBead(_target)) LuckScoutBackpackUpgrade.ApplyBeadShape(_target); } catch { }
 
             // 刷新目标容器 UI
             try { _target.SyncModifiedState(); } catch { }

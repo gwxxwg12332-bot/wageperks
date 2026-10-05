@@ -33,15 +33,15 @@ partial class LuckScoutBackpackUpgrade
         try { _lastConsumeByBead.Clear(); } catch { }
     }
 
-    internal static bool DoUpgrade(GameItem junk, GameItem bead)
+    internal static bool DoUpgrade(GameItem junk, GameItem bead, bool applyShape = true)
 
     {
 
         if (junk == null || bead == null) return false;
 
-        // 09-19 per-bead 防抖（同一珠 0.5s 防重扣；不同珠互不误伤）
+        // 09-19 per-bead 防抖（同一珠 0.5s 防重扣；不同珠互不误伤）；10-05 键改 identifier（Pointer 复用风险）
         DateTime _last;
-        if (_lastConsumeByBead.TryGetValue(bead.Pointer, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) return false;
+        if (_lastConsumeByBead.TryGetValue(bead.identifier, out _last) && (DateTime.UtcNow - _last).TotalSeconds < 0.5) return false;
 
         try
 
@@ -78,7 +78,9 @@ partial class LuckScoutBackpackUpgrade
 
 
 
-            // 升级后用 SetShape 开放新格子
+            // 升级后用 SetShape 开放新格子（10-05 批量 applyShape=false→循环后统一调一次,防连续 SetShape+Validate 重排悬垂）
+
+            if (applyShape)
 
             try
 
@@ -102,13 +104,13 @@ partial class LuckScoutBackpackUpgrade
 
             int count = junk.unitCount - 1;
 
-            if (count <= 0) junk.Destroy();
+            if (count <= 0) { lock (_pendingDestroy) { _pendingDestroy.Add(junk); } } // 10-05 延迟销毁:已入库存物品Destroy让原版刷新链悬垂→C++崩溃;帧尾统一销毁
 
             else junk.SetUnitCount(count);
 
             _lastConsume = DateTime.UtcNow;
 
-            _lastConsumeByBead[bead.Pointer] = DateTime.UtcNow; // 09-19 per-bead 记录
+            _lastConsumeByBead[bead.identifier] = DateTime.UtcNow; // 09-19 per-bead 记录
 
 
             return true;
@@ -215,5 +217,34 @@ partial class LuckScoutBackpackUpgrade
 
         return true;
 
+    }
+
+    // ===== 10-05 延迟销毁+批量shape =====
+    internal static void FlushPendingDestroy()
+    {
+        try
+        {
+            List<GameItem> todo;
+            lock (_pendingDestroy) { todo = new List<GameItem>(_pendingDestroy); _pendingDestroy.Clear(); }
+            foreach (var it in todo) { try { if (it != null) it.Destroy(); } catch { } }
+        }
+        catch { }
+    }
+
+    // 批量循环后统一应用一次形状（防连续 SetShape+Validate 重排悬垂）
+    internal static void ApplyBeadShape(GameItem bead)
+    {
+        try
+        {
+            if (bead == null) return;
+            int slots = GetTagInt(bead, SLOTS_TAG);
+            var cw = bead.contentWindow;
+            if (cw != null && cw.childElement != null)
+            {
+                var inv = cw.childElement.TryCast<GameGridInventory>();
+                if (inv != null) ApplyLockedShape(inv, slots);
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[虚空珠] ApplyBeadShape异常: " + ex.Message); }
     }
 }

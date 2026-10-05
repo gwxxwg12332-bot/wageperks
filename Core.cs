@@ -104,6 +104,8 @@ public class Core : MelonMod
 	{
 		// 1.3.2fix2 内置：WageAPI 读档轮询（LoadIfPending）——原 WageAPI.Core.OnUpdate 迁入
 		try { WageAPI.Core.Update(); } catch { }
+		// 10-05 虚空珠崩溃修复：帧尾统一销毁延迟队列（批量拖拽 Destroy 悬垂防护）
+		try { LuckScoutBackpackUpgrade.FlushPendingDestroy(); } catch { }
 	}
 
 	public override void OnGUI()

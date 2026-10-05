@@ -66,7 +66,7 @@ partial class LuckScoutBackpackUpgrade
 
     /// </summary>
 
-    private static void ApplyLockedShape(GameGridInventory inv, int slots)
+    internal static void ApplyLockedShape(GameGridInventory inv, int slots) // 10-05 internal：批量模式循环后统一调（原 private）
 
     {
 
