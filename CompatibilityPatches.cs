@@ -31,6 +31,27 @@ internal static class CompatibilityPatches
     // StoreClient.ApplyBudgetModifier Prefix（存原预算）
     private static readonly System.Collections.Generic.Dictionary<StoreClient, int> _origBudget = new();
 
+    // 10-05 第三方溢出兜底：CustomerCreditBoost 的 TrackClient Postfix → BoostClient → OverrideBudget(num4)
+    // （预算×(100+num3)/100 指数累乘 → int 溢出写负，原版 OverrideBudget 零 clamp 直写字段）
+    // → 挂 OverrideBudget Postfix 源头 clamp：任何调用（我方+第三方）写入前夹到 [0, 21.47亿]
+    public static void PostfixOverrideBudget(StoreClient __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            if (__instance.clientBudget < 0)
+            {
+                Core.LogMsg("[兼容] 预算溢出兜底: " + __instance.clientBudget + " → 0 (客户=" + __instance.identifier + ")");
+                __instance.clientBudget = 0;
+            }
+            else if (__instance.clientBudget > 2147483646)
+            {
+                Core.LogMsg("[兼容] 预算上限兜底: " + __instance.clientBudget + " → 2147483646");
+                __instance.clientBudget = 2147483646;
+            }
+        } catch { }
+    }
+
     public static void PrefixApplyBudgetModifier(StoreClient __instance)
     {
         try

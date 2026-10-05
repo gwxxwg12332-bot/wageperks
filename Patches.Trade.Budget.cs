@@ -51,6 +51,8 @@ internal static partial class Patches
 			try
 			{
 				int budget = __instance.GetBudget();
+				// 10-05 第三方溢出兜底：CustomerCreditBoost 直写负预算 → 读口夹 0（防负预算被倍率放大）
+				if (budget < 0) budget = 0;
 				// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
 				__instance.SetBudget((int)((double)budget * (1.0 + (double)budgetBonusPct / 100.0)));
 			}
