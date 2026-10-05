@@ -719,7 +719,7 @@ internal static class WageBrother
     }
 
     // 收集全当铺所有物品：EmporiumEntry 顶层 + 每个容器内部递归（GetAllItems 不递归容器内部——游戏API.md 实锤）
-    private static System.Collections.Generic.List<GameItem> CollectAllItems()
+    internal static System.Collections.Generic.List<GameItem> CollectAllItems()
     {
         var list = new System.Collections.Generic.List<GameItem>();
         try
@@ -797,7 +797,32 @@ internal static class WageBrother
             }
             // 4. 扣差价
             ps.playerCash -= diff;
-            // 5. 销毁低级物品
+            // 5. 销毁低级物品（10-05 用户实测：充电器升级"把里面电池全收走"——Destroy 连带销毁内部子物品；
+            // 先取出内部物品 Expel 回主背包再销毁，通用防丢失）
+            try
+            {
+                var inner = new System.Collections.Generic.List<GameItem>();
+                CollectContainerItemsRecursive(low, inner, 0);
+                if (inner.Count > 0)
+                {
+                    var em = Il2Cpp.EmporiumEntry.Instance;
+                    if (em != null && em.invElement != null)
+                    {
+                        var toKeep = new Il2CppSystem.Collections.Generic.List<GameItem>();
+                        foreach (var c in inner)
+                        {
+                            if (c == null) continue;
+                            try { c.parentInventory?.Expel(c); } catch { }
+                            toKeep.Add(c);
+                        }
+                        if (toKeep.Count > 0)
+                        {
+                            try { em.invElement.UncheckedAcceptAll(toKeep); Core.LogMsg("[蛙哥] 合成前取出低级内部物品 " + toKeep.Count + " 个"); } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 取出内部物品异常: " + ex.Message); }
+                        }
+                    }
+                }
+            }
+            catch { }
             try { low.Destroy(); } catch (Exception exd) { Core.LogMsg("[蛙哥] 合成销毁低级异常: " + exd.Message); }
             // 6. 销毁材料（全容器递归找，逐材料销毁足额）
             if (materials != null)

@@ -30,10 +30,12 @@ public static partial class WageGirlSystem
             if (GetAffection() < 50) return;
             if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
             WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
-            // 10-03 止血：三件套发放暂时禁用（拆包实锤 DirectoryMaster.Item/TryFindOneValidInventorySlot/TryAcceptOnce 的 MonoMod 风险前不恢复）
-            // GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
-            // GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
-            Core.LogMsg("[蛙娘] 好感破50（三件套发放已止血禁用，待拆包实锤后恢复）");
+            // 10-05 恢复发放（10-03 止血禁用；用户反馈"50好感不送东西"）。
+            // 止血原因=TryAcceptOnce MonoMod 补丁链疑似崩点——GiveRewardItem 已改 UncheckedAcceptAll 主通道规避。
+            GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
+            GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
+            GiveRewardItem(GuMachineSystem.PROTECTOR_ID, 1);
+            Core.LogMsg("[蛙娘] 好感破50，三件套已发放（UncheckedAcceptAll 通道）");
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
     }
@@ -42,14 +44,17 @@ public static partial class WageGirlSystem
         try
         {
             var em = EmporiumEntry.Instance; if (em == null || em.invElement == null) return;
+            // 10-05 改 UncheckedAcceptAll 主通道（10-03 止血疑 TryAcceptOnce MonoMod 补丁链崩点；直接批量塞入规避）
+            var l = new Il2CppSystem.Collections.Generic.List<GameItem>();
             for (int i = 0; i < count; i++)
             {
                 GameItem it = null;
                 try { it = DirectoryMaster.Item(id, true); } catch { }
-                if (it == null) continue;
-                var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
-                if (slot != null) { try { slot.TryAcceptOnce(); continue; } catch { } }
-                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { }
+                if (it != null) l.Add(it);
+            }
+            if (l.Count > 0)
+            {
+                try { em.invElement.UncheckedAcceptAll(l); } catch (System.Exception ex) { Core.LogMsg("[蛙娘] 三件套UncheckedAcceptAll异常: " + ex.Message); }
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveRewardItem异常: " + ex.Message); }
