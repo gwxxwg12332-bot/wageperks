@@ -91,7 +91,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
             // 280
             "smg",
             // 250
-            "crypto_module_med", "crypto_module_eng", "chem_module",
+            "crypto_module_med", "crypto_module_eng", // 10-05 用户拍板：chem_module（化学设备模组）=未开放内容，从拾荒稀有池移除
             "c4", "stun_gun", "blue_blood_bag", "wine_yeast_infinite", "metal_scanner", "c4_set",
             // 200
             "surgery_tool", "pheromone_perfume", "crypto_module_sup", "crypto_module_ser", "glock_receiver"
