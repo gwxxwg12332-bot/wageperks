@@ -102,7 +102,27 @@ internal static class WageBrother
         try
         {
             if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived 入口, client=" + client.identifier);
-            try { client.SetBudget(1109707341, 100); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } catch { } Core.LogMsg("[蛙哥] intent已设=" + client.clientIntent);
+            try { client.SetBudget(1109707341, 1000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } catch { } Core.LogMsg("[蛙哥] intent已设=" + client.clientIntent);
+            // 10-05 蛙哥收购扩展（拆包实锤：clientBuyingIdList id精确 + clientBuyingTagList tag精确 + SELLNBUY 买路径）
+            // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③建议500-1000，单品全覆盖+可收2-3件）
+            try
+            {
+                if (client.clientBuyingIdList == null) client.clientBuyingIdList = new Il2CppSystem.Collections.Generic.List<string>();
+                if (client.clientBuyingTagList == null) client.clientBuyingTagList = new Il2CppSystem.Collections.Generic.List<string>();
+                // 水（拆包②：5 id，普通水 unitValue=0——价下限兜底待用户拍板，见回传）
+                client.clientBuyingIdList.Add("bottled_water"); client.clientBuyingIdList.Add("bottled_water_premium");
+                client.clientBuyingIdList.Add("small_bottled_water"); client.clientBuyingIdList.Add("large_bottled_water");
+                client.clientBuyingIdList.Add("water_jug");
+                // 日用品（拆包②：DAILY_NEED_KEYS 11 id）
+                client.clientBuyingIdList.Add("toothpaste"); client.clientBuyingIdList.Add("toilet_paper"); client.clientBuyingIdList.Add("shampoo");
+                client.clientBuyingIdList.Add("paper_towel"); client.clientBuyingIdList.Add("box_tampon"); client.clientBuyingIdList.Add("pack_condom");
+                client.clientBuyingIdList.Add("skincare_cream"); client.clientBuyingIdList.Add("salve"); client.clientBuyingIdList.Add("rubbing_alcohol");
+                client.clientBuyingIdList.Add("neuroactive_perfume"); client.clientBuyingIdList.Add("pheromone_perfume");
+                // 电池 + 模组（拆包②：tag 精确——power_source_item / MODULE）
+                client.clientBuyingTagList.Add("power_source_item");
+                client.clientBuyingTagList.Add("MODULE");
+            }
+            catch (System.Exception exb) { Core.LogMsg("[蛙哥] 收购清单设置异常: " + exb.Message); }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { } Core.LogMsg("[蛙哥] 立绘注入完成");
             // 不依赖门控，每次到场都加卡（柜台有卡则原生去重）`r`n            Core.LogMsg("[蛙哥] _cardSpawned=" + _cardSpawned + " 强制加卡");
             var ps = PlayerStore.Instance; if (ps == null) return;
