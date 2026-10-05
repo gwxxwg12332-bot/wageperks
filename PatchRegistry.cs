@@ -21,6 +21,19 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] 让路保留 Patch OK: DoubleClickAction（全局吃喝用）");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: DoubleClickAction " + ex.Message); }
+
+        // 10-06 让路保留扩展：Z 键面板链（InputActionManager.Update Postfix）。
+        // 背景（日志实锤）：双装时 WS 让路只挂消费链 → 普通档（startType=2）面板无主
+        // （WP 的 HandleHotkeys 只认 startType==15，普通档 IsActive=false 不呼出）→ 玩家反馈"面板没有呼出来"。
+        // PostfixFrameUpdate 内部已加 IsRobinsonRun 门控：鲁滨逊档让 WP 的 Z 键，非鲁滨逊档由本链处理。
+        try
+        {
+            var orig2 = AccessTools.Method(typeof(Il2Cpp.InputActionManager), "Update");
+            var post2 = AccessTools.Method(typeof(SurvivalFood), "PostfixFrameUpdate");
+            harmony.Patch(orig2, postfix: new HarmonyMethod(post2));
+            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: InputActionManager.Update（Z键面板，非鲁滨逊档）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: InputActionManager.Update " + ex.Message); }
     }
 
     internal static void ApplyAll()

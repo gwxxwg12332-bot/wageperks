@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.8", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.9", "jingdizhiwa123", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WageSurvival;
@@ -21,9 +21,18 @@ public class Core : MelonMod
     public override void OnInitializeMelon()
     {
         Log = base.LoggerInstance;
-        Log.Msg("Wage Survival v0.1.8 已加载 - 阶段C：独立生存mod（WageAPI 内置）");
+        Log.Msg("Wage Survival v0.1.9 已加载 - 阶段C：独立生存mod（WageAPI 内置）；10-06 双装让路时序修复+Z键面板非鲁滨逊档保留");
         Log.Msg("QQ群：1109707341");
+        // 10-06 修复：挂点注册全部延后到 OnLateInitializeMelon。
+        // 原因（实锤）：原 OnInitializeMelon 内做 WagePerksInstalled() 探测存在加载顺序时序风险——
+        // WS 的 OnInitializeMelon 先于 WP 执行时，WagePerks 尚未进 AppDomain → 探测失败 → ApplyAll 全量注册；
+        // 随后 WP 也全量 → 双挂点叠加（WageSaveStore SaveGame/LoadGame/EndDay 各注册 2 次，
+        // 实证 = XIAOWO 日志 ERROR "来源 MOD：com.wageapi，共注册 2 次"）→ 存档双写/读档双轮询/面板特性被双接管。
+        // OnLateInitializeMelon 在全部 mod 的 OnInitializeMelon 完成之后才调用 → 探测 100% 可靠。
+    }
 
+    public override void OnLateInitializeMelon()
+    {
         // 10-05 派活单：WagePerks 在场 → 让路（不注册业务挂点）
         // 覆盖三面：PatchRegistry 业务挂点 + WageAPI 落盘挂点（SaveGame/LoadGame/EndDay）+ SurvivalMigrate 旧档迁移（订阅在 ApplyAll 内）
         // 10-05 修复：保留"全局消费链"（双击吃喝用）——WagePerks 侧 IsWageSurvivalLoaded 会让出该挂点，

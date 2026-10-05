@@ -300,7 +300,7 @@ internal static partial class SurvivalFood
         }
     }
 
-    // 每帧检测：Z键切换状态面板
+    // 每帧检测：Z键切换状态面板（10-06 让路修复：非鲁滨逊档由本挂点处理面板，鲁滨逊档让 WagePerks 的 Z 键接管——普通档双装面板无主修复）
     private static int _zKeyFrame = -1;
     internal static void PostfixFrameUpdate()
     {
@@ -308,6 +308,9 @@ internal static partial class SurvivalFood
         {
             // 昏迷跳天（帧钩子异步逐轮日切）
             SurvivalFood.TickSkipDays();
+
+            // 10-06 让路门控：鲁滨逊档面板归 WagePerks（其 HandleHotkeys IsActive=startType==15），本链让开避免双 Z 处理打架
+            if (SurvivalTrade.IsRobinsonRun()) return;
 
             if (!UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Z)) return;
             int frame = UnityEngine.Time.frameCount;
