@@ -103,6 +103,14 @@ internal static partial class Patches
 		}
 		try
 		{
+			WageGirlSystem.OnUpdateRestoreGift(); // 10-05 蛙娘好物读档补发（日结发放丢失修复）
+		}
+		catch
+		{
+			// 每帧防御：蛙娘好物补发异常跳过
+		}
+		try
+		{
 			UpdatePendingLoadGameRestore();
 		}
 		catch

@@ -347,10 +347,67 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             }
             if (it == null) return;
             GameItem giftCrate = CreateSupplyCrate(it.unitValue, out long unusedFilled);
-            if (giftCrate != null) { AddToFront(giftCrate); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一只物资箱！", "Wage Girl brought a supply crate today!")); }
-            else { AddToFront(it); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!")); }
+            if (giftCrate != null)
+            {
+                // 10-05 好物读档补发标记（拆包实锤：日结发放远离InitialSave→物品只在内存退出即丢；标记随档用于读档检测）
+                try { ContainerUpgradeV2.AddTagInt(giftCrate, GIFT_TAG, 1); } catch { }
+                AddToFront(giftCrate); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一只物资箱！", "Wage Girl brought a supply crate today!"));
+            }
+            else
+            {
+                try { ContainerUpgradeV2.AddTagInt(it, GIFT_TAG, 1); } catch { }
+                AddToFront(it); ReportLine(LangHelper.T("蛙娘今天心情好，带回来一件好东西！", "Wage Girl brought a nice gift today!"));
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 异常: " + ex.Message); }
+    }
+
+    // ===== 10-05 好物读档补发（拆包实锤：好物日结发放远离 InitialSave→物品只在内存退出即丢；防重发标记K_LAST_GIFT已落盘=永久丢失）=====
+    // 方案：GiveGift 发放物品打 GIFT_TAG 标记（随档）→ LoadGame 后 180 帧窗口检测：发过好物(K_LAST_GIFT>0)且后库无标记物品→补发
+    // 对齐水瓶机质量读档恢复先例（PostfixLoadGameBottlePrinter + OnUpdateRestoreBottlePrinters 延迟帧重试）
+    private const string GIFT_TAG = "WAGEGIRL_GIFT_TAG";
+    private static int _giftRestoreFramesLeft = 0;
+
+    // LoadGame Postfix（PatchRegistryTable 注册）：启动补发窗口
+    public static void PostfixLoadGameGift()
+    {
+        try { _giftRestoreFramesLeft = 180; } catch { }
+    }
+
+    // Core 帧循环调用（Patches.Lifecycle）：延迟补发（读档数据轮询就绪后再判）
+    public static void OnUpdateRestoreGift()
+    {
+        try
+        {
+            if (_giftRestoreFramesLeft <= 0) return;
+            _giftRestoreFramesLeft--;
+            if (GetStat(K_LAST_GIFT, 0) <= 0) { _giftRestoreFramesLeft = 0; return; } // 从未发过好物不补
+            if (HasGiftInBackroom()) { _giftRestoreFramesLeft = 0; return; } // 后库已有标记好物（打烊入档正常）不补
+            GiveGift(); // 补发（不重设 K_LAST_GIFT——SetStat 在 RunDayEvents 调用处，补发只补物品）
+            _giftRestoreFramesLeft = 0;
+            Core.LogMsg("[蛙娘] 读档补发好物（日结发放丢失修复）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] OnUpdateRestoreGift异常: " + ex.Message); }
+    }
+
+    // 后库（backInvinvElement 网格）是否已有标记好物
+    private static bool HasGiftInBackroom()
+    {
+        try
+        {
+            var em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return false;
+            var inv = (GameInventory)em.backInvinvElement;
+            if (inv == null || inv.childItems == null) return false;
+            for (int i = 0; i < inv.childItems.Count; i++)
+            {
+                GameItem c = null;
+                try { c = inv.childItems[i]; } catch { continue; }
+                if (c != null && c.IsTag(GIFT_TAG)) return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     // 销赃回归：按所选类别拆成多件带回（每件 ≤ 单件目标、最接近；总价值 ≤ 目标×1.3；跑腿费 10% 起随好感降）

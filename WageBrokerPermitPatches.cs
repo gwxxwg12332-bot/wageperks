@@ -66,7 +66,8 @@ internal static class WageBrokerPermitPatches
             if (em == null) return;
 
             int chargedCount = 0;
-            foreach (var item in em.GetAllItems())
+            // 10-05 增加充电范围：GetAllItems 不递归容器内部（WageBrother.cs:741 实锤）→ 改用 CollectAllItems（顶层+容器内部递归，深度8防环，养蛊机式死循环不出现）
+            foreach (var item in WageBrother.CollectAllItems())
             {
                 if (item == null) continue;
                 if (!item.IsTag("power_source_item")) continue;
