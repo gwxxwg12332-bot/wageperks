@@ -108,6 +108,8 @@ public static class FoodIdentifyHelper
         string id = GetId(item);
         if (string.IsNullOrEmpty(id)) return false;
         if (FOOD_IDS.Contains(id) || DRINK_IDS.Contains(id) || NARC_IDS.Contains(id) || TOBACCO_IDS.Contains(id)) return false;
+        // 10-05 修复：日用品排除（香水 neuroactive/pheromone_perfume=酒精基底带 ALCOHOL_VALUE tag → tag 兜底误判为酒被双击喝掉；应走清洁路径）
+        if (DAILY_NEED_KEYS.Contains(id)) return false;
         if (id.Equals("wine_yeast", StringComparison.OrdinalIgnoreCase) || id.Equals("wine_superyeast", StringComparison.OrdinalIgnoreCase)
             || id.Equals("wine_berry", StringComparison.OrdinalIgnoreCase) || id.Equals("bloomberry", StringComparison.OrdinalIgnoreCase)) return false;
         string[] kw = { "wine", "beer", "vodka", "whiskey", "whisky", "rum", "gin", "tequila", "brandy", "liqueur", "liquor", "alcohol", "cider", "mead", "sake", "baijiu", "moonshine" };
