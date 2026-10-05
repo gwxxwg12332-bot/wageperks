@@ -56,8 +56,10 @@ internal static partial class SurvivalFood
     }
 
     // ===== 10-05 物品分类区分：机器/容器/酒瓶/酿造未完成 不参与双击吃喝用 =====
-    // 酒瓶容器白名单（装水/酿酒用，双击不消耗——用户："酒瓶不应该吃"；独立酒饮品如 whiskey/vodka 不在此列，仍可喝）
-    private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle" });
+    // 酒瓶/啤酒箱容器白名单（装水/酿酒/装啤酒用，双击不消耗——用户："酒瓶不应该吃"；独立酒饮品如 nudka/red_beer 不在此列仍可喝）
+    // 10-05 拆包修正：beer_case_0=啤酒箱容器（ContainerItemDirectory.txt:3995 PRE_CONTAINER_TAG，双击=开箱）补拦；
+    // 成品酒特例：wine_bottle 酿造完成（WINE_CONTAINER_STATE==2，拆包实锤 FinishFermentation 成品=ALCOHOL 可喝）→ 放行双击喝
+    private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle", "beer_case_0" });
     // 机器白名单全集（与 WagePerks RobinCrusoePerk.ContainerUpgrade.Upgrade.cs:149 同源：
     // STANDARD_MACHINE_TAG 拆包 2.5.30 仅 8 台；"所有机器可升级"→ 自定义全集判定）
     private static readonly HashSet<string> NON_EDIBLE_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
@@ -77,6 +79,7 @@ internal static partial class SurvivalFood
     /// 双击吃喝用分类排除：机器/容器/酒瓶/酿造未完成 → 不吃不喝不消耗
     /// 容器=CONTAINER_TAG（ContainerUpgradeV2.Detect.cs:52 同款判定；虚空珠储物袋 EnableTag CONTAINER_TAG）
     /// 酿造未完成=WINE_CONTAINER_STATE==1（拆包 10-05 WineHelper 实锤：开始发酵置 1；GetTagValue 安全读，不存在=0）
+    /// 成品酒特例：wine_bottle 且 WINE_CONTAINER_STATE==2（酿造完成）→ 放行双击喝（拆包实锤 FinishFermentation 成品=ALCOHOL 可喝）
     private static bool IsNonEdibleItem(GameItem item)
     {
         if (item == null) return false;
@@ -85,8 +88,9 @@ internal static partial class SurvivalFood
             if (IsNonEdibleMachine(item)) return true;        // 机器类（水瓶机/集水器/充电器等——含水量易被误判为水）
             if (item.IsTag("CONTAINER_TAG")) return true;     // 容器类（虚空珠/背包/盒子/储物袋等）
             string id = (item.identifier ?? "").ToLowerInvariant();
-            if (NON_EDIBLE_BOTTLE_IDS.Contains(id)) return true; // 酒瓶容器
-            if (item.GetTagValue("WINE_CONTAINER_STATE", 0) == 1) return true; // 酿造未完成（发酵中）
+            int wineState = item.GetTagValue("WINE_CONTAINER_STATE", 0);
+            if (NON_EDIBLE_BOTTLE_IDS.Contains(id) && !(id == "wine_bottle" && wineState == 2)) return true; // 酒瓶/啤酒箱容器（成品酒放行）
+            if (wineState == 1) return true; // 酿造未完成（发酵中）
         }
         catch { }
         return false;
