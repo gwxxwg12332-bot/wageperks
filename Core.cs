@@ -24,12 +24,15 @@ public class Core : MelonMod
         Log.Msg("Wage Survival v0.1.7 已加载 - 阶段C：独立生存mod（WageAPI 内置）");
         Log.Msg("QQ群：1109707341");
 
-        // 10-05 派活单：WagePerks 在场 → 完全让路（不注册任何挂点）
-        // 覆盖三面：PatchRegistry 19 挂点 + WageAPI 落盘挂点（SaveGame/LoadGame/EndDay）+ SurvivalMigrate 旧档迁移（订阅在 ApplyAll 内）
+        // 10-05 派活单：WagePerks 在场 → 让路（不注册业务挂点）
+        // 覆盖三面：PatchRegistry 业务挂点 + WageAPI 落盘挂点（SaveGame/LoadGame/EndDay）+ SurvivalMigrate 旧档迁移（订阅在 ApplyAll 内）
+        // 10-05 修复：保留"全局消费链"（双击吃喝用）——WagePerks 侧 IsWageSurvivalLoaded 会让出该挂点，
+        // 若完全零挂点 → 双向互让 → 吃饭/日用品/喝酒全失效（用户反馈实锤）
         if (WagePerksInstalled())
         {
             _yieldMode = true;
-            Log.Msg("[WageSurvival] 检测到 WagePerks，让路模式：不注册任何挂点（WagePerks 接管鲁滨逊吃喝）");
+            Log.Msg("[WageSurvival] 检测到 WagePerks，让路模式：保留全局消费链（双击吃喝用），其余挂点让路（WagePerks 接管鲁滨逊生存）");
+            PatchRegistry.ApplyGlobalConsumeOnly();
             return;
         }
 

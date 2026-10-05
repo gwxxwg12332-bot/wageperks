@@ -5,6 +5,24 @@ using MelonLoader;
 namespace WageSurvival;
 internal static class PatchRegistry
 {
+    // 10-05 修复：让路模式保留"全局消费链"挂点（双击吃喝用）。
+    // 背景：让路前 WagePerks 侧 RobinCrusoePerk.PostfixDoubleClickAction 有 IsWageSurvivalLoaded→return（WageSurvival 在场即让出）；
+    // 若 WageSurvival 完全让路（零挂点）→ 双向互让 → 双击吃喝用无人处理（吃饭/日用品/喝酒全失效）。
+    // 仅保留双击挂点：WagePerks 侧对应挂点让路（不叠加）；SaveStore/交易/衰减等仍归 WagePerks。
+    // 注意：原 ApplyAll 第1项挂载引用 SurvivalFood.PostfixDoubleClickAction 是错的（方法实际在 SurvivalConsume）→ 此处用正确类。
+    internal static void ApplyGlobalConsumeOnly()
+    {
+        var harmony = new HarmonyLib.Harmony("com.wagesurvival.consume");
+        try
+        {
+            var orig = AccessTools.Method(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction");
+            var post = AccessTools.Method(typeof(SurvivalFood), "PostfixDoubleClickAction");
+            harmony.Patch(orig, postfix: new HarmonyMethod(post));
+            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: DoubleClickAction（全局吃喝用）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: DoubleClickAction " + ex.Message); }
+    }
+
     internal static void ApplyAll()
     {
         // 2026-10-03 阶段C：双mod分工重定义——鲁滨逊生存（吃喝/六维/节点/交易/面板/血）归本mod（ns=SurvivalGlobal），
