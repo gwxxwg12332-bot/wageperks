@@ -49,9 +49,9 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     {
         try
         {
-            if (!IsActive()) return;
+            if (!IsActive()) { Core.LogMsg("[水商之友] 开局赠送跳过: 水商之友特性未激活（选特性后再开新档）"); return; }
             var em = Il2Cpp.EmporiumEntry.Instance;
-            if (em == null || em.backInvinvElement == null) return;
+            if (em == null || em.backInvinvElement == null) { Core.LogMsg("[水商之友] 开局赠送跳过: EmporiumEntry/后库未就绪（延迟补发）"); _bottleGiveFramesLeft = 180; return; }
             // 09-26 v1.2.10 稳定版：吞噬瓶未完成，改送普通大水瓶
             var bottle = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water");
             if (bottle != null)
@@ -62,7 +62,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
                 Core.LogMsg("[水商之友] 开局赠送大水瓶");
             }
             // 10-04 cfg：开局自带满级水瓶打印机（6000ml+纯水）
-            TryGiveMaxBottlePrinter();
+            if (!TryGiveMaxBottlePrinter()) { _bottleGiveFramesLeft = 180; Core.LogMsg("[水商之友] 开局打印机未发放成功，启动180帧延迟补发"); }
         } catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送吞噬瓶失败: " + ex.Message); }
     }
 
@@ -70,26 +70,28 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     // 满级=瓶型 BOTTLE_PRINTER_UPGRADE_COUNT_TAG≥9（B2 注释实锤：原生≥9大瓶档→替换 water_jug 6000ml）
     //      + 质量 TOTAL_PERCENTAGE_QUALITY_BONUS_INT=400（水商 Getter 无减半→400=纯水 grade0；鲁滨逊×0.5→200=纯水 grade0）
     // 克隆隔离：CloneLinked 改 tag 不污染共享实例（cheatsheet 30.3）
-    internal static void TryGiveMaxBottlePrinter()
+    internal static bool TryGiveMaxBottlePrinter()
     {
         try
         {
-            if (!BuildConfig.StartMaxBottlePrinter) return;
-            if (!IsActive() && !RobinCrusoePerk.IsActive()) return;
+            if (!BuildConfig.StartMaxBottlePrinter) { Core.LogMsg("[水商之友] 打印机发放跳过: cfg StartMaxBottlePrinter 未开启"); return false; }
+            if (!IsActive() && !RobinCrusoePerk.IsActive()) { Core.LogMsg("[水商之友] 打印机发放跳过: 水商之友/鲁滨逊均未激活"); return false; }
             EmporiumEntry em = Il2Cpp.EmporiumEntry.Instance;
-            if (em == null || em.backInvinvElement == null) return;
+            if (em == null || em.backInvinvElement == null) { Core.LogMsg("[水商之友] 打印机发放跳过: EmporiumEntry/后库未就绪"); return false; }
             GameItem src = Il2Cpp.DirectoryMaster.Item("bottle_printer", true);
-            if (src == null) return;
+            if (src == null) { Core.LogMsg("[水商之友] 打印机发放跳过: DirectoryMaster.Item(bottle_printer) 返回 null"); return false; }
             GameItem printer = src.CloneLinked();
-            if (printer == null) return;
+            if (printer == null) { Core.LogMsg("[水商之友] 打印机发放跳过: CloneLinked 返回 null"); return false; }
             ContainerUpgradeV2.AddTagInt(printer, "BOTTLE_PRINTER_UPGRADE_COUNT_TAG", 9);
             ContainerUpgradeV2.AddTagInt(printer, "TOTAL_PERCENTAGE_QUALITY_BONUS_INT", 400);
             try { Il2Cpp.GeneralHelper.SetItemOwned(printer, true); } catch { }
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(printer, false);
-            if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水)"); return; } catch { } }
-            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(printer); ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水,兜底)"); } catch { }
+            if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水)"); return true; } catch { } }
+            try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(printer); ((Il2Cpp.GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水,兜底)"); return true; } catch { }
+            Core.LogMsg("[水商之友] 打印机发放失败: 塞后库异常（TryAcceptOnce/UncheckedAcceptAll 均失败）");
+            return false;
         }
-        catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送满级水瓶打印机失败: " + ex.Message); }
+        catch (System.Exception ex) { Core.LogMsg("[水商之友] 赠送满级水瓶打印机失败: " + ex.Message); return false; }
     }
 
     internal static bool IsActive()
@@ -263,6 +265,8 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     // 读档后遍历玩家库存网格按出现顺序恢复（虚空珠同款模式：PostfixLoadGame 立即试 + 帧重试）
 
     private static int _bottleRestoreFramesLeft = 0;
+    // 10-05 开局发放帧重试（StartNewGame Postfix 时 EmporiumEntry 可能未建好→延迟补发）
+    private static int _bottleGiveFramesLeft = 0;
 
     // 判级读端：独立 tag 优先（当档/跨档恢复后都在此），无则回退原版 Getter（兼容第三方写的聚合 tag）
     internal static int GetBottleQuality(GameItem printer)
@@ -391,6 +395,12 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     {
         try
         {
+            // 10-05 开局发放帧重试（StartNewGame 时后库未就绪→延迟补发）
+            if (_bottleGiveFramesLeft > 0)
+            {
+                _bottleGiveFramesLeft--;
+                if (TryGiveMaxBottlePrinter()) { _bottleGiveFramesLeft = 0; Core.LogMsg("[水商之友] 延迟补发成功"); }
+            }
             if (_bottleRestoreFramesLeft <= 0) return;
             _bottleRestoreFramesLeft--;
             if (RestoreAllBottlePrinters()) _bottleRestoreFramesLeft = 0;
