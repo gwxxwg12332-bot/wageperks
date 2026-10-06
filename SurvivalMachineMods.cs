@@ -52,18 +52,21 @@ internal static partial class SurvivalFood
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
+    // 10-07 #13（用户拍板）：机器效率减半比例（配置门控——关=1f 原值；MelonPreferences WageSurvival 分类）
+    private static float EffMult() { return SurvivalConfig.EffHalfEnabled ? SurvivalConfig.EffRatio : 1f; }
+
     public static void PostfixApplyBasicModuleEffect(GameInventory invModule, GameItem item, GameItem system)
     {
         try
         {
             if (!IsActive() || !SurvivalTrade.IsRobinsonRun() || item == null) return;
             var ts = item.GetTagReadonly("CURRENT_PROCESSING_SPEED_TAG");
-            if (ts != null && ts.valueInt > 0) SetTagIntValue(item, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * 0.5f)));
+            if (ts != null && ts.valueInt > 0) SetTagIntValue(item, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * EffMult())));
             GameItem target = item;
             if (target.GetTagReadonly("wageUpgradeEff") == null && system != null) target = system;
             var eff = target.GetTagReadonly("wageUpgradeEff");
             if (eff != null && eff.valueInt > 0 && ts != null && ts.valueInt > 0)
-                SetTagIntValue(target, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * 0.5f) + eff.valueInt));
+                SetTagIntValue(target, "CURRENT_PROCESSING_SPEED_TAG", Math.Max(0, (int)(ts.valueInt * EffMult()) + eff.valueInt));
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival.ContainerUpgrade] 异常: " + ex.Message); }
     }
@@ -76,13 +79,13 @@ internal static partial class SurvivalFood
             foreach (string t in new[] { "TEMP_PERCENTAGE_PERFORMANCE_INT", "TEMP_PERCENTAGE_EFFICIENCY_INT", "TEMP_PERCENTAGE_QUALITY_INT" })
             {
                 var ts = item.GetTagReadonly(t);
-                if (ts != null && ts.valueInt > 0) SetTagIntValue(item, t, Math.Max(0, (int)(ts.valueInt * 0.5f)));
+                if (ts != null && ts.valueInt > 0) SetTagIntValue(item, t, Math.Max(0, (int)(ts.valueInt * EffMult())));
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
-    // 面板显示 0.5（统计显示行统一减半性能/效率/质量——WS 固定 0.5）
+    // 面板显示 0.5（统计显示行统一减半性能/效率/质量——配置门控）
     public static void PostfixAddModuleStatLine(string statName, ref int baseValue, ref int tempValue)
     {
         try
@@ -93,14 +96,14 @@ internal static partial class SurvivalFood
             if (n.Contains("performance") || n.Contains("efficiency") || n.Contains("quality")
                 || n.Contains("性能") || n.Contains("效率") || n.Contains("质量"))
             {
-                if (baseValue > 0) baseValue = Math.Max(0, (int)(baseValue * 0.5f));
-                if (tempValue > 0) tempValue = Math.Max(0, (int)(tempValue * 0.5f));
+                if (baseValue > 0) baseValue = Math.Max(0, (int)(baseValue * EffMult()));
+                if (tempValue > 0) tempValue = Math.Max(0, (int)(tempValue * EffMult()));
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
-    // water_recycler 效率 tag ×0.5（含 50 基础）
+    // water_recycler 效率 tag ×0.5（含 50 基础——配置门控）
     public static void PostfixApplyPerformanceWaterRecyclerEffect(GameItem __0)
     {
         try
@@ -109,32 +112,32 @@ internal static partial class SurvivalFood
             var ts = __0.GetTagReadonly("WATER_RECYCLER_CURRENT_EFFICIENCY_INT");
             if (ts != null && ts.valueInt > 0)
             {
-                SetTagIntValue(__0, "WATER_RECYCLER_CURRENT_EFFICIENCY_INT", Math.Max(0, (int)(ts.valueInt * 0.5f)));
+                SetTagIntValue(__0, "WATER_RECYCLER_CURRENT_EFFICIENCY_INT", Math.Max(0, (int)(ts.valueInt * EffMult())));
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival.ContainerUpgrade] 异常: " + ex.Message); }
     }
 
-    // moisture_farm 产出量 ×0.5（含基础；DryAir 分支裁剪——双装由 WP DryAirPerk 独立挂点叠加）
+    // moisture_farm 产出量 ×0.5（含基础；DryAir 分支裁剪——双装由 WP DryAirPerk 独立挂点叠加；#13 配置门控）
     public static void PostfixGetOutputVolume(ref int __result)
     {
         try {
             if (__result <= 0) return;
             if (IsActive() && SurvivalTrade.IsRobinsonRun())
             {
-                __result = Math.Max(1, (int)(__result * 0.5f));
+                __result = Math.Max(1, (int)(__result * EffMult()));
             }
         } catch { }
     }
 
-    // water_purifier 净化量 ×0.5
+    // water_purifier 净化量 ×0.5（#13 配置门控）
     public static void PostfixRemoveContaminantFromContainer(ref int __result)
     {
         try
         {
             if (IsActive() && SurvivalTrade.IsRobinsonRun() && __result > 0)
             {
-                __result = Math.Max(1, (int)(__result * 0.5f));
+                __result = Math.Max(1, (int)(__result * EffMult()));
             }
         } catch { }
     }

@@ -52,7 +52,9 @@ internal static partial class SurvivalFood
         {
             if (IsWounded() && !IsWoundStable()) return 0;
             int cap = 5 + GetMoodScavBonus();
-            // 10-07 搬迁适配：HardMode/LuckScout +10 分支去除（WS 无 BuildConfig/LuckScoutPerk——双装由 WP LuckScout 挂点负责，回执标注）
+            // 10-07 搬迁适配：HardMode 分支去除（WS 无 BuildConfig——#13 未点名不补）；捡漏直觉 +10 等价补（#13 用户拍板——
+            //   WS 无 LuckScoutPerk 类，直接查原版特性激活；09-10 曾因缩减 bug 移除 WP 侧，本处=IsRobinsonRun 门控内等价补，SurvivalConfig.LuckScoutScavBonus 可配）
+            try { if (StartingPerk.IsPerkActive("捡漏直觉")) cap += SurvivalConfig.LuckScoutScavBonus; } catch { }
             if (IsHomebrewWineBuffActive()) cap += 1;
             cap = Math.Max(1, cap);
             return cap;

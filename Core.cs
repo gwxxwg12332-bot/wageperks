@@ -23,6 +23,8 @@ public class Core : MelonMod
         Log = base.LoggerInstance;
         Log.Msg("Wage Survival v0.1.9 已加载 - 阶段C：独立生存mod（WageAPI 内置）；10-06 双装让路时序修复+Z键面板非鲁滨逊档保留");
         Log.Msg("QQ群：1109707341");
+        // 10-07 #13（用户拍板）：WS 配置初始化（MelonPreferences——机器效率开关+比例+捡漏加成）
+        try { SurvivalConfig.Init(); } catch (System.Exception ex) { Log.Msg("[WageSurvival] Config Init 失败: " + ex.Message); }
         // 10-06 修复：挂点注册全部延后到 OnLateInitializeMelon。
         // 原因（实锤）：原 OnInitializeMelon 内做 WagePerksInstalled() 探测存在加载顺序时序风险——
         // WS 的 OnInitializeMelon 先于 WP 执行时，WagePerks 尚未进 AppDomain → 探测失败 → ApplyAll 全量注册；
