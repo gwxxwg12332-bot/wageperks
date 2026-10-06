@@ -158,7 +158,7 @@ public static partial class WageGirlSystem
                 try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("好感跌到冰点，她不愿接受照顾", "Affection too low, she refuses care"), "orange"); } catch { }
                 return false;
             }
-            int gain = 0; double aff = 1; string msg = "";
+            int gain = 0; double aff = 1; string msg = ""; string notifColor = ""; // 10-07 C：Notify 颜色（优质水绿/浑浊橙/脏水红）
             // #10 5 节点映射：节点1/2（冷淡/敌意）=1、节点3（友好）=2、节点4/5（亲密/信赖）=1（阶段制保底，酒分支用）
             int curNode = GetAffNode(GetAffectionExact());
             int affBase = curNode <= 2 ? 1 : (curNode == 3 ? 2 : 1);
@@ -231,9 +231,10 @@ public static partial class WageGirlSystem
                         {
                             SetStat(K_MOOD, Math.Min(100, GetStat(K_MOOD) + BuildConfig.WageBathMoodBonus));
                             SetStat(K_SLEEP, Math.Min(100, GetStat(K_SLEEP) + BuildConfig.WageBathSleepBonus));
+                            notifColor = "green"; // 10-07 C：优质水绿 Notify
                         }
-                        else if (tier == 3) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 2)); }
-                        else if (tier == 4) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 5)); SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) - 5))); }
+                        else if (tier == 3) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 2)); notifColor = "orange"; }
+                        else if (tier == 4) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 5)); SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) - 5))); notifColor = "red"; } // 10-07 C：脏水红 Notify
                         msg = cg >= 0 ? LangHelper.T("蛙娘口渴满了，洗澡：清洁 +" + cg + "（" + wname + "）", "Wage Girl full, bathing: Cleanliness +" + cg + " (" + wname + ")")
                                      : LangHelper.T("蛙娘口渴满了，脏水洗澡：清洁 " + cg + "（" + wname + "）", "Wage Girl full, dirty bath: Cleanliness " + cg + " (" + wname + ")");
                         try { WaterHelper.Remove(item, sip * 1000); } catch { }
@@ -252,7 +253,19 @@ public static partial class WageGirlSystem
             else return false;
             SetAffectionExact(GetAffectionExact() + aff); // 10-07 #10：两位小数精确写入（int×100 存储）
             SetStat("lastFedDay", CurrentDay()); // 记录今天喂过
-            try { StoreUIManager.Instance.Notify(msg); } catch { }
+            // 10-07 测试反馈 C（玩家"水洗面板提示未显示"）：Notify 带颜色（优质水绿/脏水红）+ null 检查（打烊无交易 UI 时
+            //   StoreUIManager.Instance 可能为 null → 原 try/catch 吞异常=静默无提示）+ 日志确认是否走到
+            try
+            {
+                var storeUi = Il2Cpp.StoreUIManager.Instance;
+                if (storeUi != null)
+                {
+                    if (string.IsNullOrEmpty(notifColor)) storeUi.Notify(msg);
+                    else storeUi.Notify(msg, notifColor);
+                }
+                else { Core.LogMsg("[蛙娘] 喂食 Notify 跳过：StoreUIManager 为空（打烊场景） msg=" + msg); }
+            }
+            catch (System.Exception exN) { Core.LogMsg("[蛙娘] 喂食 Notify 异常: " + exN.Message); }
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
             SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
             return true;

@@ -361,7 +361,10 @@ internal static class ThiefMagnetSystem
         try
         {
             int day = GetDay();
-            if (WageSaveStore.GetInt(NS, KEY_CHANNEL, -1) != day) return; // 今天不是小偷日
+            // 10-07 测试反馈 D（玩家"当天被偷→读档→小偷消失"）：KEY_CHANNEL 只在 SpawnThiefVisit（小偷上门）时写——
+            //   若读档当天=丢物日（KEY_THEFT_DAY，小偷应上门但还没上）→ KEY_CHANNEL!=day → 重挂漏判。
+            //   放宽：丢物日或上门日都重挂（KEY_STOLEN 非空为前提）。
+            if (WageSaveStore.GetInt(NS, KEY_CHANNEL, -1) != day && WageSaveStore.GetInt(NS, KEY_THEFT_DAY, -1) != day) return; // 今天不是小偷日/丢物日
             bool hasStolen = !string.IsNullOrEmpty(WageSaveStore.GetString(NS, KEY_STOLEN, ""));
             if (!hasStolen) return; // 已卖过/没偷
             SpawnThiefVisit(day); // 绕过 IsChannelFree 直接重新生成（当天该来的小偷在重进后重新上门）
@@ -473,6 +476,11 @@ internal static class ThiefMagnetSystem
                 var em = Il2Cpp.EmporiumEntry.Instance;
                 if (em != null && em.frontInvinvElement != null)
                 {
+                    // 10-07 玩家反馈"黑市货直接已拥有可双击"：手动 UncheckedAcceptAll 绕过原版 AddDirectSellingItemToTable
+                    //   的归属标记设置（原版 isOwend=false 会给物品挂 not_purchased=客户卖品需购买）——这里手动补标记，
+                    //   否则前台物品被当玩家所有可自由拿走/开箱。
+                    try { gameItem.EnableTag("not_purchased", true); } catch { }
+                    try { gameItem.DisableTag("IS_OWNED_TAG", true); } catch { }
                     var l = new Il2CppSystem.Collections.Generic.List<GameItem>();
                     l.Add(gameItem);
                     em.frontInvinvElement.UncheckedAcceptAll(l);

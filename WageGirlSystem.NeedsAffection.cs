@@ -92,7 +92,7 @@ public static partial class WageGirlSystem
             // 止血原因=TryAcceptOnce MonoMod 补丁链疑似崩点——GiveRewardItem 已改 UncheckedAcceptAll 主通道规避。
             GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
             GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
-            GiveRewardItem(GuMachineSystem.PROTECTOR_ID, 1);
+            // 10-07 测试反馈 B（玩家期望"无保护器"）：原 v1.3.1 注释"三件套=生成器+神经模组×2+保护器×1"——按 525BFCC1 拍板去掉保护器
             Core.LogMsg("[蛙娘] 好感破50，三件套已发放（延迟队列 UncheckedAcceptAll 通道）");
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
@@ -231,6 +231,18 @@ public static partial class WageGirlSystem
             if (!WasFedToday()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayMin, BuildConfig.WageGirlAffDecayMax + 1); // 完全没互动
             if (IsAnyStatLow()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayLowMin, BuildConfig.WageGirlAffDecayLowMax + 1); // 六维低额外
             if (decay > 0) SetAffection(GetAffection() - decay);
+            // 10-07 测试反馈 B（玩家"好感50 三件套未触发"）：DebugTool 直写旧键 affection（不走 SetAffectionExact）
+            //   → CheckAffection50Reward 从未触发 → 三件套永不发放。日结补触发：好感≥50 且未发过 → 标记延迟队列（Anim 帧首 Flush）
+            //   ⚠️ gift50_sent 历史硬编码在 "WageGirl" 命名空间（非 NS="wage_girl"）——必须对齐硬编码读，否则漏判重复发
+            try
+            {
+                if (!_pendingGift50 && GetAffectionExact() >= 50 && WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) == 0)
+                {
+                    _pendingGift50 = true; _gift50DelayFrames = 2;
+                    Core.LogMsg("[蛙娘] 日结补触发三件套标记（好感" + GetAffectionExact().ToString("0.00") + "≥50 未发过）");
+                }
+            }
+            catch (Exception exB) { Core.LogMsg("[蛙娘] 三件套日结补触发异常: " + exB.Message); }
             // 阶段 5：回归 / 自主偷拿 / 偷钱循环
             RunDayEvents();
         }

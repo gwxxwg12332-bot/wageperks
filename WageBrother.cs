@@ -111,9 +111,14 @@ internal static class WageBrother
             if (lastSched < 0) return;
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
             if (day - lastSched >= interval) return; // 间隔已过=不在本周期（等下次正常调度）
-            if (HasQueued()) return; // 队列有=正常（读档恢复了原版队列）
+            // 10-07 测试反馈 E（玩家"蛙哥到店有货→读档→柜台货没了"）：柜台补货标志无条件设——
+            //   原版客户队列读档恢复（HasQueued=true）≠柜台有货（柜台不随档=空）；原代码 HasQueued return 挡住了补货。
+            //   补货独立于队列补排：OnUpdateRefillCounter 内判蛙哥在店/柜台就绪/防重复才补（安全）。
+            _refillPending = true;
+            _refillFramesLeft = 180;
+            if (HasQueued()) { Core.LogMsg("[蛙哥] 读档恢复：队列已有（原版恢复）→ 补柜台货标志已设"); return; }
             // 小退丢队列：lastSched 在 interval 内但队列空 → 补排明天到
-            Core.LogMsg("[蛙哥] 读档恢复：队列空但 lastSched=" + lastSched + " day=" + day + " 间隔未到 → 补排（明天到访）");
+            Core.LogMsg("[蛙哥] 读档恢复：队列空但 lastSched=" + lastSched + " day=" + day + " 间隔未到 → 补排（明天到访）+补柜台货");
             try { ps.QueueFuturClient(CLIENT_ID, 1); }
             catch (Exception ex) { Core.LogMsg("[蛙哥] 读档补排失败: " + ex.Message); }
             // 10-07 F2-2（玩家反馈"蛙哥读档没有物品"）：读档时蛙哥已在店——对话已开过 → StartMainDialogue
