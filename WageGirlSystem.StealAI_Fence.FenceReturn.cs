@@ -196,10 +196,15 @@ private static void FenceReturn()
                     GameItem crate = CreateSupplyCrate((long)Math.Round(boxValue), out filledVal);
                     if (crate != null)
                     {
-                        AddToFront(crate); filledTotal += filledVal; boxOk++;
+                        // 10-07 A4：箱子改上桌卖（不是 AddToFront 直接送后库）——外在价值标价 boxValue（好感越低越贵）
+                        //   玩家买箱=付标价得内容物（内容价值≈boxValue=持平），普通档防特殊物品泄露
+                        try { crate.unitValue = (long)Math.Round(boxValue); } catch { }
+                        AddToCounterForSale(crate);
+                        filledTotal += filledVal; boxOk++;
                         // 10-06 A4（拆包实锤 memos/hQvCsbLJpdTsA6mQtkEHPU）：蛙娘箱=原生自动上锁（CreateLootCrate:1441）——
-                        //   没钥匙=死物打不开 → 送对应钥匙卡（5 箱↔5 卡，塞玩家后库）；映射=cheatsheet 19.4（MerchantHelper 同款）
+                        //   没钥匙=死物打不开 → 对应钥匙卡也上桌卖（5 箱↔5 卡）；映射=cheatsheet 19.4（MerchantHelper 同款）
                         //   10-06 D2（525BFCC1 拍板）：低好感不带钥匙卡回来（高好感才带，门槛 BuildConfig.WageGirlFenceCardAffThreshold 可配）
+                        //   10-07 A4：钥匙卡改上桌卖（原 GrantToPlayerBackInv=直接送背包→玩家购买）
                         try
                         {
                             string boxId = "?"; try { boxId = crate.identifier ?? "?"; } catch { }
@@ -209,15 +214,14 @@ private static void FenceReturn()
                                 GameItem kc = DirectoryMaster.Item(kcId, true);
                                 if (kc != null)
                                 {
-                                    if (WageAPI.WageItemGrant.GrantToPlayerBackInv(kc, true))
-                                        Core.LogMsg("[蛙娘] 销赃箱 " + boxId + " 送钥匙卡 " + kcId + "（玩家后库）");
-                                    else Core.LogMsg("[蛙娘] 钥匙卡 " + kcId + " 发放失败（后库满？）");
+                                    AddToCounterForSale(kc);
+                                    Core.LogMsg("[蛙娘] 销赃箱 " + boxId + " 钥匙卡 " + kcId + " 上桌卖（玩家购买）");
                                 }
                                 else Core.LogMsg("[蛙娘] 钥匙卡创建失败 " + kcId + "（箱 " + boxId + " 无钥匙可开）");
                             }
                             else Core.LogMsg("[蛙娘] 好感 " + affBox + " < " + BuildConfig.WageGirlFenceCardAffThreshold + " 不带钥匙卡（D2）");
                         }
-                        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 送钥匙卡异常: " + ex.Message); }
+                        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 钥匙卡上桌卖异常: " + ex.Message); }
                     }
                 }
                 if (boxOk > 0) { int actualKeep = (int)(target - filledTotal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T(boxOk + "只物资箱", boxOk + " supply crates"))); }
@@ -234,7 +238,7 @@ private static void FenceReturn()
                 {
                     GameItem kc = null;
                     try { kc = DirectoryMaster.Item("cmd_keycard", true); } catch { }
-                    if (kc != null) { AddToFront(kc); kcVal += kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
+                    if (kc != null) { AddToCounterForSale(kc); kcVal += kc.unitValue; names5.Add(LangHelper.T("指挥卡","Keycard")); }
                 }
                 long remain = target - kcVal;
                 if (remain <= 0) return; // 09-27 C3 拍板：指挥卡已值回 target，不再补件（防负 remain 边界）
@@ -246,7 +250,7 @@ private static void FenceReturn()
                 {
                     GameItem it5 = FindItemNearValue(Math.Min(per5, remain - spent5), 0, false);
                     if (it5 == null) break;
-                    AddToFront(it5); spent5 += it5.unitValue; names5.Add(ModCannibalism.GetName(it5));
+                    AddToCounterForSale(it5); spent5 += it5.unitValue; names5.Add(ModCannibalism.GetName(it5));
                 }
                 if (names5.Count > 0) { int actualKeep5 = (int)(target - kcVal - spent5); if (actualKeep5 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep5); ReportLine(BuildFenceReport(amt, actualKeep5, string.Join("、", names5))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
@@ -261,7 +265,7 @@ private static void FenceReturn()
                 for (int j = 0; j < imCount; j++)
                 {
                     GameItem im = CreateGenuineImmunivax();
-                    if (im != null) { AddToFront(im); imVal += im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
+                    if (im != null) { AddToCounterForSale(im); imVal += im.unitValue; names6.Add(LangHelper.T("免疫宁","Immunity Shot")); }
                 }
                 long remain6 = target - imVal;
                 if (remain6 <= 0) return; // 09-27 C3 拍板：免疫宁已值回 target，不再补件（防负 remain 边界）
@@ -273,7 +277,7 @@ private static void FenceReturn()
                 {
                     GameItem it6 = FindItemNearValue(Math.Min(per6, remain6 - spent6), 0, false);
                     if (it6 == null) break;
-                    AddToFront(it6); spent6 += it6.unitValue; names6.Add(ModCannibalism.GetName(it6));
+                    AddToCounterForSale(it6); spent6 += it6.unitValue; names6.Add(ModCannibalism.GetName(it6));
                 }
                 if (names6.Count > 0) { int actualKeep6 = (int)(target - imVal - spent6); if (actualKeep6 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep6); ReportLine(BuildFenceReport(amt, actualKeep6, string.Join("、", names6))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
@@ -289,7 +293,7 @@ private static void FenceReturn()
                 {
                     GameItem it7 = FindItemNearValue(Math.Min(per7, target - spent7), 7, false);
                     if (it7 == null) break;
-                    AddToFront(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
+                    AddToCounterForSale(it7); spent7 += it7.unitValue; names7.Add(ModCannibalism.GetName(it7));
                 }
                 if (names7.Count > 0) { int actualKeep7 = (int)(target - spent7); if (actualKeep7 > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep7); ReportLine(BuildFenceReport(amt, actualKeep7, string.Join("、", names7))); }
                 else ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back"));
@@ -309,7 +313,7 @@ private static void FenceReturn()
                 if (it == null) break;
                 long v = it.unitValue;
                 if (spent + v > target * 1.3) break; // 累计防超
-                AddToFront(it);
+                AddToCounterForSale(it);
                 spent += v;
                 names.Add(ModCannibalism.GetName(it));
             }

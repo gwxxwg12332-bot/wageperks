@@ -190,6 +190,19 @@ public static partial class WageGirlSystem
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }
     }
 
+    // 10-07 A4（525BFCC1 拍板"所有的东西都需要购买得到，而不是直接送，普通档防止泄露就行"）：
+    // 销赃回报改为上桌卖（客户卖品 isOwend=false）——玩家付钱购买，不直接送后库/背包
+    // 与小偷黑市货上桌同方式（AddDirectSellingItemToTable isOwend=false=客户卖品）
+    private static void AddToCounterForSale(GameItem it)
+    {
+        try
+        {
+            if (it == null) return;
+            Il2Cpp.PlayerStore.Instance.AddDirectSellingItemToTable(it, false, false, false, 0);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 销赃回报上桌卖失败: " + ex.Message); }
+    }
+
     // 正品免疫宁（09-23 修复「蛙娘带回的正品免疫宁无法使用」）
     // 根因（拆包实锤 _Demo_20260915_cpp2il / InsInjectorHelper）：
     //   Init(item)              → 只打 2 个基础标签（不含正品数据）
