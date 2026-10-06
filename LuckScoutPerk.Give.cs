@@ -74,14 +74,10 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(kit, false);
 
-                bool _ok77 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(kit); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok77 = false; }
-                if (_ok77)
+                // 10-06 试点收敛：手拼链 → WageItemGrant 统一入口（行为等价：includeOwnedTransfer=true 对齐原两调用）
+                if (WageAPI.WageItemGrant.GrantToPlayerBackInv(kit, includeOwnedTransfer: true))
 
                 {
-
-                    emporium.TransferOwnershipBackInv();
-
-                    emporium.TransferOwnedItemBackToInv();
 
                     _kitOk = true;
                     given++;
@@ -109,14 +105,10 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(scanner, false);
 
-                bool _ok111 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(scanner); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok111 = false; }
-                if (_ok111)
+                // 10-06 试点收敛：手拼链 → WageItemGrant 统一入口（行为等价）
+                if (WageAPI.WageItemGrant.GrantToPlayerBackInv(scanner, includeOwnedTransfer: true))
 
                 {
-
-                    emporium.TransferOwnershipBackInv();
-
-                    emporium.TransferOwnedItemBackToInv();
 
                     _scannerOk = true;
                     given++;
@@ -144,14 +136,10 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
                 emporium.backInvinvElement.TryFindOneValidInventorySlot(bag, false);
 
-                bool _ok145 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bag); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok145 = false; }
-                if (_ok145)
+                // 10-06 试点收敛：手拼链 → WageItemGrant 统一入口（行为等价）
+                if (WageAPI.WageItemGrant.GrantToPlayerBackInv(bag, includeOwnedTransfer: true))
 
                 {
-
-                    emporium.TransferOwnershipBackInv();
-
-                    emporium.TransferOwnedItemBackToInv();
 
                     _beadOk = true;
                     given++;

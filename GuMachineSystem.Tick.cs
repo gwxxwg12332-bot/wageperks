@@ -91,6 +91,7 @@ public static partial class GuMachineSystem
                     try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_PERFORMANCE_INT", 0); } catch { }
                     try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_EFFICIENCY_INT", 0); } catch { }
                     try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_QUALITY_INT", 0); } catch { }
+                    // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）——TryAcceptAllMid 目标=养蛊机机器舱网格，非玩家后库
                     try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, scrap, -1); } catch { }
                 }
                 string fline = LangHelper.T("养蛊机炼蛊失败：投入模组报废", "Swarm Forge forging failed: input modules scrapped");
@@ -118,6 +119,7 @@ public static partial class GuMachineSystem
                 try { m.Destroy(); } catch { } // 销毁语义：直接Destroy
             }
             // 09-15 用户拍板：生产成果放入机器舱（玩家打开机器取出；TryAcceptAllMid 接受 GameGridInventory）
+            // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
             try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
             // 充能归零
             RobinCrusoePerk.AddTagInt(gu, GU_CHARGE_TAG, -3);
@@ -236,7 +238,8 @@ public static partial class GuMachineSystem
                 if (result != null)
                 {
                     // 实物放入生成器舱
-                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
+                    // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
+            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
                 }
                 string modeName = safe ? LangHelper.T("阉割版", "Stable") : LangHelper.T("不稳定版", "Unstable");
                 string line = LangHelper.T(
@@ -284,7 +287,8 @@ public static partial class GuMachineSystem
                 }
                 if (result != null)
                 {
-                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
+                    // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
+            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
                 }
                 string line = LangHelper.T(
                     "AI 生成器不稳定波动：产出打折模组 · 倍率×" + failMult.ToString("0.00") + " 性能+" + newP + " 效率+" + newE + " 质量+" + newQ,

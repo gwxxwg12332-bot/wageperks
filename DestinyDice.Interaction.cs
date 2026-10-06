@@ -156,15 +156,12 @@ namespace WagePerks
 
                 {
 
-                    try { emporium.backInvinvElement.TryFindOneValidInventorySlot(dice, false); } catch { }
-
-                    bool accepted = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(dice); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { accepted = false; }
+                    // 10-06 试点收敛：手拼链 → WageItemGrant 统一入口（骰子原行为只有 TransferOwnershipBackInv，默认参数不含 ownedTransfer 对齐）
+                    bool accepted = WageAPI.WageItemGrant.GrantToPlayerBackInv(dice);
 
                     if (accepted)
 
                     {
-
-                        try { emporium.TransferOwnershipBackInv(); } catch { }
 
                         // 清除未拥有标签 + 打已拥有标签
 

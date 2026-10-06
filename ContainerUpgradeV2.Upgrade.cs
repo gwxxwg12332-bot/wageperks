@@ -139,12 +139,9 @@ partial class ContainerUpgradeV2
             if (second == null) { Core.LogMsg("[容器v2] 创建第二个妙妙箱失败"); return; }
             second.DisableTag("TAG_NOT_PURCHASED", true);
             second.DisableTag("not_purchased", true);
-            emporium.backInvinvElement.TryFindOneValidInventorySlot(second, false);
-            bool _ok143 = true; try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(second); ((GameInventory)emporium.backInvinvElement).UncheckedAcceptAll(l); } catch { _ok143 = false; }
-            if (_ok143)
+            // 10-06 试点收敛：手拼链 → WageItemGrant 统一入口（行为等价：includeOwnedTransfer=true 对齐原两调用）
+            if (WageAPI.WageItemGrant.GrantToPlayerBackInv(second, includeOwnedTransfer: true))
             {
-                emporium.TransferOwnershipBackInv();
-                emporium.TransferOwnedItemBackToInv();
                 box.EnableTag("wb_second_given", true);
                 _secondGiven.Add(box.Pointer);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("满级！第二个妙妙箱已放入背包", "Maxed! Second Wage Box added to inventory"), "white"); } catch { }
