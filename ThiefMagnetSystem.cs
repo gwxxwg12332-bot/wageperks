@@ -134,6 +134,10 @@ internal static class ThiefMagnetSystem
         }
         catch { WageSaveStore.SetString(NS, KEY_STOLEN, string.Join(",", stolenIds)); }
         WageSaveStore.SetInt(NS, KEY_THEFT_DAY, day);
+        // 10-07 A8（玩家反馈"小退后小偷再上门不带被偷物"）：小偷状态需即时落盘——WageSaveStore 只在
+        //   SaveGame/EndDay 时 Flush，进程退出（Alt+F4/关闭游戏=小退）时 _dirty 未落盘 → 重进读文件=旧值
+        //   （无 KEY_STOLEN/KEY_THEFT_DAY）→ 读档重挂判定 hasStolen=false → 被偷物丢失。这里立即 Flush 防丢。
+        try { WageSaveStore.Flush(); } catch (System.Exception ex) { Core.LogMsg("[招贼体质] 偷盗状态落盘失败: " + ex.Message); }
 
         try { var _ps = PlayerStore.Instance; if (_ps != null) _ps.AddNightLog("[招贼体质] " + LangHelper.T("昨晚打烊后，有人趁黑摸进店里，偷走了你的", "Last night after closing, someone slipped in and stole your") + " " + stolenIds.Count + " " + LangHelper.T("件物品（价值", " item(s) worth") + " " + totalValue + "）。", "#7FC97F"); } catch { }
         Core.AddNightReportLine("[招贼体质] " + LangHelper.T("昨晚打烊后，有人趁黑摸进店里，偷走了你的", "Last night after closing, someone slipped in and stole your") + " " + stolenIds.Count + " " + LangHelper.T("件物品（价值", " item(s) worth") + " " + totalValue + "）。");
@@ -158,6 +162,8 @@ internal static class ThiefMagnetSystem
         GetStoreClientManager()?.AddClient(thief);
         Core.LogMsg("[招贼体质] 小偷客户已生成并加入队列 eventSourceId=" + thief.eventSourceId + " sprite=" + thief.spriteName + " hasStolen=" + hasStolen);
         WageSaveStore.SetInt(NS, KEY_CHANNEL, day);
+        // 10-07 A8：KEY_CHANNEL（小偷上门日）同样即时落盘——防进程退出丢标记 → 重进读档当天判定不到小偷日
+        try { WageSaveStore.Flush(); } catch (System.Exception ex) { Core.LogMsg("[招贼体质] 上门标记落盘失败: " + ex.Message); }
     }
 
     // 待上桌标记（对话 Postfix 用——防重复上桌）
@@ -540,6 +546,8 @@ internal static class ThiefMagnetSystem
                 try { if (WageAPI.WageItemGrant.GrantToPlayerBackInv(it, true)) ok++; } catch { }
             }
             WageSaveStore.SetString(NS, KEY_STOLEN, "");
+            // 10-07 A8：赎回清空后即时落盘——防进程退出前未 Flush → 重进 KEY_STOLEN 残留 → 被偷物重复重建/重复赎回
+            try { WageSaveStore.Flush(); } catch { }
             Core.LogMsg("[招贼体质] 蛙哥服务卡赎回 " + ok + " 件，扣 " + totalHalf);
             StoreUIManager.Instance.Notify(LangHelper.T("赎回 " + ok + " 件，扣 " + totalHalf + " 信用点。被偷的东西都找到了。", "Redeemed " + ok + " items for " + totalHalf + " cr."));
             return true;

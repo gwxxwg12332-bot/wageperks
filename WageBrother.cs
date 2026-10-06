@@ -116,6 +116,38 @@ internal static class WageBrother
             Core.LogMsg("[蛙哥] 读档恢复：队列空但 lastSched=" + lastSched + " day=" + day + " 间隔未到 → 补排（明天到访）");
             try { ps.QueueFuturClient(CLIENT_ID, 1); }
             catch (Exception ex) { Core.LogMsg("[蛙哥] 读档补排失败: " + ex.Message); }
+            // 10-07 F2-2（玩家反馈"蛙哥读档没有物品"）：读档时蛙哥已在店——对话已开过 → StartMainDialogue
+            // 不重触发 HandleSpecialNpcArrived → OnClientArrived 不跑 → 柜台不随档=空（拆包嫌疑2已实锤）→ 主动补上货。
+            // 防重：clientStack 扫到蛙哥即调一次 break；未在栈但 currentClientInstance=蛙哥再补调。
+            bool refilled = false;
+            try
+            {
+                var mgr = ps.storeClientManager;
+                if (mgr != null && mgr.clientStack != null)
+                {
+                    for (int j = 0; j < mgr.clientStack.Count; j++)
+                    {
+                        var c = mgr.clientStack[j];
+                        if (c != null && c.identifier == CLIENT_ID)
+                        {
+                            Core.LogMsg("[蛙哥] 读档恢复：蛙哥在店（clientStack）→ 补柜台货（柜台不随档）");
+                            OnClientArrived(c);
+                            refilled = true;
+                            break;
+                        }
+                    }
+                }
+                if (!refilled)
+                {
+                    var cur = SpecialNpcManager.GetCurrentClient();
+                    if (cur != null && cur.identifier == CLIENT_ID)
+                    {
+                        Core.LogMsg("[蛙哥] 读档恢复：蛙哥为当前客户 → 补柜台货");
+                        OnClientArrived(cur);
+                    }
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[蛙哥] 读档在店补货异常: " + ex.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] PostfixLoadGame异常: " + ex.Message); }
     }
