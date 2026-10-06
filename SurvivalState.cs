@@ -253,9 +253,8 @@ internal static partial class SurvivalFood
                 var food = DirectoryMaster.Item("bread", true); // 最简版：给面包
                 if (food != null)
                 {
-                    var l = new Il2CppSystem.Collections.Generic.List<GameItem>();
-                    l.Add(food);
-                    ((GameInventory)em.backInvinvElement).UncheckedAcceptAll(l);
+                    // 10-06 第二批收敛：手拼 UncheckedAcceptAll → WageItemGrant 统一入口（原无确认无日志；入口失败 Destroy+日志）
+                    WageAPI.WageItemGrant.GrantToPlayerBackInv(food);
                 }
             }
         }

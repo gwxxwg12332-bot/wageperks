@@ -50,9 +50,8 @@ internal static partial class SurvivalFood
                     var em = EmporiumEntry.Instance;
                     if (em != null && em.backInvinvElement != null)
                     {
-                        var slot = em.backInvinvElement.TryFindOneValidInventorySlot(bb, false);
-                        if (slot != null) { try { slot.TryAcceptOnce(); bag = true; } catch { } }
-                        if (!bag) { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(bb); ((GameInventory)em.backInvinvElement).UncheckedAcceptAll(l); bag = true; } catch { } }
+                        // 10-06 第二批收敛：手拼链（TryAcceptOnce+UncheckedAcceptAll 兜底）→ WageItemGrant 统一入口（行为等价：发放入后库；失败 Destroy+日志）
+                        bag = WageAPI.WageItemGrant.GrantToPlayerBackInv(bb);
                     }
                 }
             }
