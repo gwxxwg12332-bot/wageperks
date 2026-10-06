@@ -50,54 +50,27 @@ internal static class ItemHelper
     public static int GetCalorie(GameItem item)
     {
         if (item == null) return 0;
-        try
-        {
-            if (item.IsTag("CALORIE_VALUE_TAG"))
-            {
-                var ts = item.GetTagReadonly("CALORIE_VALUE_TAG");
-                if (ts != null) return Math.Max(0, ts.GetInt());
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
-        try
-        {
-            if (item.IsTag("CALORIE"))
-            {
-                var ts = item.GetTagReadonly("CALORIE");
-                if (ts != null) return Math.Max(0, ts.GetInt());
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
+        // 10-06 tag 权威封装收敛：手拼 IsTag+GetTagReadonly 链 → WageTag.GetInt（-1 哨兵=无 tag，值域非负不冲突）
+        int v = WageAPI.WageTag.GetInt(item, "CALORIE_VALUE_TAG", -1);
+        if (v >= 0) return v;
+        v = WageAPI.WageTag.GetInt(item, "CALORIE", -1);
+        if (v >= 0) return v;
         return 300;
     }
 
     public static int GetCalLeft(GameItem item)
     {
         if (item == null) return 0;
-        try
-        {
-            if (item.IsTag(CAL_LEFT_TAG))
-            {
-                var ts = item.GetTagReadonly(CAL_LEFT_TAG);
-                if (ts != null) return Math.Max(0, ts.GetInt());
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
+        int v = WageAPI.WageTag.GetInt(item, CAL_LEFT_TAG, -1);
+        if (v >= 0) return v;
         return GetCalorie(item);
     }
 
     public static void SetCalLeft(GameItem item, int value)
     {
         if (item == null) return;
-        try
-        {
-            if (value <= 0) { item.DisableTag(CAL_LEFT_TAG, true); return; }
-            if (!item.IsTag(CAL_LEFT_TAG)) item.EnableTag(CAL_LEFT_TAG, true);
-            System.Action<TagState> sysAct = delegate (TagState state) { state.SetInt(value); };
-            var il2cppAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<TagState>>((System.Delegate)sysAct);
-            item.ModifyTag(CAL_LEFT_TAG, il2cppAct, false);
-        }
-        catch (System.Exception ex) { Core.LogMsg("[ItemHelper] 异常: " + ex.Message); }
+        if (value <= 0) { WageAPI.WageTag.Disable(item, CAL_LEFT_TAG); return; }
+        WageAPI.WageTag.SetInt(item, CAL_LEFT_TAG, value);
     }
 
     // ===== 水 =====
