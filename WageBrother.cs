@@ -597,8 +597,8 @@ internal static class WageBrother
             if (mgr.IsOpen("wage_bro_window")) mgr.CloseWindow("wage_bro_window");
             var w = mgr.CreateWindow("wage_bro_window", LangHelper.T("蛙哥 · 消业障", "Wage Brother · Remove Burden"), "overlay");
             if (w == null) return;
-            w.SetSize(360, 480).SetPosition(Vector2.zero);
-            w.BeginColumn(4f);
+            // 10-07 #8（玩家反馈"赎回面板没有统计到所有物品"）：明细行数上限 8 → 16 + 面板加高（480→560）——8 行截断=超过 8 种物品只显示前 8 + 总数
+            w.SetSize(360, 560).SetPosition(Vector2.zero);            w.BeginColumn(4f);
             w.AddLabel(LangHelper.T("蛙哥：花钱消个负面特性。钱货两清。", "Wage Brother: pay to remove a negative perk. No refunds."), "wb_hint");
             var ps = PlayerStore.Instance;
             w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wb_cash");
@@ -614,9 +614,9 @@ internal static class WageBrother
                     try
                     {
                         var details = ThiefMagnetSystem.StolenItemDetails();
-                        for (int di = 0; di < details.Count && di < 8; di++)
+                        for (int di = 0; di < details.Count && di < 16; di++)
                             w.AddLabel(details[di], "wb_stolen_item");
-                        if (details.Count > 8) w.AddLabel(LangHelper.T("…共 " + stolenCount + " 件", "... " + stolenCount + " total"), "wb_stolen_item");
+                        if (details.Count > 16) w.AddLabel(LangHelper.T("…共 " + stolenCount + " 件", "... " + stolenCount + " total"), "wb_stolen_item");
                     }
                     catch (Exception exd) { Core.LogMsg("[蛙哥] 赎回明细异常: " + exd.Message); }
                     var redeemAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ThiefMagnetSystem.RedeemStolenItems(); ShowRemovePerkWindow(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 赎回异常: " + ex.Message); } }));
