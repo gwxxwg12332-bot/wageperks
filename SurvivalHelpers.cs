@@ -57,8 +57,9 @@ internal static partial class SurvivalFood
     {
         try
         {
-            if (item.IsTag("CALORIE_VALUE_TAG")) return item.GetTagValue("CALORIE_VALUE_TAG", 300);
-            if (item.IsTag("CALORIE")) return item.GetTagValue("CALORIE", 300);
+            // 10-06 拆包审计单：禁裸读清单①命中——改走 WageTag 权威读（GetTagReadonly 实例态，语义与 GetTagValue 等价）
+            if (WageAPI.WageTag.Has(item, "CALORIE_VALUE_TAG")) return WageAPI.WageTag.GetInt(item, "CALORIE_VALUE_TAG", 300);
+            if (WageAPI.WageTag.Has(item, "CALORIE")) return WageAPI.WageTag.GetInt(item, "CALORIE", 300);
         }
         catch { }
         return 300;

@@ -34,6 +34,19 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] 让路保留 Patch OK: InputActionManager.Update（Z键面板，非鲁滨逊档）");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: InputActionManager.Update " + ex.Message); }
+
+        // 10-06 让路保留扩展2：新档清血量缓存（玩家反馈"非鲁滨逊开档血量继承下一个档"）。
+        // 背景：让路模式只挂消费链（AddBlood 写 _memBlood）；StartNewGame 清缓存挂点在 ApplyAll（鲁滨逊档归 WP），
+        // 双装非鲁滨逊档开新档 → _memBlood 残留上一档血量 → 继承。补挂 StartNewGame → SaveStore.PostfixStartNewGame
+        // （清命名空间+清血量缓存+设默认值；新档本就该重置生存状态，与 WP TrySetupNewRun 语义一致，无冲突）。
+        try
+        {
+            var orig3 = AccessTools.Method(typeof(PlayerStore), "StartNewGame");
+            var post3 = AccessTools.Method(typeof(SaveStore), "PostfixStartNewGame");
+            harmony.Patch(orig3, postfix: new HarmonyMethod(post3));
+            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: PlayerStore.StartNewGame（清血量缓存）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: StartNewGame " + ex.Message); }
     }
 
     internal static void ApplyAll()
@@ -169,6 +182,102 @@ internal static class PatchRegistry
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: PlayerStore.StartNewGame " + ex.Message); }
 
+        // 13. 10-06 WS 单装修复：特性选择界面点不动（cheatsheet 5.6 [L1] isInMainMenu 拦截）——Prefix 点击前恢复
+        try
+        {
+            var orig = AccessTools.Method(typeof(Il2Cpp.StartingPerkElement), "OnPointerClick");
+            var pre = AccessTools.Method(typeof(SurvivalFood), "PrefixOnPointerClick");
+            harmony.Patch(orig, prefix: new HarmonyMethod(pre));
+            Core.LogMsg("[WageSurvival] Patch OK: StartingPerkElement.OnPointerClick (isInMainMenu恢复)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: OnPointerClick " + ex.Message); }
+
+        // 14. 10-06 P0 拆分缺口修复：NewStartTypeUI（空间站鲁滨逊开局 tab，WP 复制）——单装 WS 可选鲁滨逊（startType=15 门控可达）
+        try
+        {
+            var origA = AccessTools.Method(typeof(Il2Cpp.MainMenuUIController), "Awake");
+            var postA = AccessTools.Method(typeof(NewStartTypeUI), "PostfixAwake");
+            harmony.Patch(origA, postfix: new HarmonyMethod(postA));
+            Core.LogMsg("[WageSurvival] Patch OK: MainMenuUIController.Awake (新职业tab克隆)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.Awake " + ex.Message); }
+        try
+        {
+            var origB = AccessTools.Method(typeof(Il2Cpp.MainMenuUIController), "ResetAllTab");
+            var postB = AccessTools.Method(typeof(NewStartTypeUI), "PostfixResetAllTab");
+            harmony.Patch(origB, postfix: new HarmonyMethod(postB));
+            Core.LogMsg("[WageSurvival] Patch OK: MainMenuUIController.ResetAllTab");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.ResetAllTab " + ex.Message); }
+        try
+        {
+            var origC = AccessTools.Method(typeof(Il2Cpp.NewGameData), "GetStartDisplayName", new System.Type[] { typeof(Il2Cpp.NewGameData.StartType) });
+            var postC = AccessTools.Method(typeof(NewStartTypeUI), "PostfixGetStartDisplayName");
+            harmony.Patch(origC, postfix: new HarmonyMethod(postC));
+            Core.LogMsg("[WageSurvival] Patch OK: NewGameData.GetStartDisplayName");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.GetStartDisplayName " + ex.Message); }
+        try
+        {
+            var origD = AccessTools.Method(typeof(Il2Cpp.SaveFiles), "BuildPreviewFromStore", new System.Type[] { typeof(Il2Cpp.PlayerStore), typeof(int) });
+            var postD = AccessTools.Method(typeof(NewStartTypeUI), "PostfixBuildPreviewFromStore");
+            harmony.Patch(origD, postfix: new HarmonyMethod(postD));
+            Core.LogMsg("[WageSurvival] Patch OK: SaveFiles.BuildPreviewFromStore");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.BuildPreviewFromStore " + ex.Message); }
+        try
+        {
+            var origE = AccessTools.Method(typeof(PlayerStore), "SaveGame");
+            var preE = AccessTools.Method(typeof(NewStartTypeUI), "PrefixSaveGame");
+            var postE = AccessTools.Method(typeof(NewStartTypeUI), "PostfixSaveGame");
+            harmony.Patch(origE, prefix: new HarmonyMethod(preE), postfix: new HarmonyMethod(postE));
+            Core.LogMsg("[WageSurvival] Patch OK: PlayerStore.SaveGame (12↔15)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.SaveGame " + ex.Message); }
+        try
+        {
+            var origF = AccessTools.Method(typeof(PlayerStore), "LoadGame");
+            var postF = AccessTools.Method(typeof(NewStartTypeUI), "PostfixLoadGame");
+            harmony.Patch(origF, postfix: new HarmonyMethod(postF));
+            Core.LogMsg("[WageSurvival] Patch OK: PlayerStore.LoadGame (15恢复)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.LoadGame " + ex.Message); }
+
+        // 15. 10-06 P1 拆分缺口修复：阶段C 边界内 4 挂点（自动喝水/满卡tooltip/饲料机/食物tooltip）——WP 复制（WS SurvivalFood.TooltipSupply.cs）
+        try
+        {
+            var orig = AccessTools.Method(typeof(LiquidContainerHelper), "AutoSipFromContainer");
+            var pre = AccessTools.Method(typeof(SurvivalFood), "PrefixAutoSipFromContainer");
+            harmony.Patch(orig, prefix: new HarmonyMethod(pre));
+            Core.LogMsg("[WageSurvival] Patch OK: LiquidContainerHelper.AutoSipFromContainer");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: AutoSipFromContainer " + ex.Message); }
+        try
+        {
+            var orig = AccessTools.Method(typeof(FoodItemHelper), "CreateFoodItemTooltip");
+            var pre = AccessTools.Method(typeof(SurvivalFood), "PrefixFoodTooltip");
+            var post = AccessTools.Method(typeof(SurvivalFood), "PostfixFoodTooltip");
+            harmony.Patch(orig, prefix: new HarmonyMethod(pre), postfix: new HarmonyMethod(post));
+            Core.LogMsg("[WageSurvival] Patch OK: FoodItemHelper.CreateFoodItemTooltip (满卡虚高)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateFoodItemTooltip " + ex.Message); }
+        try
+        {
+            var orig = AccessTools.Method(typeof(Il2Cpp.MachineFeedDispenser.__c__DisplayClass7_0), "_CreateFeedDispenser_b__3");
+            var pre = AccessTools.Method(typeof(SurvivalFood), "PrefixFeedDispenserB3");
+            harmony.Patch(orig, prefix: new HarmonyMethod(pre));
+            Core.LogMsg("[WageSurvival] Patch OK: MachineFeedDispenser._CreateFeedDispenser_b__3 (饲料机)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: FeedDispenserB3 " + ex.Message); }
+        try
+        {
+            var orig = AccessTools.Method(typeof(HusbandryHelper), "CreateItemTooltip");
+            var post = AccessTools.Method(typeof(SurvivalFood), "PostfixCreateItemTooltip");
+            harmony.Patch(orig, postfix: new HarmonyMethod(post));
+            Core.LogMsg("[WageSurvival] Patch OK: HusbandryHelper.CreateItemTooltip (食物tooltip)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateItemTooltip " + ex.Message); }
+
         // ===== 阶段C：交易 12 处迁入（鲁滨逊门控 startType=15；WagePerks 侧同目标 12 处调用阶段D删除） =====
         try
         {
@@ -214,6 +323,15 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] Patch OK: ItemFeatureList.BargainBuyingMarkup");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: BargainBuyingMarkup " + ex.Message); }
+
+        try
+        {
+            var orig = AccessTools.Method(typeof(ItemFeature), "GetActualDisplay");
+            var post = AccessTools.Method(typeof(SurvivalTrade), "PostfixItemFeatureGetActualDisplay");
+            harmony.Patch(orig, postfix: new HarmonyMethod(post));
+            Core.LogMsg("[WageSurvival] Patch OK: ItemFeature.GetActualDisplay");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: GetActualDisplay " + ex.Message); }
 
         try
         {

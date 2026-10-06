@@ -104,6 +104,21 @@ internal static class SurvivalTrade
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 加价接受率异常: " + ex.Message); }
     }
 
+    // 10-06 议价加成可见性（主控拍板方案①）：GetActualDisplay Postfix——bargainBuyingMarkup 词条且加成生效时
+    // 显示追加"（含鲁滨逊出价加成）"。纯显示层标注，行为零改动；valueModifier 已含叠加（1.15×(percent+15)）数值无需重算。
+    public static void PostfixItemFeatureGetActualDisplay(ItemFeature __instance, ref string __result)
+    {
+        try
+        {
+            if (__instance == null || string.IsNullOrEmpty(__result)) return;
+            if (!string.Equals(__instance.identifier, "bargainBuyingMarkup", StringComparison.Ordinal)) return;
+            if (!(IsRobinsonRun() && SurvivalFood.GetMood() >= 80)) return;
+            if (__result.Contains("鲁滨逊出价加成")) return;
+            __result = __result + "（含鲁滨逊出价加成）";
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 议价词条标注异常: " + ex.Message); }
+    }
+
     public static void PostfixStoreClientOnDealAccepted(StoreClient __instance)
     {
         try
@@ -160,4 +175,49 @@ internal static class SurvivalTrade
     }
 
     internal static int GetTodayRevenue() => SaveStore.GetInt("revenue", 0);
+
+    // ===== 10-06 复刻 WP Patches.Trade.Markup.cs:409 AddTradeLabel：加价挂 ItemFeature 词条 → tooltip/详情显示原因+百分比 =====
+    // WP 侧既有实现（信誉扫地+20%/笑面虎加价+25%等）；WS 侧售价加成此前只改 __result 不挂词条 → 玩家看不到加价原因。
+    // 10-06 判重修复：identifier== 字符串比较在 Il2Cpp 下失效（北极星截图骰子笑面虎加价 20 条同款坑）→ string.Equals(Ordinal)+同 id 自愈清理
+    internal static void AddPriceLabel(GameItem item, string labelId, string display, int percent)
+    {
+        try
+        {
+            if (item == null || string.IsNullOrEmpty(labelId) || item.itemFeatures == null) return;
+            bool found = false;
+            for (int i = item.itemFeatures.Count - 1; i >= 0; i--)
+            {
+                if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, labelId, StringComparison.Ordinal))
+                {
+                    if (found)
+                    {
+                        item.itemFeatures.RemoveAt(i);
+                        continue;
+                    }
+                    item.itemFeatures[i].preExposeValueModifier = percent;
+                    item.itemFeatures[i].usePreExposeValue = percent != 0;
+                    item.itemFeatures[i].publicDisplay = display;
+                    item.itemFeatures[i].actualDisplay = display;
+                    found = true;
+                }
+            }
+            if (found) return;
+            ItemFeature f = new ItemFeature();
+            f.identifier = labelId;
+            f.featureType = percent >= 0 ? ItemFeature.FeatureType.TemporarySelling : ItemFeature.FeatureType.TemporaryBuying;
+            f.valueStage = ItemFeature.ValueStage.Market;
+            f.valueModifier = 0;
+            f.preExposeValueModifier = percent;
+            f.usePreExposeValue = percent != 0;
+            f.initiallyShown = true;
+            f.isFeatureMatch = true;
+            f.isFeatureExposed = true;
+            f.isExposable = true;
+            f.isFeatureDiscovered = false;
+            f.publicDisplay = display;
+            f.actualDisplay = display;
+            item.itemFeatures.Add(f);
+        }
+        catch { }
+    }
 }

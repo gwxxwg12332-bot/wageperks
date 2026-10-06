@@ -189,13 +189,47 @@ internal static partial class SurvivalFood
         catch { }
     }
 
-    // 售价影响：饱食/心情/Nodes/昂扬/粮仓/补偿buff
+    // 售价影响：饱食/心情/Nodes/昂扬/粮仓/补偿buff + 鲁滨逊档食物品质分档（10-06 复刻 WP ApplyRobinsonMarkup）
     internal static void PostfixGetCurrentValue(GameItem __instance, ref long __result)
     {
         try
         {
+            // 10-06 复刻 WP Patches.Trade.Markup.cs:213-239：鲁滨逊档卖食物按品质分档
+            // 品质3=售价归零 / 品质2=×0.1 / 已食用=×0.2 / 品质0=×1.3（与 WP 完全一致；普通档不参与）
+            if (SurvivalTrade.IsRobinsonRun() && FoodIdentifyHelper.IsFood(__instance))
+            {
+                int q = GetFoodQuality(__instance);
+                switch (q)
+                {
+                    case 3:
+                        __result = 0L;
+                        SurvivalTrade.AddPriceLabel(__instance, "wage_survival_food_q3",
+                            LangHelper.T("食物品质3档 售价归零", "Quality-3 food: zero sell value"), -100);
+                        break;
+                    case 2:
+                        __result = (long)(__result * 0.1);
+                        SurvivalTrade.AddPriceLabel(__instance, "wage_survival_food_q2",
+                            LangHelper.T("食物品质2档 售价×10%", "Quality-2 food: sell ×10%"), -90);
+                        break;
+                    default:
+                        if (SurvivalFood.IsEaten(__instance))
+                        {
+                            __result = (long)(__result * 0.2);
+                            SurvivalTrade.AddPriceLabel(__instance, "wage_survival_food_eaten",
+                                LangHelper.T("已食用 售价×20%", "Eaten food: sell ×20%"), -80);
+                        }
+                        // 10-06 用户拍板：品质0（新鲜）卖×1 原价——不溢价（WP 的 ×1.3 不采用），无词条
+                        break;
+                }
+            }
             int bonus = GetSellBonusPct();
-            if (bonus != 0) __result = (long)(__result * (100 + bonus) / 100.0);
+            if (bonus != 0)
+            {
+                __result = (long)(__result * (100 + bonus) / 100.0);
+                // 10-06 复刻 WP AddTradeLabel：挂"售价+X%"词条 → tooltip/详情显示加价原因（判重+更新，高频调用安全）
+                SurvivalTrade.AddPriceLabel(__instance, "wage_survival_sell_bonus",
+                    LangHelper.T("生存售价加成 " + (bonus > 0 ? "+" : "") + bonus + "%", "Survival sell bonus " + (bonus > 0 ? "+" : "") + bonus + "%"), bonus);
+            }
         }
         catch (System.Exception ex)
         {
@@ -297,6 +331,22 @@ internal static partial class SurvivalFood
         {
             Core.LogMsg("[WageSurvival] TryInfect 异常: " + ex.Message);
         }
+    }
+
+    // 10-06 WS 单装修复：特性选择界面点不动（cheatsheet 5.6 [L1]——StartingPerkElement.OnPointerClick 内
+    // NewGameData[+0x30](isInMainMenu)==0 → return 无操作；进一次游戏后 isInMainMenu=1 → 能选）。
+    // WP 侧 Patches.Lifecycle.cs:587 有此 Prefix，拆分时未复制到 WS → 单装点不动。此处复制核心恢复逻辑（WS 无精神错乱，不需 MadnessRoller 分支）。
+    public static void PrefixOnPointerClick(Il2Cpp.StartingPerkElement __instance)
+    {
+        try
+        {
+            Il2Cpp.NewGameData instance = Il2Cpp.NewGameData.Instance;
+            if (instance != null && !instance.isInMainMenu)
+            {
+                instance.isInMainMenu = true;
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[选点] Prefix异常: " + ex.Message); }
     }
 
     // 每帧检测：Z键切换状态面板（10-06 让路修复：非鲁滨逊档由本挂点处理面板，鲁滨逊档让 WagePerks 的 Z 键接管——普通档双装面板无主修复）
