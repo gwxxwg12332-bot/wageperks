@@ -479,7 +479,7 @@ internal static class ThiefMagnetSystem
                     // 10-07 玩家反馈"黑市货直接已拥有可双击"：手动 UncheckedAcceptAll 绕过原版 AddDirectSellingItemToTable
                     //   的归属标记设置（原版 isOwend=false 会给物品挂 not_purchased=客户卖品需购买）——这里手动补标记，
                     //   否则前台物品被当玩家所有可自由拿走/开箱。
-                    try { gameItem.EnableTag("not_purchased", true); } catch { }
+                    try { gameItem.EnableTag("not_purchased", true); try { gameItem.EnableTag("TAG_NOT_PURCHASED", true); } catch { } } catch { } // 10-07 同类谬误：读端 6 处双查（not_purchased/TAG_NOT_PURCHASED 历史不确定）——写端双写全覆盖，防单写不被识别
                     try { gameItem.DisableTag("IS_OWNED_TAG", true); } catch { }
                     var l = new Il2CppSystem.Collections.Generic.List<GameItem>();
                     l.Add(gameItem);

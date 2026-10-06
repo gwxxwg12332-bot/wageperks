@@ -107,8 +107,10 @@ public static partial class WageGirlSystem
                         GameItem it = DirectoryMaster.Item(pick, true);
                         if (it != null)
                         {
-                            try { it.DisableTag("STOLEN_TAG"); } catch { }
-                            try { it.DisableTag("CONTRABAND_TAG"); } catch { }
+                            // 10-07 同类谬误：历史只清 STOLEN_TAG/CONTRABAND_TAG——读写端实际用 stolen/TAG_STOLEN（MerchantHelper:116/FenceReturn:143 双查）与
+                            //   contraband/CONTRABAND/CONTRABAND_ITEM_TAG（原版权威）——清全 tag 全覆盖（不存在=Disable no-op 无害）
+                            try { it.DisableTag("STOLEN_TAG"); it.DisableTag("stolen"); it.DisableTag("TAG_STOLEN"); } catch { }
+                            try { it.DisableTag("CONTRABAND_TAG"); it.DisableTag("contraband"); it.DisableTag("CONTRABAND"); it.DisableTag("CONTRABAND_ITEM_TAG"); } catch { }
                             var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
                             if (slot != null) { try { slot.TryAcceptOnce(); } catch { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { } } }
                             else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); em.invElement.UncheckedAcceptAll(l); } catch { } }
