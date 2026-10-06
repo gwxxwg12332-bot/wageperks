@@ -203,6 +203,28 @@ public static partial class WageGirlSystem
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 销赃回报上桌卖失败: " + ex.Message); }
     }
 
+    // 10-07 #2（525BFCC1 需求修正，用户拍板）：蛙娘销赃带回=玩家背包+已拥有（不是柜台卖——A4 理解错位；
+    //   "小偷带来的东西才带售价"=ThiefMagnetSystem 链；蛙娘=自家 NPC 销赃回报=送玩家）
+    // 普通档防泄露语义由小偷链承担；蛙娘箱/指挥卡/免疫宁/拆件全走此入口
+    private static void GiveToPlayerBackpack(GameItem it)
+    {
+        try
+        {
+            if (it == null) return;
+            try { Il2Cpp.GeneralHelper.SetItemOwned(it, true); } catch { }
+            try { it.DisableTag("stolen", true); } catch { }
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null)
+            {
+                try { it.Destroy(); } catch { }
+                Core.LogMsg("[蛙娘] GiveToPlayerBackpack: 背包未就绪，物品已销毁防泄漏");
+                return;
+            }
+            WageAPI.WageItemGrant.GrantToInventory(it, em.backInvinvElement); // 防重叠契约内置（TryAcceptOnce 优先+UncheckedAcceptAll 兜底）
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveToPlayerBackpack 异常: " + ex.Message); }
+    }
+
     // 正品免疫宁（09-23 修复「蛙娘带回的正品免疫宁无法使用」）
     // 根因（拆包实锤 _Demo_20260915_cpp2il / InsInjectorHelper）：
     //   Init(item)              → 只打 2 个基础标签（不含正品数据）
