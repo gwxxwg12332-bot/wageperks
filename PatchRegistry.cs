@@ -445,11 +445,11 @@ internal static class PatchRegistry
         RegisterP1(typeof(MachineMoistureFarm), "GetOutputVolume", "PostfixGetOutputVolume");
         RegisterP1(typeof(WaterHelper), "RemoveContaminantFromContainer", "PostfixRemoveContaminantFromContainer");
         // 经济链 7
-        RegisterP1(typeof(StoreClientManager), "CheckRentDay", "PrefixCheckRentDay", prefix: true);
-        RegisterP1(typeof(StoreClientUniqueList.__c), "_LandlordWholesale_b__22_0", "PrefixLandlordWholesaleStock", prefix: true);
+        RegisterP1(typeof(StoreClientManager), "CheckRentDay", "PrefixCheckRentDay", prefix: true, postfix: false);
+        RegisterP1(typeof(StoreClientUniqueList.__c), "_LandlordWholesale_b__22_0", "PrefixLandlordWholesaleStock", prefix: true, postfix: false);
         RegisterP1(typeof(StoreClientManager), "HandleSupplierClient", "PostfixHandleSupplierClient");
-        RegisterP1(typeof(PlayerStore), "HandleInsurance", "PrefixHandleInsurance", prefix: true);
-        RegisterP1(typeof(PlayerStore), "ExecuteGameOver", "PrefixExecuteGameOver", prefix: true);
+        RegisterP1(typeof(PlayerStore), "HandleInsurance", "PrefixHandleInsurance", prefix: true, postfix: false);
+        RegisterP1(typeof(PlayerStore), "ExecuteGameOver", "PrefixExecuteGameOver", prefix: true, postfix: false);
         RegisterP1(typeof(StoreClientManager), "HandleNormalClient", "PostfixHandleNormalClient");
         RegisterP1(typeof(StoreClientList), "PlaceSupplierInventory", "PostfixPlaceSupplierInventory");
 

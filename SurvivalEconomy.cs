@@ -117,7 +117,8 @@ internal static partial class SurvivalFood
         return true;
     }
     // ===== 三种生存结局（starvation/thirst/disease 自定义文案）=====
-    public static bool PrefixExecuteGameOver(ref string ending)
+    // 10-07 修复：首参 ref string→string（原方法 ExecuteGameOver(string) 值参——Harmony 首参必须原样匹配；方法体只读 ending 不改，值参安全）
+    public static bool PrefixExecuteGameOver(string ending)
     {
         try
         {
