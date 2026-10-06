@@ -96,25 +96,12 @@ internal static partial class RobinCrusoePerk
         catch { return false; }
     }
 
-    // MoreUpdate 配方机器 ∩ 我方机器全集（拆包实锤：furnace/water_purifier/wine_rack/mirage_projector 有 metal_ingot 配方）
-    private static readonly HashSet<string> MOREUPDATE_METAL_INGOT_MACHINES = new HashSet<string>(
-        new[] { "furnace", "water_purifier", "wine_rack", "mirage_projector" });
-    private static bool IsMoreUpdateOwnedMachine(GameItem target)
-    {
-        try
-        {
-            if (!IsMoreUpdateLoaded() || target == null) return false;
-            string id = (target.identifier ?? "").ToLowerInvariant();
-            if (!MOREUPDATE_METAL_INGOT_MACHINES.Contains(id)) return false;
-            // 接力（09-14 拍板）：MoreUpdate 升满（cap reached）后我方接管继续升级——升满判定按拆包实锤
-            if (id == "furnace" && GetTagIntSafe(target, "MOD_FURNACE_INGOT_UPGRADES") >= 10) return false;
-            if (id == "water_purifier" && GetTagIntSafe(target, "MOD_PURIFIER_INGOT_UPGRADES") >= 10) return false;
-            if (id == "wine_rack" && GetTagIntSafe(target, "MOD_WINERACK_WINE_WIDTH") >= 6) return false;
-            // mirage_projector 永不升满（int.MaxValue）→ 始终归 MoreUpdate
-            return true;
-        }
-        catch { return false; }
-    }
+    // ===== MoreUpdate（MoreDeviceUpgrades v0.2.0）兼容让路（09-14 建立，10-07 用户拍板删除）=====
+    // 09-14：动态探测 MoreUpdate 已加载时，我方金属锭升级对它的 4 台配方机器让路（防"同一拖放双响应、metal_ingot 双消耗"）。
+    // 10-07：MoreDeviceUpgrades 侧也存在互让（对方让回）→ 双向互让 → 4 台机器金属锭升级双不挂 = 失效（用户实测确认）。
+    // ButterLab 建议"提升自己优先级先干"：我方不再让路，恢复挂载（IsMoreUpdateOwnedMachine 恒 false）。
+    // 风险标注：对方若同时恢复挂载，同一拖放可能双响应/双消耗——实测观察，若出现再按共存告警调整（ModCompat KNOWN_CONFLICTS 保留）。
+    private static bool IsMoreUpdateOwnedMachine(GameItem target) => false;
 
     private static bool IsMetalIngot(GameItem item)
     {
