@@ -225,7 +225,7 @@ internal static class ThiefMagnetSystem
                     GameItem bit = MerchantHelper.AddItemToCounter(bid, 0, false, true); // ignorePerk=true：10-06 拆包——原版 AddDirectSellingItemToTable 内部声望销毁链（LLDISTRUSTED/BM_DISTRUSTED+faction+IsContraband→DestroyIfUnplaced），声名狼藉玩家黑市货被销毁；ignorePerk 疑似跳过该检查（语义拆包未定位，先按拆包AI方案A实测）
                     if (bit != null)
                     {
-                        try { bit.EnableTag("contraband"); bit.EnableTag("CONTRABAND"); } catch { }
+                        try { bit.EnableTag("contraband"); bit.EnableTag("CONTRABAND"); bit.EnableTag("CONTRABAND_ITEM_TAG"); } catch { } // 10-07 检查同类谬误：原版权威违禁 tag=CONTRABAND_ITEM_TAG（拆包 IsContraband 查它，cheatsheet:8076）——仅写 contraband/CONTRABAND 不被原版识别=玩家买走无违禁风险
                         // 10-06 B1：黑市货按黑市声望加价（声望 < -40 开始计数，越低加价越多）
                         //   pct = min(100%, (-40 - 声望)/100)——-40→+0%，-99→+59%；黑市讨厌你 → 卖你高价
                         try
@@ -466,7 +466,7 @@ internal static class ThiefMagnetSystem
             bool isBlack = false;
             foreach (var b in BlackMarketGoodsIds) { if (b == gid) { isBlack = true; break; } }
             if (!isBlack && gid == "evidence_box") isBlack = true;
-            if (!isBlack) { try { isBlack = gameItem.IsTag("contraband") || gameItem.IsTag("CONTRABAND"); } catch { } }
+            if (!isBlack) { try { isBlack = gameItem.IsTag("contraband") || gameItem.IsTag("CONTRABAND") || gameItem.IsTag("CONTRABAND_ITEM_TAG"); } catch { } } // 10-07：补原版权威 tag 判定
             if (!isBlack) return true;
             // 绕过销毁链：手动放前台（客户卖品区——玩家可买）
             _thiefBlackGoodsBypass = true;
