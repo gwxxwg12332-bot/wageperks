@@ -84,12 +84,27 @@ internal static partial class RobinCrusoePerk
         "bandage_item", "hemostatic_bandage_item", "topical_bandage_item", "phagimycin_pill",
         "med_bottle_blue", "med_bottle_red", "salve", "blood_bag"
     };
+    // 10-06 用户拍板：拾荒 100% 掉落正品免疫宁（可用版=SetItemOwned→双击可打；区别于拾荒池原版 expired 过期蓝图 cheatsheet:420）
+    // 10-06 正品实锤：免疫宁"正品"=物品带 CATEGORY_GENUINE_INJECTOR feature（HealthData:3982 FindItemFeatureByID 判定→正品效果档位）；
+    //   DirectoryMaster.Item("large_purple_injector") 创建的=普通版（无正品 feature，"能用但好像不是正品"）——
+    //   原版正品免疫宁=PreBuiltItemHelper.CreateRealGenuineInjector()（ExchangeList_NestedType:4377 ImmunivaxBarter 交易同款，RealGenuine=真·正品）
     public static void PostfixGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result)
     {
         try
         {
             if (!IsActive()) return;
             if (__result == null) return;
+            // 10-06 G（用户拍板：哨兵门控 1%——替代 10-06 无条件 100%）：选原生「哨兵综合症」→ 拾荒 1% 掉正品免疫宁；不选不掉
+            //   拆包实锤（memos/hQvCsbLJpdTsA6mQtkEHPU）：原版拾荒免疫宁=Rng<1 分支（ScavHelper.txt:1168-1175），正品=CATEGORY_GENUINE_INJECTOR feature
+            try
+            {
+                if (Il2Cpp.HealthData.IsSentinel() && UnityEngine.Random.Range(0, 100) < 1)
+                {
+                    TryAddImmunivax(__result);
+                    Core.LogMsg("[空间站鲁滨逊] 哨兵综合症拾荒 1% 免疫宁判定命中");
+                }
+            }
+            catch (System.Exception exg) { Core.LogMsg("[空间站鲁滨逊] 哨兵免疫宁判定异常: " + exg.Message); }
             if (UnityEngine.Random.Range(0f, 1f) > 0.6f) return; // 60% 概率
             bool food = UnityEngine.Random.Range(0, 2) == 0;
             string[] pool = food ? SCROUNGE_FOODS : SCROUNGE_MEDS;
@@ -99,6 +114,19 @@ internal static partial class RobinCrusoePerk
             __result.Add(item);
         }
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 拾荒额外掉落异常: " + ex.Message); }
+    }
+    // 拾荒 100% 正品免疫宁（PreBuiltItemHelper.CreateRealGenuineInjector=原版正品免疫宁工厂；SetItemOwned→可双击使用）
+    private static void TryAddImmunivax(Il2CppSystem.Collections.Generic.List<GameItem> __result)
+    {
+        try
+        {
+            GameItem it = Il2Cpp.PreBuiltItemHelper.CreateRealGenuineInjector();
+            if (it == null) { Core.LogMsg("[空间站鲁滨逊] 正品免疫宁创建失败（CreateRealGenuineInjector null）"); return; }
+            try { Il2Cpp.GeneralHelper.SetItemOwned(it, true); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 免疫宁 SetItemOwned 异常: " + ex.Message); }
+            __result.Add(it);
+            Core.LogMsg("[空间站鲁滨逊] 拾荒正品免疫宁掉落: " + (it.identifier ?? "?") + "（哨兵综合症·1%）");
+        }
+        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 免疫宁掉落异常: " + ex.Message); }
     }
     // 09-26 拾荒守卫（P1）：priority -1000 后置跑（第三方 __result.Clear() 之后追加）；Finalizer 兜异常时也补跑追加
     public static System.Exception FinalizerGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result, System.Exception __exception)

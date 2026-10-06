@@ -422,4 +422,34 @@ internal static class NewStartTypeUI
         }
         catch (Exception ex) { Core.LogMsg("[新职业] PostfixLoadGame 异常: " + ex.Message); }
     }
+
+    // ===== 10-07 鲁滨逊完全归 WS WS-4：旧档引导提示 =====
+    // 读档时：鲁滨逊档（runID 标记）+ WageSurvival 未装 → 弹提示装 WS（会话内一次，防刷屏）
+    // 注：WS NewStartTypeUI.PostfixLoadGame 已承接 15 恢复（本方法体留死代码仅编译依赖，本提示挂点独立注册）
+    private static bool _oldSaveHintShown = false;
+    private static bool IsWageSurvivalPresent()
+    {
+        try
+        {
+            foreach (System.Reflection.Assembly a in System.AppDomain.CurrentDomain.GetAssemblies())
+            { try { if (a.GetName().Name == "WageSurvival") return true; } catch { } }
+        }
+        catch { }
+        return false;
+    }
+    public static void PostfixLoadGameOldSaveHint()
+    {
+        try
+        {
+            if (_oldSaveHintShown) return;
+            if (IsWageSurvivalPresent()) return;
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps == null) return;
+            if (!IsMarkedRun(ps.runID ?? "")) return;
+            _oldSaveHintShown = true;
+            try { Il2Cpp.StoreUIManager.Instance.Notify("检测到鲁滨逊生存档：请安装「WageSurvival 独立版」继续鲁滨逊完整玩法（本版已无鲁滨逊内容）", "red"); } catch { }
+            Core.LogMsg("[鲁滨逊归WS] 旧档引导提示触发（runId=" + (ps.runID ?? "") + "，WageSurvival 未装）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[鲁滨逊归WS] 旧档引导提示异常: " + ex.Message); }
+    }
 }

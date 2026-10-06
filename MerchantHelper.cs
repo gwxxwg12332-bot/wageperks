@@ -17,8 +17,9 @@ internal static class MerchantHelper
     /// <param name="itemId">物品ID</param>
     /// <param name="heat">赃物热度（0=干净）</param>
     /// <param name="isOwend">是否已拥有（false=正常售卖，需要购买）</param>
+    /// <param name="ignorePerk">是否跳过原版声望/违禁检查（AddDirectSellingItemToTable 第4参——10-06 拆包：forcedHeat=0 走 LLDISTRUSTED 链、≠0 走 BM_DISTRUSTED 链，命中 faction+IsContraband → DestroyIfUnplaced 销毁）</param>
     /// <returns>添加到柜台的物品，失败返回null</returns>
-    internal static GameItem AddItemToCounter(string itemId, int heat = 0, bool isOwend = false)
+    internal static GameItem AddItemToCounter(string itemId, int heat = 0, bool isOwend = false, bool ignorePerk = false)
     {
         try
         {
@@ -39,7 +40,7 @@ internal static class MerchantHelper
             ClearAllBadTags(sellItem);
 
             // 4. 添加到柜台
-            instance.AddDirectSellingItemToTable(sellItem, isOwend, false, false, heat);
+            instance.AddDirectSellingItemToTable(sellItem, isOwend, false, ignorePerk, heat);
 
             // 5. 添加后再清除标签（AddDirectSellingItemToTable内部可能重新加标签）
             ClearAllBadTags(sellItem);
@@ -57,7 +58,7 @@ internal static class MerchantHelper
     /// 通用：已创建物品→清除所有坏标签→添加到柜台→再清除标签
     /// 适用于需要先自定义物品（如补名、设值）再添加的场景
     /// </summary>
-    internal static GameItem AddItemToCounter(GameItem item, int heat = 0, bool isOwend = false)
+    internal static GameItem AddItemToCounter(GameItem item, int heat = 0, bool isOwend = false, bool ignorePerk = false)
     {
         try
         {
@@ -75,7 +76,7 @@ internal static class MerchantHelper
             ClearAllBadTags(sellItem);
 
             // 4. 添加到柜台
-            instance.AddDirectSellingItemToTable(sellItem, isOwend, false, false, heat);
+            instance.AddDirectSellingItemToTable(sellItem, isOwend, false, ignorePerk, heat);
 
             // 5. 添加后再清除标签
             ClearAllBadTags(sellItem);

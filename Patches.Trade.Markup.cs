@@ -72,7 +72,19 @@ internal static partial class Patches
 		_inNegociatedCalc = false;
 		if (_currentValueCallsInNegociated == 0)
 		{
+			long before = __result;
 			TryApplyTradeMarkup(__instance, ref __result);
+			// 10-06 三任务修复单③：诊断日志（验证交易面板售价加成是否应用——玩家反馈"面板售价没加"；Patch OK 靠游戏日志 [交易标记] 行验证）
+			if (Core.DebugMode && __result != before && __instance != null)
+			{
+				try
+				{
+					string id = __instance.identifier ?? "?";
+					bool sell = false; try { sell = Il2Cpp.GeneralHelper.IsItemOwned(__instance); } catch { }
+					Core.LogMsg("[交易标记] GetNegociatedValue 加成应用: " + id + " sell=" + sell + " " + before + "→" + __result + " (面板售价对齐tooltip)");
+				}
+				catch { }
+			}
 		}
 	}
 

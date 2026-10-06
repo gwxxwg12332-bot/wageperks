@@ -414,46 +414,66 @@ internal static partial class RobinCrusoePerk
         catch { return true; }
     }
 
-    // 09-23 奥丁电话：声望-99 也能接（声名狼藉/人神共愤激活时覆盖原版拒绝）
+    // 10-06 C1b（拆包闭环 memos/gH3HntMcGFSEkEA6FYaSVc）：OdinForce（声望门）已退役——
+    //   原版 51189 phoneState=1 第一道 return=放行必死路（奥丁本来不接任何人的电话）→ 51189 无条件强通（任意声望可叫），
+    //   对话+排期全走 C2 已建显示链（PostfixGetCallDialog 覆盖 RevMerchantPhoneDialog + PrefixStartPhoneDialog 放行原版）。
+
+    // 10-06 C2：本帧 51189 强通放行标记（PrefixStartPhoneDialog 设 → PostfixGetCallDialog 消费后清）
+    private static bool _forceOdinDialog = false;
+
+    // 10-06 C2（拆包实锤）：原版链=GetCallDialog 返回 Dialogue→StartPhoneDialog 显示；奥丁 dialogFuncId 未设→原版查不到→BugDialog 兜底。
+    //   强通帧覆盖为 RevMerchantPhoneDialog() 结果（原版叫货对话 odin_hold + 排期 lambda，对话+排期全走原版显示链）。
+    public static void PostfixGetCallDialog(ref Il2Cpp.Dialogue __result)
+    {
+        try
+        {
+            if (!_forceOdinDialog) return;
+            _forceOdinDialog = false;
+            try
+            {
+                __result = Il2Cpp.PhoneDialogList.RevMerchantPhoneDialog();
+                Core.LogMsg("[奥丁] GetCallDialog 覆盖为原版叫货对话（odin_hold + 排期 2 天）");
+            }
+            catch (System.Exception ex) { Core.LogMsg("[奥丁] RevMerchantPhoneDialog 覆盖失败: " + ex.Message); }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PostfixGetCallDialog异常: " + ex.Message); }
+    }
+
+    // 09-23 奥丁电话；10-06 C1b（拆包闭环 memos/gH3HntMcGFSEkEA6FYaSVc）单态方案：
+    //   原版 51189 phoneState=1 第一道 return——放行原版=必死路（奥丁本来不接任何人的电话，任意声望都拨不通）
+    //   → 51189 无条件强通（任意声望可叫），对话+排期走 C2 已建显示链；OdinForce（声望门）退役
     public static void PostfixWillAnswerCall(long number, ref bool __result)
     {
         try
         {
             if (number != 51189) return; // 奥丁号码
-            if (Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))
-            {
-                __result = true; // 强制接听
-                Core.LogMsg("[奥丁] 声望低但声名狼藉激活 → 强制接听");
-            }
+            __result = true; // 无条件强制接听
+            Core.LogMsg("[奥丁] 无条件强制接听（C1b 单态方案）");
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
     }
 
 
-    // v1.3.1 奥丁电话：声望低被LL_AVOIDED拦在AutoCall，声名狼藉/人神共愤时强制接通
+    // v1.3.1 奥丁电话；C1b：无条件强通（任意声望可叫，原版 phoneState=1 恒死路）
     public static bool PrefixAutoCall(long number)
     {
         try
         {
             if (number != 51189) return true;
-            if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-            // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
-            Core.LogMsg("[奥丁] AutoCall拦截 number=51189 → 强制StartPhoneDialog");
+            Core.LogMsg("[奥丁] AutoCall拦截 number=51189 无条件强通（C1b）");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
             return false;
         }
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] PrefixAutoCall异常: " + ex.Message); return true; }
     }
-    // HandleCall Prefix（第二道防线：phoneState=1 NotResponding 时 AutoCall 后仍被拦，HandleCall 再强通）
+    // HandleCall Prefix（第二道防线：phoneState=1 NotResponding 时 AutoCall 后仍被拦，HandleCall 再强通）；C1b：无条件
     public static bool PrefixHandleCall(long currentNumber)
     {
         try
         {
             long number = currentNumber;
             if (number != 51189) return true;
-            if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-            // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
-            Core.LogMsg("[奥丁] HandleCall拦截 number=51189 → 强制StartPhoneDialog");
+            Core.LogMsg("[奥丁] HandleCall拦截 number=51189 无条件强通（C1b）");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
             return false;
         }
@@ -464,18 +484,34 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            // 51189 奥丁：声名狼藉强通后排期 wanted4Normal（原生收货奥丁，非名片wanted4）
+            // 51189 奥丁：10-06 525BFCC1 反馈①（用户口径，覆盖 C1b 单态无条件强通）——革命军声望双分支：
+            //   <-40 → 绿窗接管（强制排期 2 天 + 禁原生对话——原生对话会导致不排期）
+            //   ≥-40 → 原生打通（强通 phoneState + 原版对话排期链：PostfixGetCallDialog 覆盖 RevMerchantPhoneDialog）
             if (currentNumber == 51189)
             {
-                if (!(Core.PerkActive("声名狼藉") || Core.PerkActive("人神共愤"))) return true;
-                // 10-02 改：删除 revRep > -99 判断——任意声望都能叫奥丁
                 PlayerStore ps0 = PlayerStore.Instance; if (ps0 == null || ps0.storeClientManager == null) return true;
+                int revRep = -999;
+                try
+                {
+                    var fr = Il2Cpp.StoreReputation.GetStoreReputation("FACTION_REVOLUTION");
+                    if (fr != null) revRep = (int)fr.GetReputationExact();
+                }
+                catch (System.Exception ex) { Core.LogMsg("[奥丁] 声望读取异常: " + ex.Message); }
+                if (revRep < -40)
+                {
+                    // 接管模式：强制排期 + 禁原生对话（玩家直接看到绿窗接管通知）
+                    try { ps0.storeClientManager.RemoveDuplicateClientsByIdentifier("wanted4Normal"); } catch { }
+                    try { ps0.QueueFuturClient("wanted4Normal", 2); } catch (System.Exception ex) { Core.LogMsg("[奥丁] QueueFuturClient异常: " + ex.Message); }
+                    try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { }
+                    try { StoreUIManager.Instance.Notify(LangHelper.T("革命军声望过低，奥丁已被接管：2天后强制到店", "Revolution rep too low, Odin seized: forced arrival in 2 days"), "green"); } catch { }
+                    Core.LogMsg("[奥丁] 绿窗接管 revRep=" + revRep + "（<-40，禁原生对话+强制排期）");
+                    return false; // 禁原生对话
+                }
                 try { ps0.storeClientManager.RemoveDuplicateClientsByIdentifier("wanted4Normal"); } catch { }
-                ps0.QueueFuturClient("wanted4Normal", 2);
-                try { StoreUIManager.Instance.Notify(LangHelper.T("已联系奥丁，2天后到店", "Odin contacted, arriving in 2 days."), "green"); } catch { }
-                Core.LogMsg("[奥丁] 电话接通 → 排期wanted4Normal 2天到店");
-                try { Il2Cpp.PhoneUIManager.Instance.StopCall(); } catch { }
-                return false;
+                // ≥-40 原生打通：强通标记 + 放行原版 StartPhoneDialog（GetCallDialog→Postfix 覆盖→显示对话+排期）
+                _forceOdinDialog = true;
+                Core.LogMsg("[奥丁] 原生打通 revRep=" + revRep + "（≥-40）");
+                return true;
             }
             if (!IsActive()) return true;
             string id = null, name = null;

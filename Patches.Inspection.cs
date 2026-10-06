@@ -40,7 +40,8 @@ internal static partial class Patches
 	{
 		try
 		{
-			_secVipOverride = RiskTakerPerk.IsActive();
+			// 10-06 决策#10 快件：招贼体质=无法豁免治安豁免（SEC_VIP）——RiskTaker 或 ThiefMagnet 激活都关豁免；PostfixIsPerkUnlocked 自动同步（_secVipOverride→SEC_VIP=false）
+			_secVipOverride = RiskTakerPerk.IsActive() || ThiefMagnetPerk.IsActive();
 		}
 		catch
 		{
@@ -98,7 +99,8 @@ internal static partial class Patches
 			bool flag2 = num2;
 			if (!num2 && flag)
 			{
-				flag2 = DeterministicRandom.NextBool("thief_magnet_inspection", num, 0.2);
+				// 10-06 招贼大改：检查概率可调（BuildConfig.ThiefMagnetInspectionChance，默认 0.2=20%）
+				flag2 = DeterministicRandom.NextBool("thief_magnet_inspection", num, (double)BuildConfig.ThiefMagnetInspectionChance);
 			}
 			if (!flag2)
 			{

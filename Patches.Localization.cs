@@ -148,6 +148,36 @@ internal static partial class Patches
 			{
 				return;
 			}
+			// 10-06 B1（525BFCC1 拍板）：黑市货加价数值可见——BLACK_MARKET_MARKUP_PCT tag → 名称追加"（黑市加价 +X%）"
+			try
+			{
+				int bmMarkup = ContainerUpgradeV2.GetTagIntSafe(__instance, "BLACK_MARKET_MARKUP_PCT");
+				if (bmMarkup > 0)
+				{
+					__result = __result + LangHelper.T("（黑市加价 +" + bmMarkup + "%）", " (Black Market markup +" + bmMarkup + "%)");
+				}
+			}
+			catch { }
+			// 10-06 H-2（拆包 YTD5Ew2ZUSa5oddLDoCGRS）：半价/双倍价 tooltip 兜底显示——词条+物品名双保险
+			//   拆包定案：BOUGHT_PRICE_TAG=原版买入价 tag 不动；unitValue 不是 tooltip 数据源（GameItemElement 读 TagState[0x48]）——
+			//   ItemFeature 词条（stolen_half_price/wages_robin_buy）由原版词条区显示，这里再追加到名称行，玩家 hover 必可见
+			try
+			{
+				if (__instance.itemFeatures != null && __instance.itemFeatures.Count > 0)
+				{
+					bool halfPrice = false, robinBuy = false;
+					for (int fi = 0; fi < __instance.itemFeatures.Count; fi++)
+					{
+						var ff = __instance.itemFeatures[fi];
+						if (ff == null || string.IsNullOrEmpty(ff.identifier)) continue;
+						if (ff.identifier == "stolen_half_price") halfPrice = true;
+						else if (ff.identifier == "wages_robin_buy") robinBuy = true;
+					}
+					if (halfPrice) __result = __result + LangHelper.T("（半价卖回）", " (Half price resale)");
+					if (robinBuy) __result = __result + LangHelper.T("（双倍价）", " (x2 price)");
+				}
+			}
+			catch { }
 			if (!BuildConfig.CompatWineNameProtect) return; // 10-03 补：开关
 			string identifier = __instance.identifier;
 			if (identifier == "wine_bottle")

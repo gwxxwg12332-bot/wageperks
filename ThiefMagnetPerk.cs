@@ -17,8 +17,8 @@ internal sealed class ThiefMagnetPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("招贼体质", "Thief Magnet");
-    internal override string Description => LangHelper.T("你天生招贼，可疑顾客特别爱光顾你的店。治安部检查概率+20%，小偷、骗子和可疑客户出现频率大幅上升。夜里锁门要锁好。", "Naturally attracts thieves. Inspection +20 percent, suspicious customers increased.");
-    internal override int Cost => -2;   // 返还2点
+    internal override string Description => LangHelper.T("你天生招贼，可疑顾客特别爱光顾你的店。治安部检查概率+20%且无法豁免；每天夜里可能被偷走价值最高的物品（次日小贩会半价卖回）；黑市买家每天上门；小偷经常来店里踩点。夜里锁好门。", "Naturally attracts thieves. Inspection +20 percent (cannot be exempted); the most valuable item may be stolen nightly (the fence sells it back at half price next day); black-market buyers visit daily; thieves often case the shop.");
+    internal override int Cost => -8;   // 10-06 用户拍板：-2 → -8（负面给点）
     internal override int Type => 1;    // 负面特性显示为红色
 
     internal override void OnNewGame() { }

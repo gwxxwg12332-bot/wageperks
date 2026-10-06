@@ -106,7 +106,8 @@ internal static partial class RobinCrusoePerk
             AddBlood(100); // 睡觉回血（09-17 卖血）
             TickBloodRest(); // 09-20 M5：虚弱强制休息 3 天 → 结束 ±20%
             int deals = WageSaveStore.GetInt(PERK_ID, "deals", 0);
-            int social = GetSocial() + (deals > 0 ? DAILY_SOCIAL_GAIN : -DAILY_SOCIAL_LOSS) + FxNum("socD") + FxNum("socR");
+            // 10-06 用户拍板：社交改为成交即时 +5（RecordDeal 每单加）——日结只处理"无客日 -5"（有交易日不再额外加，防双加）
+            int social = GetSocial() + (deals > 0 ? 0 : -DAILY_SOCIAL_LOSS) + FxNum("socD") + FxNum("socR");
             SetSocial(Math.Max(0, Math.Min(100, social)));
             WageSaveStore.SetInt(PERK_ID, "deals", 0); // 接待计数清零
 
@@ -211,9 +212,21 @@ internal static partial class RobinCrusoePerk
     }
 
     // ===== 接待计数（OnDealAccepted Postfix 调用，社交结算用）=====
+    // 10-06 用户拍板：社交即时增加——成交一单立即 +5（不再等日结），deals 计数仅作日结防扣标记
     internal static void RecordDeal()
     {
-        try { if (IsActive()) WageSaveStore.SetInt(PERK_ID, "deals", WageSaveStore.GetInt(PERK_ID, "deals", 0) + 1); } catch { }
+        try
+        {
+            if (!IsActive()) return;
+            int n = WageSaveStore.GetInt(PERK_ID, "deals", 0) + 1;
+            WageSaveStore.SetInt(PERK_ID, "deals", n);
+            int soc = Math.Min(100, GetSocial() + 5);
+            SetSocial(soc);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("成交一单 社交 +5", "Deal closed, Social +5"), "green"); } catch { }
+            RefreshStatusPanel(); // 面板社交实时刷新
+            Core.LogMsg("[空间站鲁滨逊] 成交一单 deals=" + n + " 社交即时+5 → " + soc);
+        }
+        catch { }
     }
 
 }

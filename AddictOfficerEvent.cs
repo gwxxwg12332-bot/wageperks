@@ -29,6 +29,9 @@ internal static class AddictOfficerEvent
             if (PlayerStore.Instance == null) return;
             int day = GetDay();
 
+            // 10-06 事件通道互斥（招贼大改）：小偷系统（回卖/跳脸/黑市）当日已占通道 → 巡查顺延
+            if (WageSaveStore.GetInt("thief_magnet", "event_channel_last_day", -1) == day) return;
+
             // 1. 次日巡查：记仇 flag=true → 没收 → 清 flag → 巡查日不再伪装（防连锁）
             if (WageSaveStore.GetBool(NS, KEY_GRUDGE, false))
             {

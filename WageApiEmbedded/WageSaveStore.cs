@@ -442,6 +442,19 @@ public static class WageSaveStore
         Flush();
     }
 
+    /// <summary>10-06 A8：小退落盘（GameMaster.QuitToMenu Postfix）。小退（不存档退出重进）不触发 SaveGame/EndDay，
+    /// 状态（KEY_STOLEN 等）只存内存 → 重进丢失；QuitToMenu 时补一次 Flush（只写内存快照，不依赖 PlayerStore，安全）。</summary>
+    public static void PostfixQuitToMenu()
+    {
+        try
+        {
+            if (!_dirty) return; // 无未落盘改动不写（防每次回主菜单白写）
+            Core.LogMsg("[SaveStore] QuitToMenu Postfix → Flush（小退落盘）");
+            Flush();
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSaveStore] QuitToMenu Flush异常: " + ex.Message); }
+    }
+
     /// <summary>读档（PlayerStore.LoadGame Postfix 调）。键值文件同步读取，容器恢复走延迟轮询。</summary>
     public static void OnLoadGame()
     {

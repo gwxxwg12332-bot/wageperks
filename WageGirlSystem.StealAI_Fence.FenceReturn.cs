@@ -181,23 +181,47 @@ private static void FenceReturn()
             long target = (long)(amt * (1f + margin));
             if (target < 1) target = 1;
             int cat = GetStat(K_FENCE_CAT);
-            // cat==0 物资箱：1~3 只随机箱（CFG），target 均分，内部按 ItemPool 填到各自份额
+            // cat==0 物资箱：10-06 D+ 拍板（Memos AArYGY6QQhE8QABQvVtjDF）——锁箱外在价值标价 300/箱（BuildConfig.WageGirlFenceBoxValue 可配=基准）
+            //   10-06 新需求：蛙娘根据好感设定箱子价值——100 好感=基准 300/箱，越低越贵：线性 = 基准 × (2 - aff/100)（aff clamp [0,100]）
+            //   aff=100→300、aff=50→450、aff=0→600；nBox = round(target/boxValue)；10-06 D1：取消"至少 1 箱"保底（可为 0）
             if (cat == 0)
             {
-                // 09-26 惊喜感：多只箱（1~3），不再单箱硬塞
-                int nBox = Core.Rng.Next(BuildConfig.WageGirlFenceBoxMin, BuildConfig.WageGirlFenceBoxMax + 1);
+                int affBox = Math.Max(0, Math.Min(100, aff));
+                double boxValue = BuildConfig.WageGirlFenceBoxValue * (2.0 - affBox / 100.0);
+                int nBox = (int)Math.Round(target / boxValue);
                 long filledTotal = 0; int boxOk = 0;
                 for (int b = 0; b < nBox; b++)
                 {
-                    long share = target / Math.Max(1, nBox);
-                    if (b == nBox - 1) share = target - filledTotal; // 末箱补余
-                    if (share < 1) share = 1;
                     long filledVal = 0;
-                    GameItem crate = CreateSupplyCrate(share, out filledVal);
-                    if (crate != null) { AddToFront(crate); filledTotal += filledVal; boxOk++; }
+                    GameItem crate = CreateSupplyCrate((long)Math.Round(boxValue), out filledVal);
+                    if (crate != null)
+                    {
+                        AddToFront(crate); filledTotal += filledVal; boxOk++;
+                        // 10-06 A4（拆包实锤 memos/hQvCsbLJpdTsA6mQtkEHPU）：蛙娘箱=原生自动上锁（CreateLootCrate:1441）——
+                        //   没钥匙=死物打不开 → 送对应钥匙卡（5 箱↔5 卡，塞玩家后库）；映射=cheatsheet 19.4（MerchantHelper 同款）
+                        //   10-06 D2（525BFCC1 拍板）：低好感不带钥匙卡回来（高好感才带，门槛 BuildConfig.WageGirlFenceCardAffThreshold 可配）
+                        try
+                        {
+                            string boxId = "?"; try { boxId = crate.identifier ?? "?"; } catch { }
+                            if (affBox >= BuildConfig.WageGirlFenceCardAffThreshold)
+                            {
+                                string kcId = KeycardForBox(boxId);
+                                GameItem kc = DirectoryMaster.Item(kcId, true);
+                                if (kc != null)
+                                {
+                                    if (WageAPI.WageItemGrant.GrantToPlayerBackInv(kc, true))
+                                        Core.LogMsg("[蛙娘] 销赃箱 " + boxId + " 送钥匙卡 " + kcId + "（玩家后库）");
+                                    else Core.LogMsg("[蛙娘] 钥匙卡 " + kcId + " 发放失败（后库满？）");
+                                }
+                                else Core.LogMsg("[蛙娘] 钥匙卡创建失败 " + kcId + "（箱 " + boxId + " 无钥匙可开）");
+                            }
+                            else Core.LogMsg("[蛙娘] 好感 " + affBox + " < " + BuildConfig.WageGirlFenceCardAffThreshold + " 不带钥匙卡（D2）");
+                        }
+                        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 送钥匙卡异常: " + ex.Message); }
+                    }
                 }
                 if (boxOk > 0) { int actualKeep = (int)(target - filledTotal); if (actualKeep > 0) SetStat(K_SAVINGS, GetStat(K_SAVINGS) + actualKeep); ReportLine(BuildFenceReport(amt, actualKeep, LangHelper.T(boxOk + "只物资箱", boxOk + " supply crates"))); }
-                else ReportLine(BuildFenceReport(amt, 0, LangHelper.T("（没弄到箱子）", "(no crate)")));
+                else { SetStat(K_SAVINGS, GetStat(K_SAVINGS) + amt); ReportLine(BuildFenceReport(amt, amt, LangHelper.T("（没弄到箱子，销赃款已存小金库）", "(no crate, fencing kept in savings)"))); }
                 return;
             }
             // cat==5 指挥卡：1~3 张 cmd_keycard（CFG）+ 差额随机件数补足
@@ -296,6 +320,19 @@ private static void FenceReturn()
     }
 
     // 09-21 新增：销赃夜报统一格式（09-26 C口径：target>amt 时 keep 为负 → 显示"贴补"）
+    // 10-06 A4：销赃箱→对应钥匙卡（cheatsheet 19.4 / MerchantHelper 同款映射）；evidence_box 及其余→cmd_keycard
+    private static string KeycardForBox(string boxId)
+    {
+        switch (boxId)
+        {
+            case "med_box": return "med_keycard";
+            case "sec_box": return "sec_keycard";
+            case "eng_box": return "eng_keycard";
+            case "service_box": return "ser_keycard";
+            default: return "cmd_keycard";
+        }
+    }
+
     private static string BuildFenceReport(int amt, int keep, string items) {
         int savings = GetStat(K_SAVINGS);
         string keepDesc = keep > 0

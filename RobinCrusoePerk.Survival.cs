@@ -25,7 +25,8 @@ namespace WagePerks;
 // ============================================================
 internal static partial class RobinCrusoePerk
 {
-    internal const string PERK_ID = "RobinCrusoe";
+    // 10-07 阶段D D-3：PERK_ID "RobinCrusoe"→"SurvivalGlobal"——残留挂点（行为修饰~50）读取随迁，与 WS 数据源统一（双装 WP 修饰读 WS 写的值）
+    internal const string PERK_ID = "SurvivalGlobal";
     internal const int START_TYPE = 15;
 
     // 新三状态（用户拍板 09-09：清洁度/睡眠/社交）

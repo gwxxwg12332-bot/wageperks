@@ -90,6 +90,7 @@ partial class ContainerUpgradeV2
                 AddTagInt(box, "wb_stage", 1);
                 progress -= need;
                 stage++;
+                SetStagePersist(box, stage); // 10-06 根治"三级变一级"：段位双写 WageSaveStore（tag 读档丢，持久化随档）
                 need = UPGRADE_COSTS[Math.Min(stage, MAX_STAGE - 1)];
                 try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage) + "/5", "Wage Box upgraded! Stage " + stage + "/5"), "white"); } catch { }
             }
@@ -120,6 +121,7 @@ partial class ContainerUpgradeV2
             int targetW = WAGE_BOX_W[stage + 1], targetH = WAGE_BOX_H[stage + 1];
             SetFullRect(grid, targetW, targetH);
             AddTagInt(box, "wb_stage", 1);
+            SetStagePersist(box, stage + 1); // 10-06 根治"三级变一级"：段位双写 WageSaveStore
             SetTagIntValue(box, "wb_progress", progress - need);
             try { StoreUIManager.Instance.Notify(LangHelper.T("妙妙箱升级！段位 " + (stage + 1) + "/5", "Wage Box upgraded! Stage " + (stage + 1) + "/5"), "white"); } catch { }
             if (stage + 1 >= MAX_STAGE) TryGiveSecondWageBox(box);

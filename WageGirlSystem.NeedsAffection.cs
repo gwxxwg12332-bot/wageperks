@@ -22,11 +22,35 @@ public static partial class WageGirlSystem
     internal static int GetAffection() => GetStat(K_AFF, 0);
     internal static void SetAffection(int v) { SetStat(K_AFF, Math.Max(0, Math.Min(BuildConfig.WageGirlAffMax, v))); CheckAffection50Reward(); }
 
+    // 10-06 H-1a（拆包 69VfzLzb9jFA83REUYVtB3）：好感50瞬间"三件套发放+移动启动"双落格并发→NRE。
+    //   发放改延迟队列：CheckAffection50Reward 只设标记，实际发放由 Anim.Update 帧首经 TickGift50Delay 延迟 2 帧后执行（与移动落格完全错帧）
+    internal static bool _pendingGift50 = false;
+    private static int _gift50DelayFrames = 0; // H-1a：标记后延迟 2 帧发放
+    internal static bool TickGift50Delay()
+    {
+        if (!_pendingGift50) return false;
+        if (_gift50DelayFrames <= 0) return true; // 延迟期满，调用方执行 FlushPendingGift50
+        _gift50DelayFrames--;
+        return false;
+    }
     // v1.3.1：好感首次>=50 送三件套（生成器×1+神经模组×2+保护器×1），防重复（WageSaveStore 标记）
     private static void CheckAffection50Reward()
     {
         try
         {
+            if (GetAffection() < 50) return;
+            if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
+            _pendingGift50 = true; _gift50DelayFrames = 2; // 10-06 H-1a：只标记+设延迟，下一帧起倒数 2 帧后 Flush 发放
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50标记失败: " + ex.Message); }
+    }
+    // 10-06 H-1a：延迟队列执行点（Anim.Update 帧首调用；发放落格与移动落格不同帧，避开第三方 Prefix 叠挂崩溃）
+    internal static void FlushPendingGift50()
+    {
+        try
+        {
+            if (!_pendingGift50) return;
+            _pendingGift50 = false;
             if (GetAffection() < 50) return;
             if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
             WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
@@ -35,7 +59,7 @@ public static partial class WageGirlSystem
             GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
             GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
             GiveRewardItem(GuMachineSystem.PROTECTOR_ID, 1);
-            Core.LogMsg("[蛙娘] 好感破50，三件套已发放（UncheckedAcceptAll 通道）");
+            Core.LogMsg("[蛙娘] 好感破50，三件套已发放（延迟队列 UncheckedAcceptAll 通道）");
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] 好感50三件套失败: " + ex.Message); }
     }

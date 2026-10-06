@@ -39,6 +39,108 @@ partial class ContainerUpgradeV2
         catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] 异常: " + ex.Message); }
     }
 
+    // ===================== 10-06 根治：段位持久化（WageSaveStore 随档，不依赖 tag）=====================
+    // 根因实锤：wb_stage 是物品 tag——场景库存物品读档后 tag 全丢（Restore.cs 旧注释），
+    //   shape 也被重置 → RestoreWageBoxShape 按尺寸推断=0 级 → "三级妙妙箱变一级"。
+    // 方案：升段写点（打烊消耗/拖螺丝）双写 WageSaveStore（key=箱子所在库存+childItems 索引，
+    //   原版库存顺序读档稳定——hiddenElement 索引方案同款先例），恢复链优先读持久化段位。
+    private static string LocKeyOf(GameInventory inv)
+    {
+        try
+        {
+            var e = EmporiumEntry.Instance;
+            if (e == null || inv == null) return null;
+            if (inv == (e.backInvinvElement as GameInventory)) return "back";
+            if (inv == (e.backInvinvElementCounter as GameInventory)) return "backC";
+            if (inv == (e.showcaseElement as GameInventory)) return "show";
+            if (inv == (e.invElement as GameInventory)) return "main";
+            if (inv == (e.frontInvinvElement as GameInventory)) return "front";
+            if (inv == (e.hiddenElement as GameInventory)) return "hid";
+        }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] LocKeyOf 异常: " + ex.Message); }
+        return null;
+    }
+
+    public static int FindIndexInInv(GameInventory inv, GameItem box)
+    {
+        try
+        {
+            if (inv == null || inv.childItems == null || box == null) return -1;
+            for (int i = 0; i < inv.childItems.Count; i++)
+                if (inv.childItems[i] != null && inv.childItems[i].Pointer == box.Pointer) return i;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] FindIndexInInv 异常: " + ex.Message); }
+        return -1;
+    }
+
+    // 升段/初始化后调用：按箱子当前所在库存+索引写段位到 WageSaveStore（随档）
+    public static void SetStagePersist(GameItem box, int stage)
+    {
+        try
+        {
+            var e = EmporiumEntry.Instance;
+            if (e == null || box == null) return;
+            GameInventory[] invs = new GameInventory[] {
+                e.backInvinvElement as GameInventory,
+                e.backInvinvElementCounter as GameInventory,
+                e.showcaseElement as GameInventory,
+                e.invElement as GameInventory,
+                e.frontInvinvElement as GameInventory,
+                e.hiddenElement as GameInventory,
+            };
+            foreach (var inv in invs)
+            {
+                int idx = FindIndexInInv(inv, box);
+                if (idx >= 0)
+                {
+                    string loc = LocKeyOf(inv);
+                    if (loc != null) WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, stage);
+                    return;
+                }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] SetStagePersist 异常: " + ex.Message); }
+    }
+
+    // 恢复链调用：按箱子当前所在库存+索引读持久化段位（-1=无记录）
+    public static int GetStagePersist(GameItem box)
+    {
+        try
+        {
+            var e = EmporiumEntry.Instance;
+            if (e == null || box == null) return -1;
+            GameInventory[] invs = new GameInventory[] {
+                e.backInvinvElement as GameInventory,
+                e.backInvinvElementCounter as GameInventory,
+                e.showcaseElement as GameInventory,
+                e.invElement as GameInventory,
+                e.frontInvinvElement as GameInventory,
+                e.hiddenElement as GameInventory,
+            };
+            foreach (var inv in invs)
+            {
+                int idx = FindIndexInInv(inv, box);
+                if (idx >= 0)
+                {
+                    string loc = LocKeyOf(inv);
+                    if (loc != null)
+                    {
+                        // 10-07 阶段D D-3：ns 随迁 SurvivalGlobal + 旧档兜底迁移（旧 RobinCrusoe 值读入写回新 ns，幂等一次性升级）
+                        int s = WageSaveStore.GetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, -1);
+                        if (s <= 0)
+                        {
+                            s = WageSaveStore.GetInt("RobinCrusoe", "wage_stage_" + loc + "_" + idx, -1);
+                            if (s > 0) WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, s);
+                        }
+                        if (s > 0) return s;
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[ContainerUpgradeV2] GetStagePersist 异常: " + ex.Message); }
+        return -1;
+    }
+
     // ===================== 09-14 位置方案（hiddenElement 海报后边 2×2）=====================
     // 场景物品读档后 tag/identifier/uniqueId 全丢（HasTag 误判）→ 无法从物品识别
     // 用 childItems 索引 + PlayerPrefs 关联（场景存档按顺序恢复，索引稳定）
@@ -60,13 +162,20 @@ partial class ContainerUpgradeV2
     public static int GetHiddenStageByIndex(int idx)
     {
         if (idx < 0) return -1;
-        return WageSaveStore.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
+        // 10-07 阶段D D-3：ns 随迁 SurvivalGlobal + 旧档兜底迁移
+        int s = WageSaveStore.GetInt("SurvivalGlobal", "wage_stage_idx_" + idx, -1);
+        if (s <= 0)
+        {
+            s = WageSaveStore.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
+            if (s > 0) WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, s);
+        }
+        return s;
     }
     // 记录 hiddenElement 索引段位
     public static void SetHiddenStageByIndex(int idx, int stage)
     {
         if (idx < 0) return;
-        WageSaveStore.SetInt("RobinCrusoe", "wage_stage_idx_" + idx, stage);
+        WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, stage);
     }
     // 按指定段位强恢复（不依赖 tag——场景物品 tag 全丢）
     public static void RestoreWageBoxToStage(GameItem box, int stage)

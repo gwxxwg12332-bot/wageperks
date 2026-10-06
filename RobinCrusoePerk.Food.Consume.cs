@@ -7,122 +7,15 @@ using Il2CppInterop.Runtime;
 using UnityEngine;
 
 namespace WagePerks;
+// ===== 10-07 阶段D D-5：删 Food 消费实现 partial（双击吃喝用链——WS SurvivalConsume.PostfixDoubleClickAction 承接全局）=====
+// 已删：PostfixDoubleClickAction / DrinkAlcohol / EatBite / DrinkSip / DrinkBeverage / UseNarcotic / TreatWithMedicine /
+//       UseDailyNeed / IsNonEdibleMachine / IsBottleContainerOnly / IsHomebrewWine / GetBeverageCalories / IsWageSurvivalLoaded 缓存
+// 保留（被 WP 其他文件引用——引用审计 10-07）：IsBeverage / IsSnack / IsEmptyBottle（RobinCrusoePerk.Food.Tooltip.cs :168/:171/:174）
+//       + IsHomebrewWineBuffActive（RobinCrusoePerk.Blood.cs:160 / RobinCrusoePerk.Scavenge.cs:71——顶级自酿 buff 受伤免疫/拾荒+1）
+// 禁整类删（P1.2）——RobinCrusoePerk 类保留共用成员（GetTagIntSafe/SetTagIntValue/IsExcludedModule/GetTradeBuffDisplay/GetMood）
 internal static partial class RobinCrusoePerk
 {
-    private static bool _wageSurvivalLoaded = false;
-    private static bool _wageSurvivalChecked = false;
-    private static bool IsWageSurvivalLoaded()
-    {
-        if (_wageSurvivalChecked) return _wageSurvivalLoaded;
-        _wageSurvivalChecked = true;
-        try
-        {
-            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
-            {
-                if (asm.GetName().Name == "WageSurvival") { _wageSurvivalLoaded = true; break; }
-            }
-        }
-        catch { }
-        return _wageSurvivalLoaded;
-    }
-
-    public static void PostfixDoubleClickAction(GameItem newItem, Vector2 mousePosition)
-    {
-        try
-        {
-            if (!IsActive() || newItem == null) return;
-            // 让路：检测WageSurvival是否加载，加载则跳过（避免双份生效）
-            if (IsWageSurvivalLoaded()) return;
-            if (Patches.CurrentUITradeMode != 0) return;
-            // v5.7 双击位置不限（背包/柜台/存储容器均可吃喝，用户反馈"背包吃不了"修复）；仅交易模式拦截
-            // 博士夜晚商店（afterhourInventory）的货没买不能吃/喝/用药（用户反馈"博士晚上的食品没买就能食用"）
-            if (IsInDoctorNightInventory(newItem)) {  return; }
-            // v1.1.6 未购买物品禁止吃喝用（拆包 09-12 [L1]：柜台 isOwend=false → SetItemOwned 去 IS_OWNED_TAG；权威读口 GeneralHelper.IsItemOwned=IsTag("IS_OWNED_TAG")。not_purchased 是 GameCharacterItem 静态常量非商品 tag，TAG_NOT_PURCHASED 不存在——原 IsTag 双查无效已删）
-            if (!Il2Cpp.GeneralHelper.IsItemOwned(newItem)) { return; }
-            // 10-05 引导 MVP：首次吃喝提示按Z开面板（一次性 flag，防刷屏）
-            try
-            {
-                if (WageSaveStore.GetInt(PERK_ID, "guided_eat", 0) == 0)
-                {
-                    WageSaveStore.SetInt(PERK_ID, "guided_eat", 1);
-                    try { StoreUIManager.Instance.Notify(LangHelper.T("[鲁滨逊生存] 双击食物/水=吃喝！按 Z 键打开生存面板查看状态", "[Robinson Survival] Double-click food/water to eat & drink! Press Z for the survival panel"), "green"); } catch { }
-                }
-            }
-            catch { }
-            // v5.7 心情主动提升：酒/烟/毒/彩票优先于吃喝（酒也是饮品，先判酒）
-            // 09-13 统一双击使用类：效果触发 + 物品消耗 + 未购买拦截（IsItemOwned 已全局拦截）——酒/麻醉品/零食/饮品/日用品一条链全覆盖
-            // 10-05 对齐 WS 修正：酒瓶容器分类先行（wine_bottle 酿造完成 state==2 成品酒放行喝；装水/酿造中/空瓶=容器跳过——原生打开容器，不追加吃喝不消失）
-            if (IsBottleContainerOnly(newItem)) return;
-            if (IsAlc(newItem)) { DrinkAlcohol(newItem); if (!IsEmptyBottle(newItem)) TryExpel(newItem); } // 酒：+15 心情后整件消失（空瓶保留装水）
-            else if (IsTobacco(newItem)) BoostMood(10, LangHelper.T("抽烟", "Smoking"));
-            else if (IsNarcotic(newItem)) UseNarcotic(newItem); // 09-19 麻醉品：心情+按价值档位加睡眠（原只 +20 心情）
-            else if (IsLottery(newItem)) BoostMood(UnityEngine.Random.Range(10, 21), LangHelper.T("刮彩票", "Scratch Ticket"));
-            // 09-13 拍板：非水饮品双击恢复 饱食+10/口渴+15（soda_red/energy_drink/galaxy_blend）
-            else if (IsBeverage(newItem)) DrinkBeverage(newItem);
-            // 09-13 拍板：零食（cat_bar/li_eat_snackbar/processed_cheese）吃恢复饱食 + 心情+10 + 整件消失
-            else if (IsFood(newItem)) { if (IsSnack(newItem)) { BoostMood(BuildConfig.SnackMood, LangHelper.T("零食", "Snack")); EatBite(newItem); TryExpel(newItem); } else EatBite(newItem); AddBlood(30); } // 进食回血（09-17 卖血）
-            else if (IsDrink(newItem)) { DrinkSip(newItem); AddBlood(50); } // 喝水回血（09-17 卖血）
-            else if (IsMedicine(newItem)) TreatWithMedicine(newItem);
-            // 09-13 清洁系统 v1：日用品双击恢复清洁（白名单按 id；满 100 不消耗给提示）
-            else if (IsDailyNeed(newItem)) UseDailyNeed(newItem);
-
-        }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 双击异常: " + ex.Message); }
-    }
-
-    // 10-05 对齐 WS 双击分类：酒瓶/啤酒箱容器（装水/酿造中/空瓶=容器不开窗不消耗；成品酒 wine_bottle state==2 放行喝）
-    // 拆包实锤：FinishFermentation 成品=ALCOHOL 可喝；beer_case_0=啤酒箱容器（PRE_CONTAINER_TAG 双击=开箱）
-    private static bool IsBottleContainerOnly(GameItem item)
-    {
-        try
-        {
-            if (item == null) return false;
-            string id = (item.identifier ?? "").ToLowerInvariant();
-            if (id == "wine_bottle")
-            {
-                int wineState = RobinCrusoePerk.GetTagIntSafe(item, "WINE_CONTAINER_STATE");
-                return wineState != 2; // 非成品酒（装水0/酿造中1/空瓶）=容器跳过
-            }
-            if (id == "beer_bottle" || id == "empty_beer_bottle" || id == "beer_case_0") return true; // 啤酒容器跳过
-            return false;
-        }
-        catch { return false; }
-    }
-
-    private static void DrinkAlcohol(GameItem item)
-    {
-        if (IsEmptyBottle(item)) return; // 空瓶：不加心情、不消耗（装水用，09-13 拍板）
-        int ml = GetWaterMl(item);
-        // 09-13 拍板：酒类双击 = 心情+15 + 整件消失（不依赖 ml——修复 ItemSpawner 刷酒/无 ml 酒不加心情）
-        int sip = Math.Min(SIP_ML, ml); // 一口 200ml（仿喝水）
-        bool homebrew = IsHomebrewWine(item);
-        int mood = BuildConfig.AlcoholMood;
-        int bv = GetItemBaseValue(item);
-        int sleepAdd = 0;
-        if (homebrew)
-        {
-            mood = bv >= 300 ? 30 : (bv >= 150 ? 20 : (bv >= 50 ? 15 : 10));
-            if (bv >= 1000)
-            {
-                sleepAdd = 25; // 顶级自酿额外睡眠 +25
-                SetSleep(Math.Min(100, GetSleep() + sleepAdd));
-                WageSaveStore.SetInt(PERK_ID, "hbuffDay", DeterministicSchedule.CurrentDay); // 存档：连续3天不受伤+拾荒+1
-                try { StoreUIManager.Instance.Notify(LangHelper.T("顶级自酿：连续3天不受伤、拾荒次数+1", "Top Homebrew: 3d no wound, scav+1"), "green"); } catch { }
-            }
-        }
-        else
-        {
-            // 10-04 扩展：普通酒/其他 mod 酒精按价值加睡眠
-            sleepAdd = bv >= 300 ? 20 : (bv >= 150 ? 15 : (bv >= 50 ? 10 : 5));
-            if (sleepAdd > 0) SetSleep(Math.Min(100, GetSleep() + sleepAdd));
-        }
-        BoostMood(mood, homebrew ? LangHelper.T("自酿酒", "Homebrew") : LangHelper.T("喝酒", "Drinking"));
-        if (!homebrew && sleepAdd > 0) { try { StoreUIManager.Instance.Notify(LangHelper.T("睡眠 +" + sleepAdd + "%", "Sleep +" + sleepAdd + "%"), "green"); } catch { } }
-        if (ml > 0) { try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 喝酒Remove异常 " + ex.Message); } }
-        TryExpel(item); // 整件消失（09-13 用户拍板：双击酒类使用后消失）
-        RefreshStatusPanel();
-    }
-
+    // 顶级自酿 buff：连续3天不受伤 + 拾荒次数+1（Blood.cs:160 / Scavenge.cs:71 引用——保留）
     private static bool IsHomebrewWineBuffActive()
     {
         try
@@ -137,88 +30,19 @@ internal static partial class RobinCrusoePerk
         return false;
     }
 
-    private static bool IsHomebrewWine(GameItem item)
-    {
-        try
-        {
-            var wf = item.FindItemFeatureByCategory("CATEGORY_WINE_QUALITY");
-            if (wf == null) return false;
-            if (wf.realCondition != null && wf.realCondition.identifier == "wine_quality_homebrew") return true;
-            if (wf.fakeCondition != null && wf.fakeCondition.identifier == "wine_quality_homebrew") return true;
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
-        return false;
-    }
-
-    private static void EatBite(GameItem item)
-    {
-        int cal = GetCalLeft(item);
-        if (cal <= 0) { TryExpel(item); return; }
-        int q = GetFoodQuality(item);
-        // 09-21 修：饱食满了不吃
-        if (GetSatiety() >= 100) return;
-        // 09-21 修：只吃需要的量，不吃一半
-        int need = (100 - GetSatiety()) * 22;  // 最多还需要多少卡
-        int bite = System.Math.Min(cal, need);
-        bite = System.Math.Max(bite, 50);  // 至少吃一口
-        int left = cal - bite;
-        int effCal = q >= 3 ? (int)(bite * 0.2) : (q == 2 ? (int)(bite * 0.5) : bite);
-        effCal = (int)(effCal * GetEatEffMult()); // v5.9 饿狼代谢：吃食物效果+50%（CompBuff）
-        int gain = Math.Max(1, (int)Math.Round(effCal / 22f)); // 2200cal=100%：每 100 卡≈4.5%（修正：原 /100 差 4.5 倍）
-        SetSatiety(Math.Min(100, GetSatiety() + gain));
-        if (q >= 2)
-        {
-            SetHealth(Math.Max(0, GetHealth() - 10));   // 变质/腐烂：健康-10（品质惩罚，独立于生病事件）
-            TryInfect(q == 3 ? 0.4 : 0.1);              // 变质10% / 腐烂40%患病（患病→健康-40）
-        }
-        try { StoreUIManager.Instance.Notify(LangHelper.T("进食 +" + gain + "% 饱食（" + effCal + " 卡）", "Eating +" + gain + "% Satiety (" + effCal + " kcal)"), "white"); } catch { }
-        if (left <= 0)
-        {
-            bool removed = TryExpel(item);
-            Core.LogMsg("[空间站鲁滨逊] 吃完了一份食物（饱食+" + gain + "%），移除" + (removed ? "成功" : "失败（TryExpel 未找到物品位置）"));
-        }
-        else
-        {
-            SetCalLeft(item, left);
-            try { item.EnableTag(EATEN_TAG, true); } catch { }
-        }
-        RefreshStatusPanel(); // 实时刷新常驻面板
-    }
-
+    // 饮品判定（Food.Tooltip.cs:168 引用——保留）
     private static bool IsBeverage(GameItem item)
     {
         try { return item != null && BEVERAGE_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
     }
 
-    private static int GetBeverageCalories(GameItem item)
-    {
-        try { if (item.IsTag("CALORIE_VALUE_TAG") || item.IsTag("CALORIE")) return GetCalorie(item); } catch { }
-        string id = ""; try { id = (item.identifier ?? "").ToLowerInvariant(); } catch { }
-        if (id == "soda_red" || id == "energy_drink") return 350;
-        return GetCalorie(item);
-    }
-
-    private static void DrinkBeverage(GameItem item)
-    {
-        try
-        {
-            // 09-19 修复：按真实卡路里恢复饱食（cal/22=饱食%，同 EatBite 换算）——原固定 +10% 未按原生卡路里
-            int cal = GetBeverageCalories(item);
-            int gain = Math.Max(1, (int)Math.Round(cal / 22f));
-            SetSatiety(Math.Min(100, GetSatiety() + gain));
-            SetThirstPct(Math.Min(100, GetThirstPct() + BuildConfig.BeverageThirst));
-            try { StoreUIManager.Instance.Notify(LangHelper.T("饮品 +" + gain + "% 饱食 +" + BuildConfig.BeverageThirst + "% 口渴（" + cal + " 卡）", "Beverage +" + gain + "% Satiety +" + BuildConfig.BeverageThirst + "% Thirst (" + cal + " kcal)"), "green"); } catch { }
-            TryExpel(item); // 饮料喝完消失（消耗 1 件）
-            RefreshStatusPanel();
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
-    }
-
+    // 零食判定（Food.Tooltip.cs:171 引用——保留）
     private static bool IsSnack(GameItem item)
     {
         try { return item != null && SNACK_IDS.Contains((item.identifier ?? "").ToLowerInvariant()); } catch { return false; }
     }
 
+    // 空瓶判定（Food.Tooltip.cs:174 引用——保留；10-05 实锤：玩家"空酒瓶"实际 id=wine_bottle，IsAlc 关键词"wine"误判当酒喝）
     private static bool IsEmptyBottle(GameItem item)
     {
         try
@@ -226,86 +50,9 @@ internal static partial class RobinCrusoePerk
             if (item == null) return false;
             string id = (item.identifier ?? "").ToLowerInvariant();
             if (id == "empty_beer_bottle") return true;
-            // 10-05 实锤：玩家"空酒瓶"实际 id=wine_bottle（F8生成/商店购买），IsAlc关键词命中"wine"被当酒喝掉消失
-            // 空瓶判定：酒瓶类 id + 无水量 → 空瓶（保留装水/酿酒用）
             if (id == "wine_bottle" || id == "beer_bottle" || id.Contains("bottle")) return GetWaterMl(item) <= 0;
             return false;
         }
         catch { return false; }
     }
-
-    private static void DrinkSip(GameItem item)
-    {
-        int ml = GetWaterMl(item);
-        if (ml <= 0) {  return; }
-        int sip = Math.Min(SIP_ML, ml);
-        int purity = -1;
-        try { purity = Il2Cpp.WaterHelper.GetWaterPurity(item); } catch { }
-        int tier = purity >= 9900 ? 0 : purity >= 9600 ? 1 : purity >= 9200 ? 2 : purity >= 8800 ? 3 : 4; // 0优质 1较好 2普通 3浑浊 4脏水
-        int gain = new[] { 25, 18, 12, 6, 2 }[tier];
-        int hd   = new[] { 5, 2, 0, -5, -10 }[tier];
-        int inf  = new[] { 0, 0, 5, 15, 30 }[tier];
-        // 09-13 用户拍板：喝水不再恢复清洁（移除 +5% 清洁，cg 全 0）
-        SetThirstPct(Math.Min(100, GetThirstPct() + gain));
-        if (hd != 0) SetHealth(Math.Max(0, Math.Min(100, GetHealth() + hd)));
-        if (inf > 0) TryInfect(inf / 100.0);
-        string wname = new[] { LangHelper.T("优质", "Pure"), LangHelper.T("较好", "Good"), LangHelper.T("普通", "Plain"), LangHelper.T("浑浊", "Cloudy"), LangHelper.T("脏水", "Dirty") }[tier];
-        try { StoreUIManager.Instance.Notify(LangHelper.T("饮水 +" + gain + "% 口渴（" + wname + "）", "Drinking +" + gain + "% Thirst (" + wname + ")"), "white"); } catch { }
-        // 09-11 日志定案：Remove 参数单位=µl（Remove(200000) 实测扣 200ml 无超量保护）；sip*1000 = 正确扣量
-        try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
-        RefreshStatusPanel(); // 实时刷新常驻面板
-    }
-
-    private static void UseNarcotic(GameItem item)
-    {
-        try
-        {
-            int bv = GetItemBaseValue(item);
-            int slp = bv >= 300 ? 60 : (bv >= 150 ? 45 : (bv >= 50 ? 30 : 15));
-            slp = (int)(slp * GetDrugEffMult()); // 回光返照：药效+50%
-            SetMood(Math.Min(100, GetMood() + BuildConfig.NarcoticMood));
-            SetSleep(Math.Min(100, GetSleep() + slp));
-            TryExpel(item);
-            try { StoreUIManager.Instance.Notify(LangHelper.T("麻醉品：心情 +" + BuildConfig.NarcoticMood + " 睡眠 +" + slp + "%", "Narcotic: Mood +" + BuildConfig.NarcoticMood + " Sleep +" + slp + "%"), "green"); } catch { }
-            RefreshStatusPanel();
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
-    }
-
-    private static void TreatWithMedicine(GameItem item)
-    {
-        int h = GetHealth();
-        if (h >= 100)
-        {
-            return;
-        }
-        bool consumed = TryExpel(item);
-        int bv = GetItemBaseValue(item);
-        int heal = bv >= 300 ? 100 : (bv >= 150 ? 90 : (bv >= 50 ? 60 : 30));
-        heal = (int)(heal * GetDrugEffMult()); // v5.9 回光返照：药效+50%（CompBuff）
-        SetHealth(Math.Min(100, h + heal));
-        try { StoreUIManager.Instance.Notify(LangHelper.T("用药：健康 +" + heal + "%", "Medicine: Health +" + heal + "%"), "green"); } catch { }
-        RefreshStatusPanel(); // 实时刷新常驻面板
-    }
-
-    private static void UseDailyNeed(GameItem item)
-    {
-        try
-        {
-            string id = (item.identifier ?? "").ToLowerInvariant();
-            if (!DAILY_NEED_CLEAN.TryGetValue(id, out int gain)) return;
-            int c = GetClean();
-            if (c >= 100)
-            {
-                try { StoreUIManager.Instance.Notify(LangHelper.T("清洁已满，不需要使用日用品", "Cleanliness full, no need"), "white"); } catch { }
-                return; // 满 100 不消耗
-            }
-            SetClean(Math.Min(100, c + gain));
-            try { StoreUIManager.Instance.Notify(LangHelper.T("清洁 +" + gain, "Cleanliness +" + gain), "green"); } catch { }
-            TryExpel(item); // 物品从库存消失（消耗 1 件）
-            RefreshStatusPanel();
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Consume] 异常: " + ex.Message); }
-    }
-
 }

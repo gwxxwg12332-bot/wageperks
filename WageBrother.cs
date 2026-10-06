@@ -45,7 +45,7 @@ internal static class WageBrother
             GameItem card = ItemDirectory.CreateEmptyItem(null); // 无参构造不存在，照养蛊机CreateGuMachine:79
             card.identifier = CARD_ID;
             card.SetName("蛙哥名片·消perk 500~8000");
-            card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Removing Infamous: +3000 per faction.");
+            card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。招贼体质固定5000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Thief Magnet: 5000 fixed. Removing Infamous: +3000 per faction.");
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
@@ -96,6 +96,30 @@ internal static class WageBrother
         return false;
     }
 
+    // 10-06 F2（玩家反馈"退出重进蛙哥刷没了"）：读档补排——小退（不存档）丢 futurStoreClientIdQueue →
+    // 重进 HasQueued=false，而 last_scheduled_day 间隔未到 → ScheduleToday 判定跳过 → 蛙哥要再等一整个 interval。
+    // 读档时：lastSched 在 interval 内但队列空 → 补排（明天到）。
+    public static void PostfixLoadGame()
+    {
+        try
+        {
+            var ps = PlayerStore.Instance;
+            if (ps == null) return;
+            int day = 0;
+            try { day = StoreStation.GetDayCounter(); } catch { }
+            int lastSched = WageSaveStore.GetInt("wage_brother", "last_scheduled_day", -1);
+            if (lastSched < 0) return;
+            int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
+            if (day - lastSched >= interval) return; // 间隔已过=不在本周期（等下次正常调度）
+            if (HasQueued()) return; // 队列有=正常（读档恢复了原版队列）
+            // 小退丢队列：lastSched 在 interval 内但队列空 → 补排明天到
+            Core.LogMsg("[蛙哥] 读档恢复：队列空但 lastSched=" + lastSched + " day=" + day + " 间隔未到 → 补排（明天到访）");
+            try { ps.QueueFuturClient(CLIENT_ID, 1); }
+            catch (Exception ex) { Core.LogMsg("[蛙哥] 读档补排失败: " + ex.Message); }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] PostfixLoadGame异常: " + ex.Message); }
+    }
+
     // 蛙哥到场 → 柜台生成服务卡
     internal static void OnClientArrived(StoreClient client)
     {
@@ -135,7 +159,7 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片·消perk 500~8000"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Removing Infamous: +3000 per faction."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片·消perk 500~8000"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。招贼体质固定5000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Thief Magnet: 5000 fixed. Removing Infamous: +3000 per faction."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
                     try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
                 } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
@@ -524,6 +548,28 @@ internal static class WageBrother
             w.AddLabel(LangHelper.T("蛙哥：花钱消个负面特性。钱货两清。", "Wage Brother: pay to remove a negative perk. No refunds."), "wb_hint");
             var ps = PlayerStore.Instance;
             w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wb_cash");
+            // 10-06 修复单#3：赎回区提前到 perk 列表之前（原位置在列表尾被挤出可视区——玩家反馈"服务卡没看到赎回"）
+            //   招贼体质·被偷物赎回：小偷半价卖回买不起 → 蛙哥服务卡赎回；未赎回完（KEY_STOLEN 非空）之前，招贼体质特性无法消除
+            try
+            {
+                int stolenCount = ThiefMagnetSystem.StolenCount();
+                if (stolenCount > 0)
+                {
+                    w.AddLabel(LangHelper.T("被偷物品 " + stolenCount + " 件待赎回（半价找回）", "Stolen items: " + stolenCount + " to redeem (half price)"), "wb_stolen_hint");
+                    // 10-06 A6：赎回区列举所有未赎回物品 + 各自价格（现状只显示件数——玩家"统计不到所有物品"）
+                    try
+                    {
+                        var details = ThiefMagnetSystem.StolenItemDetails();
+                        for (int di = 0; di < details.Count && di < 8; di++)
+                            w.AddLabel(details[di], "wb_stolen_item");
+                        if (details.Count > 8) w.AddLabel(LangHelper.T("…共 " + stolenCount + " 件", "... " + stolenCount + " total"), "wb_stolen_item");
+                    }
+                    catch (Exception exd) { Core.LogMsg("[蛙哥] 赎回明细异常: " + exd.Message); }
+                    var redeemAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ThiefMagnetSystem.RedeemStolenItems(); ShowRemovePerkWindow(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 赎回异常: " + ex.Message); } }));
+                    w.AddButton(LangHelper.T("🔒 赎回被偷物品（半价）", "🔒 Redeem stolen items (half)"), redeemAct, "wb_redeem");
+                }
+            }
+            catch (Exception exs) { Core.LogMsg("[蛙哥] 赎回区异常: " + exs.Message); }
             // 列已选 Cost<0 负面perk
             int listed = 0;
             foreach (var perk in CustomStartingPerks.All)
@@ -532,10 +578,22 @@ internal static class WageBrother
                 {
                     if (perk.Cost >= 0) continue;
                     if (!StartingPerk.IsPerkActive(perk.Id)) continue;
-                    int price = PriceForCost(perk.Cost);
+                    // 10-06 修复单#2：招贼体质消除费用固定 5000（特性 Cost=-8 本应 2000 档——特判）
+                    int price = perk.Id == ThiefMagnetPerk.PerkId ? 5000 : PriceForCost(perk.Cost);
                     string nm = perk.DisplayName;
                     int cpy = perk.Cost;
                     int pr = price;
+                    // 10-06 招贼体质锁定：被偷物品未赎回完（KEY_STOLEN 非空）之前不能消除该特性
+                    if (perk.Id == ThiefMagnetPerk.PerkId && ThiefMagnetSystem.StolenCount() > 0)
+                    {
+                        var lockedAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => {
+                            StoreUIManager.Instance.Notify(LangHelper.T("被偷物品还没赎完，招贼体质暂时消不掉——先点上面的「赎回被偷物品」", "Redeem your stolen items first before removing Thief Magnet."));
+                        }));
+                        string lockedText = LangHelper.T(nm + " · 先赎回被偷物品", nm + " · redeem stolen first");
+                        w.AddButton(lockedText, lockedAct, "wb_perk_" + listed);
+                        listed++;
+                        continue;
+                    }
                     var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(perk.Id, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消perk异常: " + ex.Message); } }));
                     string btnText = LangHelper.T(nm, nm);
                     // 10-03 补：非声名狼藉perk按钮加对应价格（声名狼藉走特殊每势力3000计费）

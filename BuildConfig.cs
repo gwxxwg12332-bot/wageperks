@@ -167,6 +167,15 @@ public static class BuildConfig
 	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
 	public static int WageGirlRunawayStreak => GetInt("WageGirlRunawayStreak", 5);
 	public static int WageGirlRunawayDays => GetInt("WageGirlRunawayDays", 14);
+	// 命运之骰（决策#10 快件 10-06：可丢售卖品开关——默认开=保留现行为，关→在售物品也拒绝丢入）
+	public static bool DestinyDiceAllowSellingItems => GetBool("DestinyDiceAllowSellingItems", true);
+	// 招贼体质大改（决策#10 10-06：6 配置——检查概率可调 + 每日偷盗/黑市/跳脸开关）
+	public static float ThiefMagnetInspectionChance => GetFloat("ThiefMagnetInspectionChance", 0.2f);
+	public static bool ThiefMagnetDailyTheftEnabled => GetBool("ThiefMagnetDailyTheftEnabled", true);
+	public static int ThiefMagnetDailyTheftCount => GetInt("ThiefMagnetDailyTheftCount", 1);
+	public static bool ThiefMagnetBlackMarketEnabled => GetBool("ThiefMagnetBlackMarketEnabled", true);
+	public static float ThiefMagnetBlackMarketChance => GetFloat("ThiefMagnetBlackMarketChance", 1.0f);
+	public static bool ThiefMagnetVisitEnabled => GetBool("ThiefMagnetVisitEnabled", true);
 	// 销赃
 	public static int WageGirlFenceDays => GetInt("WageGirlFenceDays", 2);
 	public static int WageGirlFenceSleepDebt => GetInt("WageGirlFenceSleepDebt", 20);
@@ -178,8 +187,12 @@ public static class BuildConfig
 	public static int WageGirlFenceMarginLow => GetInt("WageGirlFenceMarginLow", -10);        // 随机下界(%)
 	public static int WageGirlFenceMarginHigh => GetInt("WageGirlFenceMarginHigh", 30);       // 随机上界(%)
 	// 销赃数量随机（09-26 用户拍板：不锁件数，给惊喜感；逗号分隔 min,max）
-	public static int WageGirlFenceBoxMin => FenceCountKey("WageGirlFenceBoxCount", "1,3", 0);        // 物资箱数量下限
-	public static int WageGirlFenceBoxMax => FenceCountKey("WageGirlFenceBoxCount", "1,3", 1);        // 物资箱数量上限
+	public static int WageGirlFenceBoxMin => FenceCountKey("WageGirlFenceBoxCount", "1,3", 0);        // 物资箱数量下限（D+ 已改固定 nBox=round(target/300)，本键保留兼容）
+	public static int WageGirlFenceBoxMax => FenceCountKey("WageGirlFenceBoxCount", "1,3", 1);        // 物资箱数量上限（同上）
+	public static int WageGirlFenceBoxValue => GetInt("WageGirlFenceBoxValue", 300);                   // 10-06 D+：锁箱外在价值标价/箱（好感100基准；nBox=round(target/该值) 最小1；10-06 新需求：好感越低越贵=基准×(2-aff/100)）
+	public static int WageBathMoodBonus => GetInt("WageBathMoodBonus", 10);                            // 10-06 芷昕方案：口渴满优质水洗澡额外心情
+	public static int WageBathSleepBonus => GetInt("WageBathSleepBonus", 10);                         // 10-06 芷昕方案：口渴满优质水洗澡额外睡眠
+	public static int WageGirlFenceCardAffThreshold => GetInt("WageGirlFenceCardAffThreshold", 50);   // 10-06 D2：蛙娘销赃带钥匙卡的好感门槛（低于不送卡）
 	public static int WageGirlFenceCardMin => FenceCountKey("WageGirlFenceCardCount", "1,3", 0);      // 指挥卡张数下限
 	public static int WageGirlFenceCardMax => FenceCountKey("WageGirlFenceCardCount", "1,3", 1);      // 指挥卡张数上限
 	public static int WageGirlFenceInjectorMin => FenceCountKey("WageGirlFenceInjectorCount", "1,2", 0); // 免疫宁支数下限
@@ -369,6 +382,9 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("CleanToothpaste", 15, "牙膏恢复清洁");
 			melonPreferences_Category.CreateEntry("CleanToiletPaper", 30, "厕纸恢复清洁");
 			melonPreferences_Category.CreateEntry("CleanShampoo", 45, "洗涤剂恢复清洁");
+			melonPreferences_Category.CreateEntry("WageBathMoodBonus", 10, "口渴满优质水洗澡额外心情");
+			melonPreferences_Category.CreateEntry("WageBathSleepBonus", 10, "口渴满优质水洗澡额外睡眠");
+			melonPreferences_Category.CreateEntry("WageGirlFenceCardAffThreshold", 50, "蛙娘销赃带钥匙卡的好感门槛（低于不送卡）");
 			melonPreferences_Category.CreateEntry("CleanPaperTowel", 45, "纸巾恢复清洁");
 			melonPreferences_Category.CreateEntry("BeverageSatiety", 10, "饮品饱食恢复");
 			melonPreferences_Category.CreateEntry("BeverageThirst", 15, "饮品口渴恢复");
@@ -440,6 +456,13 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlRunawayLowStat", 20, "蛙娘跑路·六维低于此值计1天");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayStreak", 5, "蛙娘跑路·连续天数门槛");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");
+			melonPreferences_Category.CreateEntry("DestinyDiceAllowSellingItems", true, "命运之骰允许丢入在售物品(默认开=现行为；关=柜台/货架待售品也拒绝丢入)");
+			melonPreferences_Category.CreateEntry("ThiefMagnetInspectionChance", 0.2f, "招贼体质·治安检查概率(默认0.2=20%)");
+			melonPreferences_Category.CreateEntry("ThiefMagnetDailyTheftEnabled", true, "招贼体质·每日丢价值最高物品开关");
+			melonPreferences_Category.CreateEntry("ThiefMagnetDailyTheftCount", 1, "招贼体质·每日丢物品数量(按价值取前N)");
+			melonPreferences_Category.CreateEntry("ThiefMagnetBlackMarketEnabled", true, "招贼体质·黑市买家每日上门开关");
+			melonPreferences_Category.CreateEntry("ThiefMagnetBlackMarketChance", 1.0f, "招贼体质·黑市客户每日上门概率(默认1.0=必来)");
+			melonPreferences_Category.CreateEntry("ThiefMagnetVisitEnabled", true, "招贼体质·小偷上门跳脸+次日回卖总开关");
 			melonPreferences_Category.CreateEntry("WageGirlFenceDays", 2, "蛙娘销赃外出天数");
 			melonPreferences_Category.CreateEntry("WageGirlFenceSleepDebt", 20, "蛙娘销赃熬夜睡眠债");
 			melonPreferences_Category.CreateEntry("WageGirlAllowanceSteps", "100,300,500", "蛙娘零花钱档位(逗号分隔)");
@@ -447,7 +470,8 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginBasePct", 10, "蛙娘销赃基准加成(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginLow", -10, "蛙娘销赃随机浮动下限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginHigh", 30, "蛙娘销赃随机浮动上限(%)");
-			melonPreferences_Category.CreateEntry("WageGirlFenceBoxCount", "1,3", "销赃物资箱数量范围(min,max)");
+			melonPreferences_Category.CreateEntry("WageGirlFenceBoxCount", "1,3", "销赃物资箱数量范围(min,max)（D+ 已改固定 nBox=round(target/300)，本键兼容保留）");
+			melonPreferences_Category.CreateEntry("WageGirlFenceBoxValue", 300, "销赃锁箱外在价值标价/箱（D+：nBox=round(target/该值) 最小1）");
 			melonPreferences_Category.CreateEntry("WageGirlFenceCardCount", "1,3", "销赃指挥卡张数范围(min,max)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceInjectorCount", "1,2", "销赃免疫宁支数范围(min,max)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceItemCount", "3,8", "销赃差额/拆件数量范围(min,max)");
@@ -539,6 +563,18 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 		try
 		{
 			return MelonPreferences.GetEntryValue<int>("WagesPerks", key);
+		}
+		catch
+		{
+			return def;
+		}
+	}
+
+	private static bool GetBool(string key, bool def)
+	{
+		try
+		{
+			return MelonPreferences.GetEntryValue<bool>("WagesPerks", key);
 		}
 		catch
 		{

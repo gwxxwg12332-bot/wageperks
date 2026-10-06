@@ -39,6 +39,17 @@ internal static class CompatibilityPatches
         try
         {
             if (__instance == null) return;
+            // 10-06 加强：蛙哥预算专用 clamp [0,1000]——CustomerCreditBoost TrackClient 指数累乘
+            //   爆正（21亿）/溢出负都会覆盖蛙哥设计预算（工厂 100 / 收购扩展 1000）→ 恢复设计值，交易与 UI 正常
+            if (__instance.identifier == "wage_brother")
+            {
+                if (__instance.clientBudget < 0 || __instance.clientBudget > 1000)
+                {
+                    Core.LogMsg("[兼容] 蛙哥预算兜底: " + __instance.clientBudget + " → 1000");
+                    __instance.clientBudget = 1000;
+                }
+                return;
+            }
             if (__instance.clientBudget < 0)
             {
                 Core.LogMsg("[兼容] 预算溢出兜底: " + __instance.clientBudget + " → 0 (客户=" + __instance.identifier + ")");

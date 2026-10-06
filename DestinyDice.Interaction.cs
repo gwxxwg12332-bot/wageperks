@@ -335,6 +335,19 @@ namespace WagePerks
                 return false;
             }
 
+            // 10-06 决策#10 快件：命运骰丢售卖品开关（默认开=现行为；关→柜台/货架待售品也拒绝丢入）
+            // 在售判定=not_purchased/TAG_NOT_PURCHASED tag（GuMachineSystem.cs:33 同款先例：柜台上待售物品标记）
+            if (!BuildConfig.DestinyDiceAllowSellingItems)
+            {
+                bool onSale = false;
+                try { onSale = item.IsTag("not_purchased") || item.IsTag("TAG_NOT_PURCHASED"); } catch { }
+                if (onSale)
+                {
+                    Core.LogMsg("[命运之骰] 配置 DestinyDiceAllowSellingItems=false：拒绝丢入在售物品 " + item.identifier);
+                    return false;
+                }
+            }
+
             try
 
             {

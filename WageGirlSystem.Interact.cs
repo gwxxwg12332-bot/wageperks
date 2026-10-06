@@ -155,6 +155,16 @@ public static partial class WageGirlSystem
             int curAff = GetAffection();
             // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
             int affBase = curAff < 30 ? 1 : (curAff < 70 ? 2 : 1);
+            // 10-06 D3（525BFCC1 拍板）：喂食/喂水改按物品价值给好感（价值越高加越多）+ 双倍难度（÷2，≥20 价值保底 1）
+            int ValueAff(GameItem it)
+            {
+                long v = 0; try { v = it.GetCurrentValue(); } catch { }
+                if (v <= 0) { try { v = it.unitValue; } catch { } }
+                int tierAff = v >= 300 ? 4 : v >= 150 ? 3 : v >= 60 ? 2 : v >= 20 ? 1 : 0;
+                int half = tierAff / 2;
+                if (half < 1 && v >= 20) half = 1; // 双倍难度后保底：20+ 价值至少 +1
+                return half;
+            }
             if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); QueueDestroy(item); } // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理
             else if (RobinCrusoePerk.IsFood(item)) {
                 // 普通食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
@@ -165,7 +175,7 @@ public static partial class WageGirlSystem
                 gain = Math.Max(1, (int)Math.Round(bite / 22f));
                 SetStat(K_SAT, Math.Min(100, GetStat(K_SAT) + gain));
                 SetStat(K_HEALTH, Math.Max(0, GetStat(K_HEALTH) + 15));
-                aff = affBase;
+                aff = ValueAff(item); // 10-06 D3：按价值好感+双倍难度（原 affBase 阶段制）
                 msg = LangHelper.T("蛙娘吃饱了！饱食 +" + gain, "Wage Girl ate! Satiety +" + gain);
                 // 吃完才 Destroy，剩→SetCalLeft+EATEN_TAG
                 if (left <= 0) { QueueDestroy(item); }
@@ -199,13 +209,34 @@ public static partial class WageGirlSystem
                     gain = (int)Math.Round(baseGain * (sip / 200f));
                     if (gain < 1) gain = 1;
                     int hd = new[] { 5, 2, 0, -5, -10 }[tier];
-                    SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
-                    if (hd != 0) SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) + hd)));
-                    aff = affBase;
                     string wname = new[] { "优质", "较好", "普通", "浑浊", "脏水" }[tier];
-                    msg = LangHelper.T("蛙娘喝饱了！口渴 +" + gain + "（" + wname + "）", "Wage Girl drank! Thirst +" + gain + " (" + wname + ")");
-                    // 不 Destroy，瓶子留（带剩余水）
-                    try { WaterHelper.Remove(item, sip * 1000); } catch { }
+                    // 10-06 芷昕方案（用户拍板）：蛙娘口渴满喝水=洗澡（同步 WP 洗澡方案）——
+                    //   清洁按质（20/12/6/2/-5）；优质额外 +心情+睡眠；浑浊/脏水额外 -心情；脏水额外 -健康；仍扣对应水量
+                    if (GetStat(K_TH) >= 100)
+                    {
+                        aff = ValueAff(item); // 10-06 D3：按价值好感+双倍难度
+                        int cg = new[] { 20, 12, 6, 2, -5 }[tier];
+                        SetStat(K_CLEAN, Math.Max(0, Math.Min(100, GetStat(K_CLEAN) + cg)));
+                        if (tier == 0)
+                        {
+                            SetStat(K_MOOD, Math.Min(100, GetStat(K_MOOD) + BuildConfig.WageBathMoodBonus));
+                            SetStat(K_SLEEP, Math.Min(100, GetStat(K_SLEEP) + BuildConfig.WageBathSleepBonus));
+                        }
+                        else if (tier == 3) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 2)); }
+                        else if (tier == 4) { SetStat(K_MOOD, Math.Max(0, GetStat(K_MOOD) - 5)); SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) - 5))); }
+                        msg = cg >= 0 ? LangHelper.T("蛙娘口渴满了，洗澡：清洁 +" + cg + "（" + wname + "）", "Wage Girl full, bathing: Cleanliness +" + cg + " (" + wname + ")")
+                                     : LangHelper.T("蛙娘口渴满了，脏水洗澡：清洁 " + cg + "（" + wname + "）", "Wage Girl full, dirty bath: Cleanliness " + cg + " (" + wname + ")");
+                        try { WaterHelper.Remove(item, sip * 1000); } catch { }
+                    }
+                    else
+                    {
+                        aff = ValueAff(item); // 10-06 D3：按价值好感+双倍难度
+                        SetStat(K_TH, Math.Min(100, GetStat(K_TH) + gain));
+                        if (hd != 0) SetStat(K_HEALTH, Math.Max(0, Math.Min(100, GetStat(K_HEALTH) + hd)));
+                        msg = LangHelper.T("蛙娘喝饱了！口渴 +" + gain + "（" + wname + "）", "Wage Girl drank! Thirst +" + gain + " (" + wname + ")");
+                        // 不 Destroy，瓶子留（带剩余水）
+                        try { WaterHelper.Remove(item, sip * 1000); } catch { }
+                    }
                 }
             }
             else return false;

@@ -367,7 +367,13 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
                     string id = ""; try { id = it.identifier ?? ""; } catch { }
                     if (id.ToLowerInvariant() != "bottle_printer") continue;
                     any = true;
-                    int saved = WageSaveStore.GetInt("RobinCrusoe", "wage_bottle_q" + n, -1);
+                    // 10-07 阶段D D-3：ns 随迁 SurvivalGlobal + 旧档兜底迁移（旧 RobinCrusoe 值读入写回新 ns）
+                    int saved = WageSaveStore.GetInt("SurvivalGlobal", "wage_bottle_q" + n, -1);
+                    if (saved <= 0)
+                    {
+                        saved = WageSaveStore.GetInt("RobinCrusoe", "wage_bottle_q" + n, -1);
+                        if (saved > 0) WageSaveStore.SetInt("SurvivalGlobal", "wage_bottle_q" + n, saved);
+                    }
                     if (saved > 0)
                     {
                         int cur = RobinCrusoePerk.GetTagIntSafe(it, "wageBottleQlty");

@@ -65,6 +65,7 @@ public static partial class WageGirlSystem
     private static float _moveTimer = 0f;
     private static float _lastDiagTime = 0f;
     private static bool _walking = false;    // 09-22 走停状态机：是否在走动
+    private static bool _pendingMoveStart = false; // 10-06 H-1a：移动启动延迟一帧（与三件套延迟发放错帧，防双落格并发 NRE）
     private static int _stepsTaken = 0;      // 本轮已走步数
     private static int _walkSteps = 4;       // 本轮要走步数（随机 3-7）
     private static float _pauseTimer = 0f;   // 停顿计时

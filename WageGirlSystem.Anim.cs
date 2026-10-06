@@ -191,6 +191,8 @@ public static partial class WageGirlSystem
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
         try
         {
+            // 10-06 H-1a：好感50三件套延迟队列——标记后延迟 2 帧发放（与移动启动/动画落格完全错帧，避开 10+ 第三方 Prefix 叠挂 NRE）
+            try { if (TickGift50Delay()) { FlushPendingGift50(); } } catch (System.Exception exg) { Core.LogMsg("[WageGirlSystem.Anim] 三件套延迟发放异常: " + exg.Message); }
             if (!ExistsCached()) return;
             if (Patches.CurrentUITradeMode != 0) return; // 交易中不动画不移动
             float dt = Time.deltaTime;
@@ -266,8 +268,11 @@ public static partial class WageGirlSystem
                 _pauseTimer += dt;
                 if (_pauseTimer >= _pauseDuration)
                 {
-                    // 10-03 用户实测：好感判定<101（100封顶永达不到）→ 移动永不触发 → 闪退消失；恢复走动需先拆包实锤崩点（原50）
-                    if (GetAffection() < 101) { _pauseDuration = 10f; return; } // 好感<101：待在角落不动
+                    // 10-06 H-1b（拆包实锤崩点=好感50瞬间双落格并发）：恢复移动判定（好感>=50），
+                    //   止血"<101 永不动"移除；移动启动再延迟一帧置位（与三件套延迟发放完全错帧，双保险）
+                    if (GetAffection() < 50) { _pauseDuration = 10f; return; } // 好感<50：待在角落不动
+                    if (!_pendingMoveStart) { _pendingMoveStart = true; return; } // H-1a：启动延迟一帧（下一帧才真正置 _walking）
+                    _pendingMoveStart = false;
                     _walking = true;
                     _stepsTaken = 0;
                     _walkSteps = 3 + Core.Rng.Next(0, 5);            // 走 3-7 步

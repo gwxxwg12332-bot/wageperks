@@ -292,6 +292,7 @@ internal static partial class Patches
 			RobinCrusoePerk.TickWantedSupplierDaily();
 			ForceInspectionToday();
 			ApplyBadLuck();
+			ThiefMagnetSystem.OnBeginDay(); // 10-06 招贼大改：每日偷盗+黑市+跳脸+次日回卖（事件通道互斥）
 			if (DrJacksonFriendPerk.IsActive() && PlayerStore.Instance != null)
 			{
 				ScheduleJacksonToday();

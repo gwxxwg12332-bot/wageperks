@@ -86,8 +86,16 @@ internal static partial class RobinCrusoePerk
                         int _hidx = ContainerUpgradeV2.FindBoxInHidden(item);
                         int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
                         if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(item, _hstage); _rcRestoredContainers.Add(item.Pointer); restored++; continue; }
+                        // 10-06 妙妙箱"重启回退 9 格"根治：持久化段位读取提前到 IsWageBox 判定之前——
+                        //   读档后场景物品 tag 全丢 → IsWageBox false → 旧链整个跳过（恢复不执行，箱子回退初始）。
+                        //   有持久化记录（wage_stage_{loc}_{idx}>0）= 升级过的妙妙箱 → 直接恢复（记录只在妙妙箱升段时写，普通物品/普通容器无记录不误伤）
+                        int _pstage0 = ContainerUpgradeV2.GetStagePersist(item);
+                        if (_pstage0 > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(item, _pstage0); _rcRestoredContainers.Add(item.Pointer); restored++; continue; }
                         if (ContainerUpgradeV2.IsWageBox(item))
                         {
+                            // 10-06 根治"三级变一级"：优先读 WageSaveStore 持久化段位（tag 读档丢场景）
+                            int _pstage = ContainerUpgradeV2.GetStagePersist(item);
+                            if (_pstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(item, _pstage); _rcRestoredContainers.Add(item.Pointer); restored++; continue; }
                             try { if (!item.IsTag("CUSTOM_STORAGE_TAG")) item.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档箱子补打 tag（09-13：缺 tag 导致升级挂点不识别）
                             ContainerUpgradeV2.RestoreWageBoxShape(item); // 蛙哥箱子：按段位恢复（含老档满级迁移）
                             _rcRestoredContainers.Add(item.Pointer);
@@ -119,10 +127,24 @@ internal static partial class RobinCrusoePerk
                 if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); _rcRestoredContainers.Add(__instance.Pointer); return; }
             }
             catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
+            // 10-06 妙妙箱"重启回退 9 格"根治（兜底挂点）：持久化段位读取提前到 IsWageBox 之前——
+            //   本挂点=窗口构建（玩家打开箱子）触发，覆盖背包/柜台/后库任意位置；
+            //   tag 读档丢场景 IsWageBox false → 旧链跳过 → 提前读取直接恢复
+            try
+            {
+                int _pstage0 = ContainerUpgradeV2.GetStagePersist(__instance);
+                if (_pstage0 > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _pstage0); _rcRestoredContainers.Add(__instance.Pointer); return; }
+            }
+            catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 持久化恢复异常: " + ex.Message); }
             if (ContainerUpgradeV2.IsWageBox(__instance))
             {
+                // 10-06 根治"三级变一级"：优先读 WageSaveStore 持久化段位（tag 读档丢场景）
+                int _pstage = ContainerUpgradeV2.GetStagePersist(__instance);
+                if (_pstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _pstage); _rcRestoredContainers.Add(__instance.Pointer); return; }
                 try { if (!__instance.IsTag("CUSTOM_STORAGE_TAG")) __instance.EnableTag("CUSTOM_STORAGE_TAG"); } catch { } // 老档补打
-                if (_rcRestoredContainers.Add(__instance.Pointer)) ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
+                // 10-06 修"妙妙箱有时变回"：去掉防重集合限制——RestoreWageBoxShape 幂等（同尺寸 return），
+                //   LoadGame 恢复时机早→原版后续可能重置 shape→窗口构建（玩家视角最近）恢复兜底，每次打开都校正
+                ContainerUpgradeV2.RestoreWageBoxShape(__instance); // 蛙哥箱子
                 return;
             }
             if (!IsActive()) return; // 普通容器恢复需要鲁滨逊激活；妙妙箱已在上面恢复
