@@ -197,7 +197,9 @@ private static void FenceReturn()
                     if (crate != null)
                     {
                         // 10-07 #2（需求修正）：蛙娘箱=玩家背包+已拥有（非柜台卖——A4 改回；小偷箱才带售价）
-                        try { crate.unitValue = (long)Math.Round(boxValue); } catch { }
+                        // 10-07 #11（用户拍板）：箱子外壳=游戏真实定价（CreateLootCrate 原版 unitValue，不覆盖为我方 boxValue——
+                        //   防倒卖差价：玩家转卖箱子只值原版价；boxValue 仅用于上方 nBox 计算=target 对比，符合"我们只在计算时加上"）
+                        // try { crate.unitValue = (long)Math.Round(boxValue); } catch { }
                         GiveToPlayerBackpack(crate);
                         filledTotal += filledVal; boxOk++;
                         // 10-06 A4（拆包实锤 memos/hQvCsbLJpdTsA6mQtkEHPU）：蛙娘箱=原生自动上锁（CreateLootCrate:1441）——
