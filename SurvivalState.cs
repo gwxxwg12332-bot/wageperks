@@ -253,8 +253,8 @@ internal static partial class SurvivalFood
                 var food = DirectoryMaster.Item("bread", true); // 最简版：给面包
                 if (food != null)
                 {
-                    // 10-06 第二批收敛：手拼 UncheckedAcceptAll → WageItemGrant 统一入口（原无确认无日志；入口失败 Destroy+日志）
-                    WageAPI.WageItemGrant.GrantToPlayerBackInv(food);
+                    // 10-06 二期修正：统一入口 GrantToInventory 显式目标（无所有权转移对齐原行为）；原无确认无日志，入口失败 Destroy+日志
+                    WageAPI.WageItemGrant.GrantToInventory(food, em.backInvinvElement);
                 }
             }
         }

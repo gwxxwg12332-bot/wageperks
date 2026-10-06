@@ -50,8 +50,8 @@ internal static partial class SurvivalFood
                     var em = EmporiumEntry.Instance;
                     if (em != null && em.backInvinvElement != null)
                     {
-                        // 10-06 第二批收敛：手拼链（TryAcceptOnce+UncheckedAcceptAll 兜底）→ WageItemGrant 统一入口（行为等价：发放入后库；失败 Destroy+日志）
-                        bag = WageAPI.WageItemGrant.GrantToPlayerBackInv(bb);
+                        // 10-06 二期修正：统一入口 GrantToInventory 显式目标（无所有权转移，对齐原 TryAcceptOnce/UncheckedAcceptAll 链原行为）；防重叠契约内置
+                        bag = WageAPI.WageItemGrant.GrantToInventory(bb, em.backInvinvElement);
                     }
                 }
             }
