@@ -125,8 +125,13 @@ internal static class SurvivalTrade
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 议价词条标注异常: " + ex.Message); }
     }
 
+    // 10-07 交易递归防御（Memos KrGLxcw5B4yqEvLb5sTHqQ）：OnDealAccepted Postfix 全挂点防重入——
+    // 递归进入（原版 OnDealAccepted→SellItem→…→OnDealAccepted 链）自动跳过，不再二次处理（cheatsheet 7.6 ThreadStatic 模式）
+    [ThreadStatic] private static bool _inDealAcceptedPostfix;
     public static void PostfixStoreClientOnDealAccepted(StoreClient __instance)
     {
+        if (_inDealAcceptedPostfix) return;
+        _inDealAcceptedPostfix = true;
         try
         {
             // 10-05 修复：交易记数全局生效（社交日结算 StoreEventManager.OnDayStart 对所有档跑，
@@ -165,6 +170,7 @@ internal static class SurvivalTrade
             catch { }
         }
         catch { }
+        finally { _inDealAcceptedPostfix = false; }
     }
 
     // 接待计数（社交结算用：SurvivalState.PostfixOnDayStart 读"deals"）
