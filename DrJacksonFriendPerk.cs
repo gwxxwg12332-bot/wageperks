@@ -364,6 +364,8 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
 
     // 通用方法：添加神经模组到博士库存（只添加到docInvElement，然后刷新UI）
     // 通用方法：添加神经模组到博士库存（afterhourInventory）
+    // 【博士库存目标不走 WageItemGrant 统一入口】（2026-10-06 第二批标注，防后人误换）——目标=博士夜晚售卖库存（afterhourInventory），非玩家后库；
+    // 且本处用反射 UncheckedAccept（有 bool 返回，调用方已可确认），如需收敛需另建"发放到指定库存"入口，勿套用 GrantToPlayerBackInv
     private static void AddNeuralCoreToDoctorInv(EmporiumEntry instance)
     {
         try
