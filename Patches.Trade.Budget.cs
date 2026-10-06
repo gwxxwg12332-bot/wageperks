@@ -134,6 +134,25 @@ internal static partial class Patches
 		}
 	}
 
+	// 10-06 议价加成可见性（主控拍板方案①，拆包实锤：+15 生效但词条不在议价面板→玩家误解"没生效"）：
+	// GetActualDisplay Postfix——bargainBuyingMarkup 词条且加成生效时，显示追加"（含鲁滨逊出价加成）"。
+	// 纯显示层标注，行为零改动（+15 与 ×1.15 照旧）；valueModifier 已含全部叠加（1.15×(percent+15)），数值无需重算。
+	public static void PostfixItemFeatureGetActualDisplay(ItemFeature __instance, ref string __result)
+	{
+		try
+		{
+			if (__instance == null || string.IsNullOrEmpty(__result)) return;
+			if (!string.Equals(__instance.identifier, "bargainBuyingMarkup", System.StringComparison.Ordinal)) return;
+			if (!(RobinCrusoePerk.IsActive() && RobinCrusoePerk.GetMood() >= 80)) return;
+			if (__result.Contains("鲁滨逊出价加成")) return;
+			__result = __result + "（含鲁滨逊出价加成）";
+		}
+		catch (System.Exception ex)
+		{
+			Core.LogMsg("[空间站鲁滨逊] 议价词条标注异常: " + ex.Message);
+		}
+	}
+
 	public static void PostfixStoreClientOnDealAccepted(StoreClient __instance)
 	{
 		try

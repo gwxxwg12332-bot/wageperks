@@ -172,6 +172,14 @@ internal static partial class RobinCrusoePerk
             // → 改独立 tag wageBottleQlty（免疫聚合覆盖）+ WageSaveStore 双写（读档恢复兜底，按场景顺序索引关联）
             if (IsBottlePrinter(target))
             {
+                // 10-06 兼容迁移：独立 tag 不存在但聚合 Getter>0（旧档开局满级/第三方写的聚合 tag）→ 先迁移合并到独立 tag，
+                // 避免升级后读取从聚合值跳变到小值（双通道并存导致"拖锭后质量暴跌"）
+                if (GetTagIntSafe(target, "wageBottleQlty") <= 0)
+                {
+                    int agg = 0;
+                    try { agg = Il2Cpp.MachineryHelper.GetCurrentQualityBonus(target); } catch { }
+                    if (agg > 0) AddTagInt(target, "wageBottleQlty", agg);
+                }
                 AddTagInt(target, "wageBottleQlty", 2);
                 int q = GetTagIntSafe(target, "wageBottleQlty");
                 int idx = WaterMerchantPerk.GetBottlePrinterIndex(target);

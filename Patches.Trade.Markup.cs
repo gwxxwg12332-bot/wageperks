@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -360,7 +360,7 @@ internal static partial class Patches
 			bool flag = false;
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == text)
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, text, System.StringComparison.Ordinal))
 				{
 					flag = true;
 					break;
@@ -406,20 +406,29 @@ itemFeature.isFeatureExposed = true;
 	}
 
 	// 通用价格标签：面板"市场与商人"区显示原因行（仿 TryAddTradeFeature/TryAddRobinsonBuyMarkup）
+	// 10-06 修复堆叠：identifier== 字符串比较在 Il2Cpp 下判重失效（北极星截图：命运骰子笑面虎加价 20 条）→
+	// 改 string.Equals(Ordinal) + 同 id 已存在多条时自愈清理（倒序遍历只留第一条，更新显示）
 	private static void AddTradeLabel(GameItem item, string labelId, string display, ItemFeature.FeatureType ft, int percent = 0)
 	{
 		try
 		{
 			if (item == null || string.IsNullOrEmpty(labelId) || item.itemFeatures == null) return;
-			for (int i = 0; i < item.itemFeatures.Count; i++)
+			bool found = false;
+			for (int i = item.itemFeatures.Count - 1; i >= 0; i--)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == labelId)
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, labelId, System.StringComparison.Ordinal))
 				{
+					if (found)
+					{
+						item.itemFeatures.RemoveAt(i); // 自愈：旧版 bug 堆叠的多余同 id 词条清理掉
+						continue;
+					}
 					item.itemFeatures[i].publicDisplay = display;
 					item.itemFeatures[i].actualDisplay = display;
-					return;
+					found = true;
 				}
 			}
+			if (found) return;
 			ItemFeature f = new ItemFeature();
 			f.identifier = labelId;
 			f.featureType = ft;
@@ -452,7 +461,7 @@ f.isFeatureExposed = true;
 			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "bad_reputation")
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "bad_reputation", System.StringComparison.Ordinal))
 				{
 					item.itemFeatures[i].preExposeValueModifier = modifier;
 					item.itemFeatures[i].usePreExposeValue = true;

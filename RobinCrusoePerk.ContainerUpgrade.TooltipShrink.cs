@@ -84,7 +84,9 @@ internal static partial class RobinCrusoePerk
             if (IsBottlePrinter(item))
             {
                 int q = 0;
-                try { q = Il2Cpp.MachineryHelper.GetCurrentQualityBonus(item); } catch { }
+                // 10-06 统一读端：tooltip 改读 GetBottleQuality（独立 tag wageBottleQlty 优先 + 聚合回退）——
+                // 之前读原版 Getter=聚合 tag，升级写独立 tag 显示看不到 → "拖锭不加质量"假象
+                try { q = WaterMerchantPerk.GetBottleQuality(item); } catch { }
                 builder.AddLine(LangHelper.T(
                     "◆ 金属锭升级：质量 +" + q + "%（拖 metal_ingot 继续 +2%）",
                     "◆ Ingot upgrade: Quality +" + q + "% (drag metal_ingot +2%/each)"), bold: true);

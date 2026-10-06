@@ -83,7 +83,9 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             GameItem printer = src.CloneLinked();
             if (printer == null) { Core.LogMsg("[水商之友] 打印机发放跳过: CloneLinked 返回 null"); return false; }
             ContainerUpgradeV2.AddTagInt(printer, "BOTTLE_PRINTER_UPGRADE_COUNT_TAG", 9);
-            ContainerUpgradeV2.AddTagInt(printer, "TOTAL_PERCENTAGE_QUALITY_BONUS_INT", 400);
+            // 10-06 统一通道：满级质量写独立 tag wageBottleQlty=400（与升级同 tag，读取端 GetBottleQuality 优先独立 tag；
+            // 不再写聚合 tag TOTAL_PERCENTAGE_QUALITY_BONUS_INT——旧档聚合值由 GetBottleQuality 回退兼容，升级时迁移合并）
+            ContainerUpgradeV2.AddTagInt(printer, "wageBottleQlty", 400);
             try { Il2Cpp.GeneralHelper.SetItemOwned(printer, true); } catch { }
             var slot = em.backInvinvElement.TryFindOneValidInventorySlot(printer, false);
             if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[水商之友] cfg: 开局赠送满级水瓶打印机(6000ml+纯水)"); return true; } catch { } }

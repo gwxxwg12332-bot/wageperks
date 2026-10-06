@@ -84,9 +84,10 @@ partial class LuckScoutBackpackUpgrade
 
             string __head = shape.Substring(0, Math.Min(20, shape.Length));
 
+            // 10-06 拆包实锤（GameGridInventory.txt:1376）：SetShape 内部已调 ValidateBackground——
+            // 再调 Validate()=子物品列表双遍历（:1818-1830 逐个虚调用），库存悬垂物品一碰就崩 0xc0000005。
+            // 去掉冗余 Validate，窗口减半（单拖/批量/满级恢复全路径受益）。
             inv.SetShape(shape, GRID_WIDTH);
-
-            inv.Validate();
 
         }
 

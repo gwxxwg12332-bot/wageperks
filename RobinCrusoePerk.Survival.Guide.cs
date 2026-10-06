@@ -38,8 +38,8 @@ internal static partial class RobinCrusoePerk
             b.AddLabel(LangHelper.T("【1】生存系统是什么？", "[1] What is Survival?"), "rc_g1");
             b.AddLabel(LangHelper.T("双击食物/水吃喝，每天打烊结算饱食/口渴/健康/清洁/睡眠/社交六维。状态太差会生病、被迫休息甚至昏迷。按 Z 键随时打开本面板。", "Double-click food/water to eat & drink. Six stats settle at closing: Satiety/Thirst/Health/Clean/Sleep/Social. Too low = illness, forced rest, coma. Press Z to open this panel anytime."), "rc_g1d");
             // 第2章
-            b.AddLabel(LangHelper.T("【2】怎么吃喝？", "[2] How to Eat & Drink"), "rc_g2");
-            b.AddLabel(LangHelper.T("双击食物/水直接吃喝。食物按需吃一口；水按水质恢复（优质>普通>脏水，脏水掉健康）；酒+心情，麻醉品+心情睡眠，日用品+清洁。未购买的商品不能吃喝。", "Double-click food/water. Food: one bite as needed; Water: by purity (Pure>Plain>Dirty, dirty hurts health); Alcohol: mood; Narcotics: mood+sleep; Daily goods: cleanliness. Unpurchased items cannot be used."), "rc_g2d");
+            b.AddLabel(LangHelper.T("【2】如何恢复六维？", "[2] How to Restore the Six Stats"), "rc_g2");
+            b.AddLabel(LangHelper.T("饱食=双击食物吃一口；口渴=双击水（优质>普通>脏水，脏水掉健康）；健康=双击医疗用品按价值恢复30~100；心情=喝酒/抽烟/零食/成交一单；清洁=日用品（牙膏/厕纸等）；睡眠=麻醉品或睡觉；社交=多交易。未购买的商品不能使用。", "Satiety=double-click food (one bite); Thirst=double-click water (Pure>Plain>Dirty, dirty hurts health); Health=medical items restore 30-100 by value; Mood=alcohol/smoking/snacks/deals; Clean=daily goods (toothpaste/toilet paper); Sleep=narcotics or sleeping; Social=more trades. Unpurchased items cannot be used."), "rc_g2d");
             // 第3章
             b.AddLabel(LangHelper.T("【3】六维是什么？", "[3] The Six Stats"), "rc_g3");
             b.AddLabel(LangHelper.T("饱食 100%=2200 卡，口渴 100%=2000ml，健康、清洁、睡眠、社交。每天衰减，低状态出问题：清洁低易生病、睡眠低心情差、社交低掉心情。", "Satiety 100%=2200kcal, Thirst 100%=2000ml, plus Health/Clean/Sleep/Social. Daily decay; low stats cause trouble: low clean = illness, low sleep = bad mood, low social = mood loss."), "rc_g3d");
