@@ -26,7 +26,7 @@ internal static class MerchantHelper
             if (instance == null) { Core.LogMsg("[MerchantHelper] PlayerStore.Instance为null"); return null; }
             if (!DirectoryMaster.Has<GameItem>(itemId)) {  return null; }
 
-            GameItem item = DirectoryMaster.Item(itemId, true);
+            GameItem item = WageAPI.WageItemFactory.Create(itemId); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
             if (item == null) { Core.LogMsg("[MerchantHelper] 创建物品失败: " + itemId); return null; }
 
             // 1. 创建后清除所有坏标签

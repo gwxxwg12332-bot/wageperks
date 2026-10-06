@@ -166,7 +166,7 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
             {
                 try
                 {
-                    GameItem w = DirectoryMaster.Item(wid, true);
+                    GameItem w = WageAPI.WageItemFactory.Create(wid); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
                     if (w == null) { Core.LogMsg("[水商] 加 " + wid + " 不存在(null)"); continue; }
                     // 补名：部分物品名称空（本地化缺），显示问号
                     if (string.IsNullOrEmpty(w.name))

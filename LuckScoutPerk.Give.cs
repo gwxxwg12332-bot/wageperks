@@ -195,7 +195,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         {
 
-            GameItem kit = DirectoryMaster.Item("toolbox", true);
+            GameItem kit = WageAPI.WageItemFactory.Create("toolbox"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建，保留 fallback）
 
             if (kit == null)
 
@@ -237,7 +237,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         {
 
-            GameItem bag = DirectoryMaster.Item("backpack_large", true);
+            GameItem bag = WageAPI.WageItemFactory.Create("backpack_large"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建，保留 fallback）
 
             if (bag == null)
 
@@ -299,7 +299,7 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
         {
 
-            GameItem scanner = DirectoryMaster.Item("metal_scanner", true);
+            GameItem scanner = WageAPI.WageItemFactory.Create("metal_scanner"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
 
             if (scanner == null) { Core.LogMsg("[捡漏直觉] metal_scanner 创建失败"); return null; }
 

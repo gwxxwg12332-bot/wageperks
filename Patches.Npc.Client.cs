@@ -119,7 +119,7 @@ internal static partial class Patches
 			{
 				num2 = 1000;
 			}
-			storeClient.OverrideBudget(num2);
+			WageAPI.WageTrade.OverrideBudget(storeClient, num2); // 10-06 收敛：WageTrade 权威写（num2 恒正≥1000，clamp no-op 行为等价）
 			storeClient.clientCash = num2;
 			storeClient.useClientBudget = true;
 			string[] array = new string[7] { "beer_case", "red_beer", "wine_bottle", "wine_berry", "wine_bloomberry", "wine_gloomberry", "empty_beer_bottle" };

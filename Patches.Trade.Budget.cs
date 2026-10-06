@@ -50,11 +50,9 @@ internal static partial class Patches
 			_inBudgetOverride = true;
 			try
 			{
-				int budget = __instance.GetBudget();
-				// 10-05 第三方溢出兜底：CustomerCreditBoost 直写负预算 → 读口夹 0（防负预算被倍率放大）
-				if (budget < 0) budget = 0;
+				int budget = WageAPI.WageTrade.GetBudget(__instance); // 10-06 收敛：WageTrade 权威读（负值→0，含原 10-05 CustomerCreditBoost 兜底语义）
 				// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
-				__instance.SetBudget((int)((double)budget * (1.0 + (double)budgetBonusPct / 100.0)));
+				WageAPI.WageTrade.SetBudget(__instance, (long)((double)budget * (1.0 + (double)budgetBonusPct / 100.0)));
 			}
 			finally
 			{

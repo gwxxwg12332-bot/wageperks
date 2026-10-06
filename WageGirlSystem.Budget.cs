@@ -25,20 +25,20 @@ public static partial class WageGirlSystem
             if (__instance == null) return;
             if (__instance.identifier == ENTITY_ID || __instance.identifier == "wage_brother") return; // 蛙娘自己+蛙哥固定预算不受好感倍率
             if (Patches._inBudgetOverride) return; // 防重入
-            int budget = __instance.GetBudget();
+            int budget = WageAPI.WageTrade.GetBudget(__instance); // 10-06 收敛：WageTrade 权威读（负值→0，含原 budget<=0 前防御）
             if (budget <= 0) return;
             // 酒徒宿醉：预算-10%（=议价-10%）
             if (WineLoverPerk.IsHungover())
             {
                 long hungover = (long)(budget * 0.9f);
-                __instance.OverrideBudget((int)hungover);
+                WageAPI.WageTrade.OverrideBudget(__instance, hungover);
                 return;
             }
             // v1.3.1【7b】干燥空气：水酒客户预算+25%（不依赖蛙娘，独立 perk）
             if (DryAirPerk.IsActive() && BuysWaterOrBooze(__instance))
             {
                 long dry = (long)(budget * DryAirPerk.GetWaterBoozeBudgetBonus());
-                __instance.OverrideBudget((int)dry);
+                WageAPI.WageTrade.OverrideBudget(__instance, dry);
                 return;
             }
             if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
@@ -47,7 +47,7 @@ public static partial class WageGirlSystem
                 : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
             long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
-            __instance.OverrideBudget((int)newBudget);
+            WageAPI.WageTrade.OverrideBudget(__instance, newBudget);
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
     }

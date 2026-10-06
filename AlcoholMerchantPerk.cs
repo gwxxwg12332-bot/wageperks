@@ -87,7 +87,7 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
             {
                 try
                 {
-                    GameItem grape = DirectoryMaster.Item("wine_berry", true);
+                    GameItem grape = WageAPI.WageItemFactory.Create("wine_berry"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
                     if (grape == null) { Core.LogMsg("[酒商] 加葡萄 wine_berry 不存在(null)"); break; }
                     _berrySellCount++;
                     int cond = 10; // 小葡萄
@@ -105,14 +105,14 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
             {
                 try
                 {
-                    GameItem w = DirectoryMaster.Item(wid, true);
+                    GameItem w = WageAPI.WageItemFactory.Create(wid); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
                     if (w == null) { Core.LogMsg("[酒商] 加酒 " + wid + " 不存在(null)"); continue; }
                     // 优质水（矿泉水瓶装优质水质）——酿造配方用水
                     if (wid == "bottled_water")
                     {
                         GameItem bw = null;
                         try { var foodDir = UnityEngine.Object.FindObjectOfType<Il2Cpp.FoodItemDirectory>(); if (foodDir != null) { bw = foodDir.Create("bottled_water"); } } catch { }
-                        if (bw == null) { bw = DirectoryMaster.Item("bottled_water", true); }
+                        if (bw == null) { bw = WageAPI.WageItemFactory.Create("bottled_water"); } // 10-06 收敛：WageItemFactory 权威创建
                         if (bw != null) { try { Il2Cpp.WaterHelper.FillWithHighQualityWater(bw); } catch { } w = bw; }
                     }
                     // 补名：部分物品名称空（本地化缺），显示问号
