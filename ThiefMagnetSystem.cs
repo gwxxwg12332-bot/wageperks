@@ -417,7 +417,14 @@ internal static class ThiefMagnetSystem
                 {
                     // currentClientInstance 是 StoreClientInstance——GetClientBlueprint() 拿 StoreClient（Patches.Npc.Client.cs:242 同款）
                     var bp = ps.currentClientInstance.GetClientBlueprint();
-                    if (bp != null) { string cid = ""; try { cid = bp.identifier ?? ""; } catch { } if (cid == "thief") isThief = true; }
+                    if (bp != null)
+                    {
+                        string cid = ""; try { cid = bp.identifier ?? ""; } catch { }
+                        // 10-07 #7（玩家反馈"突破声望限违禁品直购仍不行"）：Prefix 原单键（identifier=="thief"）与 Postfix 双键不一致——
+                        //   eventSourceId=="thief_magnet_visit"（本会话事件触发）|| identifier=="thief"（原版存档字段）——事件触发/读档场景 identifier 可能非 "thief" → 特判漏判 → 黑市货走原版销毁链
+                        string esrc = ""; try { esrc = bp.eventSourceId ?? ""; } catch { }
+                        if (esrc == "thief_magnet_visit" || cid == "thief") isThief = true;
+                    }
                 }
             }
             catch { }
