@@ -61,6 +61,9 @@ internal static class SaveStore
     }
 
     // 新档：只清自己的命名空间 + 设默认（不碰其他 mod 数据；WagePerks 的 ResetForNewRun 清全量，顺序竞态由读默认兜底）
+    // 10-07 #5 修复：鲁滨逊开局逻辑（难度/现金/物资）归 WS 迁移时整体丢失——WP 旧注册死代码（PatchRegistry.cs:76 实锤）+新表无 StartNewGame 条目+WS 未承接
+    //   → 鲁滨逊档普通/困难无分别 + 无开局物资。本方法补迁（对齐 WP RobinCrusoePerk.Survival.Startup.cs TrySetupNewRun/PostfixStartNewGame）：
+    //   hard 分支（现金 0/50%随机）+ robinson_hard 随档标记 + !hard 发开局物资（3肉+2生肉+3纯水+5绷带）；非鲁滨逊档只清缓存（行为不变）
     internal static void PostfixStartNewGame()
     {
         try
@@ -72,7 +75,71 @@ internal static class SaveStore
             SurvivalFood._jumping = false;
             SurvivalFood._jumpStartDay = -1;
             InitDefaults();
+            // ===== 10-07 #5：鲁滨逊开局难度/现金/物资（非鲁滨逊档只清缓存，行为不变）=====
+            if (!SurvivalTrade.IsRobinsonRun()) return;
+            bool hard = Il2Cpp.NewGameData.Instance != null && Il2Cpp.NewGameData.Instance.hardMode; // 原生困难模式开关（开局界面）
+            WageAPI.WageSaveStore.SetInt(PERK_ID, "robinson_hard", hard ? 1 : 0); // 随档（原生 hardMode 退出重进重置，存 mod 状态）
+            PlayerStore ps = PlayerStore.Instance;
+            if (ps != null)
+            {
+                // 金钱随机——hard 清零；普通 50%→0 / 50%→1~600（原固定 360）
+                if (hard) ps.playerCash = 0;
+                else if (Core.Rng.Next(2) == 0) ps.playerCash = 0;
+                else ps.playerCash = Core.Rng.Next(1, 601);
+            }
+            if (!hard) GiveStartingGoods(); // HardMode：无开局物资
+            Core.LogMsg("[WageSurvival] 鲁滨逊开局：hard=" + hard + " 现金=" + (ps != null ? ps.playerCash : -1));
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] PostfixStartNewGame 异常: " + ex.Message); }
+    }
+
+    // ===== 10-07 #5：鲁滨逊开局物资（对齐 WP GiveStartingGoods——WageItemGrant 统一发放防重叠）=====
+    private static void GiveStartingGoods()
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            GiveToBackpack("processed_meat", 3);   // 口粮×3（三天量）
+            GiveToBackpack("raw_meat", 2);         // 大肉×2
+            GivePureWaterToBackpack(3);            // 大瓶纯水×3（三天量）
+            GiveToBackpack("bandage_item", 5);     // 绷带×5
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] GiveStartingGoods 异常: " + ex.Message); }
+    }
+    private static void GiveToBackpack(string id, int count)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            GameGridInventory inv = em.backInvinvElement;
+            for (int i = 0; i < count; i++)
+            {
+                GameItem item = DirectoryMaster.Item(id, true);
+                if (item == null) continue;
+                try { Il2Cpp.GeneralHelper.SetItemOwned(item, true); } catch { }
+                WageAPI.WageItemGrant.GrantToInventory(item, inv); // 防重叠契约内置（TryAcceptOnce 优先+UncheckedAcceptAll 兜底）
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] GiveToBackpack 异常: " + ex.Message); }
+    }
+    private static void GivePureWaterToBackpack(int count)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            GameGridInventory inv = em.backInvinvElement;
+            for (int i = 0; i < count; i++)
+            {
+                GameItem item = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("large_bottled_water"); // 直接生成带水大瓶
+                if (item == null) continue;
+                try { Il2Cpp.GeneralHelper.SetItemOwned(item, true); } catch { }
+                try { item.DisableTag("stolen", true); } catch { }
+                WageAPI.WageItemGrant.GrantToInventory(item, inv);
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] GivePureWaterToBackpack 异常: " + ex.Message); }
     }
 }
