@@ -42,7 +42,7 @@ public static partial class WageGirlSystem
                 return;
             }
             if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
-            int affB = GetAffection();
+            double affB = GetAffectionExact(); // 10-07 #10：double 精确比较（负好感走低档倍率）
             float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
                 : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
             long newBudget = (long)(budget * mult);

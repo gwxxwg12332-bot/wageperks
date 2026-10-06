@@ -19,8 +19,42 @@ public static partial class WageGirlSystem
     // 以下旧方法全部改成门面（调用点 0 改动）
     internal static int GetSleepDebt() => GetStat(K_SLEEP_DEBT, 0);
     internal static void SetSleepDebt(int v) => SetStat(K_SLEEP_DEBT, Math.Max(0, v));
-    internal static int GetAffection() => GetStat(K_AFF, 0);
-    internal static void SetAffection(int v) { SetStat(K_AFF, Math.Max(0, Math.Min(BuildConfig.WageGirlAffMax, v))); CheckAffection50Reward(); }
+    // 10-07 #10 好感重做：int×100 新键 affectionExact（两位小数精度 -200~200，免扩 WageSaveStore 无 double API）
+    //   旧键 affection 保留门面（调用点 0 改动）；旧档首次读触发惰性迁移（幂等：新键已存在则直接用）
+    internal static double GetAffectionExact()
+    {
+        try
+        {
+            if (WageSaveStore.HasKey(NS, K_AFF_EXACT) || _memStats.ContainsKey(K_AFF_EXACT))
+                return GetStat(K_AFF_EXACT, 0) / 100.0;
+            int old = GetStat(K_AFF, 0);
+            if (old != 0 || WageSaveStore.HasKey(NS, K_AFF))
+            {
+                SetStat(K_AFF_EXACT, old * 100); // 旧档迁移（int×100）；下次读走新键=幂等
+                return old;
+            }
+            return 0;
+        }
+        catch { return 0; }
+    }
+    internal static int GetAffection() => (int)GetAffectionExact(); // 旧门面：整数值（截断，保留原 int 语义；50 事件链/日结阈值不变）
+    internal static void SetAffection(int v) => SetAffectionExact(v); // 旧门面：整数写精确
+    internal static void SetAffectionExact(double v)
+    {
+        int iv = (int)Math.Round(v * 100);
+        iv = Math.Max(-20000, Math.Min(20000, iv)); // clamp [-200,200]（#10 5 节点信赖上限 200；负值合法）
+        SetStat(K_AFF_EXACT, iv);
+        CheckAffection50Reward();
+    }
+    // #10 5 节点映射：节点1[-200,-101]敌意 / 节点2[-100,-1]冷淡 / 节点3[0,49]友好 / 节点4[50,99]亲密 / 节点5[100,200]信赖
+    internal static int GetAffNode(double aff)
+    {
+        if (aff < -100) return 1;
+        if (aff < 0) return 2;
+        if (aff < 50) return 3;
+        if (aff < 100) return 4;
+        return 5;
+    }
 
     // 10-06 H-1a（拆包 69VfzLzb9jFA83REUYVtB3）：好感50瞬间"三件套发放+移动启动"双落格并发→NRE。
     //   发放改延迟队列：CheckAffection50Reward 只设标记，实际发放由 Anim.Update 帧首经 TickGift50Delay 延迟 2 帧后执行（与移动落格完全错帧）
@@ -85,11 +119,16 @@ public static partial class WageGirlSystem
     }
     internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
     internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
-    // 09-20 优化：好感等级文字
+    // 10-07 #10：好感等级文字（5 节点映射）
     private static string GetAffLevelText() {
-        int aff = GetAffection();
-        if (aff < 80) return LangHelper.T("信任你", "Trusts you");
-        return LangHelper.T("亲如家人", "Family");
+        switch (GetAffNode(GetAffectionExact()))
+        {
+            case 1: return LangHelper.T("敌意", "Hostile");
+            case 2: return LangHelper.T("冷淡", "Cold");
+            case 3: return LangHelper.T("友好", "Friendly");
+            case 4: return LangHelper.T("亲密", "Close");
+            default: return LangHelper.T("信赖", "Trusted");
+        }
     }
     // 09-20 优化：六维文字描述
     private static string GetStatText(string key) {
@@ -236,6 +275,16 @@ public static partial class WageGirlSystem
             TravelDailyTick(day); // v1.3.1【8】旅行期间每日扣口粮
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day < leaveDay) return;
+            // #10 拍板 3：节点1 敌意[-200,-101] = 随机跑路（2-4 天）+ 不互动（喂食入口另拦截）
+            if (GetAffNode(GetAffectionExact()) == 1 && GetStat(K_LEAVE) <= 0)
+            {
+                int hostileDays = 2 + Core.Rng.Next(3); // 默认 2-4 天（可调）
+                SetStat(K_LEAVE, day + hostileDays);
+                SetStat(K_LEAVE_REASON, 5); // reason=5 敌意跑路（回归走普通分支）
+                _curState = "away"; _curAnimSprites = _spAway; _stateFrameSec = 0.125f; _leavingTimer = 0.5f;
+                ReportLine(LangHelper.T("蛙娘对你的好感跌到冰点，气冲冲地离家出走了（" + hostileDays + " 天后回来）", "Wage Girl is furious (affection at rock bottom) and stormed off (back in " + hostileDays + " days)"));
+                return;
+            }
             // 3) 跑路检查：连续 N 天任一六维 <阈值 → 离家出走 M 天（CFG：WageGirlRunaway*）
             int lowStreak = GetStat(K_STARVE);
             if (IsAnyStatLow())
@@ -283,7 +332,7 @@ public static partial class WageGirlSystem
             } // 给零花钱后当天不偷
             // 6) 好物：好感 ≥N 每 M 天带 1 件（CFG：WageGirlGiftAff/Interval）
             int lastGift = GetStat(K_LAST_GIFT);
-            if (GetAffection() >= BuildConfig.WageGirlGiftAff && day - lastGift >= BuildConfig.WageGirlGiftInterval)
+            if (GetAffectionExact() >= BuildConfig.WageGirlGiftAff && day - lastGift >= BuildConfig.WageGirlGiftInterval)
             {
                 GiveGift();
                 SetStat(K_LAST_GIFT, day);
@@ -295,10 +344,10 @@ public static partial class WageGirlSystem
             if (allowNow >= allowanceFloor && UnityEngine.Random.Range(0, 2) == 0) {
                 SetStat(K_LAST_STEAL, day);
             }
-            else if (day - lastSteal >= BuildConfig.WageGirlStealInterval && GetAffection() < BuildConfig.WageGirlStealNoStealAff)
+            else if (day - lastSteal >= BuildConfig.WageGirlStealInterval && GetAffectionExact() < BuildConfig.WageGirlStealNoStealAff)
             {
-                int aff = GetAffection();
-                int steal = BuildConfig.WageGirlStealBaseMax - (int)((aff / (float)BuildConfig.WageGirlAffMax) * BuildConfig.WageGirlStealAffReduction); // 好感越高偷得越少（0→100、100→10；CFG 可调）
+                double aff = GetAffectionExact();
+                int steal = BuildConfig.WageGirlStealBaseMax - (int)((aff / 100.0) * BuildConfig.WageGirlStealAffReduction); // 好感越高偷得越少（0→100、100→10；基准固定 100 独立于 AffMax；负好感→偷得更多）
                 ModCashN(-steal);
                 SetStat(K_STEAL_AMT, steal);
                                 SetSleepDebt(GetSleepDebt() + BuildConfig.WageGirlStealSleepDebt); // 偷钱外出熬夜 -N 睡眠（次日结算）
@@ -361,8 +410,8 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                         var g = DirectoryMaster.Item(id, true);
                         if (g == null) { pool.RemoveAt(idx); tries++; continue; }
                         if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
-                        // 09-20 优化：礼物价值随好感提升（好感 0→500、100→700）
-                        int minVal = 500 + (GetAffection() / 100) * 200;
+                        // 09-20 优化：礼物价值随好感提升（好感 0→500、100→700；#10 负好感→更廉价）
+                        int minVal = 500 + (int)(GetAffectionExact() / 100.0 * 200);
                         if (g.unitValue < minVal) { pool.RemoveAt(idx); tries++; continue; } // 好物价值 ≥minVal
                         it = g; break;
                     }

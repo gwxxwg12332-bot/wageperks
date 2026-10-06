@@ -144,8 +144,8 @@ public static class BuildConfig
 	public static int WageGirlStatMax => GetInt("WageGirlStatMax", 100);
 	public static int WageGirlDailyDecay => GetInt("WageGirlDailyDecay", 2);
 	public static int WageGirlSleepRecover => GetInt("WageGirlSleepRecover", 15);
-	// 好感
-	public static int WageGirlAffMax => GetInt("WageGirlAffMax", 100);
+	// 好感（10-07 #10：上限 100→200=信赖节点上限，与面板 /200 对齐；clamp 固定 [-200,200]）
+	public static int WageGirlAffMax => GetInt("WageGirlAffMax", 200);
 	public static int WageGirlAffDecayMin => GetInt("WageGirlAffDecayMin", 1);
 	public static int WageGirlAffDecayMax => GetInt("WageGirlAffDecayMax", 2);
 	public static int WageGirlAffDecayLowMin => GetInt("WageGirlAffDecayLowMin", 2);
@@ -161,7 +161,7 @@ public static class BuildConfig
 	public static int WageGirlSnatchValueMid => GetInt("WageGirlSnatchValueMid", 100);
 	public static int WageGirlSnatchValueHigh => GetInt("WageGirlSnatchValueHigh", 200);
 	public static int WageGirlSnatchSleepDebt => GetInt("WageGirlSnatchSleepDebt", 10);
-	public static int WageGirlStealNoStealAff => GetInt("WageGirlStealNoStealAff", 80);
+	public static int WageGirlStealNoStealAff => GetInt("WageGirlStealNoStealAff", 100); // 10-07 #10：80→100（节点5 信赖 100+ 才不偷）
 	// 洗白费用（每件违禁品）
 	// 跑路
 	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
@@ -438,7 +438,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlStatMax", 100, "蛙娘六维上限");
 			melonPreferences_Category.CreateEntry("WageGirlDailyDecay", 2, "蛙娘每日六维衰减(未照顾)");
 			melonPreferences_Category.CreateEntry("WageGirlSleepRecover", 15, "蛙娘打烊睡眠恢复");
-			melonPreferences_Category.CreateEntry("WageGirlAffMax", 100, "蛙娘好感上限");
+			melonPreferences_Category.CreateEntry("WageGirlAffMax", 200, "蛙娘好感上限（5节点信赖=200；clamp[-200,200]）");
 			melonPreferences_Category.CreateEntry("WageGirlAffDecayMin", 1, "蛙娘好感每日衰减下限(没互动)");
 			melonPreferences_Category.CreateEntry("WageGirlAffDecayMax", 2, "蛙娘好感每日衰减上限(没互动)");
 			melonPreferences_Category.CreateEntry("WageGirlAffDecayLowMin", 2, "蛙娘好感额外衰减下限(六维低)");
@@ -452,7 +452,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlSnatchValueMid", 100, "蛙娘偷拿价值上限·中好感(30-70)");
 			melonPreferences_Category.CreateEntry("WageGirlSnatchValueHigh", 200, "蛙娘偷拿价值上限·高好感(≥70)");
 			melonPreferences_Category.CreateEntry("WageGirlSnatchSleepDebt", 10, "蛙娘偷拿熬夜睡眠债");
-			melonPreferences_Category.CreateEntry("WageGirlStealNoStealAff", 80, "蛙娘好感≥此值不再偷钱/偷拿");
+			melonPreferences_Category.CreateEntry("WageGirlStealNoStealAff", 100, "蛙娘好感≥此值不再偷钱/偷拿（信赖节点）");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayLowStat", 20, "蛙娘跑路·六维低于此值计1天");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayStreak", 5, "蛙娘跑路·连续天数门槛");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");

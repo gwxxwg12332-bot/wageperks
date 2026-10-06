@@ -151,21 +151,31 @@ public static partial class WageGirlSystem
             // 依据 [L1] GeneralHelper.IsItemOwned(item) ≡ item.IsTag("IS_OWNED_TAG")（原版归属标记，Patches.cs:1984 已用它判买卖方向）。
             // 买入模式下拖的是客户的货，喂掉会让原生交易 UI 持有已销毁物品 → 拦掉。
             if (Patches.CurrentUITradeMode != 0 && !IsPlayerOwnedForCare(item)) return false;
-            int gain = 0; int aff = 1; string msg = "";
-            int curAff = GetAffection();
-            // 分阶段好感获取：初期(0-30)+1~2，中期(30-70)+2~3，后期(70-100)+1
-            int affBase = curAff < 30 ? 1 : (curAff < 70 ? 2 : 1);
-            // 10-06 D3（525BFCC1 拍板）：喂食/喂水改按物品价值给好感（价值越高加越多）+ 双倍难度（÷2，≥20 价值保底 1）
-            int ValueAff(GameItem it)
+            // #10 拍板 3：节点1 敌意[-200,-101] = 不互动（喂食/照顾拒绝）
+            if (GetAffNode(GetAffectionExact()) == 1)
+            {
+                ReportLine(LangHelper.T("蛙娘正在气头上，拒绝你的照顾", "She is furious and refuses your care"));
+                try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("好感跌到冰点，她不愿接受照顾", "Affection too low, she refuses care"), "orange"); } catch { }
+                return false;
+            }
+            int gain = 0; double aff = 1; string msg = "";
+            // #10 5 节点映射：节点1/2（冷淡/敌意）=1、节点3（友好）=2、节点4/5（亲密/信赖）=1（阶段制保底，酒分支用）
+            int curNode = GetAffNode(GetAffectionExact());
+            int affBase = curNode <= 2 ? 1 : (curNode == 3 ? 2 : 1);
+            // 10-06 D3（525BFCC1 拍板）：喂食/喂水改按物品价值给好感（价值越高加越多）+ 双倍难度
+            // 10-07 #10 拍板 4：两位小数档（300+/2.00、150+/1.50、60+/1.00、20+/0.50、1-19/0）+ 价值 0 物品 -1.00（防刷）
+            double ValueAff(GameItem it)
             {
                 long v = 0; try { v = it.GetCurrentValue(); } catch { }
                 if (v <= 0) { try { v = it.unitValue; } catch { } }
-                int tierAff = v >= 300 ? 4 : v >= 150 ? 3 : v >= 60 ? 2 : v >= 20 ? 1 : 0;
-                int half = tierAff / 2;
-                if (half < 1 && v >= 20) half = 1; // 双倍难度后保底：20+ 价值至少 +1
-                return half;
+                if (v <= 0) return -1.00;
+                if (v >= 300) return 2.00;
+                if (v >= 150) return 1.50;
+                if (v >= 60) return 1.00;
+                if (v >= 20) return 0.50;
+                return 0.00;
             }
-            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curAff < 30 ? 2 : (curAff < 70 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); QueueDestroy(item); } // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理
+            if (RobinCrusoePerk.IsDailyNeed(item)) { gain = 20; aff = curNode <= 2 ? 2 : (curNode <= 4 ? 4 : 2); msg = LangHelper.T("蛙娘洗得干干净净、心情大好！清洁 +20 心情 +10（照顾）", "Wage Girl cleaned up & cheered up! Cleanliness +20 Mood +10 (care)"); SetStat(K_CLEAN, GetStat(K_CLEAN) + gain); SetStat(K_MOOD, GetStat(K_MOOD) + 10); SetStat(K_HEALTH, GetStat(K_HEALTH) + 15); QueueDestroy(item); } // 延迟销毁：拖拽栈内不直接Destroy，帧尾统一处理
             else if (RobinCrusoePerk.IsFood(item)) {
                 // 普通食物：GetCalLeft → bite=min(100,(cal+1)/2) → gain=round(bite/22)
                 int cal2 = RobinCrusoePerk.GetCalLeft(item);
@@ -240,7 +250,7 @@ public static partial class WageGirlSystem
                 }
             }
             else return false;
-            SetAffection(GetAffection() + aff);
+            SetAffectionExact(GetAffectionExact() + aff); // 10-07 #10：两位小数精确写入（int×100 存储）
             SetStat("lastFedDay", CurrentDay()); // 记录今天喂过
             try { StoreUIManager.Instance.Notify(msg); } catch { }
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }

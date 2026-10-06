@@ -16,8 +16,8 @@ public static partial class WageGirlSystem
     {
         try
         {
-            // 09-22 优化：好感≥N → 100% 不偷（害羞档位；CFG：WageGirlStealNoStealAff）
-            if (GetAffection() >= BuildConfig.WageGirlStealNoStealAff) return;
+            // 09-22 优化：好感≥N → 100% 不偷（害羞档位；CFG：WageGirlStealNoStealAff）；10-07 #10 double 精确
+            if (GetAffectionExact() >= BuildConfig.WageGirlStealNoStealAff) return;
             int sat = GetStat(K_SAT), th = GetStat(K_TH), mood = GetStat(K_MOOD);
             string mode = null; string msg = null;
             if (sat < 30) { mode = "food"; msg = "蛙娘饿坏了，偷吃了你的食物"; }
@@ -25,7 +25,7 @@ public static partial class WageGirlSystem
             else if (mood < 30) { if (GetStat(K_CLEAN) >= 100) return; mode = "care"; msg = "蛙娘心情很差，拿走了你的日用品"; }
             else if (mood >= 60) { return; } // 09-22 砍：心情好不偷（回归只带回来给玩家）
             else return;
-            int aff = GetAffection();
+            double aff = GetAffectionExact(); // 10-07 #10：double（负好感→<30 → 偷 1 件）
             int count = aff < 30 ? 1 : (aff < 70 ? 2 : 3);
             string valueMode = "random"; // 09-22 改：不按价值偷，随机挑
             int stolen = StealItems(mode, count, valueMode, out var stolenNames);
@@ -84,8 +84,8 @@ public static partial class WageGirlSystem
                     else if (mode == "care") allow = RobinCrusoePerk.IsDailyNeed(it);
                     else allow = RobinCrusoePerk.IsFood(it) || RobinCrusoePerk.IsDrink(it) || RobinCrusoePerk.IsDailyNeed(it);
                     if (!allow) continue;
-                    // 偷拿价值上限：好感<30 偷≤Low，30-70 偷≤Mid，>70 偷≤High（CFG：WageGirlSnatchValue*）
-                    int aff = GetAffection();
+                    // 偷拿价值上限：好感<30 偷≤Low，30-70 偷≤Mid，>70 偷≤High（CFG：WageGirlSnatchValue*）；10-07 #10 double
+                    double aff = GetAffectionExact();
                     int maxVal = aff < 30 ? BuildConfig.WageGirlSnatchValueLow : (aff < 70 ? BuildConfig.WageGirlSnatchValueMid : BuildConfig.WageGirlSnatchValueHigh);
                     if (it.unitValue > maxVal) continue;
                     candidates.Add(it);

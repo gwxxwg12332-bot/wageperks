@@ -32,8 +32,8 @@ public static partial class WageGirlSystem
             }
             catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
             b.BeginColumn(4f);
-            // 09-20 优化：顶部好感度显示
-            b.AddLabel(LangHelper.T("好感度：" + GetAffection() + "/100（" + GetAffLevelText() + "）", "Affection: " + GetAffection() + "/100 (" + GetAffLevelText() + ")"), "wg_aff");
+            // 09-20 优化：顶部好感度显示；10-07 #10 两位小数 + /200 + 5 节点文本
+            b.AddLabel(LangHelper.T("好感度：" + GetAffectionExact().ToString("0.00") + "/200（" + GetAffLevelText() + "）", "Affection: " + GetAffectionExact().ToString("0.00") + "/200 (" + GetAffLevelText() + ")"), "wg_aff");
             b.AddLabel(LangHelper.T("💰 小金库：" + GetStat(K_SAVINGS) + " 块", "💰 Savings: " + GetStat(K_SAVINGS) + " credits"), "wg_savings");
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100  " + GetStatText(K_SAT), "wg_sat_l");
             b.AddProgressBar(GetStat(K_SAT) / 100f, "wg_sat");
@@ -86,7 +86,7 @@ public static partial class WageGirlSystem
                     var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ProvisionMode = !WageGirlSystem.ProvisionMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
                     b.AddButton(WageGirlSystem.ProvisionMode ? LangHelper.T("🍖 拖拽模式：把食物拖到蛙娘身上（当前" + GetStat(K_PROVISION) + "份）", "🍖 Drag food onto Wage Girl (" + GetStat(K_PROVISION) + " stored)") : LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
                 }
-                if (!isOutNow && GetAffection() >= 20)
+                if (!isOutNow && GetAffectionExact() >= 20) // 10-07 #10：double 比较（冷淡/敌意=负值不显示旅行按钮）
                 {
                     var travelBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { TryStartTravel(); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 旅行异常: " + ex.Message); } }));
                     b.AddButton(LangHelper.T("🧳 出门旅行（3天，扣1份口粮）", "🧳 Go traveling (3 days, costs 1 food)"), travelBtn, "wg_travel_btn");

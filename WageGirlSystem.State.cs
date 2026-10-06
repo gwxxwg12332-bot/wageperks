@@ -24,6 +24,8 @@ public static partial class WageGirlSystem
 
     private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep", K_SLEEP_DEBT = "sleepDebt";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
+    // 10-07 #10 好感重做：int×100 新键（两位小数精度 -200~200）；旧键 affection 保留门面（迁移后不再写）
+    internal const string K_AFF_EXACT = "affectionExact";
     private const string K_EXIST = "exists";
     private const string K_STEAL_AMT = "lastStealAmount"; // 上次偷钱额（回归带物比例用）
     private const string K_LAST_GIFT = "lastGiftDay";     // 好物周期（阶段 6）
@@ -95,7 +97,7 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     // 09-27 B4 修：全量持久化 key 数组（Reset/清理共用；补 allowanceCount/allowance/savings/washMode/lastFedDay/stolenValue 6 个，原漏 12 key）
     private static readonly string[] ALL_STAT_KEYS = new string[]
     {
-        K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_SLEEP_DEBT, K_AFF, K_LAST_STEAL, K_LEAVE,
+        K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_SLEEP_DEBT, K_AFF, K_AFF_EXACT, K_LAST_STEAL, K_LEAVE,
         K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON,
         K_ALLOWANCE_COUNT, K_ALLOWANCE, K_SAVINGS, K_WASH_MODE, "lastFedDay", "stolenValue"
     };
@@ -180,6 +182,7 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
             GetStat(K_LEAVE);
             GetStat(K_EXIST);
             GetStat(K_AFF);
+            GetStat(K_AFF_EXACT); // 10-07 #10：预热新键（旧档首次读触发惰性迁移）
             GetStat(K_SAT); GetStat(K_TH); GetStat(K_HEALTH);
             GetStat(K_MOOD); GetStat(K_CLEAN); GetStat(K_SLEEP);
             _cachedGirlItem = null; _cacheRefreshFrames = 0; _curState = ""; _frameIndex = 0; _frameTimer = 0f;

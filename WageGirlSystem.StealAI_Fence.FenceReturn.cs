@@ -15,8 +15,8 @@ public static partial class WageGirlSystem
     {
         try
         {
-            int aff = GetAffection();
-            float ratio = 0.5f + (aff / 100f) * 1.5f; // 09-22 优化：好感 0→50%、100→200%（高好感喂钱是投资）
+            double aff = GetAffectionExact(); // 10-07 #10：double 精确（负好感→带回比例 <0.5→带回更少=惩罚）
+            double ratio = 0.5 + (aff / 100.0) * 1.5; // 09-22 优化：好感 0→50%、100→200%（高好感喂钱是投资）
             long budget = Math.Max(1, (int)(stealAmt * ratio));
             EmporiumEntry em = EmporiumEntry.Instance;
             var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);

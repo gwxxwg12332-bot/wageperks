@@ -270,7 +270,8 @@ public static partial class WageGirlSystem
                 {
                     // 10-06 H-1b（拆包实锤崩点=好感50瞬间双落格并发）：恢复移动判定（好感>=50），
                     //   止血"<101 永不动"移除；移动启动再延迟一帧置位（与三件套延迟发放完全错帧，双保险）
-                    if (GetAffection() < 50) { _pauseDuration = 10f; return; } // 好感<50：待在角落不动
+                    // 10-07 #10：节点判断（节点1敌意/2冷淡/3友好=现 <50 待在角落不动；节点4亲密+才自由移动）
+                    if (GetAffNode(GetAffectionExact()) < 4) { _pauseDuration = 10f; return; }
                     if (!_pendingMoveStart) { _pendingMoveStart = true; return; } // H-1a：启动延迟一帧（下一帧才真正置 _walking）
                     _pendingMoveStart = false;
                     _walking = true;
