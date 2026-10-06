@@ -158,15 +158,15 @@ public static partial class WageGirlSystem
             // 第2章
             b.AddLabel(LangHelper.T("【2】六维是什么？", "[2] The 6 Stats"), "wg_g2");
             b.AddLabel(LangHelper.T("饱食/口渴/健康/心情/清洁/睡眠。满了不闹，低于30出问题（饿了偷吃东西、渴了偷喝饮料、心情差偷东西）。每日衰减：前5项各-2，睡眠自然恢复。", "Satiety/Thirst/Health/Mood/Clean/Sleep. Full=happy, below 30=causes trouble (steals food/drinks/stuff). Daily decay: first 5 -2 each, sleep recovers naturally."), "wg_g2d");
-            // 第3章
+            // 第3章（10-07 D4：加洗澡/水质新变动）
             b.AddLabel(LangHelper.T("【3】怎么喂她？", "[3] How to Feed"), "wg_g3");
-            b.AddLabel(LangHelper.T("直接拖东西给她。食物→饱食+健康，吃一口剩一半；饮料→口渴（看水质），瓶子留着；日用品→清洁+心情；违禁品→洗白或销赃。脏水掉健康，换花样喂防腻。", "Drag items to her. Food -> satiety+health, eats one bite leaves half; Drink -> thirst (by water quality), bottle kept; Daily goods -> clean+mood; Contraband -> launder or fence. Dirty water hurts health, vary diet to avoid boredom."), "wg_g3d");
-            // 第4章
+            b.AddLabel(LangHelper.T("直接拖东西给她。食物→饱食+健康，吃一口剩一半；饮料→口渴（看水质），瓶子留着；日用品→清洁+心情；违禁品→洗白或销赃。口渴满后再喝=洗澡：好水加清洁（品质越好加越多），最脏的减健康，浑浊/脏水额外减心情，品质最好的水额外加心情+睡眠。脏水掉健康，换花样喂防腻。", "Drag items to her. Food -> satiety+health, eats one bite leaves half; Drink -> thirst (by water quality), bottle kept; Daily goods -> clean+mood; Contraband -> launder or fence. Drinking when thirst is full = bath: good water raises cleanliness (better quality = more), dirtiest hurts health, cloudy/dirty water also cuts mood, best water gives bonus mood+sleep. Dirty water hurts health, vary diet to avoid boredom."), "wg_g3d");
+            // 第4章（10-07 D4：喂食按价值给好感）
             b.AddLabel(LangHelper.T("【4】怎么涨好感？", "[4] Raising Affection"), "wg_g4");
-            b.AddLabel(LangHelper.T("喂好吃的+1~3，照顾清洁+2~5，给零花钱前3次+1~3。好感<30偷≤50，30-70偷≤100，>70偷≤200（很少偷），>90几乎不偷。", "Good food +1~3, clean her +2~5, allowance first 3 times +1~3. Affection <30 steals <=50, 30-70 <=100, >70 <=200 (rarely), >90 almost never steals."), "wg_g4d");
-            // 第5章
+            b.AddLabel(LangHelper.T("喂食按物品价值给好感（价值越低加越少，整体难度已上调）；照顾清洁+2~5，给零花钱前3次+1~3。好感<30偷≤50，30-70偷≤100，>70偷≤200（很少偷），>90几乎不偷。", "Feeding gives affection by item value (lower value = less, difficulty raised); clean her +2~5, allowance first 3 times +1~3. Affection <30 steals <=50, 30-70 <=100, >70 <=200 (rarely), >90 almost never steals."), "wg_g4d");
+            // 第5章（10-07 D4：销赃回报上桌卖+箱子定价+钥匙卡）
             b.AddLabel(LangHelper.T("【5】她会做什么？", "[5] What She Does"), "wg_g5");
-            b.AddLabel(LangHelper.T("销赃：拖违禁品给她，2天回来带干净货。偷东西：心情差/好感低会偷。偷钱：每5天一次。跑路：连续5天六维低，离家14天。", "Fence: feed contraband, she returns in 2 days with clean goods. Steals: bad mood/low affection. Steals money: every 5 days. Leaves: 5 days low stats, gone 14 days."), "wg_g5d");
+            b.AddLabel(LangHelper.T("销赃：拖违禁品给她，2天回来带箱子（按好感定价：100好感300/箱，越低越贵；好感高才带对应钥匙卡）——货都上桌卖，需购买不直接送。偷东西：心情差/好感低会偷。偷钱：每5天一次。跑路：连续5天六维低，离家14天。", "Fence: feed contraband, she returns in 2 days with crates (priced by affection: 300/crate at 100 affection, pricier when lower; keycard only at high affection) - goods go on the counter for sale, not free. Steals: bad mood/low affection. Steals money: every 5 days. Leaves: 5 days low stats, gone 14 days."), "wg_g5d");
             // 第6章
             b.AddLabel(LangHelper.T("【6】小金库", "[6] Savings"), "wg_g6");
             b.AddLabel(LangHelper.T("销赃克扣的跑腿费存小金库。给零花钱100/300/500三档，前3次加好感。跑腿费好感越高越低（15%→5%）。", "Fencing commission goes to savings. Allowance 100/300/500, first 3 times gain affection. Commission drops from 15% to 5% as affection rises."), "wg_g6d");
