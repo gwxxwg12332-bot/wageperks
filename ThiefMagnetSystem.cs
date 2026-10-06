@@ -240,6 +240,8 @@ internal static class ThiefMagnetSystem
                                     bit.unitValue = (long)(bit.unitValue * (1f + pct));
                                     // 10-06 B1（525BFCC1 拍板）：加价数值可见——写 tag → GetDisplayName Postfix 追加"（黑市加价 +X%）"
                                     try { ContainerUpgradeV2.SetTagIntValue(bit, "BLACK_MARKET_MARKUP_PCT", (int)(pct * 100)); } catch { }
+                                    // 10-07 #9（玩家反馈"无原因显示"）：加价 feature 词条 → 原版词条区显示（GetDisplayName 名称行+词条区双保险）
+                                    AddBlackMarketMarkupFeature(bit, (int)(pct * 100));
                                     Core.LogMsg("[招贼体质] 黑市货加价 " + bid + " 黑市声望" + bmVal + " +" + (int)(pct * 100) + "%");
                                 }
                             }
@@ -273,8 +275,7 @@ internal static class ThiefMagnetSystem
     // 10-06 拆包落地（memos/HGEhRccFpfXTq4NbLyWvXf）：半价卖回显示标注——valueModifier=0 纯显示不改价
     // （价格已由 unitValue/2 生效——NegociationUIManager 7 处价格全走 GetNegociatedValue=unitValue 基础链）；
     // feature 词条挂物品 → tooltip/交易列表显示"半价卖回"（玩家"没有半价卖的标签"修复）
-    private static void AddHalfPriceFeature(GameItem item)
-    {
+    private static void AddHalfPriceFeature(GameItem item)    {
         try
         {
             if (item == null || item.itemFeatures == null) return;
@@ -301,6 +302,34 @@ internal static class ThiefMagnetSystem
             item.itemFeatures.Add(f);
         }
         catch (System.Exception ex) { Core.LogMsg("[招贼体质] 半价标注失败: " + ex.Message); }
+    }
+
+    // 10-07 #9（玩家反馈"黑市加价无原因显示"）：加价 feature 词条挂物品 → 原版词条区显示"黑市加价 +X%"
+    //   （与半价卖回 AddHalfPriceFeature 同模式；GetDisplayName 名称行追加=双保险——玩家 hover 词条区/名称行必见）
+    private static void AddBlackMarketMarkupFeature(GameItem item, int pct)
+    {
+        try
+        {
+            if (item == null || item.itemFeatures == null) return;
+            for (int i = 0; i < item.itemFeatures.Count; i++)
+                if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "black_market_markup") return; // 防重复
+            ItemFeature f = new ItemFeature();
+            f.identifier = "black_market_markup";
+            f.featureType = ItemFeature.FeatureType.TemporaryBuying;
+            f.valueStage = ItemFeature.ValueStage.Market;
+            f.valueModifier = 0; // 纯显示不改价（价格已在 unitValue 乘过——防双算）
+            f.preExposeValueModifier = 0;
+            f.usePreExposeValue = false;
+            f.initiallyShown = true;
+            f.isFeatureMatch = true;
+            f.isFeatureExposed = true;
+            f.isExposable = true;
+            f.isFeatureDiscovered = false;
+            f.publicDisplay = LangHelper.T("黑市加价 +" + pct + "%", "Black Market markup +" + pct + "%");
+            f.actualDisplay = LangHelper.T("黑市加价 +" + pct + "%", "Black Market markup +" + pct + "%");
+            item.itemFeatures.Add(f);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[招贼体质] 黑市加价标注失败: " + ex.Message); }
     }
 
     // 10-06 修复单#1（买回后状态清除→原价可卖）：恢复 unitValue ×2（上桌时 /2 过）+ 移除"半价卖回"feature
