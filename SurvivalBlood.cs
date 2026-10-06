@@ -43,7 +43,7 @@ internal static partial class SurvivalFood
             try
             {
                 // 09-20 M2 拍板：产普通血袋 blood_bag（价值 200，走原生医疗品销路）；删 blue_blood_bag 路径
-                GameItem bb = DirectoryMaster.Item("blood_bag", true);
+                GameItem bb = WageAPI.WageItemFactory.Create("blood_bag"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
                 if (bb != null)
                 {
                     try { bb.SetValue(200); } catch { }

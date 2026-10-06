@@ -250,7 +250,7 @@ internal static partial class SurvivalFood
             if (em == null || em.backInvinvElement == null) return;
             for (int i = 0; i < count; i++)
             {
-                var food = DirectoryMaster.Item("bread", true); // 最简版：给面包
+                var food = WageAPI.WageItemFactory.Create("bread"); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）；最简版给面包
                 if (food != null)
                 {
                     // 10-06 二期修正：统一入口 GrantToInventory 显式目标（无所有权转移对齐原行为）；原无确认无日志，入口失败 Destroy+日志
