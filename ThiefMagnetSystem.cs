@@ -149,18 +149,21 @@ internal static class ThiefMagnetSystem
     // 10-06 用户拍板：直接调用原版小偷（CreateThief——形象/名字/对话全原版，不用自定义对话）
     // 上桌方式（10-06 二修）：BarterOffer 对小偷失效（日志实锤 hasStolen=True 但无上桌——
     //   小偷对话不触发 ShowCurrentSet）→ 改挂 StartMainDialogue Postfix（客户对话入口实锤 StoreClient.txt:6181），对话时直接上桌
+    // 10-07 走游戏原生（用户拍板）：客户生成从 mod 自造 AddClient（运行时客户不随档→小退/读档丢失）
+    //   → 改 QueueFuturClient("thief", 0) 原生排期（futuredClients 随档，读档自动恢复——
+    //   对齐 SpecialNpcManager 官方蓝图模式：游戏自动管理生成时机，客户正确进店）。
+    //   上桌判定已双键（identifier=="thief"=原版存档字段，读档后仍在——cheatsheet:6392 实锤）。
     private static void SpawnThiefVisit(int day)
     {
-        bool hasStolen = !string.IsNullOrEmpty(WageSaveStore.GetString(NS, KEY_STOLEN, ""));
-        StoreClient thief = null;
-        try { thief = StoreClientList.CreateThief(); } catch { thief = null; } // 原版小偷（形象/名字/对话=原版）
-        if (thief == null) thief = StoreClientList.CreateFlexiBuyer(); // 兜底
-        if (thief == null) { Core.LogMsg("[招贼体质] 创建小偷客户失败"); return; }
-        thief.eventSourceId = "thief_magnet_visit";
-        _pendingResale = hasStolen; // 待上桌标记（对话时执行）
+        try
+        {
+            var ps = PlayerStore.Instance;
+            if (ps == null) { Core.LogMsg("[招贼体质] 排期小偷失败：PlayerStore 为空"); return; }
+            ps.QueueFuturClient("thief", 0); // 原生排期当天到店（随档；读档/小退重进原版自动恢复）
+            Core.LogMsg("[招贼体质] 小偷原生排期当天到店 day=" + day);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[招贼体质] 小偷排期失败: " + ex.Message); }
 
-        GetStoreClientManager()?.AddClient(thief);
-        Core.LogMsg("[招贼体质] 小偷客户已生成并加入队列 eventSourceId=" + thief.eventSourceId + " sprite=" + thief.spriteName + " hasStolen=" + hasStolen);
         WageSaveStore.SetInt(NS, KEY_CHANNEL, day);
         // 10-07 A8：KEY_CHANNEL（小偷上门日）同样即时落盘——防进程退出丢标记 → 重进读档当天判定不到小偷日
         try { WageSaveStore.Flush(); } catch (System.Exception ex) { Core.LogMsg("[招贼体质] 上门标记落盘失败: " + ex.Message); }
@@ -183,7 +186,11 @@ internal static class ThiefMagnetSystem
             try { id = __instance.identifier ?? ""; } catch { }
             try { src = __instance.eventSourceId ?? ""; } catch { }
             if (src != "thief_magnet_visit" && id != "thief") return; // 双键判定（读档兼容）
-            if (!_pendingResale) { /* 无待上桌货（未偷/已上过）*/ return; }
+            // 10-07 走游戏原生：原生排期小偷（QueueFuturClient("thief")）无 eventSourceId/_pendingResale 标记
+            //   （进程重启静态字段重置）——id=="thief"（原版存档字段）豁免标记检查直接上桌；
+            //   历史 eventSourceId 场景（保险保留）仍需 _pendingResale（防重复）。
+            // 已知边界：读档重放当天再次对话可能重复上桌未售部分（KEY_STOLEN 保留语义下，上桌≠卖出——可接受）
+            if (!_pendingResale && id != "thief") { /* 无待上桌货（未偷/已上过）*/ return; }
             _pendingResale = false;
 
             // ① 被偷物散件上桌（半价）——不进箱子
@@ -356,21 +363,13 @@ internal static class ThiefMagnetSystem
     // 10-06 二修：读档当天若是小偷日且被偷物未卖（KEY_STOLEN 非空）→ 重新生成小偷上门（读档=重放当天：
     //   原版客户队列不存 AddClient 运行时客户，读档后队列丢；KEY_CHANNEL==day 会让 OnBeginDay 的
     //   IsChannelFree 拦掉重新生成——这里绕过通道判定直接 SpawnThiefVisit）
+    // 10-07 走游戏原生（用户拍板）：不再需要读档重挂——SpawnThiefVisit 改 QueueFuturClient("thief", 0)
+    //   原生排期（futuredClients 随档，读档自动恢复，对齐 SpecialNpcManager 官方蓝图模式）；
+    //   上桌判定双键（identifier=="thief" 原版存档字段，读档后仍在——cheatsheet:6392 实锤）。
+    //   本方法保留 no-op（PatchRegistryTable 注册不删），避免动 Patch 注册表。
     internal static void PostfixLoadGameThiefMagnet()
     {
-        try
-        {
-            int day = GetDay();
-            // 10-07 测试反馈 D（玩家"当天被偷→读档→小偷消失"）：KEY_CHANNEL 只在 SpawnThiefVisit（小偷上门）时写——
-            //   若读档当天=丢物日（KEY_THEFT_DAY，小偷应上门但还没上）→ KEY_CHANNEL!=day → 重挂漏判。
-            //   放宽：丢物日或上门日都重挂（KEY_STOLEN 非空为前提）。
-            if (WageSaveStore.GetInt(NS, KEY_CHANNEL, -1) != day && WageSaveStore.GetInt(NS, KEY_THEFT_DAY, -1) != day) return; // 今天不是小偷日/丢物日
-            bool hasStolen = !string.IsNullOrEmpty(WageSaveStore.GetString(NS, KEY_STOLEN, ""));
-            if (!hasStolen) return; // 已卖过/没偷
-            SpawnThiefVisit(day); // 绕过 IsChannelFree 直接重新生成（当天该来的小偷在重进后重新上门）
-            Core.LogMsg("[招贼体质] 读档重挂：小偷重新上门 day=" + day);
-        }
-        catch (System.Exception ex) { Core.LogMsg("[招贼体质] 读档重挂失败: " + ex.Message); }
+        // no-op：原生排期随档恢复（10-07 走游戏原生）
     }
 
     // 柜台（frontInv）是否有 crate（原版物资箱/证据箱系列）
