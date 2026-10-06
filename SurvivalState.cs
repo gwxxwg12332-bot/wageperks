@@ -5,16 +5,24 @@ using Il2CppInterop.Runtime;
 namespace WageSurvival;
 internal static partial class SurvivalFood
 {
-    internal static int GetSatiety() => SaveStore.GetInt("sat", 100);
-    internal static int GetThirstPct() => SaveStore.GetInt("thirst", 100);
+    // 10-06 修复（日志实锤）：双装让路时 sat/thirst 按档型分流——单数据源。
+    // 背景：让路模式 WS 只保留消费链（EatBite/喝水），OnDayStart 衰减归 WP（WS 不挂）→ WS 自己的 sat 无人扣减=永远 100
+    //      =「饱食已满，不吃」误判（玩家反馈：饱食没满却吃不了，Latest.log 14:23 连续 7 次 EatBite 饱食已满）。
+    // 修复：鲁滨逊档（startType=15，WP 衰减+面板在管）→ 转发 WP "RobinCrusoe" 命名空间（吃一口 WP 面板同步涨）；
+    //      非鲁滨逊档（WP 衰减不跑）→ WS 自己的键（由 PatchRegistry 让路保留 OnDayStart 衰减挂点负责扣减）。
+    // 10-07 阶段D D-3 联动：WpNs 随 WP PERK_ID 改 "RobinCrusoe"→"SurvivalGlobal"（WP 侧已改——转发读同一命名空间，否则双装鲁滨逊档 WS 转发读空）
+    private const string WpNs = "SurvivalGlobal";
+    private static bool WpOwnsSat => Core._yieldMode && SurvivalTrade.IsRobinsonRun();
+    internal static int GetSatiety() => WpOwnsSat ? WageAPI.WageSaveStore.GetInt(WpNs, "sat", 100) : SaveStore.GetInt("sat", 100);
+    internal static int GetThirstPct() => WpOwnsSat ? WageAPI.WageSaveStore.GetInt(WpNs, "thirst", 100) : SaveStore.GetInt("thirst", 100);
     internal static int GetHealth() => SaveStore.GetInt("health", 100);
     internal static int GetMood() => SaveStore.GetInt("mood", 50);
     internal static int GetClean() => SaveStore.GetInt("clean", 100);
     internal static int GetSleep() => SaveStore.GetInt("sleep", 100);
     internal static int GetSocial() => SaveStore.GetInt("social", 50);
 
-    internal static void SetSatiety(int v) => SaveStore.SetInt("sat", v);
-    internal static void SetThirstPct(int v) => SaveStore.SetInt("thirst", v);
+    internal static void SetSatiety(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "sat", v); else SaveStore.SetInt("sat", v); }
+    internal static void SetThirstPct(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "thirst", v); else SaveStore.SetInt("thirst", v); }
     internal static void SetHealth(int v) => SaveStore.SetInt("health", v);
     internal static void SetMood(int v) => SaveStore.SetInt("mood", v);
     internal static void SetClean(int v) => SaveStore.SetInt("clean", v);
@@ -25,6 +33,14 @@ internal static partial class SurvivalFood
     {
         try
         {
+            // 10-06 双装分流：鲁滨逊档衰减由 WP 管（WS 转发 WP 命名空间）——此处跳过避免双扣
+            if (Core._yieldMode && SurvivalTrade.IsRobinsonRun())
+            {
+                // 节点爆发事件仍归本链（节点在 WS 命名空间）
+                RollNodeFx();
+                return;
+            }
+
             // 节点爆发事件（nodeKey变化时触发）
             RollNodeFx();
 
@@ -33,6 +49,7 @@ internal static partial class SurvivalFood
             int thBase = (int)(25 * GetThirstEffMult());
             int th = Math.Max(0, GetThirstPct() - thBase - FxNum("thD"));
             SetSatiety(sat); SetThirstPct(th);
+            Core.LogMsg("[WageSurvival] 日结衰减: sat " + (sat + 20 + (int)FxNum("satD")) + "→" + sat + " / th " + (th + thBase + (int)FxNum("thD")) + "→" + th);
 
             // 健康：+10自然恢复 + 节点恢复修正 - 节点衰减（乘糙人抗造系数）
             int h = Math.Min(100, Math.Max(0, GetHealth() + 10 + FxNum("hR") - (int)(FxNum("hD") * GetWearEffMult())));
@@ -53,11 +70,12 @@ internal static partial class SurvivalFood
             // 卖血虚弱递减
             TickBloodRest();
 
-            // 社交：有交易+5 / 无交易-5 + 节点修正
+            // 社交：10-06 用户拍板成交即时 +5（RecordDeal 每单加）——日结只处理"无客日 -5"（有交易日不再额外加，防双加）
             int deals = SaveStore.GetInt("deals", 0);
-            int social = GetSocial() + (deals > 0 ? 5 : -5) + FxNum("socD") + FxNum("socR");
+            int social = GetSocial() + (deals > 0 ? 0 : -5) + FxNum("socD") + FxNum("socR");
             SetSocial(Math.Max(0, Math.Min(100, social)));
             SaveStore.SetInt("deals", 0);
+            Core.LogMsg("[WageSurvival] 日结社交: deals=" + deals + " social " + (social - (deals > 0 ? 0 : -5) - (int)FxNum("socD") - (int)FxNum("socR")) + "→" + GetSocial());
 
             // 食物变质
             DecayFoods();
@@ -125,6 +143,9 @@ internal static partial class SurvivalFood
             }
 
             Core.LogMsg($"[WageSurvival] 每日结算: sat={sat} th={th} h={h} clean={clean} sleep={sleep} social={social} mood={mood} | 昂扬={ec} 粮仓={gd}/7 挨饿={starvingDays}天");
+
+            // 10-07 阶段D D-1：账本夜报（承接 WP :156 尾部夜报——先补后删）
+            AppendLedgerReport();
 
             // 刷新状态面板
             RefreshStatusPanel();

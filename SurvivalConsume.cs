@@ -169,6 +169,8 @@ internal static partial class SurvivalFood
         int gain = Math.Max(1, (int)Math.Round(effCal / 22f)); // 2200cal=100%：每 100 卡≈4.5%（修正：原 /100 差 4.5 倍）
         SetSatiety(Math.Min(100, GetSatiety() + gain));
         LogMsg("[WageSurvival] EatBite: 饱食+" + gain + "% → " + GetSatiety());
+        // 10-06 面板实时刷新：吃一口后面板数值立即更新（玩家反馈"面板没有实时变化"）
+        try { RefreshStatusPanel(); } catch { }
         if (q >= 2)
         {
             SetHealth(Math.Max(0, GetHealth() - 10));   // 变质/腐烂：健康-10（品质惩罚，独立于生病事件）
@@ -248,7 +250,34 @@ internal static partial class SurvivalFood
         int gain = new[] { 25, 18, 12, 6, 2 }[tier];
         int hd   = new[] { 5, 2, 0, -5, -10 }[tier];
         int inf  = new[] { 0, 0, 5, 15, 30 }[tier];
-        // 09-13 用户拍板：喝水不再恢复清洁（移除 +5% 清洁，cg 全 0）
+        // 10-06 芷昕方案（用户拍板）：口渴满后再喝=洗澡——不浪费（原：口渴满喝水无效但照扣水）：
+        //   每口按水质档位加减清洁（优质20/较好12/普通6/浑浊2/脏水-5）；优质额外 +心情+睡眠（10/10，WS 固定值同步 WP WageBathMoodBonus/SleepBonus 默认）；
+        //   浑浊/脏水额外 -心情；脏水额外 -健康；仍消耗对应水量
+        if (GetThirstPct() >= 100)
+        {
+            int cg = new[] { 20, 12, 6, 2, -5 }[tier];
+            SetClean(Math.Max(0, Math.Min(100, GetClean() + cg)));
+            if (tier == 0)
+            {
+                SetMood(Math.Min(100, GetMood() + 10));
+                SetSleep(Math.Min(100, GetSleep() + 10));
+            }
+            else if (tier == 3)
+            {
+                SetMood(Math.Max(0, GetMood() - 2)); // 浑浊洗澡减心情
+            }
+            else if (tier == 4)
+            {
+                SetMood(Math.Max(0, GetMood() - 5)); // 脏水洗澡减心情
+                SetHealth(Math.Max(0, Math.Min(100, GetHealth() - 5))); // 脏水洗澡减健康
+            }
+            string ctxt = cg >= 0 ? (LangHelper.T("口渴已满，改为洗澡：清洁 +" + cg + "%", "Thirst full, bathing: Cleanliness +" + cg + "%")) : (LangHelper.T("口渴已满，脏水洗澡：清洁 " + cg + "%", "Thirst full, dirty bath: Cleanliness " + cg + "%"));
+            try { StoreUIManager.Instance.Notify(ctxt, cg >= 0 ? "white" : "red"); } catch { }
+            try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
+            RefreshStatusPanel();
+            return;
+        }
+        // 09-13 用户拍板：喝水不再恢复清洁（移除 +5% 清洁，cg 全 0）——双击喝水只补口渴；清洁走日用品/自动喝水/洗澡
         SetThirstPct(Math.Min(100, GetThirstPct() + gain));
         if (hd != 0) SetHealth(Math.Max(0, Math.Min(100, GetHealth() + hd)));
         if (inf > 0) TryInfect(inf / 100.0);

@@ -42,6 +42,9 @@ internal static class SurvivalTrade
         try
         {
             if (__instance == null || !IsRobinsonRun() || _inBudgetOverride) return;
+            // 10-06 修复单#4：蛙哥预算固定 1109707341（永不被任何情况干扰）——联动跳过蛙哥（双装 WP+WS 时防止被 ×(1+bonus%)）
+            string bid = ""; try { bid = __instance.identifier ?? ""; } catch { }
+            if (bid == "wage_brother") return;
             int budgetBonusPct = SurvivalFood.GetBudgetBonusPct();
             if (budgetBonusPct <= 0) return;
             _inBudgetOverride = true;
@@ -61,6 +64,9 @@ internal static class SurvivalTrade
         {
             if (__result != null && IsRobinsonRun())
             {
+                // 10-06 修复单#4：蛙哥预算固定——PickClient 现金加成同样跳过蛙哥
+                string cid = ""; try { cid = __result.identifier ?? ""; } catch { }
+                if (cid == "wage_brother") return;
                 int budgetBonusPct = SurvivalFood.GetBudgetBonusPct();
                 if (budgetBonusPct > 0 && !__result.useClientBudget)
                 {
@@ -125,6 +131,7 @@ internal static class SurvivalTrade
         {
             // 10-05 修复：交易记数全局生效（社交日结算 StoreEventManager.OnDayStart 对所有档跑，
             // 普通档交易也必须 RecordDeal，否则 deals 恒 0 → 打烊结算社交只掉(无交易-5)不加）
+            // 10-06 用户拍板：社交即时增加（成交一单 +5）；RecordDeal 只调一次（原 10-05 双调=每单 deals+2 的 bug 一并修）
             RecordDeal();
             if (!IsRobinsonRun()) return;
             string mk = MoodKey(__instance);
@@ -132,7 +139,6 @@ internal static class SurvivalTrade
             {
                 SurvivalFood.BoostMood(5, LangHelper.T("成交一单", "Deal closed"));
             }
-            RecordDeal();
             try
             {
                 PlayerStore instance = PlayerStore.Instance;
@@ -162,9 +168,19 @@ internal static class SurvivalTrade
     }
 
     // 接待计数（社交结算用：SurvivalState.PostfixOnDayStart 读"deals"）
+    // 10-06 用户拍板：社交即时增加——成交一单立即 +5（不再等日结），deals 仅作日结防扣标记
     internal static void RecordDeal()
     {
-        try { SaveStore.SetInt("deals", SaveStore.GetInt("deals", 0) + 1); } catch { }
+        try
+        {
+            SaveStore.SetInt("deals", SaveStore.GetInt("deals", 0) + 1);
+            int soc = Math.Min(100, SaveStore.GetInt("social", 50) + 5);
+            SaveStore.SetInt("social", soc);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("成交一单 社交 +5", "Deal closed, Social +5"), "green"); } catch { }
+            SurvivalFood.RefreshStatusPanel(); // 面板社交实时刷新
+            Core.LogMsg("[WageSurvival] 成交一单 社交即时+5 → " + soc);
+        }
+        catch { }
     }
 
     // 当日营业额累计（BUY 分支调用；打烊收入惩罚后清零）

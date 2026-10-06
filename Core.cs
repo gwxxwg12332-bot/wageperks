@@ -33,15 +33,16 @@ public class Core : MelonMod
 
     public override void OnLateInitializeMelon()
     {
-        // 10-05 派活单：WagePerks 在场 → 让路（不注册业务挂点）
-        // 覆盖三面：PatchRegistry 业务挂点 + WageAPI 落盘挂点（SaveGame/LoadGame/EndDay）+ SurvivalMigrate 旧档迁移（订阅在 ApplyAll 内）
-        // 10-05 修复：保留"全局消费链"（双击吃喝用）——WagePerks 侧 IsWageSurvivalLoaded 会让出该挂点，
-        // 若完全零挂点 → 双向互让 → 吃饭/日用品/喝酒全失效（用户反馈实锤）
+        // 10-07 鲁滨逊完全归 WS（memos LtUy6CjmHARSnNJ6MoYkqp / YJdTSrCfBnEJiDvKcY759K）：
+        // 让路模式从 ApplyGlobalConsumeOnly（仅 4 挂点）升级为 ApplyAll 全量挂载——
+        // WP 侧 Survival 挂点（60 条行为修饰 + 开局 6 + 交易 6）按实施单分批删除后，双装时 WS=鲁滨逊唯一宿主。
+        // 交易组不再避让（决策 1：交易归 WS——WS SurvivalTrade 唯一宿主）。
+        // 迁移订阅在 ApplyAll 内挂载（幂等）——本分支不再手挂（防重复订阅）。
         if (WagePerksInstalled())
         {
             _yieldMode = true;
-            Log.Msg("[WageSurvival] 检测到 WagePerks，让路模式：保留全局消费链（双击吃喝用），其余挂点让路（WagePerks 接管鲁滨逊生存）");
-            PatchRegistry.ApplyGlobalConsumeOnly();
+            Log.Msg("[WageSurvival] 检测到 WagePerks，让路模式升级：ApplyAll 全量挂载（鲁滨逊完全归 WS——生存/交易/开局全链 WS 接管，WP 已删 Survival 挂点无双挂）");
+            PatchRegistry.ApplyAll();
             return;
         }
 
@@ -76,6 +77,16 @@ public class Core : MelonMod
     }
 
     internal static void LogMsg(string msg) => Log.Msg(msg);
-    internal static void AddNightReportLine(string line) { }
+    // 10-07 阶段D D-1：夜报实装（原空实现=WS 夜报线全丢）——原版原生夜报通道（柔和绿 #7FC97F，对齐 WP Core.AddNightReportLine 语义）
+    internal static void AddNightReportLine(string line)
+    {
+        if (string.IsNullOrEmpty(line)) return;
+        try
+        {
+            var ps = PlayerStore.Instance;
+            if (ps != null) ps.AddNightLog(line, "#7FC97F");
+        }
+        catch { }
+    }
     internal static System.Random Rng = new System.Random();
 }

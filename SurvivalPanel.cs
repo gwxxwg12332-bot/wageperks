@@ -25,8 +25,25 @@ internal static partial class SurvivalFood
     }
 
     // ===== 生存状态面板（Z键打开）=====
+    // 10-06 鲁滨逊档（双装）：Z 键面板=WP 常驻面板（WS 让路）——WS 吃喝后的刷新转发 WP，避免"吃一口面板不动"
+    private static System.Reflection.MethodInfo _wpRefreshPanel;
     internal static void RefreshStatusPanel(bool force = false)
     {
+        try
+        {
+            if (Core._yieldMode && SurvivalTrade.IsRobinsonRun())
+            {
+                if (_wpRefreshPanel == null)
+                {
+                    var t = System.Type.GetType("WagePerks.RobinCrusoePerk, WagePerks");
+                    if (t == null) return;
+                    _wpRefreshPanel = t.GetMethod("RefreshStatusPanel", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                }
+                if (_wpRefreshPanel != null) _wpRefreshPanel.Invoke(null, new object[] { force });
+                return; // 鲁滨逊档 WS 面板不创建（让路）
+            }
+        }
+        catch { /* 转发失败静默——不影响吃喝主链 */ }
         try
         {
             var mgr = Il2Cpp.CustomUIManager.Instance;

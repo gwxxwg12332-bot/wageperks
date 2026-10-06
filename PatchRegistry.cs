@@ -47,6 +47,19 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] 让路保留 Patch OK: PlayerStore.StartNewGame（清血量缓存）");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: StartNewGame " + ex.Message); }
+
+        // 10-06 让路保留扩展3：OnDayStart 衰减（非鲁滨逊档 sat/thirst 自己扣）。
+        // 背景（日志实锤）：让路只保留消费链 → WS 自己的 sat 无人扣减=永远 100=「饱食已满，不吃」误判（玩家反馈）。
+        // 鲁滨逊档由 SurvivalState 转发 WP 命名空间（WP 在扣）；非鲁滨逊档 WP 衰减不跑 → 本挂点兜底 WS 自己扣。
+        // PostfixOnDayStart 内部已有 IsRobinsonRun 门控（鲁滨逊档跳过，避免与 WP 双扣）。
+        try
+        {
+            var orig4 = AccessTools.Method(typeof(Il2Cpp.StoreEventManager), "OnDayStart");
+            var post4 = AccessTools.Method(typeof(SurvivalFood), "PostfixOnDayStart");
+            harmony.Patch(orig4, postfix: new HarmonyMethod(post4));
+            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: StoreEventManager.OnDayStart（衰减，非鲁滨逊档兜底）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: OnDayStart " + ex.Message); }
     }
 
     internal static void ApplyAll()
@@ -278,7 +291,9 @@ internal static class PatchRegistry
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateItemTooltip " + ex.Message); }
 
-        // ===== 阶段C：交易 12 处迁入（鲁滨逊门控 startType=15；WagePerks 侧同目标 12 处调用阶段D删除） =====
+        // ===== 阶段C：交易 12 处迁入（鲁滨逊门控 startType=15；WagePerks 侧同目标 12 处按实施单删除） =====
+        // 10-07 鲁滨逊完全归 WS（决策 1）：交易归 WS——避让块已删（原 10-07 D-4 单边避让：WP 在场交易组不挂——现已撤销，
+        // WS SurvivalTrade 唯一宿主；WP 侧交易 6 条 :236/:243-247 删除，:85-90/:266-267/:271 按方法体确认归属）
         try
         {
             var orig = AccessTools.Method(typeof(StoreClient), "ApplyBudgetModifier");
@@ -341,6 +356,102 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] Patch OK: StoreClient.OnDealAccepted");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: OnDealAccepted " + ex.Message); }
+
+        // ===== 10-07 鲁滨逊完全归 WS WS-2：状态客户 8 工厂接线（P0——拆包 YJdTSrCfBnEJiDvKcY759K：定义在 SurvivalStatusClients.cs:86-93 但注册点缺失） =====
+        // Target/方法名对齐 WP PatchRegistryTable.cs:251-258（已删）——同一工厂 Postfix 打标（状态客户无独立状态字段）
+        try
+        {
+            AccessTools.Method(typeof(StoreClientListTier), "CreateThirstySpacer");
+            var p1 = AccessTools.Method(typeof(SurvivalFood), "PostfixCreateThirstySpacer");
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTier), "CreateThirstySpacer"), postfix: new HarmonyMethod(p1));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTier.CreateThirstySpacer");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateThirstySpacer " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTier), "CreateHungrySpacer"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateHungrySpacer")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTier.CreateHungrySpacer");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateHungrySpacer " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTier), "CreateSpacerChef"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateSpacerChef")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTier.CreateSpacerChef");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateSpacerChef " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTier), "CreateInjuredSpacer"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateInjuredSpacer")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTier.CreateInjuredSpacer");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateInjuredSpacer " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTier), "CreateSickChildCaretaker"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateSickChildCaretaker")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTier.CreateSickChildCaretaker");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateSickChildCaretaker " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTierSubstance), "CreateDesperateAddict"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateDesperateAddict")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTierSubstance.CreateDesperateAddict");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateDesperateAddict " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListTierSubstance), "CreateWornOutSpacer"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateWornOutSpacer")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListTierSubstance.CreateWornOutSpacer");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateWornOutSpacer " + ex.Message); }
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(StoreClientListMinor), "CreateSickLowers"), postfix: new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), "PostfixCreateSickLowers")));
+            Core.LogMsg("[WageSurvival] Patch OK: StoreClientListMinor.CreateSickLowers");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: CreateSickLowers " + ex.Message); }
+
+        // ===== 10-07 鲁滨逊完全归 WS WS-3：P1 四域搬迁 22 条注册（拾荒5/机器7/模块3/经济链7；方法体=SurvivalScavenge/SurvivalMachineMods/SurvivalEconomy 新文件） =====
+        // 适配标注：GetRandomScavengedItem priority=-1000（后置跑——对齐 WP PatchRegistryTable:172）；CreateMachineryTooltip 不迁（养蛊机/瓶印机特性域，WP 保留 :178）
+        void RegisterP1(System.Type target, string method, string hostMethod, bool prefix = false, bool postfix = true, int priority = 0)
+        {
+            try
+            {
+                var orig = AccessTools.Method(target, method);
+                var hm = AccessTools.Method(typeof(SurvivalFood), hostMethod);
+                if (prefix && postfix)
+                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority }, postfix: new HarmonyMethod(hm) { priority = priority });
+                else if (prefix)
+                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority });
+                else
+                    harmony.Patch(orig, postfix: new HarmonyMethod(hm) { priority = priority });
+                Core.LogMsg("[WageSurvival] Patch OK: " + target.Name + "." + method + " (" + hostMethod + ")");
+            }
+            catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: " + target.Name + "." + method + " " + ex.Message); }
+        }
+        // 拾荒 5
+        RegisterP1(typeof(ScavHelper), "CanScavenge", "PostfixCanScavenge");
+        RegisterP1(typeof(ScavHelper), "GetMaxScavAttempts", "PostfixGetMaxScavAttempts");
+        RegisterP1(typeof(ScavHelper), "GetScavTimeLeft", "PostfixGetScavTimeLeft");
+        RegisterP1(typeof(ScavHelper), "GetRandomScavengedItem", "PostfixGetRandomScavengedItem", priority: -1000);
+        RegisterP1(typeof(ScavHelper), "ScavengeDumpingGrounds", "PostfixScavengeDumpingGrounds");
+        // 机器/模块 7+3（含 GetMachinePowerUsage——拆包机器域同打包；CreateMachineryTooltip 不迁）
+        RegisterP1(typeof(MachineryHelper), "GetCurrentPerformanceBonus", "PostfixGetCurrentPerformanceBonus");
+        RegisterP1(typeof(MachineryHelper), "GetCurrentQualityBonus", "PostfixGetCurrentQualityBonus");
+        RegisterP1(typeof(MachineryHelper), "GetMachinePowerUsage", "PostfixGetMachinePowerUsage");
+        RegisterP1(typeof(ModuleHelper), "ApplyBasicModuleEffect", "PostfixApplyBasicModuleEffect");
+        RegisterP1(typeof(ModuleEffectHelper), "ModifyTempStatFromBaseByPercentage", "PostfixModifyTempStatFromBaseByPercentage");
+        RegisterP1(typeof(ModuleHelper), "AddModuleStatLine", "PostfixAddModuleStatLine");
+        RegisterP1(typeof(ModuleHelper), "ApplyPerformanceWaterRecyclerEffect", "PostfixApplyPerformanceWaterRecyclerEffect");
+        RegisterP1(typeof(MachineMoistureFarm), "GetOutputVolume", "PostfixGetOutputVolume");
+        RegisterP1(typeof(WaterHelper), "RemoveContaminantFromContainer", "PostfixRemoveContaminantFromContainer");
+        // 经济链 7
+        RegisterP1(typeof(StoreClientManager), "CheckRentDay", "PrefixCheckRentDay", prefix: true);
+        RegisterP1(typeof(StoreClientUniqueList.__c), "_LandlordWholesale_b__22_0", "PrefixLandlordWholesaleStock", prefix: true);
+        RegisterP1(typeof(StoreClientManager), "HandleSupplierClient", "PostfixHandleSupplierClient");
+        RegisterP1(typeof(PlayerStore), "HandleInsurance", "PrefixHandleInsurance", prefix: true);
+        RegisterP1(typeof(PlayerStore), "ExecuteGameOver", "PrefixExecuteGameOver", prefix: true);
+        RegisterP1(typeof(StoreClientManager), "HandleNormalClient", "PostfixHandleNormalClient");
+        RegisterP1(typeof(StoreClientList), "PlaceSupplierInventory", "PostfixPlaceSupplierInventory");
 
         // 旧档迁移（幂等）：RobinCrusoe → SurvivalGlobal
         try
