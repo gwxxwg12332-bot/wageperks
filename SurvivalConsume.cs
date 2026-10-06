@@ -58,8 +58,11 @@ internal static partial class SurvivalFood
     // ===== 10-05 物品分类区分：机器/容器/酒瓶/酿造未完成 不参与双击吃喝用 =====
     // 酒瓶/啤酒箱容器白名单（装水/酿酒/装啤酒用，双击不消耗——用户："酒瓶不应该吃"；独立酒饮品如 nudka/red_beer 不在此列仍可喝）
     // 10-05 拆包修正：beer_case_0=啤酒箱容器（ContainerItemDirectory.txt:3995 PRE_CONTAINER_TAG，双击=开箱）补拦；
+    // 10-07 #3 修复：实际啤酒箱为 PRE_CONTAINER_TAG（预容器，无 CONTAINER_TAG）→ IsNonEdibleItem 只查 CONTAINER_TAG 漏拦
+    //   → 落 IsAlc 关键词兜底（beer_case 含 "beer"）→ 当酒喝 → DrinkAlcohol+TryExpel 整件消失=内部啤酒泄漏。
+    //   修复=①IsNonEdibleItem 加 PRE_CONTAINER_TAG 双查（全容器类权威判定，不依赖 id 枚举）②id 变体兜底（beer_case/crate/box/keg）
     // 成品酒特例：wine_bottle 酿造完成（WINE_CONTAINER_STATE==2，拆包实锤 FinishFermentation 成品=ALCOHOL 可喝）→ 放行双击喝
-    private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle", "beer_case_0" });
+    private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle", "beer_case_0", "beer_case", "beer_crate", "beer_box", "beer_keg" });
     // 机器白名单全集（与 WagePerks RobinCrusoePerk.ContainerUpgrade.Upgrade.cs:149 同源：
     // STANDARD_MACHINE_TAG 拆包 2.5.30 仅 8 台；"所有机器可升级"→ 自定义全集判定）
     private static readonly HashSet<string> NON_EDIBLE_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
@@ -88,7 +91,9 @@ internal static partial class SurvivalFood
         try
         {
             if (IsNonEdibleMachine(item)) return true;        // 机器类（水瓶机/集水器/充电器等——含水量易被误判为水）
-            if (item.IsTag("CONTAINER_TAG")) return true;     // 容器类（虚空珠/背包/盒子/储物袋等）
+            // 10-07 #3 修复：容器权威判定 CONTAINER_TAG + PRE_CONTAINER_TAG 双查（拆包实锤啤酒箱=PRE_CONTAINER_TAG 预容器；
+            //   虚空珠/背包/盒子/储物袋=CONTAINER_TAG——全容器类扫=双 tag，不依赖 id 枚举）
+            if (item.IsTag("CONTAINER_TAG") || item.IsTag("PRE_CONTAINER_TAG")) return true;
             string id = (item.identifier ?? "").ToLowerInvariant();
             int wineState = item.GetTagValue("WINE_CONTAINER_STATE", 0);
             if (NON_EDIBLE_BOTTLE_IDS.Contains(id) && !(id == "wine_bottle" && wineState == 2)) return true; // 酒瓶/啤酒箱容器（成品酒放行）
