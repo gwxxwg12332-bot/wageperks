@@ -54,10 +54,10 @@ public static partial class WageGirlSystem
                 {
                     if (em != null && em.frontInvinvElement != null)
                     {
-                        var inv = (GameInventory)em.frontInvinvElement;
-                        var slot = em.frontInvinvElement.TryFindOneValidInventorySlot(it, false);
-                        if (slot != null) { try { slot.TryAcceptOnce(); } catch { } }
-                        else { try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); } catch { } } // ③非虚替代UncheckedAccept（防虚JIT崩溃）
+                        GameGridInventory inv = em.frontInvinvElement;
+                        // 10-06 二期收敛：手拼链 → WageItemGrant 通用入口（目标=前台库存 frontInvinvElement；防重叠契约内置：TryAcceptOnce 优先+UncheckedAcceptAll 兜底）
+                        // 保留原防虚 JIT 注释语义：原③非虚替代 UncheckedAccept（防虚 JIT 崩溃）——入口内 UncheckedAcceptAll 兜底同源
+                        WageAPI.WageItemGrant.GrantToInventory(it, inv);
                         names.Add(ModCannibalism.GetName(it));
                     }
                 }
