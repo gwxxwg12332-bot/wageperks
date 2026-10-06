@@ -111,6 +111,14 @@ internal static partial class Patches
 		}
 		try
 		{
+			WageBrother.OnUpdateRefillCounter(); // 10-07 #1：蛙哥读档柜台补货帧轮询（LoadGame 时机柜台未就绪→上货失败→柜台空）
+		}
+		catch
+		{
+			// 每帧防御：蛙哥补货轮询异常跳过（柜台未就绪属预期，下帧重试）
+		}
+		try
+		{
 			UpdatePendingLoadGameRestore();
 		}
 		catch

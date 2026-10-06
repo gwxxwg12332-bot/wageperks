@@ -118,38 +118,60 @@ internal static class WageBrother
             catch (Exception ex) { Core.LogMsg("[蛙哥] 读档补排失败: " + ex.Message); }
             // 10-07 F2-2（玩家反馈"蛙哥读档没有物品"）：读档时蛙哥已在店——对话已开过 → StartMainDialogue
             // 不重触发 HandleSpecialNpcArrived → OnClientArrived 不跑 → 柜台不随档=空（拆包嫌疑2已实锤）→ 主动补上货。
-            // 防重：clientStack 扫到蛙哥即调一次 break；未在栈但 currentClientInstance=蛙哥再补调。
-            bool refilled = false;
-            try
-            {
-                var mgr = ps.storeClientManager;
-                if (mgr != null && mgr.clientStack != null)
-                {
-                    for (int j = 0; j < mgr.clientStack.Count; j++)
-                    {
-                        var c = mgr.clientStack[j];
-                        if (c != null && c.identifier == CLIENT_ID)
-                        {
-                            Core.LogMsg("[蛙哥] 读档恢复：蛙哥在店（clientStack）→ 补柜台货（柜台不随档）");
-                            OnClientArrived(c);
-                            refilled = true;
-                            break;
-                        }
-                    }
-                }
-                if (!refilled)
-                {
-                    var cur = SpecialNpcManager.GetCurrentClient();
-                    if (cur != null && cur.identifier == CLIENT_ID)
-                    {
-                        Core.LogMsg("[蛙哥] 读档恢复：蛙哥为当前客户 → 补柜台货");
-                        OnClientArrived(cur);
-                    }
-                }
-            }
-            catch (Exception ex) { Core.LogMsg("[蛙哥] 读档在店补货异常: " + ex.Message); }
+            // 10-07 #1（玩家反馈"读档补排后柜台仍空"）：LoadGame 时机柜台（EmporiumEntry/frontInvinvElement）未就绪 →
+            //   OnClientArrived 里 AddDirectSellingItemToTable 静默失败 → 服务卡/携带物仍不上柜台。
+            //   修复=改帧轮询：此处只设标志，FrameUpdate→OnUpdateRefillCounter 每帧重试（柜台就绪+蛙哥在店+柜台无卡才补，180帧上限）
+            _refillPending = true;
+            _refillFramesLeft = 180;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] PostfixLoadGame异常: " + ex.Message); }
+    }
+
+    // 10-07 #1（玩家反馈"读档补排后柜台仍空"）：读档补货改帧轮询——LoadGame 时机柜台（EmporiumEntry）未就绪
+    //   → OnClientArrived 的 AddDirectSellingItemToTable 静默失败 → 柜台空。此处每帧重试直到柜台就绪+上货成功（180帧≈3秒上限）
+    private static bool _refillPending = false;
+    private static int _refillFramesLeft = 0;
+    internal static void OnUpdateRefillCounter()
+    {
+        try
+        {
+            if (!_refillPending) return;
+            if (_refillFramesLeft-- <= 0) { _refillPending = false; Core.LogMsg("[蛙哥] 补货轮询超时放弃（180帧）"); return; }
+            var ps = PlayerStore.Instance; if (ps == null) return;
+            var mgr = ps.storeClientManager; if (mgr == null) return;
+            // 蛙哥在店？（clientStack 优先，未在栈取当前客户）
+            StoreClient wc = null;
+            if (mgr.clientStack != null)
+                for (int j = 0; j < mgr.clientStack.Count; j++) { var c = mgr.clientStack[j]; if (c != null && c.identifier == CLIENT_ID) { wc = c; break; } }
+            if (wc == null) { try { var cur = SpecialNpcManager.GetCurrentClient(); if (cur != null && cur.identifier == CLIENT_ID) wc = cur; } catch { } }
+            if (wc == null) { _refillPending = false; return; } // 蛙哥不在了（已离开），放弃补货
+            // 柜台就绪？（AddDirectSellingItemToTable 依赖 EmporiumEntry 前台库存）
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null) return; // 未就绪，下帧重试
+            if (HasCardOnCounter()) { _refillPending = false; Core.LogMsg("[蛙哥] 补货轮询：柜台已有服务卡，跳过"); return; } // 防重复加卡
+            Core.LogMsg("[蛙哥] 帧轮询补货：柜台就绪 + 蛙哥在店 → OnClientArrived");
+            OnClientArrived(wc);
+            _refillPending = false;
+        }
+        catch (System.Exception ex) { Core.LogMsg("[蛙哥] OnUpdateRefillCounter异常: " + ex.Message); }
+    }
+
+    // 柜台是否已有服务卡（防重复加卡堆叠）
+    private static bool HasCardOnCounter()
+    {
+        try
+        {
+            var em = Il2Cpp.EmporiumEntry.Instance; if (em == null) return false;
+            var invs = new GameInventory[] { (GameInventory)em.frontInvinvElement, (GameInventory)em.showcaseElement };
+            foreach (var inv in invs)
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                    if (inv.childItems[i] != null && inv.childItems[i].identifier == CARD_ID) return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     // 蛙哥到场 → 柜台生成服务卡
