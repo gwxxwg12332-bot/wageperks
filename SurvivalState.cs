@@ -33,14 +33,10 @@ internal static partial class SurvivalFood
     {
         try
         {
-            // 10-06 双装分流：鲁滨逊档衰减由 WP 管（WS 转发 WP 命名空间）——此处跳过避免双扣
-            if (Core._yieldMode && SurvivalTrade.IsRobinsonRun())
-            {
-                // 节点爆发事件仍归本链（节点在 WS 命名空间）
-                RollNodeFx();
-                return;
-            }
-
+            // 10-07 #12 修复：删除 10-06 让路时代门控（`_yieldMode && IsRobinsonRun()` 跳过衰减）——阶段D"鲁滨逊完全归 WS"后
+            //   WP 已删自身 Survival 衰减挂点（PatchRegistryTable 无条目+旧注册死代码），WS=唯一衰减宿主；
+            //   残留门控导致鲁滨逊档日结衰减被跳过 → 六维恒 100（饱食/口渴满 → 双击食物/水无变化 = #4"不能吃饭喝水"根因）+ 无自然衰减。
+            //   现直接走完整衰减链（无双扣风险——WP 衰减已删）。
             // 节点爆发事件（nodeKey变化时触发）
             RollNodeFx();
 

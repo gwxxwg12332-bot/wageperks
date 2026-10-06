@@ -29,7 +29,10 @@ internal static partial class SurvivalFood
             }
         }
         catch { }
-        try { return (int)Il2Cpp.WaterHelper.GetCurrentCapacityML(item); } catch { return 0; }
+        // 10-07 #4 修复：对齐 WP 权威实现（RobinCrusoePerk.Food.Attributes.cs:113-131）——GetCurrentCapacityML 读内层液体注册表
+        //   对非液体容器恒 2000 不同步/可能抛异常（09-11 WP 日志实锤）——WS 复制时缺 BOTTLE_ML 兜底 → 失败=0 → 双击水无效果（"不能喝水"）
+        try { int cap = (int)Il2Cpp.WaterHelper.GetCurrentCapacityML(item); if (cap > 0) return cap; } catch { }
+        return BOTTLE_ML; // 兜底瓶容量（WP 同款）
     }
 
     internal static int GetItemBaseValue(GameItem item)
