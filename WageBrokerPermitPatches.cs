@@ -71,6 +71,8 @@ internal static class WageBrokerPermitPatches
     public static bool PrefixHandleNightlyWound() { return PermitImmune(); }
 
     // 蛙哥充电器：打烊自动给背包所有电池充电
+    // 10-07 性能优化项4（三审 Memos EKPd6iXxqJhFFGisNuExK3）：Priority=300 依据=充电加成先于其他 mod 的 EndDay 后置逻辑执行
+    // （避免第三方读电池状态时充电未生效）；与 :17 的 -100（许可叠加后跑）用途不同，两处显式 priority 均有注释依据=统一管理。
     [HarmonyPriority(300)]
     public static void PostfixEndDayCharger()
     {
