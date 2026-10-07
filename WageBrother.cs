@@ -149,7 +149,11 @@ internal static class WageBrother
             if (mgr.clientStack != null)
                 for (int j = 0; j < mgr.clientStack.Count; j++) { var c = mgr.clientStack[j]; if (c != null && c.identifier == CLIENT_ID) { wc = c; break; } }
             if (wc == null) { try { var cur = SpecialNpcManager.GetCurrentClient(); if (cur != null && cur.identifier == CLIENT_ID) wc = cur; } catch { } }
-            if (wc == null) { _refillPending = false; return; } // 蛙哥不在了（已离开），放弃补货
+            // 10-07 P0-1/P0-2（玩家"蛙哥名片小退消失/柜台货读档丢失"复现3次）：读档补货不依赖 wc 判定——
+            //   读档后蛙哥在店（UI可见）但 clientStack 不含 + GetCurrentClient null（对话已开过不重触发 OnClientArrived）→ 原代码 wc==null 直接放弃=柜台永远空。
+            //   改为：wc==null 不放弃，柜台就绪后按"上货模式"补货（OnClientArrived 支持 client=null，跳过 client 相关块只上货）。
+            //   安全性：_refillPending 仅由 PostfixLoadGame 设置（lastSched 在 interval 内=蛙哥本周期该在）；180 帧上限兜底（真离开/场景无柜台=超时放弃）。
+            // if (wc == null) { _refillPending = false; return; } // 蛙哥不在了（已离开），放弃补货
             // 柜台就绪？（AddDirectSellingItemToTable 依赖 EmporiumEntry 前台库存）
             var em = Il2Cpp.EmporiumEntry.Instance;
             if (em == null || em.frontInvinvElement == null) return; // 未就绪，下帧重试
@@ -184,8 +188,10 @@ internal static class WageBrother
     {
         try
         {
-            if (client == null || client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived 入口, client=" + client.identifier);
-            try { client.SetBudget(1109707341, 1000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } catch { } Core.LogMsg("[蛙哥] intent已设=" + client.clientIntent);
+            // 10-07 P0-1/P0-2：读档补货可传 null（上货模式）——读档后拿不到蛙哥 client 实例但仍需补柜台货；
+            //   client==null 时跳过 client 相关块（SetBudget/立绘/对话——各自 try/catch 已兜 NRE），只走上货链。
+            if (client != null && client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived 入口, client=" + (client!=null?client.identifier:"null"));
+            try { if (client != null) { client.SetBudget(1109707341, 1000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } } catch { } Core.LogMsg("[蛙哥] intent已设=" + (client != null ? client.clientIntent.ToString() : "null(上货模式)"));
             // 10-05 蛙哥收购扩展（拆包实锤：clientBuyingIdList id精确 + clientBuyingTagList tag精确 + SELLNBUY 买路径）
             // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③建议500-1000，单品全覆盖+可收2-3件）
             try

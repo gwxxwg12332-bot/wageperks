@@ -209,6 +209,9 @@ internal static partial class Patches
 		if (!isSell)
 		{
 			TryAddNodeBuffFeature(item);
+			// 10-07 P1-3（玩家"半价卖回显示半价、成交原价"）：被偷物=unitValue/2 半价上桌（ThiefMagnetSystem.cs:212）——
+			//   鲁滨逊 buy 食物/药品 ×2 叠加 = 半价×2 = 原价成交。被偷物带 stolen_half_price feature → 保持半价不 ×2。
+			if (HasStolenHalfPriceFeature(item)) return true;
 			if (RobinCrusoePerk.IsFood(item))
 			{
 				result = (long)((double)result * 2.0);
@@ -260,6 +263,19 @@ internal static partial class Patches
 				result = (long)((double)result * contraEffMult);
 			}
 		}
+		return false;
+	}
+
+	// 10-07 P1-3：被偷物半价标记检测（stolen_half_price feature 存在 → 买回保持半价，不叠鲁滨逊 ×2）
+	private static bool HasStolenHalfPriceFeature(GameItem item)
+	{
+		try
+		{
+			if (item == null || item.itemFeatures == null) return false;
+			for (int i = 0; i < item.itemFeatures.Count; i++)
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "stolen_half_price", System.StringComparison.Ordinal)) return true;
+		}
+		catch { }
 		return false;
 	}
 

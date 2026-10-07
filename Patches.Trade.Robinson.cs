@@ -207,6 +207,9 @@ itemFeature.isFeatureExposed = true;
 				{
 					item.itemFeatures[i].publicDisplay = text;
 					item.itemFeatures[i].actualDisplay = text;
+					// 10-07 P1-6：旧条目同步补渲染条件（原 0%/false 词条区不显示）
+					item.itemFeatures[i].preExposeValueModifier = 100;
+					item.itemFeatures[i].usePreExposeValue = true;
 					return;
 				}
 			}
@@ -215,8 +218,10 @@ itemFeature.isFeatureExposed = true;
 			itemFeature.featureType = ItemFeature.FeatureType.TemporaryBuying;
 			itemFeature.valueStage = ItemFeature.ValueStage.Market;
 			itemFeature.valueModifier = 0;
-			itemFeature.preExposeValueModifier = 0;
-			itemFeature.usePreExposeValue = false;
+			// 10-07 P1-6（玩家"药/食物双倍购入词条缺失"）：原 0%/usePreExposeValue=false → 词条区按 percent 渲染时跳过（无行可显）。
+			// 对齐 AddTradeLabel 可显示模式：+100% 表达 ×2，publicDisplay 自定义文本"鲁滨逊·口粮双倍价"。
+			itemFeature.preExposeValueModifier = 100;
+			itemFeature.usePreExposeValue = true;
 			itemFeature.initiallyShown = true;
 itemFeature.isFeatureMatch = true;
 itemFeature.isFeatureExposed = true;
