@@ -60,6 +60,17 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] 让路保留 Patch OK: StoreEventManager.OnDayStart（衰减，非鲁滨逊档兜底）");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: OnDayStart " + ex.Message); }
+
+        // 10-07 P1-5（玩家"主菜单无 WageSurvival 配置按钮"）：双装时 WS 走本链（不挂 NewStartTypeUI）→
+        // 配置按钮无人注入（WP 侧 NewStartTypeUI 只克隆 tab，无按钮逻辑）。独立 Awake Postfix 只注入按钮（防重内建，与 WP tab 克隆并存）。
+        try
+        {
+            var orig5 = AccessTools.Method(typeof(Il2Cpp.MainMenuUIController), "Awake");
+            var post5 = AccessTools.Method(typeof(SurvivalConfigUI), "PostfixAwake");
+            harmony.Patch(orig5, postfix: new HarmonyMethod(post5));
+            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: MainMenuUIController.Awake（WS配置按钮，双装）");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: MainMenuUIController.Awake " + ex.Message); }
     }
 
     internal static void ApplyAll()

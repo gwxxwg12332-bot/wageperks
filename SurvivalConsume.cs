@@ -277,7 +277,10 @@ internal static partial class SurvivalFood
                 SetHealth(Math.Max(0, Math.Min(100, GetHealth() - 5))); // 脏水洗澡减健康
             }
             string ctxt = cg >= 0 ? (LangHelper.T("口渴已满，改为洗澡：清洁 +" + cg + "%", "Thirst full, bathing: Cleanliness +" + cg + "%")) : (LangHelper.T("口渴已满，脏水洗澡：清洁 " + cg + "%", "Thirst full, dirty bath: Cleanliness " + cg + "%"));
-            try { StoreUIManager.Instance.Notify(ctxt, cg >= 0 ? "white" : "red"); } catch { }
+            // 10-07 P1-4（玩家"水洗 Notify 无颜色"）：原 cg>=0 ? "white":"red"——优质水显示白色无分级。
+            // 按水质分级：优质(tier0)/较好(1)/普通(2) 正向 → green；浑浊(3) → orange；脏水(4) → red
+            string bathColor = tier <= 2 ? "green" : (tier == 3 ? "orange" : "red");
+            try { StoreUIManager.Instance.Notify(ctxt, bathColor); } catch { }
             try { WaterHelper.Remove(item, sip * 1000); } catch (Exception ex) { LogMsg("[空间站鲁滨逊] Remove异常 " + ex.Message); }
             RefreshStatusPanel();
             return;

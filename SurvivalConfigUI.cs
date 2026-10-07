@@ -57,14 +57,22 @@ internal static class SurvivalConfigUI
         catch (System.Exception ex) { Core.LogMsg("[WS配置] 按钮注入异常: " + ex.Message); }
     }
 
+    // 10-07 P1-5：双装时 WS 走 ApplyGlobalConsumeOnly（不挂 NewStartTypeUI）→ 配置按钮无人注入——
+    // 独立 Awake Postfix 包装（只注入按钮，无 tab 依赖；InjectMainMenuButton 有场景级防重，与 WP 的 tab 克隆并存无冲突）
+    internal static void PostfixAwake(Il2Cpp.MainMenuUIController __instance)
+    {
+        try { InjectMainMenuButton(__instance); }
+        catch (System.Exception ex) { Core.LogMsg("[WS配置] PostfixAwake 异常: " + ex.Message); }
+    }
+
     // 取主菜单按钮源：纯反射多候选（moddingButton/creditButton/startGameButton 等——原版=场景预置+public 字段注入）
-    // 字段名各版本可能不同——反射 GetField/GetProperty 不存在返回 null 不抛，多候选安全
+    // 10-07 P1-5 修：原 Il2CppSystem.Type.GetType("MainMenuUIController, Assembly-CSharp") 字符串反射在 Il2Cpp 下易失败
+    //   （Assembly 名/类型解析不匹配）→ 按钮源 null → 跳过注入。改用编译期 typeof(Il2Cpp.MainMenuUIController) 直接 GetField，最稳。
     private static UnityEngine.UI.Button GetMenuButton(Il2Cpp.MainMenuUIController mc)
     {
         try
         {
-            var t = Il2CppSystem.Type.GetType("MainMenuUIController, Assembly-CSharp");
-            if (t == null) return null;
+            var t = typeof(Il2Cpp.MainMenuUIController);
             string[] names = { "moddingButton", "creditButton", "startGameButton", "modsButton", "settingsButton" };
             foreach (var fn in names)
             {
