@@ -112,6 +112,10 @@ internal static class NewStartTypeUI
             btn.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityEngine.Events.UnityAction>(
                 () => OnNewTabClicked(__instance, capturedClone)));
 
+            // 10-07 配置器入口（用户拍板主菜单按钮 A+B）：同挂点注入"WageSurvival 配置"按钮——
+            // 与 tab 克隆并存无冲突（不同字段/对象，ResetAllTab 不影响按钮）
+            try { SurvivalConfigUI.InjectMainMenuButton(__instance); } catch (System.Exception ex) { Core.LogMsg("[新职业] 配置按钮注入异常: " + ex.Message); }
+
         }
         catch (Exception ex)
         {

@@ -31,4 +31,17 @@ internal static class SurvivalConfig
     public static float EffRatio { get { try { return _effRatio != null ? _effRatio.Value : 0.5f; } catch { return 0.5f; } } }
     // 捡漏直觉拾荒加成（默认 +10）
     public static int LuckScoutScavBonus { get { try { return _luckScoutBonus != null ? _luckScoutBonus.Value : 10; } catch { return 10; } } }
+
+    // 10-07 配置器入口：切换机器效率减半开关并落盘（配置器窗口按钮调用——读时取值即时生效）
+    public static void ToggleEffHalf()
+    {
+        try
+        {
+            if (_effHalfEnabled == null) return;
+            _effHalfEnabled.Value = !_effHalfEnabled.Value;
+            if (_cat != null) _cat.SaveToFile(false);
+            Core.LogMsg("[WageSurvival.Config] 机器效率减半切换为 " + (_effHalfEnabled.Value ? "开" : "关"));
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival.Config] ToggleEffHalf异常: " + ex.Message); }
+    }
 }
