@@ -196,11 +196,9 @@ itemFeature.isFeatureExposed = true;
 			{
 				// 交易防御：物品指针读取（交互期物品销毁防御）
 			}
-			// 09-26 修：Pointer 判重（同 TryAddNodeBuffFeature 模式）
-			if (num != 0L && _nodeBuffItems.Contains(num))
-			{
-				return;
-			}
+			// 10-07 修复（玩家"价格对但词条不显示"根因）：删除 _nodeBuffItems 判重——buy 路径先调 TryAddNodeBuffFeature
+			//   把物品登记进 _nodeBuffItems（:166），此处再用同表判重=自己拦自己 → wages_robin_buy 词条永远加不上。
+			//   防重由下方 itemFeatures 循环检查（identifier=="wages_robin_buy"）负责，无需额外登记表。
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
 				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_robin_buy")

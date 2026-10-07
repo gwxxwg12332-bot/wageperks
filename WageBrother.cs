@@ -20,6 +20,9 @@ internal static class WageBrother
     internal const string CLIENT_ID = "wage_brother";
     internal const string CARD_ID = "wage_brother_card";
     private static bool _cardSpawned = false;
+    // 10-07 C2-1/C2-2：名片/柜台货"该在"的状态随档键（对标小偷 KEY_THEFT_DAY 成功方案——
+    //   柜台不随档+原一次性 180 帧补货超时=读档后柜台永远空；此键=持久愿望：上货成功置 1、清卡置 0，读档后按愿望重建柜台）
+    private const string CARD_SPAWNED_KEY = "card_spawned";
 
     // 10-03 服务卡注册进物品库（PS_DebugTool/玩家生成工具调出=未注册ID→问号占位；照抄养蛊机RegisterOne模式）
     public static void RegisterCard(ItemDirectory dir)
@@ -108,6 +111,14 @@ internal static class WageBrother
             int day = 0;
             try { day = StoreStation.GetDayCounter(); } catch { }
             int lastSched = WageSaveStore.GetInt("wage_brother", "last_scheduled_day", -1);
+            // 10-07 C2-1/C2-2：名片/柜台货该在=存档状态优先（对标小偷 KEY_THEFT_DAY——柜台不随档，
+            //   读档后无条件重建柜台货，不依赖 lastSched 推算；推算只决定"补排明天到"）
+            int cardSpawned = WageSaveStore.GetInt("wage_brother", CARD_SPAWNED_KEY, 0);
+            if (cardSpawned == 1)
+            {
+                _refillPending = true;
+                Core.LogMsg("[蛙哥] 读档恢复：card_spawned=1（存档时柜台有货）→ 补货愿望已设（无条件，不依赖推算）");
+            }
             if (lastSched < 0) return;
             int interval = BuildConfig.WageBrotherVisitInterval > 0 ? BuildConfig.WageBrotherVisitInterval : 10;
             if (day - lastSched >= interval) return; // 间隔已过=不在本周期（等下次正常调度）
@@ -115,7 +126,6 @@ internal static class WageBrother
             //   原版客户队列读档恢复（HasQueued=true）≠柜台有货（柜台不随档=空）；原代码 HasQueued return 挡住了补货。
             //   补货独立于队列补排：OnUpdateRefillCounter 内判蛙哥在店/柜台就绪/防重复才补（安全）。
             _refillPending = true;
-            _refillFramesLeft = 180;
             if (HasQueued()) { Core.LogMsg("[蛙哥] 读档恢复：队列已有（原版恢复）→ 补柜台货标志已设"); return; }
             // 小退丢队列：lastSched 在 interval 内但队列空 → 补排明天到
             Core.LogMsg("[蛙哥] 读档恢复：队列空但 lastSched=" + lastSched + " day=" + day + " 间隔未到 → 补排（明天到访）+补柜台货");
@@ -125,42 +135,48 @@ internal static class WageBrother
             // 不重触发 HandleSpecialNpcArrived → OnClientArrived 不跑 → 柜台不随档=空（拆包嫌疑2已实锤）→ 主动补上货。
             // 10-07 #1（玩家反馈"读档补排后柜台仍空"）：LoadGame 时机柜台（EmporiumEntry/frontInvinvElement）未就绪 →
             //   OnClientArrived 里 AddDirectSellingItemToTable 静默失败 → 服务卡/携带物仍不上柜台。
-            //   修复=改帧轮询：此处只设标志，FrameUpdate→OnUpdateRefillCounter 每帧重试（柜台就绪+蛙哥在店+柜台无卡才补，180帧上限）
+            //   修复=改帧轮询：此处只设标志，FrameUpdate→OnUpdateRefillCounter 每帧重试（柜台就绪+蛙哥在店+柜台无卡才补，愿望驱动无超时）
             _refillPending = true;
-            _refillFramesLeft = 180;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] PostfixLoadGame异常: " + ex.Message); }
     }
 
     // 10-07 #1（玩家反馈"读档补排后柜台仍空"）：读档补货改帧轮询——LoadGame 时机柜台（EmporiumEntry）未就绪
-    //   → OnClientArrived 的 AddDirectSellingItemToTable 静默失败 → 柜台空。此处每帧重试直到柜台就绪+上货成功（180帧≈3秒上限）
+    //   → OnClientArrived 的 AddDirectSellingItemToTable 静默失败 → 柜台空。此处每帧重试直到柜台就绪+上货成功。
+    // 10-07 C2-1/C2-2（玩家"蛙哥名片小退消失/柜台货读档失败"复现4次）：从"180帧一次性窗口"改为【愿望驱动】——
+    //   card_spawned 随档=持久愿望（上货成功=1/清卡=0）；愿望在 + 柜台就绪 + 无卡 + 蛙哥本窗口该在 → 补货；
+    //   补货成功才清标志；无永久超时（蛙哥晚到=次日/下周期到店→lastSched 更新→窗口成立→自然补上）。
     private static bool _refillPending = false;
-    private static int _refillFramesLeft = 0;
     internal static void OnUpdateRefillCounter()
     {
         try
         {
             if (!_refillPending) return;
-            if (_refillFramesLeft-- <= 0) { _refillPending = false; Core.LogMsg("[蛙哥] 补货轮询超时放弃（180帧）"); return; }
+            // 愿望检查：card_spawned==1 才继续（读档设的愿望；清卡后=0 → 停止）
+            if (WageSaveStore.GetInt("wage_brother", CARD_SPAWNED_KEY, 0) != 1)
+            {
+                _refillPending = false; // 愿望已清（蛙哥走了/清卡）→ 停止
+                return;
+            }
             var ps = PlayerStore.Instance; if (ps == null) return;
-            var mgr = ps.storeClientManager; if (mgr == null) return;
-            // 蛙哥在店？（clientStack 优先，未在栈取当前客户）
+            // 二轮拆包落点（10-07）：判据从 clientStack 扫描（调度级在栈≠已进门）升级为 currentClient==蛙哥——
+            //   实际交易客户（GetNextClient 设 currentClient → OnArrived 进门），非排队；非蛙哥客户开门时绝不提前上货
             StoreClient wc = null;
-            if (mgr.clientStack != null)
-                for (int j = 0; j < mgr.clientStack.Count; j++) { var c = mgr.clientStack[j]; if (c != null && c.identifier == CLIENT_ID) { wc = c; break; } }
-            if (wc == null) { try { var cur = SpecialNpcManager.GetCurrentClient(); if (cur != null && cur.identifier == CLIENT_ID) wc = cur; } catch { } }
-            // 10-07 P0-1/P0-2（玩家"蛙哥名片小退消失/柜台货读档丢失"复现3次）：读档补货不依赖 wc 判定——
-            //   读档后蛙哥在店（UI可见）但 clientStack 不含 + GetCurrentClient null（对话已开过不重触发 OnClientArrived）→ 原代码 wc==null 直接放弃=柜台永远空。
-            //   改为：wc==null 不放弃，柜台就绪后按"上货模式"补货（OnClientArrived 支持 client=null，跳过 client 相关块只上货）。
-            //   安全性：_refillPending 仅由 PostfixLoadGame 设置（lastSched 在 interval 内=蛙哥本周期该在）；180 帧上限兜底（真离开/场景无柜台=超时放弃）。
-            // if (wc == null) { _refillPending = false; return; } // 蛙哥不在了（已离开），放弃补货
+            try { var cur = SpecialNpcManager.GetCurrentClient(); if (cur != null && cur.identifier == CLIENT_ID) wc = cur; } catch { }
             // 柜台就绪？（AddDirectSellingItemToTable 依赖 EmporiumEntry 前台库存）
             var em = Il2Cpp.EmporiumEntry.Instance;
             if (em == null || em.frontInvinvElement == null) return; // 未就绪，下帧重试
-            if (HasCardOnCounter()) { _refillPending = false; Core.LogMsg("[蛙哥] 补货轮询：柜台已有服务卡，跳过"); return; } // 防重复加卡
-            Core.LogMsg("[蛙哥] 帧轮询补货：柜台就绪 + 蛙哥在店 → OnClientArrived");
+            if (HasCardOnCounter()) { _refillPending = false; Core.LogMsg("[蛙哥] 补货轮询：柜台已有服务卡，完成"); return; } // 防重复加卡
+            // 本窗口判定：只在蛙哥是当前交易客户才补货（二轮拆包实锤：clientStack=调度级入栈（HandleFutureClientQueue→AddClient，
+            //   :3040-3045），在栈≠已进门；currentClient=GetNextClient 实际设定（→OnArrived :2371 进门）=实体级"蛙哥在场"。
+            //   修复：物品跟随蛙哥出现而出现——非蛙哥客户开门时 wc==null → 绝不提前上货；
+            //   蛙哥成为当前客户（读档 SetImmediatlyArrive/正常进门）→ wc 命中 → 本兜底补货，覆盖 C2-1/C2-2）。
+            if (wc == null) return; // 蛙哥不是当前客户（未进门/别的客户在交易）→ 等，绝不提前上货
+            Core.LogMsg("[蛙哥] 帧轮询补货：柜台就绪 + 蛙哥为当前客户 → OnClientArrived");
             OnClientArrived(wc);
-            _refillPending = false;
+            // 成功才清标志：上货失败（AddDirectSellingItemToTable 静默失败）→ 下帧继续重试（愿望还在）
+            if (HasCardOnCounter()) { _refillPending = false; Core.LogMsg("[蛙哥] 补货完成，柜台有卡"); }
+            else { Core.LogMsg("[蛙哥] 补货未确认（柜台无卡）→ 下帧重试"); }
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙哥] OnUpdateRefillCounter异常: " + ex.Message); }
     }
@@ -191,6 +207,15 @@ internal static class WageBrother
             // 10-07 P0-1/P0-2：读档补货可传 null（上货模式）——读档后拿不到蛙哥 client 实例但仍需补柜台货；
             //   client==null 时跳过 client 相关块（SetBudget/立绘/对话——各自 try/catch 已兜 NRE），只走上货链。
             if (client != null && client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived 入口, client=" + (client!=null?client.identifier:"null"));
+            // 10-07 防两套（玩家"蛙哥没小退时刷了两套物品"）：OnClientArrived 无内部防重，正常到店事件链 + 读档轮询兜底
+            //   可双触发（各自带防重互不感知）→ 全套上货两次。_cardSpawned=本会话已上货标志（加卡成功才置 true，
+            //   蛙哥走后 CleanupCardIfGone 重置）→ 重复调用直接跳过并清轮询愿望；上货失败（_cardSpawned 未置）仍可重试。
+            if (_cardSpawned)
+            {
+                _refillPending = false;
+                Core.LogMsg("[蛙哥] OnClientArrived: 本会话已上过货，防重复跳过（清轮询愿望）");
+                return;
+            }
             try { if (client != null) { client.SetBudget(1109707341, 1000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } } catch { } Core.LogMsg("[蛙哥] intent已设=" + (client != null ? client.clientIntent.ToString() : "null(上货模式)"));
             // 10-05 蛙哥收购扩展（拆包实锤：clientBuyingIdList id精确 + clientBuyingTagList tag精确 + SELLNBUY 买路径）
             // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③建议500-1000，单品全覆盖+可收2-3件）
@@ -230,6 +255,9 @@ internal static class WageBrother
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
                 
                 _cardSpawned = true;
+                // 10-07 C2-1/C2-2：名片/柜台货状态随档+立即落盘（对标小偷 KEY_THEFT_DAY——小退=进程退出，
+                //   WageSaveStore 只在 SaveGame/EndDay Flush → 不 Flush 重进读文件=旧值=柜台空）
+                try { WageSaveStore.SetInt("wage_brother", CARD_SPAWNED_KEY, 1); WageSaveStore.Flush(); } catch (System.Exception exf) { Core.LogMsg("[蛙哥] 名片状态落盘失败: " + exf.Message); }
                 Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
             }
             // 小概率携带售卖AI制造机/养蛊机/保护器
@@ -345,22 +373,12 @@ internal static class WageBrother
         try
         {
             if (_cardSprite != null) return;
-            var asm = System.Reflection.Assembly.GetExecutingAssembly();
-            string resName = null;
-            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith("wage_brother_card.png")) { resName = n; break; }
-            if (resName == null) { Core.LogMsg("[蛙哥] 立绘资源未找到"); return; }
-            using var st = asm.GetManifestResourceStream(resName);
-            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
-            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point; tex.wrapMode = TextureWrapMode.Clamp; tex.mipMapBias = 0;
-            Type icType = null;
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
-            if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，等下次再试"); return; } // 启动早期时序问题：PrefixLoadFromAtlas会反复调用
-            Core.LogMsg("[蛙哥] 资源=" + resName + " size=" + png.Length + " icType=" + (icType!=null?icType.FullName:"null")); Core.LogMsg("[蛙哥] LoadImage前"); icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppStructArray<byte>)png });
-            Core.LogMsg("[蛙哥] LoadImage后 tex=" + tex.width + "x" + tex.height); _cardSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 500f);
+            // 10-07 统一载入：WagePixelSprites Color[]（妙妙箱式，32x16 PPU 500 保持原显示尺寸）
+            _cardSprite = WagePixelSprites.WageBrotherCardSprite();
+            if (_cardSprite == null) { Core.LogMsg("[蛙哥] 服务卡像素数组生成失败"); return; }
             // 10-03 修：服务卡sprite必须进SpriteDict（读档重建渲染查字典，仅静态字段=旧档显示问号；立绘/许可同模式）
             try { if (SpriteDict.Instance != null && SpriteDict.Instance.spriteDictionary != null && _cardSprite != null) { SpriteDict.Instance.spriteDictionary[CARD_SPRITE_KEY] = _cardSprite; Core.LogMsg("[蛙哥] 服务卡sprite已注入SpriteDict"); } else { Core.LogMsg("[蛙哥] SpriteDict未就绪，等服务卡渲染兜底重写"); } } catch (System.Exception exdict) { Core.LogMsg("[蛙哥] 服务卡注入SpriteDict异常: " + exdict.Message); }
-            Core.LogMsg("[蛙哥] 服务卡图标加载 " + tex.width + "x" + tex.height); // atlasCache直写注释：索引器导致卡死，走PrefixLoadFromAtlas拦截
+            Core.LogMsg("[蛙哥] 服务卡图标加载（像素数组）"); // atlasCache直写注释：索引器导致卡死，走PrefixLoadFromAtlas拦截
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 服务卡图标加载失败: " + ex.Message); }
     }
     public static bool PrefixLoadFromAtlas(string atlasPath, string name, ref Sprite __result)
@@ -493,39 +511,18 @@ internal static class WageBrother
         catch (Exception ex) { Core.LogMsg("[蛙哥] LoadAllIcons异常: " + ex.Message); }
     }
 
-    // 10-04 贴图重制：许可/充电器全部 64x64 POT（对齐养蛊机），ppu=200→显示0.32单位=游戏2×2占格原生标准（cheatsheet: PPU=图宽/(占格×0.16)=64/0.32=200）
-    private static float GetIconPPU(string spriteKey)
-    {
-        return 200f; // 64px→0.32单位（2×2物品原生标准）
-    }
-
     // 加载许可/充电器图标到SpriteDict
     private static void LoadPermitChargerIcon(string fileName, string spriteKey)
     {
         try
         {
             if (SpriteDict.Instance == null) { Core.LogMsg("[蛙哥] SpriteDict未就绪，跳过预加载(懒加载兜底): " + spriteKey); return; } // 10-03 启动早期时序守卫（原预加载NRE根因）
-            var asm = System.Reflection.Assembly.GetExecutingAssembly();
-            string resName = null;
-            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith(fileName)) { resName = n; break; }
-            if (resName == null) { Core.LogMsg("[蛙哥] 图标资源未找到: " + fileName); return; }
-
-            using var st = asm.GetManifestResourceStream(resName);
-            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
-            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            tex.wrapMode = TextureWrapMode.Clamp;
-
-            Type icType = null;
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
-            if (icType == null) { Core.LogMsg("[蛙哥] ImageConversion未就绪，跳过(懒加载兜底): " + spriteKey); return; }
-            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)png });
-
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), GetIconPPU(spriteKey)); // 64x64@200f=0.32单位（2×2原生标准）
+            // 10-07 统一载入：WagePixelSprites Color[]（妙妙箱式，32x32 PPU 200 保持 2×2 占格标准）
+            Sprite sp = WagePixelSprites.PermitChargerSprite(fileName);
+            if (sp == null) { Core.LogMsg("[蛙哥] 图标像素数组未找到: " + fileName); return; }
             SpriteDict.Instance.spriteDictionary[spriteKey] = sp;
-            UnityEngine.Object.DontDestroyOnLoad(tex);
             UnityEngine.Object.DontDestroyOnLoad(sp);
-            Core.LogMsg("[蛙哥] 图标加载: " + spriteKey + " " + tex.width + "x" + tex.height);
+            Core.LogMsg("[蛙哥] 图标加载(像素数组): " + spriteKey);
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] LoadPermitChargerIcon异常 " + fileName + ": " + ex.Message + " | " + (ex.StackTrace != null ? ex.StackTrace.Split('\n')[0] : "")); }
     }
@@ -575,6 +572,8 @@ internal static class WageBrother
             if (!_cardSpawned) return;
             if (HasQueued()) return; // 蛙哥还在
             _cardSpawned = false;
+            // 10-07 C2-1/C2-2：清卡=清除补货愿望（同步落盘——防读档重建柜台时按旧愿望补出蛙哥不在的卡）
+            try { WageSaveStore.SetInt("wage_brother", CARD_SPAWNED_KEY, 0); WageSaveStore.Flush(); } catch (System.Exception exf) { Core.LogMsg("[蛙哥] 名片状态清盘失败: " + exf.Message); }
             // 清掉柜台上的服务卡（wage_bro_card tag）
             var em = EmporiumEntry.Instance; if (em == null) return;
             var all = em.GetAllItems();

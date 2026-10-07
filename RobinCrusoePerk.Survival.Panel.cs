@@ -40,6 +40,7 @@ internal static partial class RobinCrusoePerk
             int satCal = (int)(sat * 22f);
             int thMl = (int)(th * 20f);
             b.SetSize(300, 500).SetPosition(Vector2.zero);
+            try { b.SetDraggable(true); } catch { } // 10-07 位置记忆：允许拖拽，位置由 PanelZoomHelper 持久化
             // 固定右上角（09-10 用户拍板：锚点(1,1) pivot(1,1) 右上角内侧 16px，不随分辨率变化）
             try
             {
@@ -52,6 +53,8 @@ internal static partial class RobinCrusoePerk
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Survival] 异常: " + ex.Message); }
+            // 10-07 面板缩放：重建后重放上次缩放值（localScale 不随窗口重建保留）
+            try { PanelZoomHelper.ApplySavedScale("rc_status"); } catch { }
             b.BeginColumn(4f);
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + satCal + "/2200 kcal", "sat_l");
             b.AddProgressBar(sat / 100f, "sat");
@@ -142,6 +145,14 @@ internal static partial class RobinCrusoePerk
                 }
             }
             catch (Exception ex) { Core.LogMsg("[哨兵面板] 异常: " + ex.Message); }
+            // 10-07 数值安全线分色（≥2/3 绿 / ≥1/3 黄 / <1/3 红）
+            try
+            {
+                PanelZoomHelper.ApplyStatusColors("rc_status",
+                    ("sat", sat / 100f), ("th", th / 100f), ("h", h / 100f), ("blood", GetBlood() / (float)BLOOD_MAX),
+                    ("clean", clean / 100f), ("sleep", sleep / 100f), ("social", social / 100f));
+            }
+            catch { }
             b.End();
             b.Show();
         }

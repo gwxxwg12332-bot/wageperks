@@ -158,6 +158,14 @@ internal static partial class Patches
 		{
 			// 每帧防御：诊断面板刷新异常跳过
 		}
+		try
+		{
+			PanelZoomHelper.FrameUpdate(); // 10-07 面板缩放：hover 蛙娘/鲁滨逊面板滚轮缩放（原版 localScale 机制）
+		}
+		catch
+		{
+			// 每帧防御：面板缩放检测异常跳过
+		}
 	}
 
 	internal static void PostfixInputActionManagerUpdate(InputActionManager __instance)

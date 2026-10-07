@@ -29,6 +29,24 @@ partial class LuckScoutBackpackUpgrade
 
     // ===== 读档恢复：SetContentWindow后识别虚空珠并恢复SetShape =====
 
+    // 10-07 玩家要求：虚空珠珠子本体占地强制 2×2（创建时 SetShape 可能被原版初始化覆盖/读档丢失 → 恢复链双保险）
+    internal static void EnsureBeadFootprint(GameItem item)
+    {
+        try
+        {
+            if (item == null) return;
+            try
+            {
+                var gsb = new GridShapeBuilder();
+                gsb.SetDataFill(2, 2);
+                item.SetShape(gsb.Build());
+                item.modifiedShape = gsb.Build();
+            }
+            catch (Exception exsh) { Core.LogMsg("[虚空珠] 占地2x2 SetShape异常: " + exsh.Message); }
+        }
+        catch (Exception ex) { Core.LogMsg("[虚空珠] EnsureBeadFootprint异常: " + ex.Message); }
+    }
+
     public static void PostfixSetContentWindow(GameItem __instance)
 
     {
@@ -96,6 +114,9 @@ partial class LuckScoutBackpackUpgrade
             int slots = GetTagInt(__instance, SLOTS_TAG);
 
             if (slots <= 0) slots = 1;
+
+            // 10-07 玩家要求：珠子本体占地强制 2×2（读档恢复路径①）
+            EnsureBeadFootprint(__instance);
 
 
             try { if (__instance.contentWindow != null) __instance.contentWindow.titleString = LangHelper.T("虚空珠 (", "Void Bead (") + slots + LangHelper.T("/200格)", "/200 slots)"); } catch { }
@@ -260,6 +281,8 @@ partial class LuckScoutBackpackUpgrade
                 try
                 {
                     if (!item.IsTag(BACKPACK_TAG)) continue;
+                    // 10-07 玩家要求：珠子本体占地强制 2×2（读档恢复路径②——轮询全库存）
+                    EnsureBeadFootprint(item);
                     int slots = GetTagInt(item, SLOTS_TAG);
                     if (slots <= 0) slots = 1;
                     var cw = item.contentWindow;

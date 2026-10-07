@@ -44,15 +44,8 @@ public static partial class WageGirlSystem
     {
         try
         {
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            tex.wrapMode = TextureWrapMode.Clamp;
-            tex.hideFlags = HideFlags.DontSave;
-            tex.SetPixels(pixels);
-            tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-            sp.hideFlags = HideFlags.DontSave;
-            return sp;
+            // 10-07 修复：统一走 WagePixelSprites.CreatePixelSprite（SetPixels 行序 Y 翻转）
+            return WagePixelSprites.CreatePixelSprite(pixels, w, h, 100f);
         }
         catch { return null; }
     }

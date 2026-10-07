@@ -11,15 +11,8 @@ public static partial class GuMachineSystem
     {
         try
         {
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            tex.wrapMode = TextureWrapMode.Clamp;
-            tex.hideFlags = HideFlags.DontSave;
-            tex.SetPixels(pixels);
-            tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-            sp.hideFlags = HideFlags.DontSave;
-            return sp;
+            // 10-07 修复：统一走 WagePixelSprites.CreatePixelSprite（SetPixels 行序 Y 翻转——AI 模组像素数组同 getdata 序，直接写上下颠倒）
+            return WagePixelSprites.CreatePixelSprite(pixels, w, h, 100f);
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] SpriteFromPixels 异常: " + ex.Message); return null; }
     }

@@ -20,6 +20,7 @@ public static partial class WageGirlSystem
             if (b == null) { Core.LogMsg("[蛙娘] ShowPanel 段2: CreateWindow 返回 null"); return; }
             Core.LogMsg("[蛙娘] ShowPanel 段2: 窗口创建成功");
             b.SetSize(300, 560).SetPosition(Vector2.zero);
+            try { b.SetDraggable(true); } catch { } // 10-07 位置记忆：允许拖拽，位置由 PanelZoomHelper 持久化
             try
             {
                 var w = mgr.GetWindow("wage_girl_panel");
@@ -31,6 +32,8 @@ public static partial class WageGirlSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
+            // 10-07 面板缩放：重建后重放上次缩放值（localScale 不随窗口重建保留）
+            try { PanelZoomHelper.ApplySavedScale("wage_girl_panel"); } catch { }
             b.BeginColumn(4f);
             // 09-20 优化：顶部好感度显示；10-07 #10 两位小数 + /200 + 5 节点文本
             b.AddLabel(LangHelper.T("好感度：" + GetAffectionExact().ToString("0.00") + "/200（" + GetAffLevelText() + "）", "Affection: " + GetAffectionExact().ToString("0.00") + "/200 (" + GetAffLevelText() + ")"), "wg_aff");
@@ -137,6 +140,14 @@ public static partial class WageGirlSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Panel] 异常: " + ex.Message); }
+            // 10-07 数值安全线分色（≥2/3 绿 / ≥1/3 黄 / <1/3 红）
+            try
+            {
+                PanelZoomHelper.ApplyStatusColors("wage_girl_panel",
+                    ("wg_sat", GetStat(K_SAT) / 100f), ("wg_th", GetStat(K_TH) / 100f), ("wg_health", GetStat(K_HEALTH) / 100f),
+                    ("wg_mood", GetStat(K_MOOD) / 100f), ("wg_clean", GetStat(K_CLEAN) / 100f), ("wg_sleep", GetStat(K_SLEEP) / 100f));
+            }
+            catch { }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 面板异常: " + ex.Message); }
     }

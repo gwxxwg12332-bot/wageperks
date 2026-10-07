@@ -41,35 +41,9 @@ partial class LuckScoutBackpackUpgrade
 
             {
 
-                byte[] pngBytes = EMBEDDED_VOID_BEAD_PNG; // 嵌入DLL的字节（发布可用，不依赖外部文件）
-                Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false, false)
-                {
-                    filterMode = FilterMode.Point,
-                    wrapMode = (TextureWrapMode)1,
-                    hideFlags = (HideFlags)61
-                };
-                Type icType = null;
-                foreach (System.Reflection.Assembly a in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    Type[] types;
-                    try { types = a.GetTypes(); }
-                    catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
-                    foreach (Type t in types)
-                    {
-                        if (t != null && t.Name == "ImageConversion") { icType = t; break; }
-                    }
-                    if (icType != null) break;
-                }
-                if (icType != null)
-                {
-                    var loadMethod = icType.GetMethod("LoadImage",
-                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
-                        null, new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }, null);
-                    if (loadMethod != null)
-                        loadMethod.Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)pngBytes });
-                }
-                _customSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                _customSprite.hideFlags = HideFlags.HideAndDontSave;
+                // 10-07 统一载入：WagePixelSprites Color[]（妙妙箱式，32x32 PPU 100）
+                _customSprite = WagePixelSprites.VoidBeadSprite();
+                if (_customSprite != null) _customSprite.hideFlags = HideFlags.HideAndDontSave;
             }
             catch (Exception ex) { Core.LogMsg("[虚空珠] 加载sprite失败: " + ex.Message); }
 
@@ -172,6 +146,15 @@ partial class LuckScoutBackpackUpgrade
             // 初始1格解锁（SetShape原生锁格子）
             SetTagInt(item, SLOTS_TAG, 1);
             ApplyLockedShape(gridInv, 1);
+            // 10-07 用户拍板：虚空珠占地 1×1 → 2×2（贴图 32×32 同批更换；写法参照 DestinyDice.Core.cs 骰子占地 2×2）
+            try
+            {
+                var gsb = new GridShapeBuilder();
+                gsb.SetDataFill(2, 2);
+                item.SetShape(gsb.Build());
+                item.modifiedShape = gsb.Build();
+            }
+            catch (Exception exsh) { Core.LogMsg("[虚空珠] 占地SetShape异常: " + exsh.Message); }
             // 开局容器未就绪时 SetShape 会被初始化覆盖（用户反馈新档显示 3/4）→ 入队，下帧容器就绪后强制应用
             // 09-13：仅新档发放时入队；读档工厂重建不入队（否则把存档 slots 覆盖回 1）
             if (enqueuePending)
@@ -193,7 +176,7 @@ partial class LuckScoutBackpackUpgrade
 
             item.SetName(LangHelper.T("虚空珠", "Void Bead"));
 
-            try { item.shortDescription = LangHelper.T("可升级便携储物。拖垃圾(junk)到珠上逐格解锁，上限200格。占地1×1，可带外出拾荒。", "Upgradeable portable storage. Drag junk onto the bead to unlock slots one by one, up to 200. 1x1 footprint, can be taken scavenging."); } catch { }
+            try { item.shortDescription = LangHelper.T("可升级便携储物。拖垃圾(junk)到珠上逐格解锁，上限200格。占地2×2，可带外出拾荒。", "Upgradeable portable storage. Drag junk onto the bead to unlock slots one by one, up to 200. 2x2 footprint, can be taken scavenging."); } catch { }
 
             try { item.flavorText = LangHelper.T("深紫虚空珠，内部折叠微型次元空间。", "A deep-purple void bead, folding a miniature pocket dimension inside."); } catch { }
 

@@ -268,6 +268,9 @@ public static partial class WageGirlSystem
             if (inv == null) { filledValue = crate != null ? crate.unitValue : 0; return crate; }
             var basePool = WagePowerPerk.ItemPool ?? new string[0];
             long spent = 0; int tries = 0, filled = 0;
+            // 10-07 性能优化项0/1 前置实测埋点（DebugMode 门控，发布版不输出；采集完即删）：
+            // 记录填充件数 / 调原版次数（DirectoryMaster.Item 创建 + UncheckedAcceptAll 塞入）/ 是否触发兜底——供"80→1 合并"决策
+            int probeItemCalls = 0, probeAcceptCalls = 0, probeFallback = 0;
             bool wantContraband = false; // 09-27 C4 拍板：箱内 100% 合法（删 5% 违禁陷阱——眼线已 -15 点，不再被随机坑）
             var pool = new System.Collections.Generic.List<string>(basePool);
             // 10-05 方案A（群友拍板·池过滤）：排除低价值物（基础价值<5），防"带回垃圾+差额"观感（raw_meat/bandage 等不再入箱）
@@ -278,15 +281,16 @@ public static partial class WageGirlSystem
                 int idx = Core.Rng.Next(pool.Count);
                 string id = pool[idx]; pool.RemoveAt(idx);
                 GameItem it = null;
-                try { it = DirectoryMaster.Item(id, true); } catch { }
+                try { it = DirectoryMaster.Item(id, true); probeItemCalls++; } catch { }
                 if (it == null) { tries++; continue; }
-                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); spent += it.unitValue; filled++; } catch { tries++; }
+                try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); spent += it.unitValue; filled++; probeAcceptCalls++; } catch { tries++; }
             }
             // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环可能因违禁分流不符（5% 分支尤甚）、
             // 创建失败或 UncheckedAccept 抛错而一件都没塞进去 → 空箱。
             // 兜底：忽略违禁偏好，从全池硬性塞入至少 1 件——保证物资箱永不为空。
             if (filled == 0)
             {
+                probeFallback = 1; // 触发兜底刷新（filled==0 走了兜底分支）
                 var fb = new System.Collections.Generic.List<string>(basePool);
                 int fbTries = 0;
                 while (filled == 0 && fbTries < 40 && fb.Count > 0)
@@ -295,12 +299,14 @@ public static partial class WageGirlSystem
                     string id = fb[idx]; fb.RemoveAt(idx);
                     fbTries++;
                     GameItem it = null;
-                    try { it = DirectoryMaster.Item(id, true); } catch { }
+                    try { it = DirectoryMaster.Item(id, true); probeItemCalls++; } catch { }
                     if (it == null) continue;
-                    try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); filled++; } catch { }
+                    try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); filled++; probeAcceptCalls++; } catch { }
                 }
             }
             filledValue = spent; // 09-24 修：返回实际塞入物品总价值，克扣按这个算
+            if (Core.DebugMode)
+                Core.LogMsg("[蛙娘填充实测] crate=" + bid + " target=" + targetValue + " filled=" + filled + " itemCalls=" + probeItemCalls + " acceptCalls=" + probeAcceptCalls + " fallback=" + probeFallback);
             return crate;
         }
         catch { filledValue = 0; return null; }

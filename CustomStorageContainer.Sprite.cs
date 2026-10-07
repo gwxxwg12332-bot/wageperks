@@ -24,19 +24,9 @@ public static partial class CustomStorageContainer
                 int height = StorageBoxPixels.Height;
                 Color[] pixels = StorageBoxPixels.GetPixels();
                 
-                
-                Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                tex.filterMode = FilterMode.Point;
-                tex.wrapMode = TextureWrapMode.Clamp;
-                tex.hideFlags = HideFlags.DontSave;
-                tex.SetPixels(pixels);
-                tex.Apply();
-                
-                // 创建sprite（pixelsPerUnit=100，32/100=0.32单位，跟卫生纸一样大）
-                Sprite sprite = Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f);
-                sprite.hideFlags = HideFlags.DontSave;
-                
-                return sprite;
+                // 10-07 修复（玩家"蛙哥箱子也是反的"）：统一走 WagePixelSprites.CreatePixelSprite——内置 SetPixels 行序 Y 翻转
+                //   （StorageBoxPixels 数组为 getdata 序=顶行在前，SetPixels 底行在前 → 直接写上下颠倒）
+                return WagePixelSprites.CreatePixelSprite(pixels, width, height, 100f);
             }
             catch (Exception ex)
             {
@@ -167,11 +157,6 @@ public static partial class CustomStorageContainer
             int height = 32;
             try
             {
-                Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                tex.filterMode = FilterMode.Point;
-                tex.wrapMode = TextureWrapMode.Clamp;
-                tex.hideFlags = HideFlags.DontSave;
-                
                 Color[] pixels = new Color[width * height];
                 for (int y = 0; y < height; y++)
                 {
@@ -180,12 +165,8 @@ public static partial class CustomStorageContainer
                         pixels[y * width + x] = GetBoxPixel(x, y, width, height);
                     }
                 }
-                tex.SetPixels(pixels);
-                tex.Apply();
-                
-                Sprite sprite = Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f);
-                sprite.hideFlags = HideFlags.DontSave;
-                return sprite;
+                // 10-07 修复：同上（GetBoxPixel 程序化 y=0 顶行 → 行序 Y 翻转统一由 CreatePixelSprite 处理）
+                return WagePixelSprites.CreatePixelSprite(pixels, width, height, 100f);
             }
             catch (Exception ex)
             {

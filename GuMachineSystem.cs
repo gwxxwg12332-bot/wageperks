@@ -68,19 +68,14 @@ public static partial class GuMachineSystem
     private static Sprite LoadPngSprite(string fileName)
     {
         try {
-            var asm = System.Reflection.Assembly.GetExecutingAssembly();
-            string resName = null;
-            foreach (var n in asm.GetManifestResourceNames()) if (n.EndsWith(fileName)) { resName = n; break; }
-            if (resName == null) { Core.LogMsg("[养蛊机] 图标资源未找到: " + fileName); return null; }
-            using var st = asm.GetManifestResourceStream(resName);
-            byte[] png = new byte[st.Length]; st.Read(png, 0, png.Length);
-            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            tex.wrapMode = TextureWrapMode.Clamp;
-            Type icType = null;
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { Type[] ts; try { ts = a.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException ex) { ts = ex.Types; } foreach (var t in ts) if (t != null && t.Name == "ImageConversion") { icType = t; break; } if (icType != null) break; }
-            icType.GetMethod("LoadImage", new Type[] { typeof(Texture2D), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) }).Invoke(null, new object[] { tex, (Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)png });
-            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 200f);
+            // 10-07 统一载入：WagePixelSprites Color[]（蛙哥妙妙箱式），不再走嵌入PNG+LoadImage
+            switch (fileName)
+            {
+                case "gu_machine.png": return WagePixelSprites.GuMachineSprite();
+                case "ai_generator.png": return WagePixelSprites.AiGeneratorSprite();
+                case "protector_core.png": return WagePixelSprites.ProtectorCoreSprite();
+            }
+            return null;
         } catch (Exception ex) { Core.LogMsg("[养蛊机] 图标加载失败 " + fileName + ": " + ex.Message); return null; }
     }
 
