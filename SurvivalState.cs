@@ -367,25 +367,38 @@ internal static partial class SurvivalFood
     }
 
     // 10-07 P2-7：检测 WagePerks 程序集是否在场（单装 WS 判定用——WP 在场才让路 Z 键）
+    // 10-07 性能优化项7（三审合并 Memos EKPd6iXxqJhFFGisNuExK3）：原每帧 AppDomain.GetAssemblies 扫描（鲁滨逊档每帧跑）——
+    //   程序集集合运行期不变（MelonLoader 启动即全加载），静态缓存一次扫描结果，零风险一行。
+    private static bool? _wagePerksPresent = null;
     internal static bool IsWagePerksPresent()
     {
+        if (_wagePerksPresent.HasValue) return _wagePerksPresent.Value;
+        bool found = false;
         try
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                try { if (asm.GetType("WagePerks.RobinCrusoePerk") != null) return true; } catch { }
+                try { if (asm.GetType("WagePerks.RobinCrusoePerk") != null) { found = true; break; } } catch { }
             }
         }
         catch { }
-        return false;
+        _wagePerksPresent = found;
+        return found;
     }
 
     // 每帧检测：Z键切换状态面板（10-06 让路修复：非鲁滨逊档由本挂点处理面板，鲁滨逊档让 WagePerks 的 Z 键接管——普通档双装面板无主修复）
     private static int _zKeyFrame = -1;
+    // 10-07 性能优化项3（三审 Memos EKPd6iXxqJhFFGisNuExK3）：每帧路径 catch 日志风暴节流——面板未就绪早期帧会每帧刷日志
+    private static float _frameLogLastTime = -1f;
     internal static void PostfixFrameUpdate()
     {
         try
         {
+            // 10-07 性能优化项2（三审 Memos EKPd6iXxqJhFFGisNuExK3）：红线4 合规——读档轮询从 Core.OnUpdate 迁入本链
+            // （InputActionManager.Update Postfix=统一每帧入口）。_yieldMode 门控保持：双装停轮询防双读
+            // （语义与原 Core.OnUpdate 完全一致，仅换入口）。
+            if (!Core._yieldMode) { try { WageAPI.Core.Update(); } catch { } }
+
             // 昏迷跳天（帧钩子异步逐轮日切）
             SurvivalFood.TickSkipDays();
 
@@ -412,7 +425,12 @@ internal static partial class SurvivalFood
         }
         catch (System.Exception ex)
         {
-            Core.LogMsg("[WageSurvival] PostfixFrameUpdate 异常: " + ex.Message);
+            // 10-07 性能优化项3：每帧路径日志风暴节流（同异常 5 秒内只打一次，防刷屏；入口防御保留）
+            if (_frameLogLastTime < 0f || UnityEngine.Time.time - _frameLogLastTime > 5f)
+            {
+                _frameLogLastTime = UnityEngine.Time.time;
+                Core.LogMsg("[WageSurvival] PostfixFrameUpdate 异常: " + ex.Message);
+            }
         }
     }
 }

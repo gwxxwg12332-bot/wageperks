@@ -55,10 +55,9 @@ public class Core : MelonMod
 
     public override void OnUpdate()
     {
-        // 10-05 让路模式：读档轮询也停（防双 SaveStore 双落盘读写）
-        if (_yieldMode) return;
-        // 10-04 内置：WageAPI 读档轮询（LoadIfPending）
-        try { WageAPI.Core.Update(); } catch { }
+        // 10-07 性能优化项2（三审 Memos EKPd6iXxqJhFFGisNuExK3）：红线4 合规——读档轮询已迁至
+        // SurvivalState.PostfixFrameUpdate（InputActionManager.Update Postfix，统一每帧入口）。
+        // 本方法不再承载任何每帧逻辑（MelonLoader Mod.OnUpdate 不再被使用）。
     }
 
     /// <summary>AppDomain 探测 WagePerks 程序集（先例照 LuckScoutPerk.CompatGuard；程序集名权威值 WagePerks.csproj AssemblyName）。</summary>
