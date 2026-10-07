@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.9", "jingdizhiwa123", null)]
+[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.9", "井底之蛙", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WageSurvival;

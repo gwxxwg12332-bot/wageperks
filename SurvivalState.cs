@@ -402,6 +402,9 @@ internal static partial class SurvivalFood
             // 昏迷跳天（帧钩子异步逐轮日切）
             SurvivalFood.TickSkipDays();
 
+            // 10-07 面板缩放：hover 鲁滨逊面板（ws_status）滚轮缩放——放在鲁滨逊档让路 return 之前（双装时 ws_status 不创建，IsOpen 检查自然跳过）
+            try { PanelZoomHelper.FrameUpdate(); } catch { }
+
             // 10-06 让路门控：鲁滨逊档面板归 WagePerks（其 HandleHotkeys IsActive=startType==15），本链让开避免双 Z 处理打架
             // 10-07 P2-7（玩家"单装 WS 生存面板呼不出"）：让路假设 WP 在场接管鲁滨逊档 Z 键——单装 WS（无 WP）时无人处理。
             //   仅 WP 程序集在场才让路；WP 不在场由本链处理（RefreshStatusPanel 按鲁滨逊档走，WS 自包含）。
