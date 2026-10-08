@@ -27,11 +27,15 @@ partial class ContainerUpgradeV2
 
     // ===================== 蛙哥箱识别（tag 或 identifier 兜底） =====================
     // 老档蛙哥箱（旧版创建）可能缺 CUSTOM_STORAGE_TAG（ES3 不保证 tag 保留），用 identifier 兜底
+    // 10-08 拆包 AI A3 误命中实锤：黑金典藏箱（wage_blackgold_box 独立 mod）打 CUSTOM_STORAGE_TAG 防"拖 junk 宽+1"劫持，
+    //   但被本判定识别为妙妙箱 → 妙妙箱恢复链把黑金内部网格 20×20 改 52×10（容量破坏）+ 可能补发第二个妙妙箱。
+    //   修复：黑金 identifier 精确排除（黑金保留 tag 防劫持 + 恢复链不再误命中；妙妙箱/原版箱不受影响）。
     public static bool IsWageBox(GameItem item)
     {
         try
         {
             if (item == null) return false;
+            if ((item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box") return false; // 10-08 黑金排除
             if (item.IsTag("CUSTOM_STORAGE_TAG")) return true;
             if (item.IsTag("WAGE_BOX_TAG")) return true; // 09-14 场景读档：CSTAG 丢但升级 tag 随档 → 专属标记识别
             if (item.IsTag("wage_box_type")) return true; // 09-14 带值 tag（用原生 IsTag——HasTag=GetTagReadonly!=null 对不存在 tag 恒 True，骰子/所有物品误判成蛙哥箱）
@@ -45,6 +49,7 @@ partial class ContainerUpgradeV2
         try
         {
             if (item == null) return false;
+            if ((item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box") return false; // 10-08 黑金排除（固定 20×20，禁止 junk 宽+1 劫持）
             if (!BuildConfig.ContainerUpgradeEnabled) return false; // 09-20 CFG 关 → 不升级
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false; // 妙妙箱走独立螺丝升级链，不走鲁滨逊 junk 升级
