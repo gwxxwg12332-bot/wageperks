@@ -44,6 +44,15 @@ internal static partial class SurvivalFood
     private static readonly HashSet<StoreClient> _statusClientSet = new HashSet<StoreClient>();
     private static readonly Dictionary<StoreClient, string> _statusClientKind = new Dictionary<StoreClient, string>();
 
+    // ===== 10-10 #43：随档清理（复用 #32 主 mod ClearStatusClients 样板——readonly 约束只能 .Clear() 不能重赋值）=====
+    // 背景：跨档累积（旧档客户引用残留 + 新档场景重建同地址复用 → 普通客户误判状态客户 → 加价系数错误，与 WP #32 同型副本漂移）
+    // 挂点：WS 权威日切=SurvivalState.PostfixOnDayStart 尾部（PatchRegistry.cs:132-137 StoreEventManager.OnDayStart——不照搬 WP PostfixUnifiedDayStart）
+    internal static void ClearStatusClients()
+    {
+        try { _statusClientSet.Clear(); _statusClientKind.Clear(); }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Nodes.StatusClients] ClearStatusClients 异常: " + ex.Message); }
+    }
+
     // 工厂 Postfix 打标（状态客户 7 工厂：thirsty/hungry/injured/sick×3/desperate/wornOut）
     // v5.9：节点 statusClient-N（蓬头垢面-30/门可罗雀-20/爱答不理-10）→ 该概率降级为普通客户（无加价/减价）
     public static void PostfixStatusClientFactory(StoreClient __result, string kind)

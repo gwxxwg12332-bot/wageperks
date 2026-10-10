@@ -143,6 +143,9 @@ internal static partial class SurvivalFood
             // 10-07 阶段D D-1：账本夜报（承接 WP :156 尾部夜报——先补后删）
             AppendLedgerReport();
 
+            // 10-10 #43：状态客户集合随档清理（权威日切=StoreEventManager.OnDayStart Postfix——SurvivalStatusClients.ClearStatusClients；readonly 集合 .Clear() 两处）
+            ClearStatusClients();
+
             // 刷新状态面板
             RefreshStatusPanel();
         }
