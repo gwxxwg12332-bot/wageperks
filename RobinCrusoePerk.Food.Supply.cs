@@ -181,12 +181,9 @@ internal static partial class RobinCrusoePerk
             foreach (GameItem item in em.GetAllItems())
                 if (item != null) result.Add(item);
 
-            foreach (GameInventory inv in new[] { em.backInvinvElement, em.frontInvinvElement })
-            {
-                if (inv == null || inv.childItems == null) continue;
-                for (int i = 0; i < inv.childItems.Count; i++)
-                    if (inv.childItems[i] != null) result.Add(inv.childItems[i]);
-            }
+            // 10-10 #47 修正：原手动补背包/柜台段（backInvinvElement/frontInvinvElement）已删——
+            //   GetAllItems 原版含背包/柜台（#46 拆包实锤 EmporiumEntry :23033 主体/:23073 背包/:23114 柜台）→ 手动段=重复 Add 双计土壤
+            //   （若未来被调，同一许可/食物被计 2 次）。DecayFoodsAndCount(:47 活调用)走本方法=食物腐烂扫描，仅去重不丢功能。
 
             var inner = new List<GameItem>(result);
             foreach (GameItem container in inner)
