@@ -266,6 +266,16 @@ public static class BlackGoldBoxStyle
             int styleIdx = ReadPersistStyle(__instance);
             if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length) return;
             ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
+            // 10-10 #U4 实证埋点（派活单 WBG_P1 子项1）：读档恢复分支打印 identifier/uniqueId——一次重启实证读档保持性
+            //   （identifier null 打印 NULL；uniqueId=0 打印 0——与创建实证 :161 同格式；styleIdx 为命中值）
+            try
+            {
+                string idv = (__instance.identifier == null) ? "NULL" : __instance.identifier;
+                long uid = 0;
+                try { uid = __instance.uniqueId; } catch { }
+                Core.LogMsg("[黑金读档] identifier=" + idv + " uniqueId=" + uid + " styleIdx=" + styleIdx);
+            }
+            catch { }
             Core.LogMsg("[黑金典藏箱] 读档恢复样式 → " + BlackGoldBox.StyleKeys[styleIdx]);
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] PostfixSetContentWindow: " + ex.Message); }

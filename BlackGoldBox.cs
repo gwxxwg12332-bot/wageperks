@@ -161,7 +161,9 @@ public static class BlackGoldBox
                 string idv = (container.identifier == null) ? "NULL" : container.identifier;
                 bool isBlender = false;
                 try { isBlender = container.IsGameItemType("blender"); } catch { }
-                Core.LogMsg("[黑金典藏箱] 创建实证: identifier=" + idv + " IsBlenderType=" + isBlender);
+                long uid = 0;
+                try { uid = container.uniqueId; } catch { }
+                Core.LogMsg("[黑金典藏箱] 创建实证: identifier=" + idv + " uniqueId=" + uid + " IsBlenderType=" + isBlender);
             }
             catch { }
 
