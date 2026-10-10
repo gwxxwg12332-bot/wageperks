@@ -122,7 +122,9 @@ public static partial class WageGirlSystem
                 // 09-27 B26 修：偷拿成功时记录物品名（stolenNames 此前从未 Add → 夜报不报偷了什么）
                 try { p.Destroy(); stolen++; stolenNames.Add(ModCannibalism.GetName(p)); } catch { try { if (p.parentInventory != null) { p.parentInventory.Expel(p); stolen++; stolenNames.Add(ModCannibalism.GetName(p)); } } catch { } }
             }
-            try { SetStat("stolenValue", GetStat("stolenValue", 0) + (int)Math.Min(stolenVal, int.MaxValue)); } catch { }
+            // 10-10 子项7a：stolenValue 累加溢出修复——long 中间量求和 + 业务上限 clamp（防大额偷窃累计溢出为负）
+            // 原 :125 两 int 相加（GetStat 累计值 + 本次 clamp 值）→ 大额偷窃多次后溢出为负（与"预算溢出"同型）
+            try { long _total = (long)GetStat("stolenValue", 0) + Math.Min(stolenVal, (long)int.MaxValue); SetStat("stolenValue", (int)Math.Min(_total, (long)int.MaxValue)); } catch { }
             return stolen;
         }
         catch { stolenNames = null; return 0; }

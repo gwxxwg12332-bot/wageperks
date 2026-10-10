@@ -55,10 +55,12 @@ internal static class CompatibilityPatches
                 Core.LogMsg("[兼容] 预算溢出兜底: " + __instance.clientBudget + " → 0 (客户=" + __instance.identifier + ")");
                 __instance.clientBudget = 0;
             }
-            else if (__instance.clientBudget > 2147483646)
+            // 10-10 #35 P0-1：上限 21.47 亿→1000 万（与 Npc.Client.cs:117 BUDGET_CAP 同值收口，58/117/WageTrade 三处同值）
+            //   叠加 mod 再乘溢出为负→不买东西（10-05 负预算 L1 第二根因，cheatsheet:6330-6334）——上限收在业务值防溢出
+            else if (__instance.clientBudget > 10_000_000)
             {
-                Core.LogMsg("[兼容] 预算上限兜底: " + __instance.clientBudget + " → 2147483646");
-                __instance.clientBudget = 2147483646;
+                Core.LogMsg("[兼容] 预算上限兜底: " + __instance.clientBudget + " → 10000000 (客户=" + __instance.identifier + ")");
+                __instance.clientBudget = 10_000_000;
             }
         } catch { }
     }

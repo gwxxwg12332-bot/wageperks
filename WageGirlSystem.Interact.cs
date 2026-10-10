@@ -12,6 +12,12 @@ public static partial class WageGirlSystem
     // 修复：拖拽事件栈内item.Destroy() + 多mod叠加hook = use-after-free闪退
     private static List<GameItem> _pendingDestroy = new List<GameItem>();
 
+    // 10-10 #39：随档清理（读档/新档各挂点调用——跨档残留引用=上档对象已随场景销毁，直接 Clear 不 Destroy）
+    internal static void ClearPendingDestroy()
+    {
+        try { _pendingDestroy.Clear(); } catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] ClearPendingDestroy 异常: " + ex.Message); }
+    }
+
     // 加入延迟销毁列表（拖拽栈内调用）
     internal static void QueueDestroy(GameItem item)
     {
@@ -20,7 +26,7 @@ public static partial class WageGirlSystem
             if (item != null && !_pendingDestroy.Contains(item))
                 _pendingDestroy.Add(item);
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] QueueDestroy 异常: " + ex.Message); }
     }
 
     // 帧尾统一处理销毁（FrameUpdate调用）
@@ -31,11 +37,12 @@ public static partial class WageGirlSystem
             if (_pendingDestroy.Count == 0) return;
             foreach (var item in _pendingDestroy)
             {
-                try { if (item != null) item.Destroy(); } catch { }
+                try { if (item != null) item.Destroy(); }
+                catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] 帧尾Destroy失败: " + ex.Message); }
             }
             _pendingDestroy.Clear();
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Interact] ProcessPendingDestroy 异常: " + ex.Message); }
     }
 
     public static bool PrefixMayTarget(GameItem __instance, GameItem targetItem, ref bool __result)

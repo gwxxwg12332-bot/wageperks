@@ -18,6 +18,11 @@ internal static partial class RobinCrusoePerk
         try
         {
             _rcRestoredContainers.Clear(); // 读档：清容器恢复防重集合（新会话重新恢复）
+            // 10-10 子项7c：读档清跨档静态缓存（样板=WageGirlSystem.State.OnGameLoadedReset :179 读档清缓存语义；本挂点=PlayerStore.LoadGame Postfix 表:198，无条件执行）
+            //   tooltip 加速缓存（清 Day 防同地址复用误命中） + 骰子卸载按钮目标（防主菜单残留）+ 妙妙箱最近内部库存（防新档误用旧档库存）
+            ClearTooltipCaches();
+            DestinyDice.ClearActiveDice();
+            CustomStorageContainer.ClearLastCreatedInventory();
             // 旧层 runID 缓存刷新已收拢至 WageSaveStore（兼容读取入口自动 EnsureLegacyFresh），此处不再手写
             // 恢复保存点生存状态（SaveGame 快照）——"退出本天未保存重新进"当天扣减（拾荒-7等）应随读档回滚
             try

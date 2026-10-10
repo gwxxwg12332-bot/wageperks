@@ -210,20 +210,9 @@ internal static partial class Patches
 		{
 			TryAddNodeBuffFeature(item);
 			// 10-07 P1-3（玩家"半价卖回显示半价、成交原价"）：被偷物=unitValue/2 半价上桌（ThiefMagnetSystem.cs:212）——
-			//   鲁滨逊 buy 食物/药品 ×2 叠加 = 半价×2 = 原价成交。被偷物带 stolen_half_price feature → 保持半价不 ×2。
+			//   鲁滨逊 buy 食物/药品 ×2 已随迁 WS（10-10 #37 A 拍板同批迁移，见 WageSurvival.SurvivalTrade.PostfixGameItemGetNegociatedValue）。
+			//   本方法 buy 分支不再改 result——被偷物豁免保留（防未来 ×2 回归漏判）。
 			if (HasStolenHalfPriceFeature(item)) return true;
-			if (RobinCrusoePerk.IsFood(item))
-			{
-				result = (long)((double)result * 2.0);
-				TryAddRobinsonBuyMarkup(item);
-				return true;
-			}
-			if (RobinCrusoePerk.IsMedicine(item))
-			{
-				result = (long)((double)result * 2.0);
-				TryAddRobinsonBuyMarkup(item);
-				return true;
-			}
 		}
 		else if (isSell)
 		{

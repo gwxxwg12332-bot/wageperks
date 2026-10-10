@@ -129,12 +129,22 @@ partial class ContainerUpgradeV2
         }
         catch { return false; }
     }
+    // 10-10 四问题批#4：补发三件套——随档防重（位置键）+ 全局上限 + 保留静态指针表/tag 双防重
+    // 根因（拆包 A3 实锤）：_secondGiven 静态 HashSet 跨进程清空、wb_second_given tag 读档丢 → 老档满级箱读档反复补发
+    //   → 箱子累积 → loc+idx 键错位 → 恢复链把网格施加到错误容器（段位回溯+容积破坏）。随档键+上限止累积后错位不再新增。
     public static void TryGiveSecondWageBox(GameItem box)
     {
         try
         {
-            if (box == null || _secondGiven.Contains(box.Pointer)) return;
-            if (box.IsTag("wb_second_given")) return; // 已发过
+            if (box == null) return;
+            if (_secondGiven.Contains(box.Pointer)) return; // ① 进程内防重（保留，会话级）
+            if (box.IsTag("wb_second_given")) return; // ② tag 防重（读档丢，仅窗口内；保留为第二层）
+            // ③ 随档防重：按箱所在库存+索引（与 SetStagePersist 同方案，key=SurvivalGlobal\wb_second_given_<loc>_<idx>）
+            string locKey = SecondGivenLocKey(box);
+            if (locKey != null && WageSaveStore.GetInt("SurvivalGlobal", locKey, 0) > 0) return;
+            // ④ 全局上限：每档最多补发 MAX_SECOND_BOXES 个第二箱（防位置错位后仍累积；正常多满级箱各补发 1 个不受影响）
+            int total = WageSaveStore.GetInt("SurvivalGlobal", "wb_second_given_total", 0);
+            if (total >= MAX_SECOND_BOXES) return;
             var emporium = EmporiumEntry.Instance;
             if (emporium == null || emporium.backInvinvElement == null) return; // 未就绪：下次升级动作再试（升级可重复触发）
             var second = CustomStorageContainer.CreateContainer();
@@ -146,9 +156,40 @@ partial class ContainerUpgradeV2
             {
                 box.EnableTag("wb_second_given", true);
                 _secondGiven.Add(box.Pointer);
+                if (locKey != null) WageSaveStore.SetInt("SurvivalGlobal", locKey, 1);
+                WageSaveStore.SetInt("SurvivalGlobal", "wb_second_given_total", total + 1);
                 try { StoreUIManager.Instance.Notify(LangHelper.T("满级！第二个妙妙箱已放入背包", "Maxed! Second Wage Box added to inventory"), "white"); } catch { }
             }
         }
         catch (Exception ex) { Core.LogMsg("[容器v2] 发第二个妙妙箱异常: " + ex.Message); }
+    }
+
+    // 随档防重位置键（复用 LocKeyOf/FindIndexInInv；箱子不在六大库存 → null → 降级仅依赖①②④）
+    private static string SecondGivenLocKey(GameItem box)
+    {
+        try
+        {
+            var e = EmporiumEntry.Instance;
+            if (e == null || box == null) return null;
+            GameInventory[] invs = new GameInventory[] {
+                e.backInvinvElement as GameInventory,
+                e.backInvinvElementCounter as GameInventory,
+                e.showcaseElement as GameInventory,
+                e.invElement as GameInventory,
+                e.frontInvinvElement as GameInventory,
+                e.hiddenElement as GameInventory,
+            };
+            foreach (var inv in invs)
+            {
+                int idx = FindIndexInInv(inv, box);
+                if (idx >= 0)
+                {
+                    string loc = LocKeyOf(inv);
+                    if (loc != null) return "wb_second_given_" + loc + "_" + idx;
+                }
+            }
+            return null;
+        }
+        catch { return null; }
     }
 }

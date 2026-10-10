@@ -76,9 +76,12 @@ internal static partial class Patches
 				{
 					int clientCash = __result.clientCash;
 					// 09-23 用户拍板恢复原生：不再人为抬下限，只保留特性倍率本身
-					int newCash = (int)((double)clientCash * (1.0 + (double)budgetBonusPct / 100.0));
-					// 09-26 修：防其他mod干扰后变成负数
-					if (newCash < 0) newCash = 0;
+					// 10-10 数值边界修复批#2（P1）：先 clamp 再窄化——原 (int) 直接窄化，超上限 double→int 回绕成小正数（完全错误预算，比负数更隐蔽）；clamp 后窄化两分支都兜住
+					// 常量与子项1 同值（1000 万语义一致；WageAPI.NumClamp 统一工具留 P3 债）
+					const double BUDGET_CAP = 10_000_000.0;
+					double calc = (double)clientCash * (1.0 + (double)budgetBonusPct / 100.0);
+					if (calc > BUDGET_CAP) calc = BUDGET_CAP;
+					int newCash = (int)System.Math.Max(0, calc);
 					__result.clientCash = newCash;
 				}
 			}
@@ -89,146 +92,14 @@ internal static partial class Patches
 		}
 	}
 
-	public static void PrefixBargainUIManagerOfferBuyingMarkup(ref int percent)
-	{
-		try
-		{
-			if (RobinCrusoePerk.IsActive() && RobinCrusoePerk.GetMood() >= 80)
-			{
-				percent += 15;
-			}
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[空间站鲁滨逊] 出价上移异常: " + ex.Message);
-		}
-	}
+	// 10-10 四问题批#3a：以下 5 个交易死方法已删（10-07 鲁滨逊交易归 WS；表 PatchRegistryTable.cs 无对应条目，仅被废弃区 PatchRegistry.cs 死代码引用）
+	//   已删清单（见 git diff / 本文件删除区）：
+	//   - PrefixBargainUIManagerOfferBuyingMarkup（原 :92，WS SurvivalTrade.PrefixBargainUIManagerOfferBuyingMarkup 承接）
+	//   - PostfixGetDealMakerBonus（原 :107，Patches 版死——注意 WageGirlSystem.Budget.cs:11 蛙娘同名活方法未动）
+	//   - PostfixItemFeatureListBargainBuyingMarkup（原 :122，WS 承接）
+	//   - PostfixItemFeatureGetActualDisplay（原 :140，WS 承接）
+	//   - PostfixStoreClientOnDealAccepted（原 :156，WS SurvivalTrade.PostfixStoreClientOnDealAccepted 承接）
 
-	public static void PostfixGetDealMakerBonus(ref int __result)
-	{
-		try
-		{
-			if (RobinCrusoePerk.IsActive())
-			{
-				__result += RobinCrusoePerk.GetBargainBonusPct();
-			}
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[空间站鲁滨逊] 谈判成功率异常: " + ex.Message);
-		}
-	}
-
-	public static void PostfixItemFeatureListBargainBuyingMarkup(ref ItemFeature __result)
-	{
-		try
-		{
-			if (RobinCrusoePerk.IsActive() && __result != null && RobinCrusoePerk.GetMood() >= 80 && __result.valueModifier > 0)
-			{
-				__result.valueModifier = (int)((float)__result.valueModifier * 1.15f);
-			}
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[空间站鲁滨逊] 加价接受率异常: " + ex.Message);
-		}
-	}
-
-	// 10-06 议价加成可见性（主控拍板方案①，拆包实锤：+15 生效但词条不在议价面板→玩家误解"没生效"）：
-	// GetActualDisplay Postfix——bargainBuyingMarkup 词条且加成生效时，显示追加"（含鲁滨逊出价加成）"。
-	// 纯显示层标注，行为零改动（+15 与 ×1.15 照旧）；valueModifier 已含全部叠加（1.15×(percent+15)），数值无需重算。
-	public static void PostfixItemFeatureGetActualDisplay(ItemFeature __instance, ref string __result)
-	{
-		try
-		{
-			if (__instance == null || string.IsNullOrEmpty(__result)) return;
-			if (!string.Equals(__instance.identifier, "bargainBuyingMarkup", System.StringComparison.Ordinal)) return;
-			if (!(RobinCrusoePerk.IsActive() && RobinCrusoePerk.GetMood() >= 80)) return;
-			if (__result.Contains("鲁滨逊出价加成")) return;
-			__result = __result + "（含鲁滨逊出价加成）";
-		}
-		catch (System.Exception ex)
-		{
-			Core.LogMsg("[空间站鲁滨逊] 议价词条标注异常: " + ex.Message);
-		}
-	}
-
-	public static void PostfixStoreClientOnDealAccepted(StoreClient __instance)
-	{
-		try
-		{
-			{
-			}
-			if (!RobinCrusoePerk.IsActive())
-			{
-				return;
-			}
-			string mk = MoodKey(__instance);
-			if (__instance != null && mk != null && _moodBoostedClients.Add(mk))
-			{
-				RobinCrusoePerk.BoostMood(5, LangHelper.T("成交一单", "Deal closed"));
-			}
-			RobinCrusoePerk.RecordDeal();
-			try
-			{
-				PlayerStore instance = PlayerStore.Instance;
-				StoreClientInstance storeClientInstance = null;
-				if (instance != null)
-				{
-					storeClientInstance = instance.currentClientInstance;
-				}
-				if (storeClientInstance == null || __instance == null)
-				{
-					return;
-				}
-				int num = 0;
-				try
-				{
-					System.Reflection.FieldInfo field = storeClientInstance.GetType().GetField("clientIntent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-					if (field == null)
-					{
-						field = storeClientInstance.GetType().GetField("intent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-					}
-					if (field != null)
-					{
-						num = (int)field.GetValue(storeClientInstance);
-					}
-				}
-				catch
-				{
-					// 交易防御：反射读取 clientIntent 字段失败（游戏版本差异，跳过）
-				}
-				if (num != 1)
-				{
-					return;
-				}
-				System.Reflection.FieldInfo field2 = storeClientInstance.GetType().GetField("item", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-				if (field2 == null)
-				{
-					field2 = storeClientInstance.GetType().GetField("currentItem", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-				}
-				if (field2 != null && field2.GetValue(storeClientInstance) is GameItem gameItem)
-				{
-					try
-					{
-						RobinCrusoePerk.RecordRevenue((int)gameItem.GetCurrentValue(useRetailMarkup: false, withChild: true, includeEvents: true, forceMarkup: false, 0L));
-						return;
-					}
-					catch
-					{
-						return;
-					}
-				}
-			}
-			catch
-			{
-				// 交易防御：鲁滨逊营收记录失败跳过（不影响交易主流程）
-			}
-		}
-		catch
-		{
-			// 交易防御：鲁滨逊营收记录失败跳过
-		}
-	}
+	// 10-06 议价加成可见性已删（原 PostfixItemFeatureGetActualDisplay——WS SurvivalTrade.PostfixItemFeatureGetActualDisplay 承接，10-08 已部署）
 
 }

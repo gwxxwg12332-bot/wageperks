@@ -432,7 +432,9 @@ public static class PatchRegistry
 			ManualPatcher.TryPatch(typeof(StartOfDayUIManager), "InitPanel", null, "PostfixStartOfDayInitPanel", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixStoreClientApplyBudgetModifier", null, typeof(Patches));
 			ManualPatcher.TryPatch(typeof(StoreClient), "ApplyBudgetModifier", null, "PostfixApplyBudgetModifier", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：客户预算 x4（+300%）
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(WageGirlSystem)); // 09-21 蛙娘在场：议价 +50（GetDealMakerBonus=显示+实际判定共用，拆包二次实锤）
+			// 10-10 四问题批#3a：删废弃区交易残留——:435 WageGirlSystem GetDealMakerBonus（表 PatchRegistryTable.cs:222 已活挂同名 Postfix，重复注册=双挂叠加）、
+			//   :447-450 鲁滨逊交易 4 条（OfferBuyingMarkup / GetDealMakerBonus(Patches) / BargainBuyingMarkup / OnDealAccepted——10-07 拆包实锤表内已删净，
+			//   本区为阶段6废弃死代码，零调用点；对应死方法定义 Patches.Trade.Budget.cs 5 个同步删除）
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ApplyAnimationFrame", "PrefixApplyAnimationFrame", null, null, typeof(WageGirlSystem)); // 09-22 蛙娘动画帧（GoFishing CustomItemAnimationPatch 先例模式）
 			ManualPatcher.TryPatch(typeof(GameItemElement), "ResolveSpriteByName", "PostfixResolveSpriteByName", null, null, typeof(WageGirlSystem)); // 拆包实锤：拦截sprite解析入口,蛙娘永远给mod图标
 
@@ -444,10 +446,7 @@ public static class PatchRegistry
 			
 			
 			ManualPatcher.TryPatch(typeof(StoreClientManager), "PickClient", null, "PostfixStoreClientManagerPickClient", null, typeof(Patches));
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "OfferBuyingMarkup", "PrefixBargainUIManagerOfferBuyingMarkup", null, null, typeof(Patches));
-			ManualPatcher.TryPatch(typeof(BargainUIManager), "GetDealMakerBonus", null, "PostfixGetDealMakerBonus", null, typeof(Patches));
-			ManualPatcher.TryPatch(typeof(ItemFeatureList), "BargainBuyingMarkup", null, "PostfixItemFeatureListBargainBuyingMarkup", null, typeof(Patches));
-			ManualPatcher.TryPatch(typeof(StoreClient), "OnDealAccepted", null, "PostfixStoreClientOnDealAccepted", null, typeof(Patches));
+			// 10-10 四问题批#3a：鲁滨逊交易 4 条已删（见上方批注——表内无条目，本区死代码；方法定义已随 Budget.cs 删除）
 			ManualPatcher.TryPatch(typeof(StoreClientListTier), "CreateThirstySpacer", null, "PostfixCreateThirstySpacer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientListTier), "CreateHungrySpacer", null, "PostfixCreateHungrySpacer", null, typeof(RobinCrusoePerk));
 			ManualPatcher.TryPatch(typeof(StoreClientListTier), "CreateSpacerChef", null, "PostfixCreateSpacerChef", null, typeof(RobinCrusoePerk));

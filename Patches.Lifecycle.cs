@@ -221,6 +221,9 @@ internal static partial class Patches
 	{
 		try
 		{
+			// 10-10 子项7d（#32）：权威日切（本挂点=StoreEventManager.OnDayStart，拆包实锤唯一可靠信号 :213）清状态客户集合
+			//   样板=ThiefMagnetSystem._stolenMap :49 过天清理语义；时序=清理在权威日切（白天客户工厂重新打标在后）→ 防跨档累积+同地址复用误判
+			RobinCrusoePerk.ClearStatusClients();
 			CustomStartingPerks.NotifyDayStart();
 			PerkGrowthHelper.OnDayStart();
 		}

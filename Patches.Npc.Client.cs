@@ -114,7 +114,11 @@ internal static partial class Patches
 			catch
 			{
 			}
-			int num2 = (int)System.Math.Min((double)num * 1.5, 2147483646.0);
+			// 10-10 数值边界修复批#1（P0）：预算第二根因——上限从 int.MaxValue-1(21.47亿) 改业务值 1000 万，防叠加 mod 再乘溢出
+			//   cheatsheet:65（10-03）"预算维持现状双patch无害"只评估了双patch顺序、未评估上限边界叠加，#33 实锤 117 上限后该结论已更新
+			//   10-05 负预算 L1（cheatsheet:6330-6334）第二根因：原版 OverrideBudget 无 clamp、指数累乘溢出负→HasBudgetLeftToBuy 永远 false=买不起
+			const double BUDGET_CAP = 10_000_000.0;
+			int num2 = (int)System.Math.Min((double)num * 1.5, BUDGET_CAP);
 			if (num2 < 1000)
 			{
 				num2 = 1000;

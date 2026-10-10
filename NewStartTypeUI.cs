@@ -419,6 +419,7 @@ internal static class NewStartTypeUI
         {
             if (__instance != null && IsMarkedRun(__instance.runID ?? ""))
                 __instance.startType = (Il2Cpp.NewGameData.StartType)NEW_START_TYPE;
+            WageGirlSystem.ClearPendingDestroy(); // 10-10 #39：延迟销毁列表随档清理（本挂点=PlayerStore.LoadGame Postfix 全局读档）
         }
         catch (Exception ex) { Core.LogMsg("[新职业] PostfixLoadGame 异常: " + ex.Message); }
     }

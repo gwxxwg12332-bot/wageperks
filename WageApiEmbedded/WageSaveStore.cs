@@ -430,13 +430,13 @@ public static class WageSaveStore
     // ===================== Lifecycle（读档） =====================
 
     /// <summary>打烊落盘（PlayerStore.SaveGame Postfix，WageAPI Core 注册，priority=0 最后跑）。</summary>
-    public static void PostfixSaveGame()
+    internal static void PostfixSaveGame()
     {
         Flush();
     }
 
     /// <summary>打烊落盘第二挂点（PlayerStore.EndDay Postfix）。原生 SaveGame 只在进游戏调一次，打烊靠此通道。</summary>
-    public static void PostfixEndDay()
+    internal static void PostfixEndDay()
     {
         try { Core.LogMsg("[SaveStore] EndDay Postfix → Flush（打烊落盘）"); } catch { }
         Flush();
@@ -444,7 +444,7 @@ public static class WageSaveStore
 
     /// <summary>10-06 A8：小退落盘（GameMaster.QuitToMenu Postfix）。小退（不存档退出重进）不触发 SaveGame/EndDay，
     /// 状态（KEY_STOLEN 等）只存内存 → 重进丢失；QuitToMenu 时补一次 Flush（只写内存快照，不依赖 PlayerStore，安全）。</summary>
-    public static void PostfixQuitToMenu()
+    internal static void PostfixQuitToMenu()
     {
         try
         {
@@ -456,7 +456,7 @@ public static class WageSaveStore
     }
 
     /// <summary>读档（PlayerStore.LoadGame Postfix 调）。键值文件同步读取，容器恢复走延迟轮询。</summary>
-    public static void OnLoadGame()
+    internal static void OnLoadGame()
     {
         try
         {
@@ -472,7 +472,7 @@ public static class WageSaveStore
     }
 
     /// <summary>轮询驱动（每帧调，轻量）。文件未读则下帧补读；已读则只等延迟帧驱动 GameLoaded。</summary>
-    public static void LoadIfPending()
+    internal static void LoadIfPending()
     {
         if (!_pendingLoad) return;
         try

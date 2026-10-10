@@ -59,6 +59,20 @@ internal static partial class RobinCrusoePerk
     private static readonly HashSet<StoreClient> _statusClientSet = new HashSet<StoreClient>();
     private static readonly Dictionary<StoreClient, string> _statusClientKind = new Dictionary<StoreClient, string>();
 
+    // 10-10 子项7d（#32）：statusClient 集合过天清理（样板=ThiefMagnetSystem._stolenMap :49 过天清理语义）
+    // 根因：集合全库无 Clear → 跨档累积 + 键对象失效 + 新对象复用同地址 → 普通客户误判状态客户 → 加价系数错误（1.25/1.30/1.40/0.85）
+    // 清理时机=权威日切 PostfixUnifiedDayStart（Lifecycle.cs:224，挂 StoreEventManager.OnDayStart 唯一可靠信号）——状态客户白天工厂重新打标在其后，清理在前打标在后，时序可靠
+    internal static void ClearStatusClients()
+    {
+        try
+        {
+            // 10-10 数值边界修复批#3（P2）：清理前 count 日志（7d 时序观察——玩家实测 Latest.log 确认"清理发生在状态客户重新生成之前"；若 count=0 说明时序反了；实测通过后删）
+            Core.LogMsg("[StatusClients] 清理前 count=" + _statusClientSet.Count);
+            _statusClientSet.Clear(); _statusClientKind.Clear();
+        }
+        catch { }
+    }
+
     // 工厂 Postfix 打标（状态客户 7 工厂：thirsty/hungry/injured/sick×3/desperate/wornOut）
     // v5.9：节点 statusClient-N（蓬头垢面-30/门可罗雀-20/爱答不理-10）→ 该概率降级为普通客户（无加价/减价）
     public static void PostfixStatusClientFactory(StoreClient __result, string kind)

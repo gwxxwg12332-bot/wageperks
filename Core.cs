@@ -112,14 +112,15 @@ public class Core : MelonMod
 	{
 		try
 		{
-			Diagnostics.OnGUI();
+			Diagnostics.OnGUI(); // 诊断：DebugMode 门控（Diagnostics.cs:38）有意全场景（调试覆盖主菜单）；发布版 no-op 不泄露
 		}
 		catch
 		{
 		}
 		try
 		{
-			DestinyDice.DiceOnGUI();
+			// 10-10 子项7b：DiceOnGUI 主菜单误显门控——PlayerStore 未初始化（主菜单/加载中）不画骰子卸载按钮
+			if (PlayerStore.Instance != null) DestinyDice.DiceOnGUI();
 		}
 		catch
 		{

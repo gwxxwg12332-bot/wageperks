@@ -172,71 +172,9 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
-	private static void TryAddRobinsonBuyMarkup(GameItem item)
-	{
-		try
-		{
-			if (item == null || item.itemFeatures == null) return;
-			// 09-28 自愈：清历史堆积的 wages_robin_buy
-			bool excludedType = item.IsTag("destiny_dice_tag") || LuckScoutBackpackUpgrade.IsBead(item) || ContainerUpgradeV2.IsWageBox(item);
-			int keepMax = excludedType ? 0 : 1;
-			int found = 0;
-			for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
-			{
-				if (item.itemFeatures[j] != null && item.itemFeatures[j].identifier == "wages_robin_buy") { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
-			}
-			if (excludedType) return;
-			string text = LangHelper.T("鲁滨逊·口粮双倍价", "Robinson·Ration x2");
-			long num = 0L;
-			try
-			{
-				num = item.Pointer.ToInt64();
-			}
-			catch
-			{
-				// 交易防御：物品指针读取（交互期物品销毁防御）
-			}
-			// 10-07 修复（玩家"价格对但词条不显示"根因）：删除 _nodeBuffItems 判重——buy 路径先调 TryAddNodeBuffFeature
-			//   把物品登记进 _nodeBuffItems（:166），此处再用同表判重=自己拦自己 → wages_robin_buy 词条永远加不上。
-			//   防重由下方 itemFeatures 循环检查（identifier=="wages_robin_buy"）负责，无需额外登记表。
-			for (int i = 0; i < item.itemFeatures.Count; i++)
-			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_robin_buy")
-				{
-					item.itemFeatures[i].publicDisplay = text;
-					item.itemFeatures[i].actualDisplay = text;
-					// 10-07 P1-6：旧条目同步补渲染条件（原 0%/false 词条区不显示）
-					item.itemFeatures[i].preExposeValueModifier = 100;
-					item.itemFeatures[i].usePreExposeValue = true;
-					return;
-				}
-			}
-			ItemFeature itemFeature = new ItemFeature();
-			itemFeature.identifier = "wages_robin_buy";
-			itemFeature.featureType = ItemFeature.FeatureType.TemporaryBuying;
-			itemFeature.valueStage = ItemFeature.ValueStage.Market;
-			itemFeature.valueModifier = 0;
-			// 10-07 P1-6（玩家"药/食物双倍购入词条缺失"）：原 0%/usePreExposeValue=false → 词条区按 percent 渲染时跳过（无行可显）。
-			// 对齐 AddTradeLabel 可显示模式：+100% 表达 ×2，publicDisplay 自定义文本"鲁滨逊·口粮双倍价"。
-			itemFeature.preExposeValueModifier = 100;
-			itemFeature.usePreExposeValue = true;
-			itemFeature.initiallyShown = true;
-itemFeature.isFeatureMatch = true;
-itemFeature.isFeatureExposed = true;
-			itemFeature.isExposable = true;
-			itemFeature.isFeatureDiscovered = false;
-			itemFeature.publicDisplay = text;
-			itemFeature.actualDisplay = text;
-			item.itemFeatures.Add(itemFeature);
-			if (num != 0L)
-			{
-				_nodeBuffItems.Add(num); // 09-26 补：新建分支也登记指针（判重闭环）
-			}
-		}
-		catch
-		{
-			// 交易防御：特征容器判空/骰子标记检查失败跳过
-		}
-	}
+	// 10-10 #37 A 拍板：鲁滨逊 buy 食物/药品 ×2 随迁 WS（原子迁移，同一 commit）
+	//   → TryAddRobinsonBuyMarkup 删除：wages_robin_buy 标签由 WageSurvival.SurvivalTrade 等价实现补
+	//   （主 mod Markup.cs:215-226 ×2 分支同删；_nodeBuffItems 其他使用保留）
+
 
 }

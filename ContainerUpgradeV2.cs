@@ -71,5 +71,7 @@ public static int MAX_STAGE => BuildConfig.ContainerMaxStage;
 
 
     // 满级奖励第二个妙妙箱（09-12 用户拍板两个箱子方案：替代翻页，天然存档/读档/睡眠零冲突）
+    // 10-10 四问题批#4：补发全局上限——每档最多补发 MAX_SECOND_BOXES 个第二箱（防 _secondGiven 跨进程清空 + tag 读档丢导致反复补发累积）
+    private const int MAX_SECOND_BOXES = 5;
     private static readonly System.Collections.Generic.HashSet<IntPtr> _secondGiven = new System.Collections.Generic.HashSet<IntPtr>();
 }

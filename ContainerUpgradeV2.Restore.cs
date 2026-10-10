@@ -16,6 +16,10 @@ partial class ContainerUpgradeV2
         try
         {
             if (box == null) return;
+            // 10-10 四问题批#4：白名单防御纵深——只处理确证妙妙箱（IsWageBox 含黑金精确排除 Detect.cs:38）。
+            //   当前调用侧（PostfixLoadGame_IngotContainer:100 / PostfixSetContentWindow_IngotContainer:147）已在 IsWageBox 分支内，
+            //   本判定防未来新增裸调用路径误把任意容器当妙妙箱 SetFullRect 改容积（段位回溯/容积破坏根因防护）。
+            if (!IsWageBox(box)) return;
             var grid = GetContainerGrid(box);
             if (grid == null) return;
             int w = 0, h = 0;

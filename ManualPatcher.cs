@@ -27,6 +27,9 @@ internal static class ManualPatcher
     internal static int PatchFailCount { get; private set; }
     private static readonly System.Collections.Generic.List<string> _patchFailDetails
         = new System.Collections.Generic.List<string>();
+    // 10-10 四问题批#6：注册条目清单（防"半删除"复发——注释说删了代码还在的静默漂移，输出条目数+方法名一眼可见）
+    private static readonly System.Collections.Generic.List<string> _registeredMethods
+        = new System.Collections.Generic.List<string>();
 
     private static void MarkOk() { PatchOkCount++; }
 
@@ -43,6 +46,9 @@ internal static class ManualPatcher
         try
         {
             Core.LogMsg($"[Patch自检] 补丁挂载: 成功 {PatchOkCount} / 失败 {PatchFailCount}");
+            // 10-10 四问题批#6：注册条目数 + 方法名清单（防半删除复发；与 tools/check_registry.py 离线核对一致）
+            Core.LogMsg($"[Patch自检] 注册条目数 {_registeredMethods.Count}：");
+            foreach (string m in _registeredMethods) Core.LogMsg("[Patch自检]   " + m);
             if (PatchFailCount == 0)
             {
                 Core.LogMsg("[Patch自检] 全部补丁已应用 ✅");
@@ -70,6 +76,7 @@ internal static class ManualPatcher
         Type host = patchHost ?? typeof(Patches);
         try
         {
+            _registeredMethods.Add(type.Name + "." + name + (prefix != null ? " → Prefix " + host.Name + "." + prefix : "") + (postfix != null ? " → Postfix " + host.Name + "." + postfix : ""));
             MethodBase method = parameterTypes != null
                 ? AccessTools.Method(type, name, parameterTypes)
                 : AccessTools.Method(type, name);
@@ -110,6 +117,7 @@ internal static class ManualPatcher
         Type host = patchHost ?? typeof(Patches);
         try
         {
+            _registeredMethods.Add(type.Name + "." + name + (prefix != null ? " → Prefix " + host.Name + "." + prefix : "") + (postfix != null ? " → Postfix " + host.Name + "." + postfix : ""));
             MethodBase method = null;
             foreach (MethodInfo mi in AccessTools.GetDeclaredMethods(type))
             {

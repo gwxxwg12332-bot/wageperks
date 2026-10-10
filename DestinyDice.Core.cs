@@ -376,6 +376,13 @@ namespace WagePerks
     private static GameItem _activeDice = null;   // 最近操作的骰子（双击/吸收时更新），OnGUI 卸载按钮目标
     private static bool _unloadConfirm = false;   // 卸载确认框模态
 
+    // 10-10 子项7c：骰子静态缓存随档清理（读档+新档挂点调用）——_activeDice 跨档残留=主菜单误显卸载按钮（7b 门控外还须清根）
+    // _unloadConfirm 同属卸载按钮原子单元（确认框模态跨档残留=新档卡确认框），一并复位
+    internal static void ClearActiveDice()
+    {
+        try { _activeDice = null; _unloadConfirm = false; } catch { }
+    }
+
     // 双击掷骰：value >= threshold 才可摇；摇后 value-=threshold、threshold+=门槛、triggers+1、LastCost=本次门槛
     public static void RollDice(GameItem dice)
     {

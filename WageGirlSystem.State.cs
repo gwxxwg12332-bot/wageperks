@@ -139,6 +139,11 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
                 _memStats.Clear(); // 防连续开新档进程内残留
                 _cachedGirlItem = null; _cachedEl = null; // 09-27 C2 拍板：新档清动画实体缓存（防连续开新档进程内旧实体残留）
                 WageSaveStore.ResetForNewRun(); // 09-23 阶段1：清统一存储层内存 + pending 文件残留（防新档读到上一档残值）
+                // 10-10 子项7c：新档清跨档静态缓存（本挂点=PlayerStore.StartNewGame Postfix 全局无条件；样板=本方法 :139/:140 同语义）
+                RobinCrusoePerk.ClearTooltipCaches();
+                DestinyDice.ClearActiveDice();
+                CustomStorageContainer.ClearLastCreatedInventory();
+                ClearPendingDestroy(); // 10-10 #39：延迟销毁列表随档清理（残留引用=上档对象，直接 Clear）
             } catch { }
         }
 

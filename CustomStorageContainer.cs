@@ -24,6 +24,12 @@ namespace WagePerks
         private static Sprite _customSprite;
         private static GameInventory _lastCreatedInventory; // 保存最后创建的内部库存，供FillWithRandomLockedBoxes使用
 
+        // 10-10 子项7c：最近创建内部库存随档清理（普通 static 非 readonly 可直接置 null）——跨档残留=新档 FillWithRandomLockedBoxes 误用旧档内部库存
+        internal static void ClearLastCreatedInventory()
+        {
+            try { _lastCreatedInventory = null; } catch { }
+        }
+
     /// <summary>最近一次 CreateContainer 创建的内部库存（供工具箱等改容量用）</summary>
     internal static GameInventory LastCreatedInventory => _lastCreatedInventory;
         private static bool _spriteCreated = false;

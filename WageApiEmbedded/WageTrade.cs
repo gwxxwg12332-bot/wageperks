@@ -29,25 +29,25 @@ public static class WageTrade
         catch (Exception ex) { Core.Log?.Msg("[WageTrade] GetBudget 异常: " + ex.Message); return 0; }
     }
 
-    /// <summary>权威写预算（负值→0；SetBudget 直写字段；long 内部 clamp 后转 int）。</summary>
+    /// <summary>权威写预算（负值→0；SetBudget 直写字段；long 内部 clamp 后转 int）。10-10 #35 P0-2：上限 int.MaxValue→1000 万（与 CompatibilityPatches.cs:58 / Npc.Client.cs:117 三处同值收口）。</summary>
     public static void SetBudget(StoreClient client, long value)
     {
         try
         {
             if (value < 0) value = 0;
-            if (value > int.MaxValue) value = int.MaxValue;
+            if (value > 10_000_000) value = 10_000_000;
             client.SetBudget((int)value);
         }
         catch (Exception ex) { Core.Log?.Msg("[WageTrade] SetBudget 异常: " + ex.Message); }
     }
 
-    /// <summary>权威写预算倍率结果（负值→0；OverrideBudget 直写字段无 clamp——读口已夹 0 防溢出放大）。</summary>
+    /// <summary>权威写预算倍率结果（负值→0；OverrideBudget 直写字段无 clamp——读口已夹 0 防溢出放大）。10-10 #35 P0-2：上限 int.MaxValue→1000 万同值收口。</summary>
     public static void OverrideBudget(StoreClient client, long value)
     {
         try
         {
             if (value < 0) value = 0;
-            if (value > int.MaxValue) value = int.MaxValue;
+            if (value > 10_000_000) value = 10_000_000;
             client.OverrideBudget((int)value);
         }
         catch (Exception ex) { Core.Log?.Msg("[WageTrade] OverrideBudget 异常: " + ex.Message); }
