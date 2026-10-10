@@ -261,21 +261,22 @@ public static class BlackGoldBoxStyle
         try
         {
             if (__instance == null) return;
-            // 持久化 key 命中=黑金箱（读档后场景物品 identifier/tag 全丢——不依赖它们，按 loc+idx 反查）
-            // 非黑金箱无 style_ 持久化 → ReadPersistStyle=-1 → return（天然过滤）
-            int styleIdx = ReadPersistStyle(__instance);
-            if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length) return;
-            ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
-            // 10-10 #U4 实证埋点（派活单 WBG_P1 子项1）：读档恢复分支打印 identifier/uniqueId——一次重启实证读档保持性
-            //   （identifier null 打印 NULL；uniqueId=0 打印 0——与创建实证 :161 同格式；styleIdx 为命中值）
+            // 10-10 #U4 实证埋点 v2（派活单 WBG_P1 子项1）：入口无条件打日志（v1 只在命中后打=盲区，无法区分"挂点未触发" vs "key 未命中"）
+            //   identifier null 打印 NULL；uniqueId=0 打印 0；styleIdx 为 ReadPersistStyle 原始返回值（-1=key 未命中/非黑金箱）
             try
             {
                 string idv = (__instance.identifier == null) ? "NULL" : __instance.identifier;
                 long uid = 0;
                 try { uid = __instance.uniqueId; } catch { }
-                Core.LogMsg("[黑金读档] identifier=" + idv + " uniqueId=" + uid + " styleIdx=" + styleIdx);
+                int probeIdx = ReadPersistStyle(__instance);
+                Core.LogMsg("[黑金读档] identifier=" + idv + " uniqueId=" + uid + " styleIdx=" + probeIdx);
             }
             catch { }
+            // 持久化 key 命中=黑金箱（读档后场景物品 identifier/tag 全丢——不依赖它们，按 loc+idx 反查）
+            // 非黑金箱无 style_ 持久化 → ReadPersistStyle=-1 → return（天然过滤）
+            int styleIdx = ReadPersistStyle(__instance);
+            if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length) return;
+            ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
             Core.LogMsg("[黑金典藏箱] 读档恢复样式 → " + BlackGoldBox.StyleKeys[styleIdx]);
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] PostfixSetContentWindow: " + ex.Message); }
