@@ -39,6 +39,7 @@ internal static class WageBrokerPermitPatches
         try
         {
             int level = WageBrokerPermitHelper.GetMaxPermitLevel();
+            Core.LogMsg("[#许可诊断] PermitImmune level=" + level); // 10-10 #46 诊断：确认受伤链触发+等级读取（区分挂点未触发/扫描问题）
             if (level >= 3) { ClearExistingWounds(); return false; } // 三级：完全免疫 + 清旧伤
             if (level >= 2) { if (UnityEngine.Random.value >= 0.5f) { ClearExistingWounds(); return false; } } // 二级：50%免伤 + 清旧伤
         }

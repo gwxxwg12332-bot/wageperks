@@ -37,14 +37,20 @@ internal static class WageBrokerPermitHelper
         try
         {
             int maxLevel = 0;
+            var ids = new System.Collections.Generic.List<string>();
             foreach (var item in WageBrother.CollectAllItems())
             {
                 if (item == null) continue;
                 string id = item.identifier;
-                if (id == PERMIT_3_ID) return 3; // 三级直接最高，不用再找
+                if (id == null) continue;
+                ids.Add(id);
+                if (id == PERMIT_3_ID) { Core.LogMsg("[#许可诊断] GetMaxPermitLevel 命中三级, 扫到 " + ids.Count + " 项"); return 3; } // 三级直接最高，不用再找
                 if (id == PERMIT_2_ID && maxLevel < 2) maxLevel = 2;
                 if (id == PERMIT_1_ID && maxLevel < 1) maxLevel = 1;
             }
+            // 10-10 #46 诊断：GetAllItems 含背包/柜台（拆包实锤）——扫描范围本应覆盖；打日志确认实际扫到量与命中（区分 id 不匹配/物品不存在/逻辑问题）
+            if (maxLevel > 0 || ids.Count > 0)
+                Core.LogMsg("[#许可诊断] GetMaxPermitLevel 扫到 " + ids.Count + " 项, maxLevel=" + maxLevel + ", 含许可?=" + (ids.Exists(x => x == PERMIT_1_ID || x == PERMIT_2_ID || x == PERMIT_3_ID)));
             return maxLevel;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥许可] GetMaxPermitLevel异常: " + ex.Message); return 0; }
