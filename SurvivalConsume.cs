@@ -362,7 +362,11 @@ internal static partial class SurvivalFood
             }
             SetClean(Math.Min(100, c + 30));
             try { StoreUIManager.Instance.Notify(LangHelper.T("清洁 +30", "Cleanliness +30"), "green"); } catch { }
-            TryExpel(item);
+            // 10-10 #42：UseCount 物品（香水=neuroactive_perfume/pheromone_perfume，AmenitiesItemDirectory :10336/:10802 InitUseCountItem maxUseCount=5 destroyOnEmpty=true 拆包实锤）
+            //   由原版 Use 链递减（5→4）+ 次数耗尽自动销毁——我方不再整件销毁（原无条件 TryExpel=双消耗叠加 → 5 次变 1 次）
+            //   判据用原版 UseCountHelper.CanUse（拆包实锤：非 UseCount 物品无 USE_COUNT_ITEM_TAG → CanUse=false → 走 TryExpel 原行为兜底）——
+            //   日用品（shampoo/toothpaste/paper_towel/toilet_paper）非 UseCount（Amenities 仅香水 InitUseCountItem 2 处）→ TryExpel 保持
+            if (!Il2Cpp.UseCountHelper.CanUse(item)) TryExpel(item);
             RefreshStatusPanel();
         }
         catch (System.Exception ex) { LogMsg("[WageSurvival] UseClean 异常: " + ex.Message); }

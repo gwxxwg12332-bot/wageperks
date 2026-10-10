@@ -5,74 +5,10 @@ using MelonLoader;
 namespace WageSurvival;
 internal static class PatchRegistry
 {
-    // 10-05 修复：让路模式保留"全局消费链"挂点（双击吃喝用）。
-    // 背景：让路前 WagePerks 侧 RobinCrusoePerk.PostfixDoubleClickAction 有 IsWageSurvivalLoaded→return（WageSurvival 在场即让出）；
-    // 若 WageSurvival 完全让路（零挂点）→ 双向互让 → 双击吃喝用无人处理（吃饭/日用品/喝酒全失效）。
-    // 仅保留双击挂点：WagePerks 侧对应挂点让路（不叠加）；SaveStore/交易/衰减等仍归 WagePerks。
-    // 注意：原 ApplyAll 第1项挂载引用 SurvivalFood.PostfixDoubleClickAction 是错的（方法实际在 SurvivalConsume）→ 此处用正确类。
-    internal static void ApplyGlobalConsumeOnly()
-    {
-        var harmony = new HarmonyLib.Harmony("com.wagesurvival.consume");
-        try
-        {
-            var orig = AccessTools.Method(typeof(ItemMouseDoubleClickHandler), "DoubleClickAction");
-            var post = AccessTools.Method(typeof(SurvivalFood), "PostfixDoubleClickAction");
-            harmony.Patch(orig, postfix: new HarmonyMethod(post));
-            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: DoubleClickAction（全局吃喝用）");
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: DoubleClickAction " + ex.Message); }
-
-        // 10-06 让路保留扩展：Z 键面板链（InputActionManager.Update Postfix）。
-        // 背景（日志实锤）：双装时 WS 让路只挂消费链 → 普通档（startType=2）面板无主
-        // （WP 的 HandleHotkeys 只认 startType==15，普通档 IsActive=false 不呼出）→ 玩家反馈"面板没有呼出来"。
-        // PostfixFrameUpdate 内部已加 IsRobinsonRun 门控：鲁滨逊档让 WP 的 Z 键，非鲁滨逊档由本链处理。
-        try
-        {
-            var orig2 = AccessTools.Method(typeof(Il2Cpp.InputActionManager), "Update");
-            var post2 = AccessTools.Method(typeof(SurvivalFood), "PostfixFrameUpdate");
-            harmony.Patch(orig2, postfix: new HarmonyMethod(post2));
-            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: InputActionManager.Update（Z键面板，非鲁滨逊档）");
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: InputActionManager.Update " + ex.Message); }
-
-        // 10-06 让路保留扩展2：新档清血量缓存（玩家反馈"非鲁滨逊开档血量继承下一个档"）。
-        // 背景：让路模式只挂消费链（AddBlood 写 _memBlood）；StartNewGame 清缓存挂点在 ApplyAll（鲁滨逊档归 WP），
-        // 双装非鲁滨逊档开新档 → _memBlood 残留上一档血量 → 继承。补挂 StartNewGame → SaveStore.PostfixStartNewGame
-        // （清命名空间+清血量缓存+设默认值；新档本就该重置生存状态，与 WP TrySetupNewRun 语义一致，无冲突）。
-        try
-        {
-            var orig3 = AccessTools.Method(typeof(PlayerStore), "StartNewGame");
-            var post3 = AccessTools.Method(typeof(SaveStore), "PostfixStartNewGame");
-            harmony.Patch(orig3, postfix: new HarmonyMethod(post3));
-            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: PlayerStore.StartNewGame（清血量缓存）");
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: StartNewGame " + ex.Message); }
-
-        // 10-06 让路保留扩展3：OnDayStart 衰减（非鲁滨逊档 sat/thirst 自己扣）。
-        // 背景（日志实锤）：让路只保留消费链 → WS 自己的 sat 无人扣减=永远 100=「饱食已满，不吃」误判（玩家反馈）。
-        // 鲁滨逊档由 SurvivalState 转发 WP 命名空间（WP 在扣）；非鲁滨逊档 WP 衰减不跑 → 本挂点兜底 WS 自己扣。
-        // PostfixOnDayStart 内部已有 IsRobinsonRun 门控（鲁滨逊档跳过，避免与 WP 双扣）。
-        try
-        {
-            var orig4 = AccessTools.Method(typeof(Il2Cpp.StoreEventManager), "OnDayStart");
-            var post4 = AccessTools.Method(typeof(SurvivalFood), "PostfixOnDayStart");
-            harmony.Patch(orig4, postfix: new HarmonyMethod(post4));
-            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: StoreEventManager.OnDayStart（衰减，非鲁滨逊档兜底）");
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: OnDayStart " + ex.Message); }
-
-        // 10-07 P1-5（玩家"主菜单无 WageSurvival 配置按钮"）：双装时 WS 走本链（不挂 NewStartTypeUI）→
-        // 配置按钮无人注入（WP 侧 NewStartTypeUI 只克隆 tab，无按钮逻辑）。独立 Awake Postfix 只注入按钮（防重内建，与 WP tab 克隆并存）。
-        try
-        {
-            var orig5 = AccessTools.Method(typeof(Il2Cpp.MainMenuUIController), "Awake");
-            var post5 = AccessTools.Method(typeof(SurvivalConfigUI), "PostfixAwake");
-            harmony.Patch(orig5, postfix: new HarmonyMethod(post5));
-            Core.LogMsg("[WageSurvival] 让路保留 Patch OK: MainMenuUIController.Awake（WS配置按钮，双装）");
-        }
-        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 让路保留 Patch FAIL: MainMenuUIController.Awake " + ex.Message); }
-    }
-
+    // 10-10 #44：删除 ApplyGlobalConsumeOnly 死代码（原 :8-74 五挂点——让路时代入口，10-07 起 Core.cs:39 双装/单装统一走 ApplyAll）
+    //   引用计数：全库 0 调用（仅 SurvivalConfigUI.cs:60/Core.cs:39/NewStartTypeUI.cs:19 注释提及）——死代码不注册
+    //   5 挂点对比：DoubleClickAction/InputActionManager.Update/PlayerStore.StartNewGame/StoreEventManager.OnDayStart → ApplyAll 同方法已注册；
+    //   MainMenuUIController.Awake(SurvivalConfigUI.PostfixAwake) → ApplyAll :222-235 NewStartTypeUI.PostfixAwake 内联 InjectMainMenuButton（NewStartTypeUI.cs:128）同功能已覆盖——无需补缺
     internal static void ApplyAll()
     {
         // 2026-10-03 阶段C：双mod分工重定义——鲁滨逊生存（吃喝/六维/节点/交易/面板/血）归本mod（ns=SurvivalGlobal），
