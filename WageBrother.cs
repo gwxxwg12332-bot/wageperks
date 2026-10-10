@@ -861,6 +861,9 @@ internal static class WageBrother
     }
 
     // 收集全当铺所有物品：EmporiumEntry 顶层 + 每个容器内部递归（GetAllItems 不递归容器内部——游戏API.md 实锤）
+    // 10-10 #46 修复：GetAllItems 不含玩家背包（backInvinvElement）/柜台（frontInvinvElement）→ 许可（买后放背包）扫不到
+    //   → GetMaxPermitLevel 恒 0 → 许可全失效（受伤免疫/打烊加成/三级完全免疫）——两个玩家现象同根因
+    //   对照正确版：RobinCrusoePerk.Food.Supply.cs:184-189（GetAllItems + backInvinvElement/frontInvinvElement）；背包里的容器同样递归（仿本文件 CollectContainerItemsRecursive 深度8防环）
     internal static System.Collections.Generic.List<GameItem> CollectAllItems()
     {
         var list = new System.Collections.Generic.List<GameItem>();
@@ -874,8 +877,20 @@ internal static class WageBrother
                 list.Add(item);
                 CollectContainerItemsRecursive(item, list, 0);
             }
+            // ★ 10-10 #46：补玩家背包 + 柜台遍历（许可买来放背包 → 必须能扫到）
+            foreach (var inv in new[] { em.backInvinvElement, em.frontInvinvElement })
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    list.Add(it);
+                    CollectContainerItemsRecursive(it, list, 0);   // 背包里的容器也要递归
+                }
+            }
         }
-        catch { }
+        catch (System.Exception ex) { Core.LogMsg("[WageBrother] CollectAllItems 异常: " + ex.Message); } // 10-10 #46：静默 catch 补日志（与 #39 同型卫生）
         return list;
     }
 
