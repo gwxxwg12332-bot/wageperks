@@ -133,12 +133,14 @@ public static partial class WageGirlSystem
 
     // ===================== 阶段 6：好物 / 销赃 / 跑路回归（09-22 用户拍板并行） =====================
 
-    // 违禁品/武器/赃物判定（09-21 扩：武器+赃物也收）
+    // 违禁品/赃物判定（09-21 扩：武器+赃物也收）
+    // 10-10 #38 收敛：违禁判定统一 WageAPI.FoodIdentifyHelper.IsContrabandItem（原版权威 ContrabandHelper.IsContraband + CONTRABAND/CONTRABAND_ITEM_TAG 双 tag）
+    //   原 :141 IsWeaponOrTool(id) 无条件判违禁=过宽（任何武器/工具算违禁）→ 移除：武器/工具不再因"是武器"自动判违禁——
+    //   武器带 CONTRABAND tag（原版 InitContrabandItem 类）仍判违禁走洗白/销赃；不带 tag=合法货（可带回上柜卖，ItemHelpers 缓存 :77 不再排除）
+    //   赃物（stolen tag）语义保留（09-21 拍板"赃物也收"——被偷物=可销赃，与违禁品分列）
     private static bool IsContraband(GameItem it)
     {
-        try { if (Il2Cpp.ContrabandHelper.GetContrabandLevel(it) > 0) return true; } catch { }
-        // 武器类也收
-        try { string id = (it.identifier ?? "").ToLowerInvariant(); if (IsWeaponOrTool(id)) return true; } catch { }
+        try { if (WageAPI.FoodIdentifyHelper.IsContrabandItem(it)) return true; } catch { }
         // 赃物（stolen tag）也收
         try { if (it.IsTag("stolen") || it.IsTag("TAG_STOLEN")) return true; } catch { }
         return false;

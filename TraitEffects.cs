@@ -52,63 +52,14 @@ internal static class TraitEffects
     }
 
     // 检查物品是否是违禁品
+    // 10-10 #38 收敛：唯一入口=WageAPI.FoodIdentifyHelper.IsContrabandItem（原版权威 ContrabandHelper.IsContraband + CONTRABAND/CONTRABAND_ITEM_TAG 双 tag 兜底）
+    //   原实现：小写 IsTag("contraband")（非原版权威）+ GetTagReadonly + 硬编码 ID 列表（handmade_pistol/smg 等武器+麻醉品）——三实现标准不一致（TraitEffects/FenceReturn/FoodIdentifyHelper 各一套）
+    //   收窄后：武器/工具不再因"是武器"自动判违禁——违禁=原版权威 tag（原版违禁武器 InitContrabandItem 必带 tag——cheatsheet :4548 麻醉品实锤，武器类比）；硬编码 ID 列表退役（列表内物品若原版带 tag 由原版权威命中）
     public static bool IsContraband(GameItem item)
     {
         if (item == null) return false;
-        try
-        {
-            // 方法1：直接调用IsTag方法检查contraband标签（最准确）
-            try
-            {
-                bool result = item.IsTag("contraband");
-                return result;
-            }
-            catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
-
-            // 方法2：用GetTagReadonly方法检查
-            try
-            {
-                var tagState = item.GetTagReadonly("contraband");
-                if (tagState != null)
-                {
-                    return tagState.IsEnabled();
-                }
-            }
-            catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
-
-            // 方法3：根据物品ID判断（扩展列表）
-            string id = GetItemId(item);
-            string name = item.name ?? "";
-            string[] contrabandIds = {
-                "dream_dust", "nightmare_dust", "unlicensed_phagimycin_pill",
-                "handmade_pistol", "heavy_handmade_pistol", "smg", "shotgun",
-                "c4", "smoke_grenade", "stun_gun",
-                "system_capped_neural_core",
-                "ancient_alien_relics", "blank_module", "crypto_module_cmd",
-                "crypto_module_sec", "smuggler_bay_mod", "smuggler_bay_mini",
-                "neural_core", "神经核心"
-            };
-            foreach (string cid in contrabandIds)
-            {
-                if (id.Contains(cid, StringComparison.OrdinalIgnoreCase) ||
-                    name.Contains(cid, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            // 方法4：根据物品名称中的关键词判断
-            string[] contrabandKeywords = { "违禁", "非法", "赃物", "走私", "未授权", "黑市" };
-            foreach (string keyword in contrabandKeywords)
-            {
-                if (name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] 异常: " + ex.Message); }
-        return false;
+        try { return WageAPI.FoodIdentifyHelper.IsContrabandItem(item); }
+        catch (System.Exception ex) { Core.LogMsg("[TraitEffects] IsContraband 异常: " + ex.Message); return false; }
     }
 
     // 检查物品是否是酒类
