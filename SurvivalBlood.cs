@@ -73,8 +73,9 @@ internal static partial class SurvivalFood
         try {
             if (_memBlood >= 0) return _memBlood;
             int saved = SaveStore.GetInt("blood", BLOOD_MAX);
-            // 09-26 修：读档空窗期返回默认值但不物化进缓存（防默认值6000污染存档）
-            if (true) return saved;
+            // 10-10 四问题批#1：读档空窗期返回默认值但不物化进缓存（对齐主 mod RobinCrusoePerk.Blood.cs:93）
+            // 原 :77 `if (true) return saved;` 是"注释抄了、逻辑改残"——永不物化缓存（每次读档+性能损耗）；补 LoadComplete 门控
+            if (!WageAPI.WageSaveStore.LoadComplete) return saved;
             _memBlood = saved;
             return saved;
         } catch { return BLOOD_MAX; }
@@ -85,6 +86,8 @@ internal static partial class SurvivalFood
     {
         try
         {
+            // 10-10 四问题批#1：读档空窗期不物化默认值（对齐主 mod RobinCrusoePerk.Blood.cs:103）——防打烊写回 6000 覆盖真实血量
+            if (!WageAPI.WageSaveStore.LoadComplete) return BLOOD_MAX;
             int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
             SetBlood(b);
             if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } }

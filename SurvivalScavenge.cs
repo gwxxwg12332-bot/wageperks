@@ -52,9 +52,10 @@ internal static partial class SurvivalFood
         {
             if (IsWounded() && !IsWoundStable()) return 0;
             int cap = 5 + GetMoodScavBonus();
-            // 10-07 搬迁适配：HardMode 分支去除（WS 无 BuildConfig——#13 未点名不补）；捡漏直觉 +10 等价补（#13 用户拍板——
-            //   WS 无 LuckScoutPerk 类，直接查原版特性激活；09-10 曾因缩减 bug 移除 WP 侧，本处=IsRobinsonRun 门控内等价补，SurvivalConfig.LuckScoutScavBonus 可配）
-            try { if (StartingPerk.IsPerkActive("捡漏直觉")) cap += SurvivalConfig.LuckScoutScavBonus; } catch { }
+            // 10-08 回归修复（对齐 WP LuckScoutPerk.Scavenge.cs:27 语义）：硬爽模式 && 捡漏直觉 → 拾荒+10
+            // （09-10 用户拍板：捡漏直觉任何职业不加次数；09-12 硬爽版加回：HardMode+捡漏直觉 才生效，普通档不加；
+            //  鲁滨逊=本处等价补——10-08 曾误加"硬爽无条件+10"导致 硬爽+捡漏直觉=+20 过多，玩家实测纠正）
+            try { if (MelonLoader.MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode") && StartingPerk.IsPerkActive("捡漏直觉")) cap += SurvivalConfig.LuckScoutScavBonus; } catch { }
             if (IsHomebrewWineBuffActive()) cap += 1;
             cap = Math.Max(1, cap);
             return cap;

@@ -223,6 +223,14 @@ internal static class PatchRegistry
             var postA = AccessTools.Method(typeof(NewStartTypeUI), "PostfixAwake");
             harmony.Patch(origA, postfix: new HarmonyMethod(postA));
             Core.LogMsg("[WageSurvival] Patch OK: MainMenuUIController.Awake (新职业tab克隆)");
+            // 10-08 全新启动 tab 回归兜底：Start 晚于 Awake（字段注入完成），双通道防竞态错过
+            var origS = AccessTools.Method(typeof(Il2Cpp.MainMenuUIController), "Start");
+            if (origS != null)
+            {
+                var postS = AccessTools.Method(typeof(NewStartTypeUI), "PostfixStart");
+                harmony.Patch(origS, postfix: new HarmonyMethod(postS));
+                Core.LogMsg("[WageSurvival] Patch OK: MainMenuUIController.Start (新职业tab兜底)");
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: NewStartTypeUI.Awake " + ex.Message); }
         try
@@ -349,6 +357,17 @@ internal static class PatchRegistry
             Core.LogMsg("[WageSurvival] Patch OK: ItemFeatureList.BargainBuyingMarkup");
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: BargainBuyingMarkup " + ex.Message); }
+
+        // 10-10 #37 A 拍板：鲁滨逊 buy 食物/药品 ×2 迁 WS（主 mod Markup.cs 已删 ×2——双装只 ×2 一次）
+        //   门控=IsRobinsonRun（15||12）；主 mod PostfixGameItemGetNegociatedValue（Patches.Trade.Markup.cs:70）buy 分支已无 ×2，双 Postfix 顺序无关
+        try
+        {
+            var orig = AccessTools.Method(typeof(GameItem), "GetNegociatedValue");
+            var post = AccessTools.Method(typeof(SurvivalTrade), "PostfixGameItemGetNegociatedValue");
+            harmony.Patch(orig, postfix: new HarmonyMethod(post));
+            Core.LogMsg("[WageSurvival] Patch OK: GameItem.GetNegociatedValue (鲁滨逊×2)");
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: GetNegociatedValue×2 " + ex.Message); }
 
         try
         {

@@ -15,14 +15,106 @@ internal static class SurvivalTrade
     private static bool _inBudgetOverride = false;
     private static readonly HashSet<string> _moodBoostedClients = new HashSet<string>();
 
+    // 10-08 v5 拆包实锤（Memos 9vmfDvdr23Dv98wyKvoSB9 / cheatsheet）：
+    //   StartType 枚举全表（dump.cs:31259-31277）：NONE=0...ROCK_BOTTOM=12(一贫如洗)...RANCHER=13；15=mod 自定义（枚举外值）
+    //   一贫如洗(12)=原生鲁滨逊-like 玩法（hardMode=难度开关非玩法标识）→ 门控扩展：15 || 12；水商(1)/学徒(2) 等不生效
     internal static bool IsRobinsonRun()
     {
         try
         {
             var ps = PlayerStore.Instance;
-            return ps != null && (int)ps.startType == 15;
+            int st = ps != null ? (int)ps.startType : -1;
+            return st == 15 || st == 12;
         }
         catch { return false; }
+    }
+
+    // ===== 10-10 #37 A 拍板：鲁滨逊 buy 食物/药品 ×2 从主 mod 迁 WS（原子迁移，同一 commit）=====
+    // 主 mod Patches.Trade.Markup.cs ApplyRobinsonMarkup buy ×2 分支已删（原 :215-226）+ TryAddRobinsonBuyMarkup 已删（Robinson.cs:175）
+    // → 本方法承接：门控=IsRobinsonRun（15||12 权威，SurvivalTrade.cs:21）+ buy（非 owned）+ 食物/药品 + 非被偷半价 → ×2 + wages_robin_buy 标签
+    // 双装只 ×2 一次（主 mod buy 分支已不再改 result）；单装 WS 有 ×2；非鲁滨逊不触发（门控唯一=IsRobinsonRun）
+    public static void PostfixGameItemGetNegociatedValue(GameItem __instance, ref long __result)
+    {
+        try
+        {
+            if (__instance == null || string.IsNullOrEmpty(__instance.identifier)) return;
+            if (!IsRobinsonRun()) return;
+            bool sell = false;
+            try { sell = Il2Cpp.GeneralHelper.IsItemOwned(__instance); } catch { }
+            if (sell) return; // 只 buy（玩家卖出给客户）
+            if (HasStolenHalfPriceFeature(__instance)) return; // 被偷物半价保持，不 ×2（10-07 P1-3 语义随迁）
+            if (FoodIdentifyHelper.IsFood(__instance))
+            {
+                __result = (long)((double)__result * 2.0);
+                TryAddRobinsonBuyMarkup(__instance);
+            }
+            else if (FoodIdentifyHelper.IsMedicine(__instance))
+            {
+                __result = (long)((double)__result * 2.0);
+                TryAddRobinsonBuyMarkup(__instance);
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] PostfixGetNegociatedValue ×2 异常: " + ex.Message); }
+    }
+
+    // 被偷物半价标记检测（stolen_half_price feature → 买回保持半价，不叠 ×2）——主 mod Patches.Trade.Markup.cs:270 等价迁入
+    private static bool HasStolenHalfPriceFeature(GameItem item)
+    {
+        try
+        {
+            if (item == null || item.itemFeatures == null) return false;
+            for (int i = 0; i < item.itemFeatures.Count; i++)
+                if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "stolen_half_price", StringComparison.Ordinal)) return true;
+        }
+        catch { }
+        return false;
+    }
+
+    // wages_robin_buy 标签（主 mod Patches.Trade.Robinson.cs:175 等价迁入——"鲁滨逊·口粮双倍价"，+100% 表达 ×2）
+    private static void TryAddRobinsonBuyMarkup(GameItem item)
+    {
+        try
+        {
+            if (item == null || item.itemFeatures == null) return;
+            // 自愈：清历史堆积 + 排除类型不加（骰子类——主 mod 原 excludedType 含虚空珠/妙妙箱，WS 侧仅保留骰子 tag 判，其余类型非食物/药品路径不会到）
+            bool excludedType = false;
+            try { excludedType = item.IsTag("destiny_dice_tag"); } catch { }
+            int keepMax = excludedType ? 0 : 1;
+            int found = 0;
+            for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
+            {
+                if (item.itemFeatures[j] != null && item.itemFeatures[j].identifier == "wages_robin_buy") { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
+            }
+            if (excludedType) return;
+            string text = LangHelper.T("鲁滨逊·口粮双倍价", "Robinson·Ration x2");
+            for (int i = 0; i < item.itemFeatures.Count; i++)
+            {
+                if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_robin_buy")
+                {
+                    item.itemFeatures[i].publicDisplay = text;
+                    item.itemFeatures[i].actualDisplay = text;
+                    item.itemFeatures[i].preExposeValueModifier = 100;
+                    item.itemFeatures[i].usePreExposeValue = true;
+                    return;
+                }
+            }
+            Il2Cpp.ItemFeature itemFeature = new Il2Cpp.ItemFeature();
+            itemFeature.identifier = "wages_robin_buy";
+            itemFeature.featureType = Il2Cpp.ItemFeature.FeatureType.TemporaryBuying;
+            itemFeature.valueStage = Il2Cpp.ItemFeature.ValueStage.Market;
+            itemFeature.valueModifier = 0;
+            itemFeature.preExposeValueModifier = 100;
+            itemFeature.usePreExposeValue = true;
+            itemFeature.initiallyShown = true;
+            itemFeature.isFeatureMatch = true;
+            itemFeature.isFeatureExposed = true;
+            itemFeature.isExposable = true;
+            itemFeature.isFeatureDiscovered = false;
+            itemFeature.publicDisplay = text;
+            itemFeature.actualDisplay = text;
+            item.itemFeatures.Add(itemFeature);
+        }
+        catch { }
     }
 
     private static string MoodKey(StoreClient c)
@@ -84,7 +176,8 @@ internal static class SurvivalTrade
     {
         try
         {
-            if (IsRobinsonRun() && SurvivalFood.GetMood() >= 80) percent += 15;
+            // 10-10 四问题批#2：删 10-08 二分诊断日志（Debug 门控"用完必删"；拼字符串+访单例=崩溃/性能放大面）
+            if (IsRobinsonRun() && SurvivalFood.GetMood() >= 80) { percent += 15; }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 出价上移异常: " + ex.Message); }
     }
@@ -93,6 +186,7 @@ internal static class SurvivalTrade
     {
         try
         {
+            // 10-10 四问题批#2：删 10-08 二分诊断日志（v5 startType 结论已实锤入 cheatsheet，双处写入一致由 U1 部署日志确认）
             if (IsRobinsonRun()) __result += SurvivalFood.GetBargainBonusPct();
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 谈判成功率异常: " + ex.Message); }
@@ -102,6 +196,7 @@ internal static class SurvivalTrade
     {
         try
         {
+            // 10-10 四问题批#2：删 10-08 二分诊断日志。加价接受率 ×1.15 为意图行为（崩溃根因=主 mod 残留双挂叠加，四问题批#3a 已删死代码）
             if (IsRobinsonRun() && __result != null && SurvivalFood.GetMood() >= 80 && __result.valueModifier > 0)
             {
                 __result.valueModifier = (int)((float)__result.valueModifier * 1.15f);
@@ -206,6 +301,14 @@ internal static class SurvivalTrade
         try
         {
             if (item == null || string.IsNullOrEmpty(labelId) || item.itemFeatures == null) return;
+            // 10-10 四问题批#3b：进程级防重第二层（复合键 labelId+pointer；itemFeatures 同 id 判重为第一层，见下）
+            try
+            {
+                string key = labelId + "|" + item.Pointer.ToInt64();
+                if (Patches._nodeBuffItems.Contains(key)) return;
+                Patches._nodeBuffItems.Add(key);
+            }
+            catch { } // 指针读取失败（交互期销毁防御）→ 降级仅依赖 itemFeatures 判重
             bool found = false;
             for (int i = item.itemFeatures.Count - 1; i >= 0; i--)
             {

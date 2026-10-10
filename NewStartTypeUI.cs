@@ -78,17 +78,28 @@ internal static class NewStartTypeUI
         catch { return null; }
     }
 
-    public static void PostfixAwake(Il2Cpp.MainMenuUIController __instance)
+    // 10-08 全新启动无鲁滨逊 tab 回归（玩家反馈 1.3.5）：Patch 注册与主菜单首次 Awake 存在竞态 → 首次 Postfix 可能错过。
+    // 兜底三通道：Awake（首次）/ Start（字段就绪重试）/ ResetAllTab（开局界面 tab 交互必经）——全部走 TryCloneTab 防重。
+    // 10-08 二次回归（玩家截图：两个"空间站鲁滨逊" tab）：原防重 GameObject.Find 只找激活物体，未激活 tab 找不到 → 每通道各克隆一次。
+    // 修复：改遍历父级子物体（Transform.GetChild 含未激活），跨场景自动重置（新场景父级无此子物体）。
+    private static bool TryCloneTab(Il2Cpp.MainMenuUIController __instance)
     {
         try
         {
-            if (GameObject.Find(CLONE_NAME) != null) return;
-
             var tabSrc = GetTabRancher(__instance);
             if (tabSrc == null)
             {
                 Core.LogMsg("[新职业] tabRancher 不可用（当前游戏版本无此成员），跳过克隆");
-                return;
+                return false;
+            }
+
+            var parent = tabSrc.gameObject.transform.parent;
+            if (parent != null)
+            {
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    if (parent.GetChild(i).name == CLONE_NAME) return true; // 防重（含未激活子物体）
+                }
             }
 
             var template = tabSrc.gameObject;
@@ -116,11 +127,25 @@ internal static class NewStartTypeUI
             // 与 tab 克隆并存无冲突（不同字段/对象，ResetAllTab 不影响按钮）
             try { SurvivalConfigUI.InjectMainMenuButton(__instance); } catch (System.Exception ex) { Core.LogMsg("[新职业] 配置按钮注入异常: " + ex.Message); }
 
+            Core.LogMsg("[新职业] 鲁滨逊 tab 已注入（tab_RobinCrusoe）");
+            return true;
         }
         catch (Exception ex)
         {
             Core.LogMsg("[新职业] 克隆异常: " + ex.Message);
+            return false;
         }
+    }
+
+    public static void PostfixAwake(Il2Cpp.MainMenuUIController __instance)
+    {
+        TryCloneTab(__instance);
+    }
+
+    // 10-08 兜底：Start 晚于 Awake（场景预置字段注入完成后），补一次克隆防 Awake 错过
+    public static void PostfixStart(Il2Cpp.MainMenuUIController __instance)
+    {
+        TryCloneTab(__instance);
     }
 
     private static void ReplaceAllText(Transform root, ref int replaced)
@@ -193,6 +218,8 @@ internal static class NewStartTypeUI
     {
         try
         {
+            // 10-08 补克隆兜底：每次进开局界面/切换 tab 必经 ResetAllTab——若 Awake/Start 均错过则此处补注入（防重内建）
+            if (!TryCloneTab(__instance)) return;
             var go = GameObject.Find(CLONE_NAME);
             if (go == null) return;
             var img = go.GetComponent<Image>();

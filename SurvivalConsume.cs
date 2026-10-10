@@ -235,10 +235,11 @@ internal static partial class SurvivalFood
         {
             if (item == null) return false;
             string id = (item.identifier ?? "").ToLowerInvariant();
-            if (id == "empty_beer_bottle") return true;
+            // 10-10 #40 判据统一：原 :238 "empty_beer_bottle 无条件判空"（不看水量）→ 并入下方统一判据（id.Contains("bottle") 已覆盖 empty_beer_bottle）
+            //   装水的 empty_beer_bottle 不再误判"空瓶"（原 → :108 return 水喝不到）；wine_beer_bottle 装水现象见 :239 注释，留待玩家实测
             // 10-05 实锤：玩家"空酒瓶"实际 id=wine_bottle（F8生成/商店购买），IsAlc关键词命中"wine"被当酒喝掉消失
             // 空瓶判定：酒瓶类 id + 无水量 → 空瓶（保留装水/酿酒用）
-            if (id == "wine_bottle" || id == "beer_bottle" || id.Contains("bottle")) return GetWaterMl(item) <= 0;
+            if (id.Contains("bottle")) return GetWaterMl(item) <= 0;
             return false;
         }
         catch { return false; }
