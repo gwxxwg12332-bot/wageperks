@@ -56,6 +56,15 @@ public static class TurboBoostN
         catch { }
     }
 
+    // 10-10 #48 C6：读档清跨档 static 残留——拖拽设值（PrefixTarget:27-28/PostfixTarget:43-44）后未消费就退出 → _turboN 保持旧值
+    //   + _turboMachine 旧引用 → 读档后新档机器对象复用同地址 → 消费点机器匹配（:84）误命中 → 误补产 (n-1) 次
+    internal static void ClearTurboState()
+    {
+        _turboN = 0;
+        _turboMachine = null;
+        _pendingN = 0; // 顺带清 UpdateSprite 缓存
+    }
+
     private static int FindTurboNInMachine(GameItem machine)
     {
         try

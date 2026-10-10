@@ -57,6 +57,13 @@ partial class LuckScoutBackpackUpgrade
     // 虚空珠物品列表（读档恢复时用）
 
     private static readonly List<GameItem> _beadItems = new List<GameItem>();
+
+    // 10-10 #48 C6：读档清跨档累积（有 Add 无 Clear——Core.cs:171/Restore.cs:64 Add，跨档旧对象失效+地址复用误判）
+    //   本类读档恢复不依赖此列表（:79 注释实锤——直接遍历背包），清理 0 副作用
+    internal static void ClearBeadItems()
+    {
+        _beadItems.Clear();
+    }
     // 开局延迟应用锁格（容器就绪后强制 SetShape，防开局创建时被初始化覆盖）
     private static readonly List<Tuple<GameItem, int>> _pendingShapes = new List<Tuple<GameItem, int>>();
 

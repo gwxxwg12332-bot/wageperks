@@ -23,6 +23,9 @@ internal static partial class RobinCrusoePerk
             ClearTooltipCaches();
             DestinyDice.ClearActiveDice();
             CustomStorageContainer.ClearLastCreatedInventory();
+            // 10-10 #48 C6：读档清跨档 static 残留（涡轮拖拽未消费残留→地址复用误补产；虚空珠列表跨档累积）——与 7c 同挂点不重复清
+            TurboBoostN.ClearTurboState();
+            LuckScoutBackpackUpgrade.ClearBeadItems();
             // 旧层 runID 缓存刷新已收拢至 WageSaveStore（兼容读取入口自动 EnsureLegacyFresh），此处不再手写
             // 恢复保存点生存状态（SaveGame 快照）——"退出本天未保存重新进"当天扣减（拾荒-7等）应随读档回滚
             try
