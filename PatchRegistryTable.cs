@@ -155,7 +155,8 @@ namespace WagePerks
             new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(GameItem), Method = "Target", Prefix = "PrefixTarget", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(StoreClient), Method = "CanClientExposeAnyFeature", Prefix = "PrefixCanClientExposeAnyFeature", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixCreateItemTooltip", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixCreateItemTooltip", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表 Step 3：生存段 handler（品质/售价/双击使用）——双装让路给 WS SurvivalFood.PostfixCreateItemTooltip（同目标逐字注入=词条重复根因）；WP 专属段见下条 WPOnly 永不让路" },
+            new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixCreateItemTooltip_WPOnly", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "10-11 所有权表 Step 3：WP 专属段（鼠王/机器/储存区段位）永不让路——双装时与 WS 生存段并存无重复" },
             new PatchEntry { Target = typeof(HusbandryHelper), Method = "CreateItemTooltip", Prefix = null, Postfix = "PostfixWageBoxTooltip", Host = typeof(ContainerUpgradeV2), Priority = DEFAULT_PRIORITY, System = "ContainerUpgradeV2", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMinorWound", Prefix = "PrefixReceiveWound", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(HealthData), Method = "ReceiveMajorWound", Prefix = "PrefixReceiveWound", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
@@ -228,14 +229,14 @@ namespace WagePerks
             new PatchEntry { Target = typeof(StoreClient), Method = "StartMainDialogue", Prefix = null, Postfix = "PostfixStartMainDialogue", Host = typeof(ThiefMagnetSystem), Priority = DEFAULT_PRIORITY, System = "ThiefMagnet", YieldMod = null, Note = "10-06 小偷对话上桌（BarterOffer对小偷失效——StartMainDialogue=客户对话入口实锤 StoreClient.txt:6181）" },
             new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixLoadGameThiefMagnet", Host = typeof(ThiefMagnetSystem), Priority = DEFAULT_PRIORITY, System = "ThiefMagnet", YieldMod = null, Note = "10-06 小偷读档重挂（eventSourceId运行时标记不随档→双键判定+KEY_STOLEN重挂）" },
             new PatchEntry { Target = typeof(PlayerStore), Method = "OnItemBought", Prefix = null, Postfix = "PostfixPlayerStoreOnItemBought", Host = typeof(ThiefMagnetSystem), Priority = DEFAULT_PRIORITY, System = "ThiefMagnet", YieldMod = null, Note = "10-06 被偷物买回精确清账（OnItemBought=三条购买路径统一汇点，参数=被买物品——拆包5F6k3jY7Kz628HwFRxWAWR；OnDealAccepted死路不挂）" },
-            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateThirstySpacer", Prefix = null, Postfix = "PostfixCreateThirstySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateHungrySpacer", Prefix = null, Postfix = "PostfixCreateHungrySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSpacerChef", Prefix = null, Postfix = "PostfixCreateSpacerChef", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateInjuredSpacer", Prefix = null, Postfix = "PostfixCreateInjuredSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSickChildCaretaker", Prefix = null, Postfix = "PostfixCreateSickChildCaretaker", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateDesperateAddict", Prefix = null, Postfix = "PostfixCreateDesperateAddict", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateWornOutSpacer", Prefix = null, Postfix = "PostfixCreateWornOutSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListMinor), Method = "CreateSickLowers", Prefix = null, Postfix = "PostfixCreateSickLowers", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateThirstySpacer", Prefix = null, Postfix = "PostfixCreateThirstySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标（PatchRegistry.cs:330）→双装双 Postfix 双生成→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateHungrySpacer", Prefix = null, Postfix = "PostfixCreateHungrySpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSpacerChef", Prefix = null, Postfix = "PostfixCreateSpacerChef", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateInjuredSpacer", Prefix = null, Postfix = "PostfixCreateInjuredSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTier), Method = "CreateSickChildCaretaker", Prefix = null, Postfix = "PostfixCreateSickChildCaretaker", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateDesperateAddict", Prefix = null, Postfix = "PostfixCreateDesperateAddict", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListTierSubstance), Method = "CreateWornOutSpacer", Prefix = null, Postfix = "PostfixCreateWornOutSpacer", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
+            new PatchEntry { Target = typeof(StoreClientListMinor), Method = "CreateSickLowers", Prefix = null, Postfix = "PostfixCreateSickLowers", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = "Survival", Note = "10-11 所有权表：WS 承接同目标→让路" },
 
             // ===== 补迁11条（TryPatchByName ×8 + DoubleClickAction ×3） =====
             // 8条 TryPatchByName
@@ -274,6 +275,13 @@ namespace WagePerks
             {
                 try
                 {
+                    // 10-11 所有权表 Step 2：YieldMod="Survival" 专用白名单让路（WS 承接同目标=双挂，非一刀切）
+                    // 注：不走 ModCompat.ShouldYield（其 IsLoaded(YieldMod) 探测 "Survival" 程序集=不存在）
+                    if (e.YieldMod == "Survival" && NewStartTypeUI.IsWageSurvivalPresent())
+                    {
+                        Core.LogMsg($"[统一注册] 让路(WS承接): [{e.System}] {e.Target.Name}.{e.Method}");
+                        yield++; continue;
+                    }
                     if (e.YieldMod != null && ModCompat.ShouldYield(e.Target, e.Method, out var mod))
                     {
                         Core.LogMsg($"[统一注册] 让路: [{e.System}] {e.Target.Name}.{e.Method} ← {mod}");

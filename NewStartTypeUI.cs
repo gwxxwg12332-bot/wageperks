@@ -429,15 +429,20 @@ internal static class NewStartTypeUI
     // 注：WS NewStartTypeUI.PostfixLoadGame 已承接 15 恢复（本方法体留死代码仅编译依赖，本提示挂点独立注册）
     private static bool _oldSaveHintShown = false;
     // 10-11 提级 internal：词条重复修复复用（RobinCrusoePerk.Food.Tooltip 让路生存段探测 WS 在场）
+    // 10-11 所有权表 Step 1：加缓存（WS 是否在场=进程级常量；避免 ApplyAll 遍历 8 条重复 AppDomain 扫描）
+    private static bool? _wsPresentCache = null;
     internal static bool IsWageSurvivalPresent()
     {
         try
         {
+            if (_wsPresentCache.HasValue) return _wsPresentCache.Value;
+            bool found = false;
             foreach (System.Reflection.Assembly a in System.AppDomain.CurrentDomain.GetAssemblies())
-            { try { if (a.GetName().Name == "WageSurvival") return true; } catch { } }
+            { try { if (a.GetName().Name == "WageSurvival") { found = true; break; } } catch { } }
+            _wsPresentCache = found;
+            return found;
         }
-        catch { }
-        return false;
+        catch { return false; }
     }
     public static void PostfixLoadGameOldSaveHint()
     {

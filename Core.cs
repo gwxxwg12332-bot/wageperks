@@ -69,7 +69,6 @@ public class Core : MelonMod
 		catch
 		{
 		}
-		PatchRegistry.ApplyAll();
 		// 1.3.2fix2 内置：WageAPI 入口接入（落盘挂点 priority=0 + 读档标志），原独立 WageAPI.dll 不再需要
 		try { WageAPI.Core.Init(Log); } catch (System.Exception ex) { Log.Msg("[WageAPI] Init 失败: " + ex.Message); }
 		// 10-03 阶段B：读档数据就绪事件（WageAPI 30帧后触发）→ 驱动引用恢复 + 防御重洗白（原 WageSaveStore.LoadIfPending 阶段2逻辑迁来）
@@ -98,6 +97,18 @@ public class Core : MelonMod
 		}
 		PerkIconLoader.Initialize();
 		Diagnostics.Register();
+	}
+
+	// 10-11 所有权表 Step 2 V3：ApplyAll 延后到 OnLateInitializeMelon——
+	//   探测 WS 是否在场必须在全部 mod OnInitializeMelon 之后（WS Core.cs:28-33 先例实锤加载顺序风险：WP 先初始化时 WS 未进 AppDomain→误判不在场→让路失效）
+	public override void OnLateInitializeMelon()
+	{
+		try
+		{
+			PatchRegistry.ApplyAll();
+			Core.LogMsg($"[统一注册] 所有权表 Step1-3 让路探测在 OnLateInitializeMelon 执行（WS 在场=" + (NewStartTypeUI.IsWageSurvivalPresent() ? "是" : "否") + "）");
+		}
+		catch (System.Exception ex) { Core.LogMsg("[统一注册] OnLateInitializeMelon ApplyAll 异常: " + ex.Message); }
 	}
 
 	public override void OnUpdate()

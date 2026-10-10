@@ -63,6 +63,74 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
+            // 10-11 所有权表 Step 3：本方法=生存段 handler（品质/售价/患病风险 + 双击使用类），
+            //   双装时让路给 WS SurvivalFood.PostfixCreateItemTooltip（PatchRegistryTable :158 原条 YieldMod="Survival"）；
+            //   WP 专属段（鼠王/机器/储存区）已拆到 PostfixCreateItemTooltip_WPOnly（永不让路）
+            if (!IsActive() || builder == null || item == null) return;
+            // v1.3.1 卡手优化：非 mod 关心物品一次 id 提取后短路
+            string itemId = (item.identifier ?? "").ToLowerInvariant();
+            if (!IsFood(item) && !IsMachine(item) && !item.IsTag("MODULE_TAG") && !ContainerUpgradeV2.IsUpgradeableContainer(item) && !_modItemIds.Contains(itemId)) return;
+            if (IsFood(item))
+            {
+                int q = GetFoodQuality(item);
+                if (q < 0) q = 0;
+                string[] names = { LangHelper.T("新鲜", "Fresh"), LangHelper.T("正常", "Normal"), LangHelper.T("变质", "Spoiled"), LangHelper.T("腐烂", "Rotten") };
+                int calLeft = GetCalLeft(item);
+                int calFull = GetCalorie(item);
+                string eaten = IsEaten(item) ? LangHelper.T("（已食用）", " (Eaten)") : "";
+                builder.AddLine(LangHelper.T("品质：", "Quality: ") + names[Math.Min(3, Math.Max(0, q))] + eaten + LangHelper.T("（剩余 " + calLeft + "/" + calFull + " 卡）", " (" + calLeft + "/" + calFull + " kcal left)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                string priceNote = "";
+                if (q >= 3) priceNote = LangHelper.T("售价：-100%（腐烂）", "Sell: -100% (Rotten)");
+                else if (q == 2) priceNote = LangHelper.T("售价：-90%（变质）", "Sell: -90% (Spoiled)");
+                else if (IsEaten(item)) priceNote = LangHelper.T("售价：-80%（已食用）", "Sell: -80% (Eaten)");
+                else if (q <= 0) priceNote = LangHelper.T("售价：+30%（新鲜）", "Sell: +30% (Fresh)");
+                if (priceNote.Length > 0)
+                    builder.AddLine(priceNote,
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                if (q == 2 || q >= 3)
+                    builder.AddLine(LangHelper.T(q >= 3 ? "食用：40% 患病风险（卡路里按20%恢复）" : "食用：10% 患病风险（卡路里按50%恢复）", q >= 3 ? "Eating: 40% illness risk (calories at 20%)" : "Eating: 10% illness risk (calories at 50%)"),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            }
+            else if (IsMachine(item) || item.IsTag("MODULE_TAG"))
+            {
+                // 10-11 所有权表 Step 3：机器/MODULE 段已拆到 PostfixCreateItemTooltip_WPOnly（WP 专属，永不让路）
+            }
+            else if (ContainerUpgradeV2.IsUpgradeableContainer(item))
+            {
+                // 10-11 所有权表 Step 3：储存区段位段已拆到 PostfixCreateItemTooltip_WPOnly（WP 专属，永不让路）
+            }
+            // 09-13 清洁系统 v1：日用品面板显示"双击恢复清洁"
+            else if (IsDailyNeed(item))
+            {
+                if (DAILY_NEED_CLEAN.TryGetValue(itemId, out int _gain))
+                    builder.AddLine(LangHelper.T("双击使用：清洁 +" + _gain, "Double-click: Cleanliness +" + _gain),
+                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            }
+            // 09-13 双击使用类效果面板显示：饮品/零食/酒/麻醉品
+            else if (IsBeverage(item))
+                builder.AddLine(LangHelper.T("双击使用：饱食+10 口渴+15（消耗1件）", "Double-click: Satiety +10 Thirst +15 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsSnack(item))
+                builder.AddLine(LangHelper.T("双击使用：饱食 + 心情+10（消耗1件）", "Double-click: Satiety + Mood +10 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsAlc(item) && !IsEmptyBottle(item))
+                builder.AddLine(LangHelper.T("双击饮用：心情+15（消耗1件）", "Double-click drink: Mood +15 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+            else if (IsNarcotic(item))
+                builder.AddLine(LangHelper.T("双击使用：心情+20（消耗1件）", "Double-click: Mood +20 (consumed)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+        }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
+    }
+
+    // 10-11 所有权表 Step 3：WP 专属段 handler（鼠王/机器/储存区段位）——永不让路（PatchRegistryTable 新增条目挂载）
+    //   双装时：生存段（品质/售价/双击使用）由 WS SurvivalFood.PostfixCreateItemTooltip 输出，WP 专属段由本方法输出——无重复
+    //   单装 WP 时：原条 PostfixCreateItemTooltip（生存段）照常挂（IsActive 门控），本方法输出专属段——无重复
+    public static void PostfixCreateItemTooltip_WPOnly(RichTextBuilder builder, GameItem item)
+    {
+        try
+        {
             // bug2: rat/动物 tooltip 显示互食属性（不依赖鲁滨逊 IsActive）
             try {
                 bool isRat = false; try { isRat = item.IsTag("ANIMAL_ITEM_TAG"); } catch { }
@@ -96,44 +164,10 @@ internal static partial class RobinCrusoePerk
                 }
             } catch { }
             if (!IsActive() || builder == null || item == null) return;
-            // v1.3.1 卡手优化：非 mod 关心物品一次 id 提取后短路
+            // v1.3.1 卡手优化：非 mod 关心物品一次 id 提取后短路（无 IsFood——生存段不归本方法）
             string itemId = (item.identifier ?? "").ToLowerInvariant();
-            if (!IsFood(item) && !IsMachine(item) && !item.IsTag("MODULE_TAG") && !ContainerUpgradeV2.IsUpgradeableContainer(item) && !_modItemIds.Contains(itemId)) return;
-            // 10-11 词条重复修复：生存段（食物/日用品/饮品/零食/酒/麻醉品）已随 10-07 迁到 WS
-            //   SurvivalFood.PostfixCreateItemTooltip（WS PatchRegistry.cs:242-247 同目标逐字注入），但 :158 挂点漏删
-            //   → 双装时两遍注入=词条重复。WP 让路生存段（鼠王/机器/储存区=WP 专属段不受影响；单装 WP 探测 false 行为不变）
-            try
-            {
-                if (NewStartTypeUI.IsWageSurvivalPresent())
-                {
-                    bool survivalDup = IsFood(item) || IsDailyNeed(item) || IsBeverage(item) || IsSnack(item) || IsAlc(item) || IsNarcotic(item);
-                    if (survivalDup) return;
-                }
-            }
-            catch { }
-            if (IsFood(item))
-            {
-                int q = GetFoodQuality(item);
-                if (q < 0) q = 0;
-                string[] names = { LangHelper.T("新鲜", "Fresh"), LangHelper.T("正常", "Normal"), LangHelper.T("变质", "Spoiled"), LangHelper.T("腐烂", "Rotten") };
-                int calLeft = GetCalLeft(item);
-                int calFull = GetCalorie(item);
-                string eaten = IsEaten(item) ? LangHelper.T("（已食用）", " (Eaten)") : "";
-                builder.AddLine(LangHelper.T("品质：", "Quality: ") + names[Math.Min(3, Math.Max(0, q))] + eaten + LangHelper.T("（剩余 " + calLeft + "/" + calFull + " 卡）", " (" + calLeft + "/" + calFull + " kcal left)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-                string priceNote = "";
-                if (q >= 3) priceNote = LangHelper.T("售价：-100%（腐烂）", "Sell: -100% (Rotten)");
-                else if (q == 2) priceNote = LangHelper.T("售价：-90%（变质）", "Sell: -90% (Spoiled)");
-                else if (IsEaten(item)) priceNote = LangHelper.T("售价：-80%（已食用）", "Sell: -80% (Eaten)");
-                else if (q <= 0) priceNote = LangHelper.T("售价：+30%（新鲜）", "Sell: +30% (Fresh)");
-                if (priceNote.Length > 0)
-                    builder.AddLine(priceNote,
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-                if (q == 2 || q >= 3)
-                    builder.AddLine(LangHelper.T(q >= 3 ? "食用：40% 患病风险（卡路里按20%恢复）" : "食用：10% 患病风险（卡路里按50%恢复）", q >= 3 ? "Eating: 40% illness risk (calories at 20%)" : "Eating: 10% illness risk (calories at 50%)"),
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            }
-            else if (IsMachine(item) || item.IsTag("MODULE_TAG"))
+            if (!IsMachine(item) && !item.IsTag("MODULE_TAG") && !ContainerUpgradeV2.IsUpgradeableContainer(item) && !_modItemIds.Contains(itemId)) return;
+            if (IsMachine(item) || item.IsTag("MODULE_TAG"))
             {
                 try { int chg = GetTagIntSafe(item, "wage_gu_charge"); if (chg != 0) builder.AddLine(LangHelper.T("◆ 已充能 " + chg + "/天", "◆ Charged " + chg + "/day"), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
                 try { int dev = GetTagIntSafe(item, "wage_turbo_devoured"); if (dev > 0) builder.AddLine(LangHelper.T("◆ 已吞噬 " + dev + " 个涡轮增压器：充能额外 +" + (dev*2) + "/天", "◆ Devoured " + dev + " turbos: charge bonus +" + (dev*2) + "/day"), true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1)); } catch { }
@@ -169,28 +203,8 @@ internal static partial class RobinCrusoePerk
                             true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
                     }
             }
-            // 09-13 清洁系统 v1：日用品面板显示"双击恢复清洁"
-            else if (IsDailyNeed(item))
-            {
-                if (DAILY_NEED_CLEAN.TryGetValue(itemId, out int _gain))
-                    builder.AddLine(LangHelper.T("双击使用：清洁 +" + _gain, "Double-click: Cleanliness +" + _gain),
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            }
-            // 09-13 双击使用类效果面板显示：饮品/零食/酒/麻醉品
-            else if (IsBeverage(item))
-                builder.AddLine(LangHelper.T("双击使用：饱食+10 口渴+15（消耗1件）", "Double-click: Satiety +10 Thirst +15 (consumed)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            else if (IsSnack(item))
-                builder.AddLine(LangHelper.T("双击使用：饱食 + 心情+10（消耗1件）", "Double-click: Satiety + Mood +10 (consumed)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            else if (IsAlc(item) && !IsEmptyBottle(item))
-                builder.AddLine(LangHelper.T("双击饮用：心情+15（消耗1件）", "Double-click drink: Mood +15 (consumed)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
-            else if (IsNarcotic(item))
-                builder.AddLine(LangHelper.T("双击使用：心情+20（消耗1件）", "Double-click: Mood +20 (consumed)"),
-                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
         }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] 异常: " + ex.Message); }
+        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Tooltip] WPOnly 异常: " + ex.Message); }
     }
 
 }
