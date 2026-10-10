@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.1.9", "井底之蛙", null)]
+[assembly: MelonInfo(typeof(WageSurvival.Core), "Wage Survival", "0.2.0", "井底之蛙", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WageSurvival;
@@ -21,7 +21,7 @@ public class Core : MelonMod
     public override void OnInitializeMelon()
     {
         Log = base.LoggerInstance;
-        Log.Msg("Wage Survival v0.1.9 已加载 - 阶段C：独立生存mod（WageAPI 内置）；10-06 双装让路时序修复+Z键面板非鲁滨逊档保留");
+        Log.Msg("Wage Survival v0.2.0 已加载 - 阶段C：独立生存mod（WageAPI 内置）；10-10 口粮双倍价 CFG（RobinRationMarkupPercent）");
         Log.Msg("QQ群：1109707341");
         // 10-07 #13（用户拍板）：WS 配置初始化（MelonPreferences——机器效率开关+比例+捡漏加成）
         try { SurvivalConfig.Init(); } catch (System.Exception ex) { Log.Msg("[WageSurvival] Config Init 失败: " + ex.Message); }
