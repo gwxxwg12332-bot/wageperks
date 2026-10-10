@@ -129,15 +129,9 @@ public static class BlackGoldBox
             }
             catch (Exception ex) { Core.LogMsg("[黑金典藏箱] 标签设置: " + ex.Message); }
 
-            // 强制 3×3 占地（cheatsheet :5881 SetSpriteAndShape 污染 shape 坑——GridShapeBuilder 先例 GuMachineSystem.Entity.cs:95）
-            try
-            {
-                var gsb = new GridShapeBuilder();
-                gsb.SetDataFill(3, 3);
-                container.SetShape(gsb.Build());
-                container.modifiedShape = gsb.Build();
-            }
-            catch (Exception ex) { Core.LogMsg("[黑金典藏箱] shape 设置: " + ex.Message); }
+            // 占地派生：:107 SetSpriteAndShape 已正确派生 3×3（素材 13 张全部 48×48，48/16=3——拆包 10-10 读 PNG 头实证）
+            // 【10-10 删除】原强制 3×3 写入（SetShape+modifiedShape）违反铁律 ContainerUpgradeV2.Shape.cs:49-51（shape=场景占地绝不能写；
+            //   modifiedShape=拖拽三元组零消费者脏状态——写它=污染下次布局读到的摆位状态）——WBG 是项目唯一违反处，已移除
 
             // 名称/描述/价值（2000）——10-08 实锤：MachineBlender.CreateTooltip 读 item.identifier（[0x1C0]）判 "blender"，
             // identifier null → 柜台/库存 hover 每帧 NRE + IsBlackGold 判定失败（切换失效）+ tooltip 空（"没有面板"）。

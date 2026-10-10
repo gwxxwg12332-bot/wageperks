@@ -147,20 +147,13 @@ public static class BlackGoldBoxStyle
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] NextStyle: " + ex.Message); }
     }
 
-    // 换皮（SetSprite 只改外观不碰 shape；强制 3×3 保险）
+    // 换皮（SetSprite 只改外观不碰 shape——10-10 删强制 3×3：素材 48×48=派生 3×3 已正确（创建链 SetSpriteAndShape）；
+    //   SetShape/modifiedShape 写入违反铁律 Shape.cs:49-51（shape=场景占地绝不写；modifiedShape=拖拽三元组零消费者脏状态））
     public static void ApplyStyle(GameItem box, string key)
     {
         try
         {
             box.SetSprite(BlackGoldBox.ATLAS, key);
-            try
-            {
-                var gsb = new GridShapeBuilder();
-                gsb.SetDataFill(3, 3);
-                box.SetShape(gsb.Build());
-                box.modifiedShape = gsb.Build();
-            }
-            catch { }
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] ApplyStyle: " + ex.Message); }
     }
