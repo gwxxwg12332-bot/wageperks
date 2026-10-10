@@ -99,6 +99,18 @@ internal static partial class RobinCrusoePerk
             // v1.3.1 卡手优化：非 mod 关心物品一次 id 提取后短路
             string itemId = (item.identifier ?? "").ToLowerInvariant();
             if (!IsFood(item) && !IsMachine(item) && !item.IsTag("MODULE_TAG") && !ContainerUpgradeV2.IsUpgradeableContainer(item) && !_modItemIds.Contains(itemId)) return;
+            // 10-11 词条重复修复：生存段（食物/日用品/饮品/零食/酒/麻醉品）已随 10-07 迁到 WS
+            //   SurvivalFood.PostfixCreateItemTooltip（WS PatchRegistry.cs:242-247 同目标逐字注入），但 :158 挂点漏删
+            //   → 双装时两遍注入=词条重复。WP 让路生存段（鼠王/机器/储存区=WP 专属段不受影响；单装 WP 探测 false 行为不变）
+            try
+            {
+                if (NewStartTypeUI.IsWageSurvivalPresent())
+                {
+                    bool survivalDup = IsFood(item) || IsDailyNeed(item) || IsBeverage(item) || IsSnack(item) || IsAlc(item) || IsNarcotic(item);
+                    if (survivalDup) return;
+                }
+            }
+            catch { }
             if (IsFood(item))
             {
                 int q = GetFoodQuality(item);

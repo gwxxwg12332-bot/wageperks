@@ -428,7 +428,8 @@ internal static class NewStartTypeUI
     // 读档时：鲁滨逊档（runID 标记）+ WageSurvival 未装 → 弹提示装 WS（会话内一次，防刷屏）
     // 注：WS NewStartTypeUI.PostfixLoadGame 已承接 15 恢复（本方法体留死代码仅编译依赖，本提示挂点独立注册）
     private static bool _oldSaveHintShown = false;
-    private static bool IsWageSurvivalPresent()
+    // 10-11 提级 internal：词条重复修复复用（RobinCrusoePerk.Food.Tooltip 让路生存段探测 WS 在场）
+    internal static bool IsWageSurvivalPresent()
     {
         try
         {
