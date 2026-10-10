@@ -10,6 +10,7 @@ internal static class SurvivalConfig
     private static MelonPreferences_Entry<bool> _effHalfEnabled;
     private static MelonPreferences_Entry<float> _effRatio;
     private static MelonPreferences_Entry<int> _luckScoutBonus;
+    private static MelonPreferences_Entry<int> _robinMarkupPercent;
 
     public static void Init()
     {
@@ -19,6 +20,7 @@ internal static class SurvivalConfig
             _effHalfEnabled = _cat.CreateEntry<bool>("MachineEffHalfEnabled", true, "机器效率减半开关（true=鲁滨逊机器效率减半生效）");
             _effRatio = _cat.CreateEntry<float>("MachineEffRatio", 0.5f, "机器效率减半比例（0~1，默认 0.5）");
             _luckScoutBonus = _cat.CreateEntry<int>("LuckScoutScavBonus", 10, "捡漏直觉拾荒加成（默认 +10）");
+            _robinMarkupPercent = _cat.CreateEntry<int>("RobinRationMarkupPercent", 100, "鲁滨逊口粮双倍价加价百分比（默认100=口粮卖出×2；0=关闭；50=×1.5；200=×3）");
             _cat.SaveToFile(false);
             Core.LogMsg("[WageSurvival.Config] 配置初始化完成");
         }
@@ -31,6 +33,8 @@ internal static class SurvivalConfig
     public static float EffRatio { get { try { return _effRatio != null ? _effRatio.Value : 0.5f; } catch { return 0.5f; } } }
     // 捡漏直觉拾荒加成（默认 +10）
     public static int LuckScoutScavBonus { get { try { return _luckScoutBonus != null ? _luckScoutBonus.Value : 10; } catch { return 10; } } }
+    // 鲁滨逊口粮双倍价加价百分比（默认 100=×2；0=关闭；50=×1.5；200=×3）
+    public static int RobinRationMarkupPercent { get { try { return _robinMarkupPercent != null ? _robinMarkupPercent.Value : 100; } catch { return 100; } } }
 
     // 10-07 配置器入口：切换机器效率减半开关并落盘（配置器窗口按钮调用——读时取值即时生效）
     public static void ToggleEffHalf()

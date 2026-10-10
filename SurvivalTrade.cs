@@ -71,14 +71,17 @@ internal static class SurvivalTrade
     }
 
     // wages_robin_buy 标签（主 mod Patches.Trade.Robinson.cs:175 等价迁入——"鲁滨逊·口粮双倍价"，+100% 表达 ×2）
+    // 10-10 加 CFG：RobinRationMarkupPercent（默认100=×2；0=关闭——关闭时仍清历史堆积保持自愈）
     private static void TryAddRobinsonBuyMarkup(GameItem item)
     {
         try
         {
             if (item == null || item.itemFeatures == null) return;
+            int robinPercent = SurvivalConfig.RobinRationMarkupPercent;
             // 自愈：清历史堆积 + 排除类型不加（骰子类——主 mod 原 excludedType 含虚空珠/妙妙箱，WS 侧仅保留骰子 tag 判，其余类型非食物/药品路径不会到）
-            bool excludedType = false;
-            try { excludedType = item.IsTag("destiny_dice_tag"); } catch { }
+            // CFG 关闭（percent<=0）视同 excludedType：清历史堆积后不再添加
+            bool excludedType = robinPercent <= 0;
+            try { if (!excludedType) excludedType = item.IsTag("destiny_dice_tag"); } catch { }
             int keepMax = excludedType ? 0 : 1;
             int found = 0;
             for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
@@ -93,7 +96,7 @@ internal static class SurvivalTrade
                 {
                     item.itemFeatures[i].publicDisplay = text;
                     item.itemFeatures[i].actualDisplay = text;
-                    item.itemFeatures[i].preExposeValueModifier = 100;
+                    item.itemFeatures[i].preExposeValueModifier = robinPercent;
                     item.itemFeatures[i].usePreExposeValue = true;
                     return;
                 }
@@ -103,7 +106,7 @@ internal static class SurvivalTrade
             itemFeature.featureType = Il2Cpp.ItemFeature.FeatureType.TemporaryBuying;
             itemFeature.valueStage = Il2Cpp.ItemFeature.ValueStage.Market;
             itemFeature.valueModifier = 0;
-            itemFeature.preExposeValueModifier = 100;
+            itemFeature.preExposeValueModifier = robinPercent;
             itemFeature.usePreExposeValue = true;
             itemFeature.initiallyShown = true;
             itemFeature.isFeatureMatch = true;
