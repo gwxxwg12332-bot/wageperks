@@ -356,13 +356,23 @@ internal static partial class Patches
 		try
 		{
 			MadnessRoller.ResetLock();
-			if (!RobinCrusoePerk.IsActive()) { if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10; return; }
-			try {
-				PerkGrowthHelper.ApplyOnPerkUiOpen(__instance);
+			// 10-11 修「非鲁滨逊档 WP 特性消失」：早退只拦鲁滨逊专属结算（PerkGrowth/额外槽），
+			// EnsureRegistered/EnsurePickerElements 必须无条件执行——WP 21 特性任何开局档都可选。
+			// 历史早退（v1.3.1 起）把特性元素生成一起挡掉：一贫如洗档（startType=12≠15）→ IsActive=false → 静默 return → 特性列表无 WP 特性（Latest.log 无 [特性UI] 行实锤）。
+			bool robActive = RobinCrusoePerk.IsActive();
+			if (!robActive)
+			{
 				if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
-				try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
-				try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
-			} catch (System.Exception ex) { Core.LogMsg("[特性] 成长结算异常: " + ex.Message); }
+			}
+			else
+			{
+				try {
+					PerkGrowthHelper.ApplyOnPerkUiOpen(__instance);
+					if (__instance.maxPerkCount < 10) __instance.maxPerkCount = 10;
+					try { if (MelonPreferences.GetEntryValue<bool>("WagesPerks", "HardMode")) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
+					try { int negCost = 0; foreach (var pk in CustomStartingPerks.All) { if (pk.Cost < 0 && StartingPerk.IsPerkActive(pk.Id)) negCost += -pk.Cost; } if (negCost >= 10) { __instance.maxPerkCount += 1; __instance.maxPerkPoint += 1; } } catch { }
+				} catch (System.Exception ex) { Core.LogMsg("[特性] 成长结算异常: " + ex.Message); }
+			}
 			CustomStartingPerks.EnsureRegistered();
 			Core.LogMsg("[特性UI] OpenUI时确保特性已注册");
 			CustomStartingPerks.EnsurePickerElements(__instance);
