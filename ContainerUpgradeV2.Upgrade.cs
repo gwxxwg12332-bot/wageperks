@@ -57,7 +57,10 @@ partial class ContainerUpgradeV2
                         // 10-13 Step3：存档时刻按箱体当前实际网格反推段位，无条件刷新持久化键（写键真值=inventoryShape，
                         //   禁抄 GetStagePersist 旧值——那是"升级那一刻 loc+idx"的失配源；挪箱/增删物品后旧键错位→读档回退）
                         int curStage = StageFromGrid(it);
-                        if (curStage >= 0) SetStagePersist(it, curStage);
+                        // 10-13 hotfix1 P0（总控复核）：只写 ≥1——反推为 0 时"不写"优于"写 0"：
+                        //   ① 真·段 0 ⇒ 读档工厂本就给 3×3，无需键恢复 ⇒ 不写无损失
+                        //   ② 回退态（老档 3×3 但键有真值如 3）⇒ 写 0 会被读档端 if(s>0) 判无记录 ⇒ 永久丢段位（不可逆）
+                        if (curStage >= 1) SetStagePersist(it, curStage);
                         RefreshSecondGivenPersist(it); // 同型漂移键：wb_second_given_{loc}_{idx} 随位置迁移（防第二箱重复补发）
                     }
                     // 递归进容器内部
