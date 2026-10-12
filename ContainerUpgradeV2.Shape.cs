@@ -49,6 +49,8 @@ partial class ContainerUpgradeV2
         // ★ 09-14 拆包实证：GameItem.shape(0x198)=物品场景占地，绝不能写（写 w×h 全开矩形 → 箱子占地变内部尺寸、
         //   挤压桌面）。存档 itemShape 存的就是占地（本就不该变）；内部容量=GameGridInventory.inventoryShape(0x1B0)，
         //   由 grid.SetShape 维护 + 读档恢复链（PostfixLoadGame/SetContentWindow → RestoreWageBoxShape/RestoreCrusoeShape）按段位重设。
+        //   10-13 收尾批 A4（拆包交叉验证）铁律边界：禁的是"w×h 全开矩形=占地"；自家物品在创建期/恢复期用
+        //   item.SetShape 写**正确占地**（2×2/2×1 等，6 处：5 创建期+1 恢复期）属于合法豁免——不违反本铁律。
     }
     public static bool ConsumedThisFrame(IntPtr ptr)
     {
