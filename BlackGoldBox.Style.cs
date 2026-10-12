@@ -270,9 +270,31 @@ public static class BlackGoldBoxStyle
             // 非黑金箱无 style_ 持久化 → ReadPersistStyle=-1 → return（天然过滤）
             int styleIdx = ReadPersistStyle(__instance);
             if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length) return;
+            SelfHeal20x20(__instance); // 10-13 Step4③：妙妙箱恢复链误改黑金内部网格 → 读档自愈恒 20×20（占地 shape 禁动）
             ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
             Core.LogMsg("[黑金典藏箱] 读档恢复样式 → " + BlackGoldBox.StyleKeys[styleIdx]);
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] PostfixSetContentWindow: " + ex.Message); }
+    }
+
+    // 10-13 Step4③：黑金读档自愈——出厂值 CreateInventoryWindow(20,20,true)=400 格（BlackGoldBox.cs:80）；
+    //   妙妙箱恢复链前置路径（WP RobinCrusoePerk.ContainerUpgrade.Restore.cs）曾把内部网格改 10×10~52×10（SetFullRect 写 inventoryShape）
+    //   → 本校验恢复 20×20。只动内部库存网格（inventoryShape），禁动 GameItem.shape 占地（3×3，铁律 ContainerUpgradeV2.Shape.cs:49-51）。
+    private static void SelfHeal20x20(GameItem box)
+    {
+        try
+        {
+            var cw = box.contentWindow;
+            if (cw == null || cw.childElement == null) return;
+            var grid = cw.childElement.TryCast<GameGridInventory>();
+            if (grid == null) return;
+            int w = 0, h = 0;
+            try { if (grid.inventoryShape != null) { w = grid.inventoryShape.width; h = grid.inventoryShape.height; } } catch { }
+            if (w == 20 && h == 20) return;
+            Core.LogMsg("[黑金典藏箱] 读档自愈: 内部网格 " + w + "×" + h + " → 恢复 20×20（" + (w * h) + " 格 → 400 格）");
+            try { grid.SetShape(new string('0', 400), 20); } catch { try { grid.SetShape("", 20); } catch { } }
+            try { grid.Validate(); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[黑金典藏箱] 读档自愈异常: " + ex.Message); }
     }
 }

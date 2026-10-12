@@ -13,6 +13,7 @@ namespace WageBlackGold;
 public static class BlackGoldBox
 {
     public const string BOX_ID = "wage_blackgold_box";
+    public const string BOX_TAG = "WBG_BOX_TAG"; // 10-13 Step4④：黑金独立随档身份（妙妙箱链 IsWageBox/IsBlackGoldBox 排除；读档 identifier/tag 全丢场景兜底）
     public const string ATLAS = "wage_blackgold_atlas";
     public const long BOX_PRICE = 2000;
 
@@ -125,6 +126,7 @@ public static class BlackGoldBox
                 container.EnableTag("ITEM_HIDDEN_TAG");
                 container.EnableTag("SYSTEM_TAG");
                 container.EnableTag("SYSTEM_TAG_UTILITY");
+                container.EnableTag(BlackGoldBox.BOX_TAG); // 10-13 Step4④：黑金独立专属 tag——妙妙箱链（IsWageBox/IsUpgradeableContainer/IsBlackGoldBox）按它排除，不依赖 identifier（读档丢场景兜底）
                 container.SetGameItemType("STORAGE");
             }
             catch (Exception ex) { Core.LogMsg("[黑金典藏箱] 标签设置: " + ex.Message); }
