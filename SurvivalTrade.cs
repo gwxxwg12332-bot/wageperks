@@ -279,7 +279,7 @@ internal static class SurvivalTrade
         {
             SaveStore.SetInt("deals", SaveStore.GetInt("deals", 0) + 1);
             int soc = Math.Min(100, SaveStore.GetInt("social", 50) + 5);
-            SaveStore.SetInt("social", soc);
+            SurvivalFood.SetSocial(soc); // 10-13 Step2（P0）：直写改 Setter——消除绕过六维写入链的第 3 条路径（行为等价+自动失效交易缓存）
             try { StoreUIManager.Instance.Notify(LangHelper.T("成交一单 社交 +5", "Deal closed, Social +5"), "green"); } catch { }
             SurvivalFood.RefreshStatusPanel(); // 面板社交实时刷新
             Core.LogMsg("[WageSurvival] 成交一单 社交即时+5 → " + soc);

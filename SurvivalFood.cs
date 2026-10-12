@@ -25,6 +25,7 @@ internal static partial class SurvivalFood
             Core.LogMsg("[WageSurvival] LoadGame Postfix 触发");
             SaveStore.LoadGame();
             SaveStore.InitDefaults(); // 新档设默认值
+            InvalidateTradeCaches(); // 10-13 Step2（P0）：读档刷新交易缓存——防 WS-2 跨档残留（旧档缓存值泄漏到新档）
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] PostfixLoadGame 异常: " + ex.Message); }
     }

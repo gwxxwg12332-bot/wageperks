@@ -21,13 +21,14 @@ internal static partial class SurvivalFood
     internal static int GetSleep() => SaveStore.GetInt("sleep", 100);
     internal static int GetSocial() => SaveStore.GetInt("social", 50);
 
-    internal static void SetSatiety(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "sat", v); else SaveStore.SetInt("sat", v); }
-    internal static void SetThirstPct(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "thirst", v); else SaveStore.SetInt("thirst", v); }
-    internal static void SetHealth(int v) => SaveStore.SetInt("health", v);
-    internal static void SetMood(int v) => SaveStore.SetInt("mood", v);
-    internal static void SetClean(int v) => SaveStore.SetInt("clean", v);
-    internal static void SetSleep(int v) => SaveStore.SetInt("sleep", v);
-    internal static void SetSocial(int v) => SaveStore.SetInt("social", v);
+    // 10-13 Step2（P0）：六维写入统一失效交易缓存——加成缓存(售价/预算/议价)与六维联动，Set* 即刷新（SetCompBuffDays 同型先例；调用点全为业务事件非帧循环）
+    internal static void SetSatiety(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "sat", v); else SaveStore.SetInt("sat", v); InvalidateTradeCaches(); }
+    internal static void SetThirstPct(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "thirst", v); else SaveStore.SetInt("thirst", v); InvalidateTradeCaches(); }
+    internal static void SetHealth(int v) { SaveStore.SetInt("health", v); InvalidateTradeCaches(); }
+    internal static void SetMood(int v) { SaveStore.SetInt("mood", v); InvalidateTradeCaches(); }
+    internal static void SetClean(int v) { SaveStore.SetInt("clean", v); InvalidateTradeCaches(); }
+    internal static void SetSleep(int v) { SaveStore.SetInt("sleep", v); InvalidateTradeCaches(); }
+    internal static void SetSocial(int v) { SaveStore.SetInt("social", v); InvalidateTradeCaches(); }
 
     internal static void PostfixOnDayStart()
     {
@@ -145,6 +146,8 @@ internal static partial class SurvivalFood
 
             // 10-10 #43：状态客户集合随档清理（权威日切=StoreEventManager.OnDayStart Postfix——SurvivalStatusClients.ClearStatusClients；readonly 集合 .Clear() 两处）
             ClearStatusClients();
+            // 10-13 Step2（P0）：日切刷新交易缓存（放 #43 清理之后——时序约束：先清集合再失效缓存，面板刷新时全新状态）
+            InvalidateTradeCaches();
 
             // 刷新状态面板
             RefreshStatusPanel();
