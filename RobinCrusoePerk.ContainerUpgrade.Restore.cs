@@ -90,6 +90,13 @@ internal static partial class RobinCrusoePerk
                     if (item == null) continue;
                     try
                     {
+                        // 10-13 Step4①②：黑金独立身份（WBG_BOX_TAG/identifier）→ 清妙妙箱三 tag（防恢复链"照顾"黑金
+                        //   + 防补发第二箱）+ 跳过全部妙妙箱恢复路径（含前置 GetHiddenStageByIndex/GetStagePersist——先于 IsWageBox）
+                        if (ContainerUpgradeV2.IsBlackGoldBox(item))
+                        {
+                            try { item.DisableTag("wb_stage"); item.DisableTag("wb_progress"); item.DisableTag("wb_second_given"); } catch { }
+                            continue;
+                        }
                         // 09-14 位置方案：hiddenElement（海报后边）物品按索引 PlayerPrefs 强恢复（tag 全丢无法识别）
                         int _hidx = ContainerUpgradeV2.FindBoxInHidden(item);
                         int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
@@ -127,6 +134,12 @@ internal static partial class RobinCrusoePerk
         try
         {
             if (__instance == null) return;
+            // 10-13 Step4①②：黑金独立身份 → 清三 tag + 跳过全部妙妙箱恢复路径（含前置 GetHiddenStageByIndex/GetStagePersist）
+            if (ContainerUpgradeV2.IsBlackGoldBox(__instance))
+            {
+                try { __instance.DisableTag("wb_stage"); __instance.DisableTag("wb_progress"); __instance.DisableTag("wb_second_given"); } catch { }
+                return;
+            }
             // 09-14 位置方案：海报后边 hiddenElement 物品 tag 全丢 → 按索引 PlayerPrefs 强恢复（优先于 IsWageBox）
             try
             {

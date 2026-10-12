@@ -51,7 +51,15 @@ partial class ContainerUpgradeV2
                     var it = inv.childItems[i];
                     if (it == null) continue;
                     if (!visited.Contains(it.Pointer)) visited.Add(it.Pointer);
-                    if (IsWageBox(it)) ConsumeNutsInBox(it);
+                    if (IsWageBox(it))
+                    {
+                        ConsumeNutsInBox(it);
+                        // 10-13 Step3：存档时刻按箱体当前实际网格反推段位，无条件刷新持久化键（写键真值=inventoryShape，
+                        //   禁抄 GetStagePersist 旧值——那是"升级那一刻 loc+idx"的失配源；挪箱/增删物品后旧键错位→读档回退）
+                        int curStage = StageFromGrid(it);
+                        if (curStage >= 0) SetStagePersist(it, curStage);
+                        RefreshSecondGivenPersist(it); // 同型漂移键：wb_second_given_{loc}_{idx} 随位置迁移（防第二箱重复补发）
+                    }
                     // 递归进容器内部
                     var inner = GetContainerGrid(it);
                     if (inner != null && !visited.Contains(inner.Pointer)) { visited.Add(inner.Pointer); stack.Push(inner); }
@@ -191,5 +199,66 @@ partial class ContainerUpgradeV2
             return null;
         }
         catch { return null; }
+    }
+
+    // 10-13 Step3：按箱体当前内部网格（inventoryShape）反推段位（WAGE_BOX_W/H 表精确匹配；
+    //   异常网格取不超过当前宽高的最大段位，防降级）。-1=无法反推（非妙妙箱网格）。
+    private static int StageFromGrid(GameItem box)
+    {
+        try
+        {
+            var grid = GetContainerGrid(box);
+            if (grid == null) return -1;
+            int w = 0, h = 0;
+            GetShapeWH(grid, ref w, ref h);
+            if (w <= 0 || h <= 0) return -1;
+            for (int k = 0; k <= MAX_STAGE; k++)
+                if (w == WAGE_BOX_W[k] && h == WAGE_BOX_H[k]) return k;
+            int best = 0;
+            for (int k = 1; k <= MAX_STAGE; k++)
+                if (WAGE_BOX_W[k] <= w && WAGE_BOX_H[k] <= h) best = k;
+            return best;
+        }
+        catch { return -1; }
+    }
+
+    // 10-13 Step3：wb_second_given_{loc}_{idx} 随档位置键同步——当前键无记录但六库存存在旧键>0（挪箱/增删物品后）
+    //   → 迁移到当前键并清旧键（防位置错位后第二箱防重失效→重复补发）
+    private static void RefreshSecondGivenPersist(GameItem box)
+    {
+        try
+        {
+            string curKey = SecondGivenLocKey(box);
+            if (curKey == null) return;
+            if (WageSaveStore.GetInt("SurvivalGlobal", curKey, 0) > 0) return; // 当前键已标记
+            var e = EmporiumEntry.Instance;
+            if (e == null) return;
+            GameInventory[] invs = new GameInventory[] {
+                e.backInvinvElement as GameInventory,
+                e.backInvinvElementCounter as GameInventory,
+                e.showcaseElement as GameInventory,
+                e.invElement as GameInventory,
+                e.frontInvinvElement as GameInventory,
+                e.hiddenElement as GameInventory,
+            };
+            foreach (var inv in invs)
+            {
+                string loc = LocKeyOf(inv);
+                if (loc == null) continue;
+                for (int idx = 0; idx < inv.childItems.Count; idx++)
+                {
+                    if (inv.childItems[idx] == null) continue;
+                    string k = "wb_second_given_" + loc + "_" + idx;
+                    if (k == curKey) continue;
+                    if (WageSaveStore.GetInt("SurvivalGlobal", k, 0) > 0)
+                    {
+                        WageSaveStore.SetInt("SurvivalGlobal", curKey, 1); // 迁移到当前位置
+                        WageSaveStore.SetInt("SurvivalGlobal", k, 0);      // 清旧键
+                        return;
+                    }
+                }
+            }
+        }
+        catch { }
     }
 }

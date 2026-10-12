@@ -30,16 +30,31 @@ partial class ContainerUpgradeV2
     // 10-08 拆包 AI A3 误命中实锤：黑金典藏箱（wage_blackgold_box 独立 mod）打 CUSTOM_STORAGE_TAG 防"拖 junk 宽+1"劫持，
     //   但被本判定识别为妙妙箱 → 妙妙箱恢复链把黑金内部网格 20×20 改 52×10（容量破坏）+ 可能补发第二个妙妙箱。
     //   修复：黑金 identifier 精确排除（黑金保留 tag 防劫持 + 恢复链不再误命中；妙妙箱/原版箱不受影响）。
+    // 10-13 Step4④：读档后场景物品 tag/identifier 全丢（拆包实锤）→ identifier 排除失效场景，WBG_BOX_TAG 独立随档身份兜底
     public static bool IsWageBox(GameItem item)
     {
         try
         {
             if (item == null) return false;
             if ((item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box") return false; // 10-08 黑金排除
+            if (item.IsTag("WBG_BOX_TAG")) return false; // 10-13 黑金独立随档身份（identifier 丢场景兜底）
             if (item.IsTag("CUSTOM_STORAGE_TAG")) return true;
             if (item.IsTag("WAGE_BOX_TAG")) return true; // 09-14 场景读档：CSTAG 丢但升级 tag 随档 → 专属标记识别
             if (item.IsTag("wage_box_type")) return true; // 09-14 带值 tag（用原生 IsTag——HasTag=GetTagReadonly!=null 对不存在 tag 恒 True，骰子/所有物品误判成蛙哥箱）
             return (item.identifier ?? "").ToLowerInvariant() == "custom_storage_box";
+        }
+        catch { return false; }
+    }
+
+    // 10-13 Step4①④：黑金独立判定（WBG_BOX_TAG 优先，identifier 兜底）——妙妙箱恢复链前置路径（GetHiddenStageByIndex/GetStagePersist
+    //   先于 IsWageBox 执行）用它排除黑金，不依赖 CUSTOM_STORAGE_TAG（黑金也打该 tag，会误命中）
+    public static bool IsBlackGoldBox(GameItem item)
+    {
+        try
+        {
+            if (item == null) return false;
+            if (item.IsTag("WBG_BOX_TAG")) return true;
+            return (item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box";
         }
         catch { return false; }
     }
@@ -50,6 +65,7 @@ partial class ContainerUpgradeV2
         {
             if (item == null) return false;
             if ((item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box") return false; // 10-08 黑金排除（固定 20×20，禁止 junk 宽+1 劫持）
+            if (item.IsTag("WBG_BOX_TAG")) return false; // 10-13 黑金独立随档身份（identifier 丢场景兜底）
             if (!BuildConfig.ContainerUpgradeEnabled) return false; // 09-20 CFG 关 → 不升级
             if (IsExcludedContainer(item)) return false; // 09-13：文档箱/工具箱/收音机不参与升级
             if (item.IsTag("VOID_BEAD_TAG") || IsWageBox(item)) return false; // 妙妙箱走独立螺丝升级链，不走鲁滨逊 junk 升级
