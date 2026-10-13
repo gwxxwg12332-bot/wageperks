@@ -448,22 +448,33 @@ internal static class B2WildPanel
     }
 
     // ================= ④ 动态克隆元素（网络面板静态 31 槽，注入不自动渲染） =================
+    // FIX3（2026-10-14）：networkElements List 实测为空（拆包 C5 .ctor new 空 List 实锤，prefab 拖拽仅是推断）
+    //   → 原版 31 条 = panel 子树下的 prefab 静态元素，不在 List 里；分流/克隆必须 GetComponentsInChildren 扫子树
+    //   → OpenUI 调用时元素可能尚未就绪，延迟 0.5s 再执行（等 prefab 反序列化/填充完成）
     public static void PostfixOpenUI(WildUIManager __instance)
     {
+        try { MelonCoroutines.Start(ApplyWageModeDelayed(__instance)); }
+        catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 启动延迟分流异常: " + ex.Message); }
+    }
+
+    private static System.Collections.IEnumerator ApplyWageModeDelayed(WildUIManager ui)
+    {
+        yield return new WaitForSeconds(0.5f); // 等 panel 子树元素就绪（OpenUI 调用时 List/子树可能仍空）
         try
         {
-            EnsureElements(__instance);
-            ApplyWageMode(__instance); // B2-R2：蛙哥/王尔德分流（标题+元素显隐）
+            EnsureElements(ui);
+            ApplyWageMode(ui);
         }
-        catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 克隆异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 延迟分流异常: " + ex.Message); }
     }
 
     private static void EnsureElements(WildUIManager ui)
     {
-        if (ui == null || ui.networkElements == null) return;
         if (_cloned) return;
-        if (ui.networkElements.Count == 0) return;
-        var tpl = ui.networkElements[0];
+        if (ui == null || ui.panel == null) return;
+        var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+        if (all == null || all.Length == 0) { Core.LogMsg("[B2R] 未找到任何 NetworkElement（子树无模板，跳过克隆）"); return; }
+        var tpl = all[0];
         if (tpl == null || tpl.gameObject == null) return;
         Transform parent = tpl.gameObject.transform.parent;
         if (parent == null) return;
@@ -487,12 +498,11 @@ internal static class B2WildPanel
                         (System.Action)(() => WildUIManager.Instance.OnElementClicked(capturedId))));
                 }
                 go.SetActive(true);
-                ui.networkElements.Add(el);
             }
             catch (Exception ex) { Core.LogMsg("[B2R] 克隆元素失败 " + e.Id + ": " + ex.Message); }
         }
         _cloned = true;
-        Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到 networkElements");
+        Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到面板子树（模板=子树首个 NetworkElement）");
     }
 
     // ================= ⑤ 蛙哥电话 1005 =================
@@ -626,11 +636,14 @@ internal static class B2WildPanel
 
     // 蛙哥化面板分流：OpenUI Postfix 应用——蛙哥=标题「蛙哥人脉网络」+只显示 b2_ 22 条；
     // 王尔德路径=原样（原版31显示 + b2_22隐藏，防混排污染）
+    // FIX3：不再遍历 networkElements List（实测空），改扫 panel 子树全部 NetworkElement（原版 31 + 克隆 22）
     private static void ApplyWageMode(WildUIManager ui)
     {
-        if (ui == null || ui.networkElements == null) return;
-        int b2Count = 0, total = ui.networkElements.Count;
-        foreach (var el in ui.networkElements)
+        if (ui == null || ui.panel == null) { Core.LogMsg("[B2R] 分流跳过（panel 为空）"); return; }
+        var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+        if (all == null || all.Length == 0) { Core.LogMsg("[B2R] 分流跳过（子树无 NetworkElement）"); return; }
+        int b2Count = 0, total = all.Length;
+        foreach (var el in all)
         {
             if (el == null || el.gameObject == null) continue;
             bool isB2 = el.id != null && el.id.StartsWith(PREFIX);
@@ -663,6 +676,7 @@ internal static class B2WildPanel
             }
             if (ui.panel == null) return;
             var comps = ui.panel.gameObject.GetComponentsInChildren<Component>(true); // Patches.World.cs:143 同款
+            Il2CppTMPro.TextMeshProUGUI fallback = null;
             foreach (var c in comps)
             {
                 if (c == null) continue;
@@ -673,21 +687,30 @@ internal static class B2WildPanel
                     || ReferenceEquals(tmp, ui.cooldown) || ReferenceEquals(tmp, ui.cost) || ReferenceEquals(tmp, ui.alreadyMessageTMP)) continue;
                 // 排除网络元素内部的 TMP（22 克隆 + 原版 31 各自详情）
                 bool inElement = false;
-                foreach (var el in ui.networkElements)
+                var elements = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+                foreach (var el in elements)
                 {
                     if (el == null || el.gameObject == null) continue;
                     if (tmp.gameObject.transform.IsChildOf(el.gameObject.transform)) { inElement = true; break; }
                 }
                 if (inElement) continue;
-                // 顶部标题 = 剩余 TMP 中屏幕位置最靠上（y 最大）——顶部标题在面板顶，信用点/恩惠标签在其下方
-                if (_headerTmp == null || tmp.transform.position.y > _headerTmp.transform.position.y)
+                // FIX3：优先文本匹配原版顶部标题（「王尔德的人脉网络」/ 含 "Network"）——y 最大法会选到隐藏/无关 TMP
+                string t = tmp.text ?? "";
+                if (t.Contains("人脉网络") || t.Contains("Network"))
+                {
                     _headerTmp = tmp;
+                    break;
+                }
+                // 兜底：y 最大（屏幕位置最靠上）
+                if (fallback == null || tmp.transform.position.y > fallback.transform.position.y)
+                    fallback = tmp;
             }
+            if (_headerTmp == null) _headerTmp = fallback;
             _headerSearched = true;
             if (_headerTmp != null)
             {
                 _headerTmp.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
-                Core.LogMsg("[B2R] 顶部标题已替换为「蛙哥人脉网络」");
+                Core.LogMsg("[B2R] 顶部标题已替换为「蛙哥人脉网络」（" + (_headerTmp.text ?? "") + "）");
             }
             else
             {
