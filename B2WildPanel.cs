@@ -513,7 +513,7 @@ internal static class B2WildPanel
         var pc = new StorePhoneClient();
         pc.phoneClientType = StorePhoneClient.PhoneClientType.Supplier;
         pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
-        pc.displayName = LangHelper.T("蛙哥", "Wage Brother");
+        pc.displayName = LangHelper.T("蛙娘", "Wage Brother"); // 2026-10-14 显示名纠正：蛙哥→蛙娘
         pc.locID = "";
         pc.dialogFuncId = WAGE_DIALOG_ID; // B2-R2：走蛙哥对话链（GetCallDialog 按 dialogFuncId 查 DialogFuncs）
         pc.cooldownDuration = 0;
@@ -645,9 +645,63 @@ internal static class B2WildPanel
             bool isB2 = el.id != null && el.id.StartsWith(PREFIX);
             el.gameObject.SetActive(_wageMode ? isB2 : !isB2);
         }
-        if (_wageMode && ui.title != null)
-            ui.title.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+        if (_wageMode)
+        {
+            if (ui.title != null)
+                ui.title.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network"); // 右侧详情槽（打开瞬间）
+            ApplyWageHeader(ui); // 顶部页面标题（prefab 静态 TMP，运行时遍历替换——拆包 B2-R2-H3 C1）
+        }
         Core.LogMsg("[B2R] 面板模式: " + (_wageMode ? "蛙哥（22条）" : "王尔德（原样）"));
+    }
+
+    // 顶部页面标题：无代码挂点（拆包 C1 实锤——WildUIManager 方法表全无 Find，OpenUI/CloseUI 不重置该 TMP）
+    // 运行时遍历 panel 子树找最靠上的非详情/非元素 TMP → SetText；改一次存活，缓存引用
+    private static Il2CppTMPro.TextMeshProUGUI _headerTmp = null;
+    private static bool _headerSearched = false;
+    private static void ApplyWageHeader(WildUIManager ui)
+    {
+        try
+        {
+            if (_headerSearched && _headerTmp == null) return; // 已搜过没找到，不再搜
+            if (_headerTmp != null)
+            {
+                _headerTmp.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+                return;
+            }
+            if (ui.panel == null) return;
+            var comps = ui.panel.gameObject.GetComponentsInChildren<Component>(true); // Patches.World.cs:143 同款
+            foreach (var c in comps)
+            {
+                if (c == null) continue;
+                var tmp = c.TryCast<Il2CppTMPro.TextMeshProUGUI>();
+                if (tmp == null) continue;
+                // 排除右侧详情 6 字段（D6 实锤：title/subtitle/description/cooldown/cost/alreadyMessageTMP）
+                if (ReferenceEquals(tmp, ui.title) || ReferenceEquals(tmp, ui.subtitle) || ReferenceEquals(tmp, ui.description)
+                    || ReferenceEquals(tmp, ui.cooldown) || ReferenceEquals(tmp, ui.cost) || ReferenceEquals(tmp, ui.alreadyMessageTMP)) continue;
+                // 排除网络元素内部的 TMP（22 克隆 + 原版 31 各自详情）
+                bool inElement = false;
+                foreach (var el in ui.networkElements)
+                {
+                    if (el == null || el.gameObject == null) continue;
+                    if (tmp.gameObject.transform.IsChildOf(el.gameObject.transform)) { inElement = true; break; }
+                }
+                if (inElement) continue;
+                // 顶部标题 = 剩余 TMP 中屏幕位置最靠上（y 最大）——顶部标题在面板顶，信用点/恩惠标签在其下方
+                if (_headerTmp == null || tmp.transform.position.y > _headerTmp.transform.position.y)
+                    _headerTmp = tmp;
+            }
+            _headerSearched = true;
+            if (_headerTmp != null)
+            {
+                _headerTmp.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+                Core.LogMsg("[B2R] 顶部标题已替换为「蛙哥人脉网络」");
+            }
+            else
+            {
+                Core.LogMsg("[B2R] 未找到顶部标题 TMP（面板结构不符预期，仅右侧 title 槽生效）");
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 顶部标题替换异常: " + ex.Message); }
     }
 
     public static void PostfixCloseUI()
