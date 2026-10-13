@@ -804,19 +804,10 @@ internal static class WageBrother
     }
 
     // 服务卡双击 Prefix（OpenContentAction 识别 wage_bro_card）
-    // 10-13 B2：双击 → 蛙哥服务面板（购买/升级/消除 + 吞噬季 + 消业障入口）
+    // 10-14 B2-R：移除自建服务面板入口，服务卡双击恢复原生打开（查看服务改走电话 1005 → 原生面板）
     internal static bool PrefixDoubleClickAction(Il2Cpp.GameItem newItem, UnityEngine.Vector2 mousePosition)
     {
-        try
-        {
-            GameItem item = newItem; if (item == null) return true;
-            bool isCard = false; try { isCard = item.IsTag("wage_bro_card"); } catch { }
-            if (!isCard) return true; // 不是服务卡，放行原生
-            if (PlayerStore.Instance == null) return false;
-            B2ServicePanel.ShowPanel();
-            return false; // 拦截原生打开
-        }
-        catch { return true; }
+        return true; // 全部放行原生（B2-R 不再拦截）
     }
 
     // 10-03 诊断辅助：安全读标签

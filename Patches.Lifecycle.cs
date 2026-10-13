@@ -534,6 +534,9 @@ internal static partial class Patches
 	{
 		try { CustomStartingPerks.NotifyGameLoaded(); }
 		catch (System.Exception ex2) { Core.LogMsg("[SaveStore] OnGameLoaded 驱动失败: " + ex2.Message); }
+		// 10-14 B2-R：读档兜底——ES3 反序列化 0x150 可能重建字典，缺 b2_ 条目则补注入+UnlockActions（幂等）
+		try { B2WildPanel.EnsureInjected(); }
+		catch (System.Exception ex3) { Core.LogMsg("[B2R] 读档兜底注入异常: " + ex3.Message); }
 		// 09-26 防御重洗白：读档数据就绪后扫全店，已洗白物品若恢复违禁 tag 则重新洗白
 		try
 		{
