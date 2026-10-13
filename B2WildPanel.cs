@@ -654,4 +654,23 @@ internal static class B2WildPanel
     {
         _wageMode = false; // 关闭面板复位分流标记（防下次王尔德路径被污染）
     }
+
+    // ================= ⑦ 来电 name 行本地化兜底（B2-R2-H2） =================
+    // 拆包实锤（B2-R2-H2-D）：通话 name 行=GetLocalizedDisplayName()=GetLocalizedClientName(locID) 查 ClientName 共享表；
+    //   蛙哥 locID="" → 表内无 "" 条目 → Unity 回显 "in ClientName" 错误。电话簿+通话 name 行都走此方法 → 修一处全覆盖。
+    // 方案 B（最稳）：空 locID → fallback displayName（蛙哥 displayName="蛙哥" 已就绪，零新增数据；其余客户 locID 非空 → 放行原版）
+    public static bool PrefixGetLocalizedDisplayName(StorePhoneClient __instance, ref string __result)
+    {
+        try
+        {
+            if (__instance == null) return true;
+            if (string.IsNullOrEmpty(__instance.locID))
+            {
+                __result = string.IsNullOrEmpty(__instance.displayName) ? "" : __instance.displayName;
+                return false;
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] GetLocalizedDisplayName 拦截异常: " + ex.Message); }
+        return true;
+    }
 }
