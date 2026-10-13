@@ -581,6 +581,8 @@ internal static class B2WildPanel
     }
 
     // 构建蛙哥对话：主台词 + 2 选项（查看服务/再见）
+    // B2-R2-D 实锤修正：AddChoice 的 name 参数电话 UI 不显示——选项文本=choiceNextDialogue.plainText（DisplayChoice :1908-1917）；
+    //   王尔德选项=choiceAction+choiceNextDialogue 双绑（SelectChoice 两条同步执行 :2168-2404）→ 每个选项必须绑 PLAYER 台词对话
     private static Il2Cpp.Dialogue BuildWageBrotherDialogue(Il2Cpp.StorePhoneClient client)
     {
         try
@@ -591,27 +593,41 @@ internal static class B2WildPanel
                 LangHelper.T("这里是蛙哥。需要查看服务、购买特性，还是调整吞噬季？",
                              "This is Wage Brother. Need services, perks, or cannibalism settings?"));
             var icon = Il2Cpp.DirectoryMaster.Item("$", true); // 王尔德同款钱币图标（Item(string,bool) 实锤签名）
-            // 选项A：查看服务 → 打开蛙哥人脉网络面板（王尔德 b__0 同款链路：OpenUI+CloseUI+OnPhoneDialogEnd(0)）
+            // 选项A：查看服务 → PLAYER 台词「查看服务」（选项文本来源）→ 推进 → 蛙哥台词3 → endAction 打开蛙哥人脉网络
+            //   （王尔德 b__0 同款：choiceAction 构建 next 链 + SetEndAction(OpenUI) 在对话推进时触发）
+            var playDlgA = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("查看服务", "View services"));
             var openAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
             {
                 try
                 {
                     _wageMode = true;
-                    var wui = WildUIManager.Instance;
-                    if (wui != null) wui.OpenUI(false);
-                    try { PhoneUIManager.Instance.CloseUI(); } catch { }
-                    try { PhoneUIManager.Instance.OnPhoneDialogEnd(false); } catch { }
-                    Core.LogMsg("[B2R] 查看服务 → 打开蛙哥人脉网络");
+                    var dlg3 = new Il2Cpp.Dialogue().SetText(
+                        LangHelper.T("蛙哥", "Wage Brother"),
+                        LangHelper.T("好的，人脉网络马上打开。", "Sure, opening the network now."));
+                    dlg3.SetEndAction(DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                    {
+                        try
+                        {
+                            var wui = WildUIManager.Instance;
+                            if (wui != null) wui.OpenUI(false);
+                            try { PhoneUIManager.Instance.CloseUI(); } catch { }
+                            try { PhoneUIManager.Instance.OnPhoneDialogEnd(false); } catch { }
+                            Core.LogMsg("[B2R] 查看服务 → 打开蛙哥人脉网络");
+                        }
+                        catch (Exception ex) { Core.LogMsg("[B2R] 打开面板异常: " + ex.Message); }
+                    })));
+                    playDlgA.SetNextDialogue(dlg3); // 链：PLAYER台词 → 蛙哥台词3 → endAction(OpenUI)
                 }
-                catch (Exception ex) { Core.LogMsg("[B2R] 查看服务动作异常: " + ex.Message); }
+                catch (Exception ex) { Core.LogMsg("[B2R] 查看服务链异常: " + ex.Message); }
             }));
-            main.AddChoice(icon, LangHelper.T("查看服务", "View services"), "", null, openAct, null);
-            // 选项B：再见 → 挂断（王尔德 b__1 同款：OnPhoneDialogEnd(1)）
+            main.AddChoice(icon, "", "", playDlgA, openAct, null);
+            // 选项B：再见 → PLAYER 台词「再见」+ 挂断（王尔德 b__1 同款：OnPhoneDialogEnd(1)）
+            var playDlgB = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("再见", "Goodbye"));
             var hangAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
             {
                 try { PhoneUIManager.Instance.OnPhoneDialogEnd(true); } catch { }
             }));
-            main.AddChoice(icon, LangHelper.T("再见", "Goodbye"), "", null, hangAct, null);
+            main.AddChoice(icon, "", "", playDlgB, hangAct, null);
             return main;
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 对话构建异常: " + ex.Message); }
