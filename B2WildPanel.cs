@@ -494,23 +494,40 @@ internal static class B2WildPanel
     // 注册：电话簿直接可见（state=4 + dialedBefore=true，胡安解锁态蓝本）
     public static void PostfixInitPhoneClientDict(Il2CppSystem.Collections.Generic.Dictionary<long, StorePhoneClient> __result)
     {
+        try { EnsurePhoneRegistered(__result); }
+        catch (Exception ex) { Core.LogMsg("[B2R] 电话注册异常: " + ex.Message); }
+    }
+
+    // 幂等注册（ContainsKey 防重）：新档走 InitPhoneClientDict Postfix；旧档走 OnStoreGameLoaded 兜底
+    // 拆包实锤（DB-PHONE-01 C2）：InitPhoneClientDict 全库仅 1 调用=StartNewGame（PlayerStore.txt:2080），
+    //   读档不重建 PhoneClientDict（整对象 ES3 随档恢复）→ 旧档缺蛙哥 1005，必须读档后补注册
+    internal static void EnsurePhoneRegistered(Il2CppSystem.Collections.Generic.Dictionary<long, StorePhoneClient> dict)
+    {
+        if (dict == null) return;
+        if (dict.ContainsKey(WAGE_PHONE_NUMBER)) return; // 幂等
+        var pc = new StorePhoneClient();
+        pc.phoneClientType = StorePhoneClient.PhoneClientType.Supplier;
+        pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
+        pc.displayName = LangHelper.T("蛙哥", "Wage Brother");
+        pc.locID = "";
+        pc.dialogFuncId = "";
+        pc.cooldownDuration = 0;
+        pc.currentCooldown = 0;
+        pc.dialedBefore = true; // 直接可拨（无需先到店）
+        dict.Add(WAGE_PHONE_NUMBER, pc);
+        Core.LogMsg("[B2R] 蛙哥电话 1005 已注册（电话簿直接可见）");
+    }
+
+    // 读档兜底：OnStoreGameLoaded 时从已加载的 PhoneClientDict 实例上补注册（B2-R-H1）
+    internal static void EnsurePhoneRegistered()
+    {
         try
         {
-            if (__result == null) return;
-            if (__result.ContainsKey(WAGE_PHONE_NUMBER)) return;
-            var pc = new StorePhoneClient();
-            pc.phoneClientType = StorePhoneClient.PhoneClientType.Supplier;
-            pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
-            pc.displayName = LangHelper.T("蛙哥", "Wage Brother");
-            pc.locID = "";
-            pc.dialogFuncId = "";
-            pc.cooldownDuration = 0;
-            pc.currentCooldown = 0;
-            pc.dialedBefore = true; // 直接可拨（无需先到店）
-            __result.Add(WAGE_PHONE_NUMBER, pc);
-            Core.LogMsg("[B2R] 蛙哥电话 1005 已注册（电话簿直接可见）");
+            var ps = PlayerStore.Instance;
+            if (ps == null) return;
+            EnsurePhoneRegistered(ps.PhoneClientDict);
         }
-        catch (Exception ex) { Core.LogMsg("[B2R] 电话注册异常: " + ex.Message); }
+        catch (Exception ex) { Core.LogMsg("[B2R] 读档电话兜底异常: " + ex.Message); }
     }
 
     // 拨号拦截：1005 拨通 → 直接打开原生查看服务面板（对话选项方案留待玩家反馈后迭代）
