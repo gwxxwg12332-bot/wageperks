@@ -450,7 +450,12 @@ internal static class B2WildPanel
     // ================= ④ 动态克隆元素（网络面板静态 31 槽，注入不自动渲染） =================
     public static void PostfixOpenUI(WildUIManager __instance)
     {
-        try { EnsureElements(__instance); } catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 克隆异常: " + ex.Message); }
+        try
+        {
+            EnsureElements(__instance);
+            ApplyWageMode(__instance); // B2-R2：蛙哥/王尔德分流（标题+元素显隐）
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 克隆异常: " + ex.Message); }
     }
 
     private static void EnsureElements(WildUIManager ui)
@@ -510,12 +515,13 @@ internal static class B2WildPanel
         pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
         pc.displayName = LangHelper.T("蛙哥", "Wage Brother");
         pc.locID = "";
-        pc.dialogFuncId = "";
+        pc.dialogFuncId = WAGE_DIALOG_ID; // B2-R2：走蛙哥对话链（GetCallDialog 按 dialogFuncId 查 DialogFuncs）
         pc.cooldownDuration = 0;
         pc.currentCooldown = 0;
         pc.dialedBefore = true; // 直接可拨（无需先到店）
         dict.Add(WAGE_PHONE_NUMBER, pc);
         Core.LogMsg("[B2R] 蛙哥电话 1005 已注册（电话簿直接可见）");
+        RegisterWageBrotherDialog(); // B2-R2：同步注册对话工厂
     }
 
     // 读档兜底：OnStoreGameLoaded 时从已加载的 PhoneClientDict 实例上补注册（B2-R-H1）
@@ -530,19 +536,106 @@ internal static class B2WildPanel
         catch (Exception ex) { Core.LogMsg("[B2R] 读档电话兜底异常: " + ex.Message); }
     }
 
-    // 拨号拦截：1005 拨通 → 直接打开原生查看服务面板（对话选项方案留待玩家反馈后迭代）
+    // 拨号拦截：1005 走原版对话链（dialogFuncId="WageBrother" → DialogFuncs）；仅当对话工厂注册失败时回退直开面板
     public static bool PrefixStartPhoneDialog(long currentNumber)
     {
         try
         {
-            if (currentNumber != WAGE_PHONE_NUMBER) return true; // 放行其他号码
+            if (currentNumber != WAGE_PHONE_NUMBER) return true; // 放行其他号码（含王尔德 8376）
+            var dict = Il2Cpp.PhoneClientList.DialogFuncs;
+            if (dict != null && dict.ContainsKey(WAGE_DIALOG_ID)) return true; // 对话就绪 → 放行原版 GetCallDialog
+            // 兜底：对话未注册（异常/为空）→ 直开面板（B2-R 老行为）
+            Core.LogMsg("[B2R] 蛙哥对话未注册，回退直开面板（1005）");
             var wui = WildUIManager.Instance;
             if (wui == null) { Core.LogMsg("[B2R] WildUIManager 为空，无法打开面板"); return false; }
             try { PhoneUIManager.Instance.StopCall(); } catch { }
+            _wageMode = true;
             wui.OpenUI(false);
-            Core.LogMsg("[B2R] 蛙哥电话 1005 拨通 → 打开原生查看服务面板");
+            Core.LogMsg("[B2R] 蛙哥电话 1005 拨通（兜底）→ 打开原生查看服务面板");
             return false; // 拦原版对话
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 拨号拦截异常: " + ex.Message); return true; }
+    }
+
+    // ================= ⑥ 蛙哥电话对话链 + 面板蛙哥化（B2-R2） =================
+    // 拆包蓝本：王尔德 PhoneWild（PhoneDialogList.txt:965-1433）——主对话 SetText(说话人,台词) +
+    //   AddChoice×2（图标 DirectoryMaster.Item("$",1)）；选项 Action=end-action：
+    //   「浏览服务」b__0=OpenUI+CloseUI+OnPhoneDialogEnd(0)（WildUIManager.txt:400-433）／「挂断」b__1=OnPhoneDialogEnd(1)
+    // DialogFuncs 分发（DB-PHONE-01 P1）：GetCallDialog 按 dialogFuncId 查 DialogFuncs 静态字典（PhoneClientList .cctor 建）
+    private const string WAGE_DIALOG_ID = "WageBrother";
+    private static bool _wageMode = false; // 蛙哥面板分流标记（防污染王尔德路径）
+
+    // 注册对话工厂（幂等 ContainsKey）；EnsurePhoneRegistered 里已调
+    internal static void RegisterWageBrotherDialog()
+    {
+        try
+        {
+            var dict = Il2Cpp.PhoneClientList.DialogFuncs;
+            if (dict == null) { Core.LogMsg("[B2R] DialogFuncs 为空，对话注册跳过"); return; }
+            if (dict.ContainsKey(WAGE_DIALOG_ID)) return; // 幂等
+            var sysFunc = new System.Func<Il2Cpp.StorePhoneClient, Il2Cpp.Dialogue>(BuildWageBrotherDialogue);
+            dict.Add(WAGE_DIALOG_ID, DelegateSupport.ConvertDelegate<Il2CppSystem.Func<Il2Cpp.StorePhoneClient, Il2Cpp.Dialogue>>((System.Delegate)sysFunc));
+            Core.LogMsg("[B2R] DialogFuncs[\"WageBrother\"] 已注册（蛙哥电话对话链）");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 对话注册异常: " + ex.Message); }
+    }
+
+    // 构建蛙哥对话：主台词 + 2 选项（查看服务/再见）
+    private static Il2Cpp.Dialogue BuildWageBrotherDialogue(Il2Cpp.StorePhoneClient client)
+    {
+        try
+        {
+            var main = new Il2Cpp.Dialogue();
+            main.SetText(
+                LangHelper.T("蛙哥", "Wage Brother"),
+                LangHelper.T("这里是蛙哥。需要查看服务、购买特性，还是调整吞噬季？",
+                             "This is Wage Brother. Need services, perks, or cannibalism settings?"));
+            var icon = Il2Cpp.DirectoryMaster.Item("$", true); // 王尔德同款钱币图标（Item(string,bool) 实锤签名）
+            // 选项A：查看服务 → 打开蛙哥人脉网络面板（王尔德 b__0 同款链路：OpenUI+CloseUI+OnPhoneDialogEnd(0)）
+            var openAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+            {
+                try
+                {
+                    _wageMode = true;
+                    var wui = WildUIManager.Instance;
+                    if (wui != null) wui.OpenUI(false);
+                    try { PhoneUIManager.Instance.CloseUI(); } catch { }
+                    try { PhoneUIManager.Instance.OnPhoneDialogEnd(false); } catch { }
+                    Core.LogMsg("[B2R] 查看服务 → 打开蛙哥人脉网络");
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 查看服务动作异常: " + ex.Message); }
+            }));
+            main.AddChoice(icon, LangHelper.T("查看服务", "View services"), "", null, openAct, null);
+            // 选项B：再见 → 挂断（王尔德 b__1 同款：OnPhoneDialogEnd(1)）
+            var hangAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+            {
+                try { PhoneUIManager.Instance.OnPhoneDialogEnd(true); } catch { }
+            }));
+            main.AddChoice(icon, LangHelper.T("再见", "Goodbye"), "", null, hangAct, null);
+            return main;
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 对话构建异常: " + ex.Message); }
+        return new Il2Cpp.Dialogue(); // 异常兜底：空对话（原版 BugDialog 兜底链仍生效）
+    }
+
+    // 蛙哥化面板分流：OpenUI Postfix 应用——蛙哥=标题「蛙哥人脉网络」+只显示 b2_ 22 条；
+    // 王尔德路径=原样（原版31显示 + b2_22隐藏，防混排污染）
+    private static void ApplyWageMode(WildUIManager ui)
+    {
+        if (ui == null || ui.networkElements == null) return;
+        foreach (var el in ui.networkElements)
+        {
+            if (el == null || el.gameObject == null) continue;
+            bool isB2 = el.id != null && el.id.StartsWith(PREFIX);
+            el.gameObject.SetActive(_wageMode ? isB2 : !isB2);
+        }
+        if (_wageMode && ui.title != null)
+            ui.title.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+        Core.LogMsg("[B2R] 面板模式: " + (_wageMode ? "蛙哥（22条）" : "王尔德（原样）"));
+    }
+
+    public static void PostfixCloseUI()
+    {
+        _wageMode = false; // 关闭面板复位分流标记（防下次王尔德路径被污染）
     }
 }
