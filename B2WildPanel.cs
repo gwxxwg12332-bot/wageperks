@@ -91,6 +91,14 @@ internal static class B2WildPanel
             }
             RegisterUnlockActions();
             Core.LogMsg("[B2R] networkUpgrade(0x150) 注入 " + Entries.Length + " 条（21 特性 + 吞噬季）");
+            // FIX3 保险：数据注入若晚于面板打开（极端时序），面板已开时补一次克隆+分流刷新（幂等：_cloned 防重克隆）
+            try
+            {
+                var wui = WildUIManager.Instance;
+                if (wui != null && wui.panel != null && wui.panel.gameObject.activeSelf)
+                    MelonCoroutines.Start(ApplyWageModeDelayed(wui));
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] 注入后面板刷新触发异常: " + ex.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 注入异常: " + ex.Message); }
     }
