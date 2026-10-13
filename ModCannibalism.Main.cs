@@ -37,21 +37,31 @@ internal static partial class ModCannibalism
 	{
 		try
 		{
-			if (!BuildConfig.CannibalismSeasonEnabled)
+			// 10-13 B2 吞噬季独立触发（解除 RiskTaker 绑定）：
+			//   面板购买开启（B2ServiceStore.IsCannibalOwned）→ 按玩家指定日期触发；
+			//   未购买 → 不触发（v1.3.1 封存延续，旧档进行中状态不强制清）。
+			if (!B2ServiceStore.IsCannibalOwned)
 			{
-				// v1.3.1：吞噬季总开关默认关。旧档进行中状态不强制清，仅记一行日志。
-				if (RiskTakerPerk.IsActive())
-				{
-					int numOff = DeterministicSchedule.CurrentDay % BuildConfig.CannibalInterval;
-					if (numOff <= 2) Core.LogMsg("[吞噬季] 已停用（CannibalismSeasonEnabled=false），跳过今日互食");
-				}
+				Core.LogMsg("[吞噬季] 未购买（B2 面板未开启），跳过今日互食");
 				return;
 			}
-			if (!RiskTakerPerk.IsActive())
+			int dayNow = DeterministicSchedule.CurrentDay;
+			int num;
+			if (B2ServiceStore.CannibalMode == 0)
 			{
-				return;
+				// 单次模式：第N天起持续 3 天（num=0 开始提示 / 1-2 互食 / 2 结束提示）
+				int startDay = B2ServiceStore.CannibalDay;
+				if (startDay <= 0 || dayNow < startDay) return;
+				num = dayNow - startDay;
+				if (num > 2) return;
 			}
-			int num = DeterministicSchedule.CurrentDay % BuildConfig.CannibalInterval;
+			else
+			{
+				// 周期模式：每N天自动触发（对齐原版 num 语义）
+				int interval = B2ServiceStore.CannibalInterval > 0 ? B2ServiceStore.CannibalInterval : 10;
+				num = dayNow % interval;
+				if (num > 2) return;
+			}
 			if (num == 0)
 			{
 				string text = LangHelper.T("吞噬季开始：机器里的模组将互相吞噬，持续 3 天", "Cannibalism Season begins: modules in machines will devour each other for 3 days");

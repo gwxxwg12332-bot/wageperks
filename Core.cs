@@ -152,6 +152,12 @@ public class Core : MelonMod
 		}
 		try
 		{
+			// 10-13 B2 蛙哥服务面板：运行时获得路径（一处扩展全链生效——21 白名单 IsActive 全走本入口）
+			//   ① 负面已消除（面板重复购买）→ false（优先于开局已选）
+			//   ② 面板已购（正/零价，B2 owned>=1）→ true
+			//   ③ 否则回退开局 selectedPerks 判定
+			if (B2ServiceStore.IsEliminated(perkId)) return false;
+			if (B2ServiceStore.IsOwned(perkId)) return true;
 			return StartingPerk.IsPerkActive(perkId);
 		}
 		catch

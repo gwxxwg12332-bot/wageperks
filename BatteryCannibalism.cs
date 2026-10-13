@@ -40,8 +40,29 @@ internal static class BatteryCannibalism
 	{
 		try
 		{
-			// 09-21 新增：mod 版自我充能（绕过原生）
+			// 09-21 新增：mod 版自我充能（绕过原生）——独立功能，不随吞噬季门控
 			TrySelfRecharge();
+			// 10-13 B2 吞噬季独立触发：未购买开启 → 电池不互食（防封存机制漏跑）
+			if (!B2ServiceStore.IsCannibalOwned)
+			{
+				return;
+			}
+			// 周期/单次门控：与 ModCannibalism 同判定（电池吞噬跟随吞噬季窗口）
+			int dayNow = DeterministicSchedule.CurrentDay;
+			int dayOff;
+			if (B2ServiceStore.CannibalMode == 0)
+			{
+				int startDay = B2ServiceStore.CannibalDay;
+				if (startDay <= 0 || dayNow < startDay) return;
+				dayOff = dayNow - startDay;
+				if (dayOff > 2) return;
+			}
+			else
+			{
+				int interval = B2ServiceStore.CannibalInterval > 0 ? B2ServiceStore.CannibalInterval : 10;
+				dayOff = dayNow % interval;
+				if (dayOff > 2) return;
+			}
 			System.Collections.Generic.List<GameItem> list = CollectBatteries();
 			if (list == null || list.Count < 2)
 			{

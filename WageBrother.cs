@@ -721,7 +721,7 @@ internal static class WageBrother
     }
 
     // 五势力声望恢复窗口（每势力3000）
-    private static void ShowRepFactionWindow()
+    internal static void ShowRepFactionWindow()
     {
         try
         {
@@ -804,6 +804,7 @@ internal static class WageBrother
     }
 
     // 服务卡双击 Prefix（OpenContentAction 识别 wage_bro_card）
+    // 10-13 B2：双击 → 蛙哥服务面板（购买/升级/消除 + 吞噬季 + 消业障入口）
     internal static bool PrefixDoubleClickAction(Il2Cpp.GameItem newItem, UnityEngine.Vector2 mousePosition)
     {
         try
@@ -812,7 +813,7 @@ internal static class WageBrother
             bool isCard = false; try { isCard = item.IsTag("wage_bro_card"); } catch { }
             if (!isCard) return true; // 不是服务卡，放行原生
             if (PlayerStore.Instance == null) return false;
-            ShowRemovePerkWindow();
+            B2ServicePanel.ShowPanel();
             return false; // 拦截原生打开
         }
         catch { return true; }

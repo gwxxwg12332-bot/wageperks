@@ -7,11 +7,12 @@ namespace WagePerks;
 
 // 王尔德消除更多证据：线人(fixer)行动时额外消除证据
 // 最优雅方案：SecData.OnFixerUsed Postfix，原版执行完后追加效果，不碰原版逻辑
+// 10-13 B2 改名：DisplayName 王尔德之手 → 蛙哥之手（只改文案，PerkId 不动=存档兼容）
 internal sealed class WildeEvidencePerk : CustomStartingPerk
 {
     internal const string PerkId = "王尔德之手";
     internal override string Id => PerkId;
-    internal override string DisplayName => LangHelper.T("王尔德之手", "Wilde's Touch");
+    internal override string DisplayName => LangHelper.T("蛙哥之手", "Wage Brother's Touch");
     internal override string Description => LangHelper.T(
         "线人王尔德手段高明。每次线人行动额外消除证据：证据条-5，每种犯罪记录额外-50。",
         "Fixer Wilde covers tracks. Each fixer action removes extra evidence: evidence bar -5, each crime record -50.");
