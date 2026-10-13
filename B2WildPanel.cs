@@ -593,32 +593,22 @@ internal static class B2WildPanel
                 LangHelper.T("这里是蛙哥。需要查看服务、购买特性，还是调整吞噬季？",
                              "This is Wage Brother. Need services, perks, or cannibalism settings?"));
             var icon = Il2Cpp.DirectoryMaster.Item("$", true); // 王尔德同款钱币图标（Item(string,bool) 实锤签名）
-            // 选项A：查看服务 → PLAYER 台词「查看服务」（选项文本来源）→ 推进 → 蛙哥台词3 → endAction 打开蛙哥人脉网络
-            //   （王尔德 b__0 同款：choiceAction 构建 next 链 + SetEndAction(OpenUI) 在对话推进时触发）
+            // 选项A：查看服务 → 点击即直开面板（王尔德 b__0 蓝本：OpenUI+CloseUI+OnPhoneDialogEnd，零中间对话）
+            //   B2-R2-D 实锤：AddChoice 的 Item3=action 点击同步执行；选项文本=choiceNextDialogue(playDlgA).plainText
+            //   2026-10-14 简化：去掉 PLAYER台词→蛙哥台词3→endAction 两步推进（玩家容易卡在中间导致面板不开→误判失败）
             var playDlgA = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("查看服务", "View services"));
             var openAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
             {
                 try
                 {
                     _wageMode = true;
-                    var dlg3 = new Il2Cpp.Dialogue().SetText(
-                        LangHelper.T("蛙哥", "Wage Brother"),
-                        LangHelper.T("好的，人脉网络马上打开。", "Sure, opening the network now."));
-                    dlg3.SetEndAction(DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
-                    {
-                        try
-                        {
-                            var wui = WildUIManager.Instance;
-                            if (wui != null) wui.OpenUI(false);
-                            try { PhoneUIManager.Instance.CloseUI(); } catch { }
-                            try { PhoneUIManager.Instance.OnPhoneDialogEnd(false); } catch { }
-                            Core.LogMsg("[B2R] 查看服务 → 打开蛙哥人脉网络");
-                        }
-                        catch (Exception ex) { Core.LogMsg("[B2R] 打开面板异常: " + ex.Message); }
-                    })));
-                    playDlgA.SetNextDialogue(dlg3); // 链：PLAYER台词 → 蛙哥台词3 → endAction(OpenUI)
+                    var wui = WildUIManager.Instance;
+                    if (wui != null) wui.OpenUI(false);
+                    try { PhoneUIManager.Instance.CloseUI(); } catch { }
+                    try { PhoneUIManager.Instance.OnPhoneDialogEnd(false); } catch { }
+                    Core.LogMsg("[B2R] 查看服务 → 直接打开蛙哥人脉网络");
                 }
-                catch (Exception ex) { Core.LogMsg("[B2R] 查看服务链异常: " + ex.Message); }
+                catch (Exception ex) { Core.LogMsg("[B2R] 打开面板异常: " + ex.Message); }
             }));
             main.AddChoice(icon, "", "", playDlgA, openAct, null);
             // 选项B：再见 → PLAYER 台词「再见」+ 挂断（王尔德 b__1 同款：OnPhoneDialogEnd(1)）
@@ -639,12 +629,15 @@ internal static class B2WildPanel
     private static void ApplyWageMode(WildUIManager ui)
     {
         if (ui == null || ui.networkElements == null) return;
+        int b2Count = 0, total = ui.networkElements.Count;
         foreach (var el in ui.networkElements)
         {
             if (el == null || el.gameObject == null) continue;
             bool isB2 = el.id != null && el.id.StartsWith(PREFIX);
+            if (isB2) b2Count++;
             el.gameObject.SetActive(_wageMode ? isB2 : !isB2);
         }
+        Core.LogMsg($"[B2R] 分流: _wageMode={_wageMode} total={total} b2={b2Count}（蛙哥=仅b2可见 / 王尔德=仅原版可见）");
         if (_wageMode)
         {
             if (ui.title != null)

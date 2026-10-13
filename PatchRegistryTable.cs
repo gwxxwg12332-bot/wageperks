@@ -302,14 +302,13 @@ namespace WagePerks
                     }
                     if (e.UseByName)
                     {
-                        ManualPatcher.TryPatchByName(e.Target, e.Method, e.Prefix, e.Postfix, patchHost: e.Host);
+                        if (ManualPatcher.TryPatchByName(e.Target, e.Method, e.Prefix, e.Postfix, patchHost: e.Host)) ok++; else fail++;
                     }
                     else
                     {
-                        ManualPatcher.TryPatch(e.Target, e.Method, e.Prefix, e.Postfix,
-                                               parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority);
+                        if (ManualPatcher.TryPatch(e.Target, e.Method, e.Prefix, e.Postfix,
+                                                   parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority)) ok++; else fail++;
                     }
-                    ok++;
                 }
                 catch (System.Exception ex)
                 {

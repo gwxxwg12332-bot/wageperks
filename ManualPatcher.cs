@@ -68,7 +68,8 @@ internal static class ManualPatcher
     // 尝试Patch一个方法（默认宿主类 Patches，可用 patchHost 指定其他类）
     // priority：可选 Harmony 优先级（默认 400）。postfix 高优先级先跑；
     // 需要"所有系统写完后再执行"的全局门面（如统一落盘 Flush）应传低优先级（如 0）保证最后跑
-    internal static void TryPatch(Type type, string name,
+    // 2026-10-14：返回 bool（成功/失败）——ApplyAll 计数此前无条件 ok++，静默失败被吞（B2-R2-H3 教训）
+    internal static bool TryPatch(Type type, string name,
         string prefix = null, string postfix = null,
         Type[] parameterTypes = null, Type patchHost = null, int? priority = null,
         string finalizer = null)
@@ -85,7 +86,7 @@ internal static class ManualPatcher
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 未找到，补丁未应用");
                 MarkFail($"{type.Name}.{name}", "方法未找到");
-                return;
+                return false;
             }
 
             HarmonyMethod hmPrefix = prefix == null ? null : new HarmonyMethod(host, prefix);
@@ -98,11 +99,13 @@ internal static class ManualPatcher
             }
             _harmony.Patch(method, prefix: hmPrefix, postfix: hmPostfix, finalizer: hmFinalizer);
             MarkOk();
+            return true;
         }
         catch (Exception ex)
         {
             Core.LogMsg($"[Patch失败] {type.Name}.{name}: {ex.Message}");
             MarkFail($"{type.Name}.{name}", ex.Message);
+            return false;
         }
     }
 
@@ -111,7 +114,7 @@ internal static class ManualPatcher
     // ⚠️ 用本方法做兜底时，方法名必须与**当前游戏版本**一致——游戏更新会改名
     //   （实例：ComputeTradeRepMultiplier → ComputeTradeRepMultipliers）。
     //   失效检测手段：启动后看 [Patch自检] 汇总，或用 tools/check_patches.py 离线核对。
-    internal static void TryPatchByName(Type type, string name,
+    internal static bool TryPatchByName(Type type, string name,
         string prefix = null, string postfix = null, Type patchHost = null)
     {
         Type host = patchHost ?? typeof(Patches);
@@ -127,17 +130,19 @@ internal static class ManualPatcher
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 按名未找到，补丁未应用");
                 MarkFail($"{type.Name}.{name}（按名）", "方法未找到");
-                return;
+                return false;
             }
             _harmony.Patch(method,
                 prefix: prefix == null ? null : new HarmonyMethod(host, prefix),
                 postfix: postfix == null ? null : new HarmonyMethod(host, postfix));
             MarkOk();
+            return true;
         }
         catch (Exception ex)
         {
             Core.LogMsg($"[Patch失败] {type.Name}.{name}: {ex.Message}");
             MarkFail($"{type.Name}.{name}（按名）", ex.Message);
+            return false;
         }
     }
 
