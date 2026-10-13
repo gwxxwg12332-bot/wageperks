@@ -487,6 +487,20 @@ internal static class B2WildPanel
         Transform parent = tpl.gameObject.transform.parent;
         if (parent == null) return;
 
+        // FIX4：克隆到模板容器后手动网格定位（4 列）——原版容器无自动布局接管运行时子物体（实测 22 条全叠在模板槽位）
+        //   禁用容器 LayoutGroup（若有），避免布局组件覆盖手动坐标
+        try
+        {
+            var lg = parent.GetComponent<UnityEngine.UI.LayoutGroup>();
+            if (lg != null) lg.enabled = false;
+        }
+        catch { }
+        RectTransform tplRect = tpl.gameObject.GetComponent<RectTransform>();
+        float cellW = tplRect != null && tplRect.rect.width > 1 ? tplRect.rect.width : 120f;
+        float cellH = tplRect != null && tplRect.rect.height > 1 ? tplRect.rect.height : 120f;
+        const int cols = 4;
+        const float spacing = 14f;
+        int idx = 0;
         foreach (var e in Entries)
         {
             try
@@ -505,12 +519,22 @@ internal static class B2WildPanel
                     el.button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityEngine.Events.UnityAction>(
                         (System.Action)(() => WildUIManager.Instance.OnElementClicked(capturedId))));
                 }
+                // FIX4：手动 4 列网格（相对模板槽位偏移）
+                RectTransform rt = go.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    int row = idx / cols, col = idx % cols;
+                    float baseX = tplRect != null ? tplRect.localPosition.x : 0f;
+                    float baseY = tplRect != null ? tplRect.localPosition.y : 0f;
+                    rt.localPosition = new Vector3(baseX + col * (cellW + spacing), baseY - row * (cellH + spacing), 0f);
+                }
                 go.SetActive(true);
+                idx++;
             }
             catch (Exception ex) { Core.LogMsg("[B2R] 克隆元素失败 " + e.Id + ": " + ex.Message); }
         }
         _cloned = true;
-        Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到面板子树（模板=子树首个 NetworkElement）");
+        Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到面板子树（模板=子树首个 NetworkElement，4 列网格布局）");
     }
 
     // ================= ⑤ 蛙哥电话 1005 =================
@@ -659,6 +683,7 @@ internal static class B2WildPanel
             el.gameObject.SetActive(_wageMode ? isB2 : !isB2);
         }
         Core.LogMsg($"[B2R] 分流: _wageMode={_wageMode} total={total} b2={b2Count}（蛙哥=仅b2可见 / 王尔德=仅原版可见）");
+        ApplyWageLabels(ui, _wageMode); // FIX4：蛙哥=隐藏原版分组标签（推荐改「蛙哥服务」）；王尔德=恢复
         if (_wageMode)
         {
             if (ui.title != null)
@@ -666,6 +691,61 @@ internal static class B2WildPanel
             ApplyWageHeader(ui); // 顶部页面标题（prefab 静态 TMP，运行时遍历替换——拆包 B2-R2-H3 C1）
         }
         Core.LogMsg("[B2R] 面板模式: " + (_wageMode ? "蛙哥（22条）" : "王尔德（原样）"));
+    }
+
+    // FIX4：原版分组标签（推荐/恩惠/线人/供货商/服务/枪械匠）= prefab 静态 TMP（截图实锤仍在显示），
+    //   不在 NetworkElement 里→分流管不到。蛙哥模式：第一个（推荐）文本改「蛙哥服务」，其余 5 个隐藏；
+    //   王尔德模式：恢复原文/原 active（防污染）。首开建立引用+原文快照，后续复用；引用失效则重搜。
+    private sealed class GroupLabelState
+    {
+        internal Il2CppTMPro.TextMeshProUGUI Tmp;
+        internal string OrigText;
+        internal bool OrigActive;
+    }
+    private static GroupLabelState[] _groupLabels = null;
+    private static void ApplyWageLabels(WildUIManager ui, bool wageMode)
+    {
+        try
+        {
+            if (ui == null || ui.panel == null) return;
+            if (_groupLabels == null)
+            {
+                var comps = ui.panel.gameObject.GetComponentsInChildren<Il2CppTMPro.TextMeshProUGUI>(true);
+                var list = new System.Collections.Generic.List<GroupLabelState>();
+                foreach (var tmp in comps)
+                {
+                    if (tmp == null) continue;
+                    string t = (tmp.text ?? "").Trim();
+                    if (t == "推荐" || t == "恩惠" || t == "线人" || t == "供货商" || t == "服务" || t == "枪械匠"
+                        || t == "Recommendations" || t == "Favors" || t == "Informants" || t == "Suppliers" || t == "Services" || t == "Gunsmiths")
+                    {
+                        list.Add(new GroupLabelState { Tmp = tmp, OrigText = t, OrigActive = tmp.gameObject.activeSelf });
+                    }
+                }
+                _groupLabels = list.ToArray();
+                Core.LogMsg("[B2R] 分组标签定位: " + _groupLabels.Length + " 个（推荐/恩惠/线人/供货商/服务/枪械匠）");
+            }
+            bool first = true;
+            foreach (var s in _groupLabels)
+            {
+                if (s == null || s.Tmp == null || s.Tmp.gameObject == null) continue; // 引用失效（面板重建）→ 本轮跳过，下次重建
+                if (wageMode)
+                {
+                    if (first)
+                    {
+                        s.Tmp.text = LangHelper.T("蛙哥服务", "Wage Brother Services");
+                        first = false;
+                    }
+                    else s.Tmp.gameObject.SetActive(false);
+                }
+                else
+                {
+                    s.Tmp.text = s.OrigText;
+                    s.Tmp.gameObject.SetActive(s.OrigActive);
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 分组标签处理异常: " + ex.Message); }
     }
 
     // 顶部页面标题：无代码挂点（拆包 C1 实锤——WildUIManager 方法表全无 Find，OpenUI/CloseUI 不重置该 TMP）
