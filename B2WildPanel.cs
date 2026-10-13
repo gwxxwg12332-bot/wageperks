@@ -698,6 +698,7 @@ internal static class B2WildPanel
             }
             else
             {
+                _headerSearched = false; // 未找到→下次 OpenUI 重搜（panel 初始化时序差异）
                 Core.LogMsg("[B2R] 未找到顶部标题 TMP（面板结构不符预期，仅右侧 title 槽生效）");
             }
         }
