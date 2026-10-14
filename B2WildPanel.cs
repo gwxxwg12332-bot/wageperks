@@ -577,6 +577,16 @@ internal static class B2WildPanel
                     }
                 }
                 catch (Exception ex) { Core.LogMsg("[B2R] ICON 尺寸诊断异常 " + e.Id + ": " + ex.Message); }
+                // FIX6c：绑定蛙哥专属图标（拆包定论：icon=Image(0x48) public，直接改 sprite，不动 0x150 字典）
+                try
+                {
+                    if (el.icon != null)
+                    {
+                        var sp = B2Icons.Icon(idx);
+                        if (sp != null) el.icon.sprite = sp;
+                    }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 图标绑定异常 " + e.Id + ": " + ex.Message); }
                 go.SetActive(true);
                 idx++;
             }
