@@ -566,6 +566,17 @@ internal static class B2WildPanel
                     if (idx < 8 || idx == Entries.Length - 1)
                         Core.LogMsg($"[B2R] 网格 idx={idx} id={e.Id} row={row} col={col} pos=({rt.localPosition.x:F1},{rt.localPosition.y:F1}) 模板=({baseX:F1},{baseY:F1}) cell=({cellW:F0},{cellH:F0}) sibling={go.transform.GetSiblingIndex()}");
                 }
+                // FIX6c：icon 显示尺寸诊断（仿原版图标格式=制作规格依据；拆包 Q3 资源层缺失→运行时读 sizeDelta 最快）
+                try
+                {
+                    if (el.icon != null)
+                    {
+                        var iconRt = el.icon.GetComponent<RectTransform>();
+                        if (iconRt != null && (idx < 4 || idx == Entries.Length - 1))
+                            Core.LogMsg($"[B2R] ICON 尺寸 idx={idx} id={e.Id} iconSize=({iconRt.rect.width:F1}x{iconRt.rect.height:F1}) iconLocal=({iconRt.localPosition.x:F1},{iconRt.localPosition.y:F1})");
+                    }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] ICON 尺寸诊断异常 " + e.Id + ": " + ex.Message); }
                 go.SetActive(true);
                 idx++;
             }
