@@ -317,27 +317,51 @@ internal static class B2WildPanel
     }
 
     // IsReady：可点前置（未满级/未消除；招贼体质被偷未赎回锁）
-    public static void PostfixIsReady(NetworkUpgrade __instance, ref bool __result)
+    // FIX5：改 Prefix——原版 IsReady 内部先调 IsHavePrerequisite()，prerequisite=null 的 b2_ 条目直接 NRE（日志 22:07:00 实锤），
+    //   Postfix 在原版崩后不执行 → 按钮态判定中断 → 解锁按钮保持灰。Prefix 跳过原版，b2_ 直接给结果。
+    public static bool PrefixIsReady(NetworkUpgrade __instance, ref bool __result)
     {
         try
         {
-            if (!IsB2(__instance)) return;
+            if (!IsB2(__instance)) return true; // 非 b2_：走原版
             var e = FindEntry(__instance.id);
-            if (e == null) return;
-            if (e.IsCannibal) return; // 原版默认 true 即可
+            if (e == null) return true;
+            if (e.IsCannibal) { __result = true; return false; } // 吞噬季永远可点（购买/切换模式）
             var perk = FindPerk(e.PerkId);
-            if (perk == null) return;
+            if (perk == null) { __result = true; return false; }
             if (perk.Cost < 0)
             {
                 if (e.PerkId == ThiefMagnetPerk.PerkId && ThiefMagnetSystem.StolenCount() > 0)
                     __result = false; // 招贼体质：被偷未赎回 → 锁（提示走消业障）
                 else
                     __result = !B2ServiceStore.IsEliminated(e.PerkId);
-                return;
+                return false;
             }
             __result = B2ServiceStore.GetLevel(e.PerkId) < 3;
+            return false;
         }
-        catch (Exception ex) { Core.LogMsg("[B2R] IsReady 异常: " + ex.Message); }
+        catch (Exception ex)
+        {
+            Core.LogMsg("[B2R] PrefixIsReady 异常: " + ex.Message);
+            return true;
+        }
+    }
+
+    // FIX5：原版 IsHavePrerequisite() 对 prerequisite=null 直接 NRE（日志 22:07:00 实锤：NullReferenceException at IsHavePrerequisite）
+    //   → b2_ 条目无前置要求，Prefix 直接返回 true 跳过原版（根治 NRE + OnElementClicked 按钮态判定中断）
+    public static bool PrefixIsHavePrerequisite(NetworkUpgrade __instance, ref bool __result)
+    {
+        try
+        {
+            if (!IsB2(__instance)) return true; // 非 b2_：走原版
+            __result = true; // b2_ 无前置
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Core.LogMsg("[B2R] PrefixIsHavePrerequisite 异常: " + ex.Message);
+            return true;
+        }
     }
 
     // ================= ③ 购买 / 升级 / 消除执行（原生支付已完成，本侧只做状态+附赠+刷新） =================
