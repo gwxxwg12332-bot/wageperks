@@ -522,6 +522,15 @@ internal static class B2WildPanel
         RectTransform tplRect = tpl.gameObject.GetComponent<RectTransform>();
         float cellW = tplRect != null && tplRect.rect.width > 1 ? tplRect.rect.width : 120f;
         float cellH = tplRect != null && tplRect.rect.height > 1 ? tplRect.rect.height : 120f;
+        // FIX7 诊断：父容器/可视区尺寸（判断第二行起不可见=Mask 裁切 or 坐标出界）
+        try
+        {
+            var pRect = parent.GetComponent<RectTransform>();
+            var rootRect = ui.panel.gameObject.GetComponent<RectTransform>();
+            Core.LogMsg($"[B2R] 容器 parent={parent.name} rect=({(pRect != null ? pRect.rect.width : -1):F0}x{(pRect != null ? pRect.rect.height : -1):F0}) pivot=({(pRect != null ? pRect.pivot.x : -1):F1},{(pRect != null ? pRect.pivot.y : -1):F1}) anchored=({(pRect != null ? pRect.anchoredPosition.x : -1):F0},{(pRect != null ? pRect.anchoredPosition.y : -1):F0})");
+            Core.LogMsg($"[B2R] 面板根 rect=({(rootRect != null ? rootRect.rect.width : -1):F0}x{(rootRect != null ? rootRect.rect.height : -1):F0}) 模板 local=({(tplRect != null ? tplRect.localPosition.x : -1):F0},{(tplRect != null ? tplRect.localPosition.y : -1):F0}) rect=({(tplRect != null ? tplRect.rect.width : -1):F0}x{(tplRect != null ? tplRect.rect.height : -1):F0})");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 容器诊断异常: " + ex.Message); }
         const int cols = 4;
         const float spacing = 14f;
         int idx = 0;
@@ -551,6 +560,9 @@ internal static class B2WildPanel
                     float baseX = tplRect != null ? tplRect.localPosition.x : 0f;
                     float baseY = tplRect != null ? tplRect.localPosition.y : 0f;
                     rt.localPosition = new Vector3(baseX + col * (cellW + spacing), baseY - row * (cellH + spacing), 0f);
+                    // FIX7 诊断：打印坐标定位"第二行起不可见"根因（y 方向/容器裁切/可视区）
+                    if (idx < 8 || idx == Entries.Length - 1)
+                        Core.LogMsg($"[B2R] 网格 idx={idx} id={e.Id} row={row} col={col} pos=({rt.localPosition.x:F1},{rt.localPosition.y:F1}) 模板=({baseX:F1},{baseY:F1}) cell=({cellW:F0},{cellH:F0})");
                 }
                 go.SetActive(true);
                 idx++;
