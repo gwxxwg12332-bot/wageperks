@@ -1041,6 +1041,23 @@ internal static class B2WildPanel
         catch (Exception ex) { Core.LogMsg("[B2R] ShowTooltip 日志异常: " + ex.Message); }
     }
 
+    // FIX13：tooltip 蛙哥化（FIX6b 拆包实锤：恩惠 tooltip 文本必经 CustomUIManager.ShowTooltip 唯一重载（实例方法，text 参数））
+    //   玩家实测（14773b89）"叹号内容还是王尔德"→ Prefix ref text 替换（挂点A=改 text 参数，全局唯一入口）
+    //   只改恩惠 tooltip：_wageMode && 文本含"王尔德"→ 蛙哥文案；不影响其他 CustomUI tooltip（不含"王尔德"的放行）
+    public static bool PrefixShowTooltip(ref string text, CustomUITooltipTrigger owner)
+    {
+        try
+        {
+            if (_wageMode && text != null && text.Contains("王尔德"))
+            {
+                text = "提升在下层区的声望，或使用通过蛙哥解锁的夜间服务，都会增加蛙哥的恩惠。该恩惠会优先用于蛙哥的升级。";
+                Core.LogMsg("[B2R] tooltip 已蛙哥化");
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] tooltip 替换异常: " + ex.Message); }
+        return true;
+    }
+
     // ================= ⑦ 来电 name 行本地化兜底（B2-R2-H2） =================
     // 拆包实锤（B2-R2-H2-D）：通话 name 行=GetLocalizedDisplayName()=GetLocalizedClientName(locID) 查 ClientName 共享表；
     //   蛙哥 locID="" → 表内无 "" 条目 → Unity 回显 "in ClientName" 错误。电话簿+通话 name 行都走此方法 → 修一处全覆盖。
