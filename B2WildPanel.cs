@@ -838,6 +838,50 @@ internal static class B2WildPanel
         _wageMode = false; // 关闭面板复位分流标记（防下次王尔德路径被污染）
     }
 
+    // ================= FIX6：恩惠行蛙哥化 + tooltip 取证 =================
+    // 拆包实锤（B2-R2-H3-FIX5 拆包）：恩惠行=WildUIManager.Update 每帧 SetText（GetLocalizedUI("network_ui_wild_favor")+info sprite，
+    //   声望[0x14] 数值同帧刷新，:392-410）→ 运行时改名瞬间被刷回 → 必须 Patch Update 的 Postfix 每帧替换。
+    //   仅 _wageMode=true（蛙哥面板打开期间）替换"王尔德"→"蛙哥"；王尔德模式直接 return（零开销、不污染）。
+    //   TMP 定位：文本匹配缓存（"王尔德的恩惠"前缀，与 ApplyWageLabels 同模式；英文兜底 "Wilde"）。
+    private static Il2CppTMPro.TextMeshProUGUI _favorTmp = null;
+    public static void PostfixUpdate(WildUIManager __instance)
+    {
+        try
+        {
+            if (!_wageMode) return; // 王尔德路径零开销
+            if (__instance == null || __instance.panel == null) return;
+            if (_favorTmp == null || _favorTmp.gameObject == null)
+            {
+                _favorTmp = null;
+                var comps = __instance.panel.gameObject.GetComponentsInChildren<Il2CppTMPro.TextMeshProUGUI>(true);
+                foreach (var tmp in comps)
+                {
+                    if (tmp == null) continue;
+                    string t = (tmp.text ?? "");
+                    if (t.StartsWith("王尔德的恩惠") || t.StartsWith("Wilde's Favor") || t.Contains("王尔德的恩惠"))
+                    {
+                        _favorTmp = tmp;
+                        break;
+                    }
+                }
+                if (_favorTmp == null) return; // 面板未就绪/结构不符，下帧再找
+            }
+            string cur = _favorTmp.text;
+            if (!string.IsNullOrEmpty(cur) && cur.Contains("王尔德"))
+                _favorTmp.text = cur.Replace("王尔德", "蛙哥");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 恩惠行替换异常: " + ex.Message); }
+    }
+
+    // FIX6：tooltip 取证——拆包未定 CustomUITooltipTrigger[0x18] 存的是本地化 key 还是纯文本（决定 Patch 点）。
+    //   Patch CustomUIManager.ShowTooltip 打印传入文本，玩家 hover 恩惠叹号时日志给出 [0x18] 内容 → 下轮定改法。
+    //   签名按拆包调用链（ShowTooltip(文本, this)）猜 string+CustomUITooltipTrigger；挂不上 ManualPatcher 记失败，不炸。
+    public static void PostfixShowTooltip(string text)
+    {
+        try { Core.LogMsg("[B2R] ShowTooltip 文本: [" + (text ?? "<null>") + "]"); }
+        catch (Exception ex) { Core.LogMsg("[B2R] ShowTooltip 日志异常: " + ex.Message); }
+    }
+
     // ================= ⑦ 来电 name 行本地化兜底（B2-R2-H2） =================
     // 拆包实锤（B2-R2-H2-D）：通话 name 行=GetLocalizedDisplayName()=GetLocalizedClientName(locID) 查 ClientName 共享表；
     //   蛙哥 locID="" → 表内无 "" 条目 → Unity 回显 "in ClientName" 错误。电话簿+通话 name 行都走此方法 → 修一处全覆盖。
