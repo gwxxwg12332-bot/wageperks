@@ -587,6 +587,14 @@ internal static class B2WildPanel
             {
                 float oldH = pRect2.rect.height;
                 Vector2 sd = pRect2.sizeDelta;
+                // FIX11：记录原始几何（CloseUI/王尔德时还原，防污染原版面板）
+                if (!_containerGeoRecorded)
+                {
+                    _containerGeoRecorded = true;
+                    _geoContainer = pRect2;
+                    _containerGeoOrig = sd;
+                    _containerGeoAnchor = pRect2.anchoredPosition;
+                }
                 pRect2.sizeDelta = new Vector2(sd.x, needH);
                 // FIX10：pivot=(0.5,0.5) 时 sizeDelta 扩高会让容器中心不动→顶部上顶 Δ/2，超出面板上框架
                 //   （玩家实测：'不要超过上边的框架，往下延展'）→ 补偿：anchoredPosition 下移 Δ/2，
@@ -823,10 +831,14 @@ internal static class B2WildPanel
     //   蛙哥模式：隐藏不含 b2 卡片的容器（空横条）；王尔德模式：恢复原 active（防污染）。
     private static readonly System.Collections.Generic.HashSet<UnityEngine.Transform> _b2Containers = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
     private static readonly System.Collections.Generic.Dictionary<UnityEngine.Transform, bool> _emptyContainerOrig = new System.Collections.Generic.Dictionary<UnityEngine.Transform, bool>();
+    // FIX11：容器级隐藏默认关闭（FIX9 隐藏 6 容器→布局剧变疑似触发"进蛙哥服务自动关闭"+王尔德面板被污染）。
+    //   玩家要的"只保留一个放置位置"下一轮改用安全方式（定位分类标签横条 Image，不碰容器）。置 true 需先实测稳定。
+    private const bool _b2HideContainers = false;
     private static void HideEmptyB2Containers(WildUIManager ui, bool wageMode)
     {
         try
         {
+            if (!_b2HideContainers) return; // FIX11：容器级隐藏回退
             if (ui == null || ui.panel == null) return;
             var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
             if (all == null || all.Length == 0) return;
@@ -852,14 +864,7 @@ internal static class B2WildPanel
             }
             else
             {
-                int restored = 0;
-                foreach (var kv in _emptyContainerOrig)
-                {
-                    if (kv.Key != null && kv.Key.gameObject != null && !kv.Key.gameObject.activeSelf && kv.Value)
-                    { kv.Key.gameObject.SetActive(true); restored++; }
-                }
-                _emptyContainerOrig.Clear();
-                Core.LogMsg("[B2R] FIX9 恢复分类容器（王尔德原样）: " + restored);
+                RestoreHiddenContainers(); // FIX11：幂等恢复（不 Clear——清单常驻，王尔德打开时也能恢复上次被隐藏的容器）
             }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] FIX9 容器隐藏异常: " + ex.Message); }
@@ -929,6 +934,45 @@ internal static class B2WildPanel
     public static void PostfixCloseUI()
     {
         _wageMode = false; // 关闭面板复位分流标记（防下次王尔德路径被污染）
+        RestoreContainerGeometry(); // FIX11：还原 FIX8/FIX10 容器几何（扩高+下移）——王尔德/关闭时必还原，否则污染原版布局
+        RestoreHiddenContainers();  // FIX11：恢复 FIX9 隐藏的容器（清单常驻不 Clear，王尔德打开时幂等恢复）
+    }
+
+    // ================= FIX11：容器几何/显隐状态还原（根治"干扰原版"） =================
+    // FIX8 扩容器高度 + FIX10 下移补偿都是运行时几何改动，FIX9 容器隐藏也是运行时显隐改动——
+    // 原实现王尔德模式/CloseUI 不还原 → 王尔德面板被污染（截图 0b460ea3：左侧详情空白、卡片错位、枪械匠截断）
+    private static bool _containerGeoRecorded = false;
+    private static UnityEngine.Vector2 _containerGeoOrig = UnityEngine.Vector2.zero;  // 原始 sizeDelta
+    private static UnityEngine.Vector2 _containerGeoAnchor = UnityEngine.Vector2.zero; // 原始 anchoredPosition
+    private static UnityEngine.RectTransform _geoContainer = null;
+    private static void RestoreContainerGeometry()
+    {
+        try
+        {
+            if (_geoContainer != null && _geoContainer.gameObject != null && _containerGeoRecorded)
+            {
+                _geoContainer.sizeDelta = _containerGeoOrig;
+                _geoContainer.anchoredPosition = _containerGeoAnchor;
+                Core.LogMsg("[B2R] FIX11 容器几何还原: sizeDelta=" + _containerGeoOrig + " anchored=" + _containerGeoAnchor);
+            }
+            _containerGeoRecorded = false;
+            _geoContainer = null;
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 容器几何还原异常: " + ex.Message); }
+    }
+    private static void RestoreHiddenContainers()
+    {
+        try
+        {
+            int restored = 0;
+            foreach (var kv in _emptyContainerOrig)
+            {
+                if (kv.Key != null && kv.Key.gameObject != null && !kv.Key.gameObject.activeSelf && kv.Value)
+                { kv.Key.gameObject.SetActive(true); restored++; }
+            }
+            if (restored > 0) Core.LogMsg("[B2R] FIX11 恢复隐藏容器: " + restored);
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] 容器恢复异常: " + ex.Message); }
     }
 
     // ================= FIX6：恩惠行蛙哥化 + tooltip 取证 =================
