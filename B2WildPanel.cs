@@ -534,7 +534,8 @@ internal static class B2WildPanel
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 容器诊断异常: " + ex.Message); }
         const int cols = 4;
-        const float spacing = 14f;
+        // FIX12：卡片间距 14→30（玩家"服务卡不要挤在一起"）——容器扩高逻辑会自动跟随 needH 增长
+        const float spacing = 30f;
         int idx = 0;
         foreach (var e in Entries)
         {
