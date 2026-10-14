@@ -585,15 +585,22 @@ internal static class B2WildPanel
             var pRect2 = parent.GetComponent<RectTransform>();
             if (pRect2 != null && needH > pRect2.rect.height + 0.5f)
             {
+                float oldH = pRect2.rect.height;
                 Vector2 sd = pRect2.sizeDelta;
                 pRect2.sizeDelta = new Vector2(sd.x, needH);
-                Core.LogMsg($"[B2R] FIX8 容器高度扩展: {pRect2.rect.height:F0} → {needH:F0}（rows={rows} cellH={cellH:F0} spacing={spacing:F0}）");
+                // FIX10：pivot=(0.5,0.5) 时 sizeDelta 扩高会让容器中心不动→顶部上顶 Δ/2，超出面板上框架
+                //   （玩家实测：'不要超过上边的框架，往下延展'）→ 补偿：anchoredPosition 下移 Δ/2，
+                //   顶部保持原位不动、仅向下延展
+                float delta = needH - oldH;
+                Vector2 ap = pRect2.anchoredPosition;
+                pRect2.anchoredPosition = new Vector2(ap.x, ap.y - delta * 0.5f);
+                Core.LogMsg($"[B2R] FIX8 容器高度扩展: {oldH:F0} → {needH:F0}（rows={rows} cellH={cellH:F0} spacing={spacing:F0}）下移补偿={delta * 0.5f:F0}");
             }
             if (_wageMode) parent.SetAsLastSibling(); // 蛙哥模式容器渲染置顶（防装饰/横条覆盖）
             // Mask/ScrollRect 诊断（父链）——若扩展后仍不可见，据此定位裁切源
             var mask = parent.GetComponentInParent<UnityEngine.UI.RectMask2D>();
             var scroll = parent.GetComponentInParent<UnityEngine.UI.ScrollRect>();
-            Core.LogMsg($"[B2R] FIX8 裁切源诊断: RectMask2D={(mask != null ? mask.name : "无")} ScrollRect={(scroll != null ? scroll.name : "无")} 容器rect后={(pRect2 != null ? pRect2.rect.height : -1):F0}");
+            Core.LogMsg($"[B2R] FIX8 裁切源诊断: RectMask2D={(mask != null ? mask.name : "无")} ScrollRect={(scroll != null ? scroll.name : "无")} 容器rect后={(pRect2 != null ? pRect2.rect.height : -1):F0} anchored={(pRect2 != null ? pRect2.anchoredPosition : UnityEngine.Vector2.zero)}");
         }
         catch (Exception ex) { Core.LogMsg("[B2R] FIX8 容器扩展异常: " + ex.Message); }
     }
