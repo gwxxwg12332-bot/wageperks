@@ -745,6 +745,7 @@ internal static class B2WildPanel
         }
         Core.LogMsg($"[B2R] 分流: _wageMode={_wageMode} total={total} b2={b2Count}（蛙哥=仅b2可见 / 王尔德=仅原版可见）");
         ApplyWageLabels(ui, _wageMode); // FIX4：蛙哥=隐藏原版分组标签（推荐改「蛙哥服务」）；王尔德=恢复
+        HideEmptyB2Containers(ui, _wageMode); // FIX9：蛙哥=隐藏原版其他分类容器（空白横条区），只留一个放置位；王尔德=恢复
         if (_wageMode)
         {
             if (ui.title != null)
@@ -807,6 +808,54 @@ internal static class B2WildPanel
             }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 分组标签处理异常: " + ex.Message); }
+    }
+
+    // FIX9：原版面板=多分类放置区（推荐/恩惠/线人/供货商/服务/枪械匠各一个容器/横条）。
+    //   b2 22 张全克隆进第一个分类容器（模板父级=Panel1(3)）；其余分类容器=纯原版元素（蛙哥模式已隐藏卡片，
+    //   但容器背景/空白横条仍显示 → 玩家诉求「王尔德不同的分类有不同的放置位置，我只想有一个放置位置」）。
+    //   蛙哥模式：隐藏不含 b2 卡片的容器（空横条）；王尔德模式：恢复原 active（防污染）。
+    private static readonly System.Collections.Generic.HashSet<UnityEngine.Transform> _b2Containers = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
+    private static readonly System.Collections.Generic.Dictionary<UnityEngine.Transform, bool> _emptyContainerOrig = new System.Collections.Generic.Dictionary<UnityEngine.Transform, bool>();
+    private static void HideEmptyB2Containers(WildUIManager ui, bool wageMode)
+    {
+        try
+        {
+            if (ui == null || ui.panel == null) return;
+            var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+            if (all == null || all.Length == 0) return;
+            var containsB2 = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
+            var containers = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
+            foreach (var el in all)
+            {
+                if (el == null || el.transform == null || el.transform.parent == null) continue;
+                var p = el.transform.parent;
+                containers.Add(p);
+                if (el.id != null && el.id.StartsWith(PREFIX)) containsB2.Add(p);
+            }
+            if (wageMode)
+            {
+                int hidden = 0;
+                foreach (var c in containers)
+                {
+                    if (containsB2.Contains(c)) continue; // 保留含 b2 的容器=唯一放置区
+                    if (!_emptyContainerOrig.ContainsKey(c)) _emptyContainerOrig[c] = c.gameObject.activeSelf;
+                    if (c.gameObject.activeSelf) { c.gameObject.SetActive(false); hidden++; }
+                }
+                Core.LogMsg($"[B2R] FIX9 隐藏空分类容器: 容器总数={containers.Count} 含b2={containsB2.Count} 隐藏={hidden}");
+            }
+            else
+            {
+                int restored = 0;
+                foreach (var kv in _emptyContainerOrig)
+                {
+                    if (kv.Key != null && kv.Key.gameObject != null && !kv.Key.gameObject.activeSelf && kv.Value)
+                    { kv.Key.gameObject.SetActive(true); restored++; }
+                }
+                _emptyContainerOrig.Clear();
+                Core.LogMsg("[B2R] FIX9 恢复分类容器（王尔德原样）: " + restored);
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] FIX9 容器隐藏异常: " + ex.Message); }
     }
 
     // 顶部页面标题：无代码挂点（拆包 C1 实锤——WildUIManager 方法表全无 Find，OpenUI/CloseUI 不重置该 TMP）
