@@ -573,6 +573,29 @@ internal static class B2WildPanel
         }
         _cloned = true;
         Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到面板子树（模板=子树首个 NetworkElement，4 列网格布局）");
+        // ================= FIX8：容器高度扩展 + 层级置顶（根治"第二行起不可见"） =================
+        // FIX7 诊断实锤（23:19:33）：容器 Panel1(3) rect=1250x180 pivot=(0.5,0.5)；网格 row=1 y=-124、row=5 y=-580
+        //   → 22 张 4列×6行 需要 ≈684 高，容器仅 180 → 第二行起超出容器被裁切不可见（第一行 y=-10 在界内=截图所见）
+        //   修法：①容器高度扩展到网格所需（rows*cellH+(rows-1)*spacing+上下边距）②蛙哥模式容器 SetAsLastSibling 置顶
+        //   （同 Canvas 无子 Canvas，遮挡只可能=裁切或 sibling 顺序；置顶防装饰/横条覆盖）③Mask/ScrollRect 诊断兜底
+        try
+        {
+            int rows = (Entries.Length + cols - 1) / cols;
+            float needH = rows * cellH + (rows - 1) * spacing + 40f;
+            var pRect2 = parent.GetComponent<RectTransform>();
+            if (pRect2 != null && needH > pRect2.rect.height + 0.5f)
+            {
+                Vector2 sd = pRect2.sizeDelta;
+                pRect2.sizeDelta = new Vector2(sd.x, needH);
+                Core.LogMsg($"[B2R] FIX8 容器高度扩展: {pRect2.rect.height:F0} → {needH:F0}（rows={rows} cellH={cellH:F0} spacing={spacing:F0}）");
+            }
+            if (_wageMode) parent.SetAsLastSibling(); // 蛙哥模式容器渲染置顶（防装饰/横条覆盖）
+            // Mask/ScrollRect 诊断（父链）——若扩展后仍不可见，据此定位裁切源
+            var mask = parent.GetComponentInParent<UnityEngine.UI.RectMask2D>();
+            var scroll = parent.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            Core.LogMsg($"[B2R] FIX8 裁切源诊断: RectMask2D={(mask != null ? mask.name : "无")} ScrollRect={(scroll != null ? scroll.name : "无")} 容器rect后={(pRect2 != null ? pRect2.rect.height : -1):F0}");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] FIX8 容器扩展异常: " + ex.Message); }
     }
 
     // ================= ⑤ 蛙哥电话 1005 =================
