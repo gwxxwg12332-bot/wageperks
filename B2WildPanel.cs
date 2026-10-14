@@ -527,8 +527,10 @@ internal static class B2WildPanel
         {
             var pRect = parent.GetComponent<RectTransform>();
             var rootRect = ui.panel.gameObject.GetComponent<RectTransform>();
-            Core.LogMsg($"[B2R] 容器 parent={parent.name} rect=({(pRect != null ? pRect.rect.width : -1):F0}x{(pRect != null ? pRect.rect.height : -1):F0}) pivot=({(pRect != null ? pRect.pivot.x : -1):F1},{(pRect != null ? pRect.pivot.y : -1):F1}) anchored=({(pRect != null ? pRect.anchoredPosition.x : -1):F0},{(pRect != null ? pRect.anchoredPosition.y : -1):F0})");
-            Core.LogMsg($"[B2R] 面板根 rect=({(rootRect != null ? rootRect.rect.width : -1):F0}x{(rootRect != null ? rootRect.rect.height : -1):F0}) 模板 local=({(tplRect != null ? tplRect.localPosition.x : -1):F0},{(tplRect != null ? tplRect.localPosition.y : -1):F0}) rect=({(tplRect != null ? tplRect.rect.width : -1):F0}x{(tplRect != null ? tplRect.rect.height : -1):F0})");
+            Core.LogMsg($"[B2R] 容器 parent={parent.name} rect=({(pRect != null ? pRect.rect.width : -1):F0}x{(pRect != null ? pRect.rect.height : -1):F0}) pivot=({(pRect != null ? pRect.pivot.x : -1):F1},{(pRect != null ? pRect.pivot.y : -1):F1}) anchored=({(pRect != null ? pRect.anchoredPosition.x : -1):F0},{(pRect != null ? pRect.anchoredPosition.y : -1):F0}) sibling={parent.GetSiblingIndex()}");
+            Core.LogMsg($"[B2R] 面板根 rect=({(rootRect != null ? rootRect.rect.width : -1):F0}x{(rootRect != null ? rootRect.rect.height : -1):F0}) 模板 local=({(tplRect != null ? tplRect.localPosition.x : -1):F0},{(tplRect != null ? tplRect.localPosition.y : -1):F0}) rect=({(tplRect != null ? tplRect.rect.width : -1):F0}x{(tplRect != null ? tplRect.rect.height : -1):F0}) sibling={tpl.gameObject.transform.GetSiblingIndex()}");
+            var canvas = ui.panel.gameObject.GetComponentInParent<Canvas>();
+            Core.LogMsg($"[B2R] 层级: 模板路径={GetTransformPath(tpl.gameObject.transform)} canvasSorting={(canvas != null ? canvas.sortingOrder : -999)} panel下Canvas数={ui.panel.gameObject.GetComponentsInChildren<Canvas>(true).Length}");
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 容器诊断异常: " + ex.Message); }
         const int cols = 4;
@@ -562,7 +564,7 @@ internal static class B2WildPanel
                     rt.localPosition = new Vector3(baseX + col * (cellW + spacing), baseY - row * (cellH + spacing), 0f);
                     // FIX7 诊断：打印坐标定位"第二行起不可见"根因（y 方向/容器裁切/可视区）
                     if (idx < 8 || idx == Entries.Length - 1)
-                        Core.LogMsg($"[B2R] 网格 idx={idx} id={e.Id} row={row} col={col} pos=({rt.localPosition.x:F1},{rt.localPosition.y:F1}) 模板=({baseX:F1},{baseY:F1}) cell=({cellW:F0},{cellH:F0})");
+                        Core.LogMsg($"[B2R] 网格 idx={idx} id={e.Id} row={row} col={col} pos=({rt.localPosition.x:F1},{rt.localPosition.y:F1}) 模板=({baseX:F1},{baseY:F1}) cell=({cellW:F0},{cellH:F0}) sibling={go.transform.GetSiblingIndex()}");
                 }
                 go.SetActive(true);
                 idx++;
@@ -898,6 +900,17 @@ internal static class B2WildPanel
     // 拆包实锤（B2-R2-H2-D）：通话 name 行=GetLocalizedDisplayName()=GetLocalizedClientName(locID) 查 ClientName 共享表；
     //   蛙哥 locID="" → 表内无 "" 条目 → Unity 回显 "in ClientName" 错误。电话簿+通话 name 行都走此方法 → 修一处全覆盖。
     // 方案 B（最稳）：空 locID → fallback displayName（蛙哥 displayName="蛙哥" 已就绪，零新增数据；其余客户 locID 非空 → 放行原版）
+    private static string GetTransformPath(Transform t)
+    {
+        try
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            while (t != null) { parts.Add(t.name); t = t.parent; }
+            parts.Reverse();
+            return string.Join("/", parts);
+        }
+        catch { return "?"; }
+    }
     public static bool PrefixGetLocalizedDisplayName(StorePhoneClient __instance, ref string __result)
     {
         try
