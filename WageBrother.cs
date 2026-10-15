@@ -789,7 +789,7 @@ internal static class WageBrother
     }
 
     // ===================== 合成升级（10-04 用户拍板：蛙哥服务合成） =====================
-    // 规则：许可合成只补差价（700/1000）；充电器合成补差价+原版充电涡轮（500+1涡轮 / 1000+2涡轮）
+    // 规则：许可合成只补差价（20000/20000，10-15 价格重设计）；充电器合成补差价+原版涡轮/能量阵列/充能器（二级各1、三级2/5/5；差价 20000/25000）
     private const string CRAFT_TURBO_ID = "turbo_booster"; // 原版充电涡轮（游戏原生物品）
     private const string CRAFT_POWER_ARRAY_ID = "powerblock"; // 能量阵列（价值200实锤：all_item_values.txt:127 + 游戏日志"能量阵列(200)"）
     private const string CRAFT_RECHARGER_ID = "recharger"; // 充能器（价值150实锤：all_item_values.txt:126）
@@ -1043,13 +1043,13 @@ internal static class WageBrother
             catch (System.Exception ex) { Core.LogMsg("[蛙哥] 指南定位异常: " + ex.Message); }
             w.BeginColumn(4f);
             w.AddLabel(LangHelper.T("【1】蛙哥是谁？", "[1] Who is Wage Brother?"), "wb_g1");
-            w.AddLabel(LangHelper.T("他会定期到店拜访，柜台出现服务卡。双击服务卡打开他的服务界面：消业障、声望恢复、合成升级。", "He visits periodically; a service card appears at the counter. Double-click it to open his services: remove burdens, restore rep, craft upgrades."), "wb_g1d");
-            w.AddLabel(LangHelper.T("【2】消业障", "[2] Remove Burden"), "wb_g2");
-            w.AddLabel(LangHelper.T("花钱消除已选负面特性（按 Cost 计价，如霉运缠身 -10=2000 块）。声名狼藉特殊：5 势力逐个恢复，全部转正才消除。", "Pay to remove an active negative perk (priced by Cost, e.g. Bad Luck -10 = 2000 cr). Infamous is special: restore all 5 factions, it clears only when all are positive."), "wb_g2d");
-            w.AddLabel(LangHelper.T("【3】声望恢复", "[3] Rep Restore"), "wb_g3");
-            w.AddLabel(LangHelper.T("每个负势力 3000 块恢复至 0。5 势力全部转正自动消除声名狼藉。", "Restore any negative faction rep to 0 for 3000 cr each. All 5 positive = Infamous auto-removed."), "wb_g3d");
+            w.AddLabel(LangHelper.T("他定期到店拜访，柜台出现服务卡（消业障/声望恢复/合成升级）。第一次见面送名片：电话拨打 1005 打开「蛙哥人脉网络」——蛙哥服务面板所在地。", "He visits periodically; a service card appears at the counter (remove burden / rep restore / craft). First meeting gives a business card: dial 1005 to open the Wage Brother Network - his service panel."), "wb_g1d");
+            w.AddLabel(LangHelper.T("【2】服务面板（电话簿 1005）", "[2] Service Panel (Phone 1005)"), "wb_g2");
+            w.AddLabel(LangHelper.T("解锁条件：蛙哥牛逼 Lv2 + 蛙娘好感≥40（面板顶部横幅看好感）。服务：流浪者（重回第一天、刷新物品）；养蛊机/AI生成器（解锁后电话购买）；保护器（随机出现，可花钱加概率）；许可/充电器 1→3 级直购（三级充电器几万级）。", "Unlock: Wage Brother Power Lv2 + Wage Girl affection >= 40 (banner shows affection). Services: Wanderer (reset to day 1, refresh items); Gu Machine / AI Generator (buy by phone after unlock); Protector (random spawn, pay to raise chance); Permit/Charger T1->T3 direct buy (T3 charger costs tens of thousands)."), "wb_g2d");
+            w.AddLabel(LangHelper.T("【3】消业障", "[3] Remove Burden"), "wb_g3");
+            w.AddLabel(LangHelper.T("消除负面特性（B2 面板负面卡或到店服务卡）：按 Cost 计价 -20→8000、-15→5000、-7→2000、其余 500；招贼体质固定 5000；声名狼藉 5 势力逐个恢复，全部转正才消除。", "Remove a negative perk (B2 panel negative card or counter card): by Cost -20->8000, -15->5000, -7->2000, others 500; Thief Magnet fixed 5000; Infamous restores all 5 factions, clears only when all are positive."), "wb_g3d");
             w.AddLabel(LangHelper.T("【4】合成升级", "[4] Craft Upgrade"), "wb_g4");
-            w.AddLabel(LangHelper.T("把低一级的货交给他补差价升级：许可 700/1000 块；充电器 500/1000 块 + 涡轮/能量阵列/充能器（二级各 1、三级 2/5/5）。", "Give him the lower tier and pay the difference: Permit 700/1000 cr; Charger 500/1000 cr + turbo/power array/recharger (T2: 1 each, T3: 2/5/5)."), "wb_g4d");
+            w.AddLabel(LangHelper.T("把低一级的货交给他补差价升级：许可 20000/20000 信用点；充电器 20000/25000 + 涡轮/能量阵列/充能器（二级各 1、三级 2/5/5）。", "Give him the lower tier and pay the difference: Permit 20000/20000 cr; Charger 20000/25000 cr + turbo/power array/recharger (T2: 1 each, T3: 2/5/5)."), "wb_g4d");
             w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wb_guide"); } catch { } })), "wb_guide_close");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); }
