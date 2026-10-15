@@ -333,6 +333,18 @@ public static partial class WageGirlSystem
                 SetStat(K_CLEAN, GetStat(K_CLEAN) + 1);
                 ReportLine(LangHelper.T("蛙娘打烊后帮忙整理了货架（帮工）清洁 +1", "Wage Girl tidied the shelves after closing (Help) Cleanliness +1"));
             }
+            // 节点4 捡漏（10-16 M1）：亲密节点 [50,99] 打烊后拾回随机 1 件价值 20~100 的物品（每日 1 次由日结算天然保证）
+            if (GetAffNode(GetAffectionExact()) == 4)
+            {
+                GameItem salvage = PickSalvageItem();
+                if (salvage != null)
+                {
+                    string sname = ""; try { sname = ModCannibalism.GetName(salvage); } catch { }
+                    long sval = 0; try { sval = salvage.unitValue; } catch { }
+                    AddToFront(salvage);
+                    ReportLine(LangHelper.T("蛙娘打烊后在后屋捡到一件东西（" + sname + "，价值约 " + sval + "）！", "Wage Girl found something in the backroom (" + sname + ", ~" + sval + ")!"));
+                }
+            }
             // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + N 钱，然后设 today；N=CFG WageGirlStealFirstAmount）
             if (lastSteal <= 0)
             {
@@ -536,6 +548,40 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 交换异常: " + ex.Message); }
+    }
+
+    // ===== 10-16 M1 节点4：捡漏（抽全物品池价值 20~100 的 1 件，直接拾回；复用 GiveGift 抽池模式）=====
+    private static GameItem PickSalvageItem()
+    {
+        try
+        {
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null || ids.Count == 0) return null;
+            var pool = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
+                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue;
+                pool.Add(ids[i]);
+            }
+            int tries = 0;
+            while (tries < 12 && pool.Count > 0)
+            {
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx];
+                try
+                {
+                    var g = DirectoryMaster.Item(id, true);
+                    if (g == null) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.unitValue < 20 || g.unitValue > 100) { pool.RemoveAt(idx); tries++; continue; } // 捡漏价值 20~100
+                    return g;
+                }
+                catch { pool.RemoveAt(idx); tries++; }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 捡漏异常: " + ex.Message); }
+        return null;
     }
 
     // ===== 10-05 好物读档补发（拆包实锤：好物日结发放远离 InitialSave→物品只在内存退出即丢；防重发标记K_LAST_GIFT已落盘=永久丢失）=====

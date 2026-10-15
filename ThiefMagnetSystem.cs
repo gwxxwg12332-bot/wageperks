@@ -46,6 +46,7 @@ internal static class ThiefMagnetSystem
 
             // ① 每日偷盗（夜里发生，每晚必偷——独立于上门事件，不被黑市/跳脸 return 阻断）
             // 10-15 净化：不再偷盗（debuff 移除）
+            // 10-16 M1 节点5 看店：蛙娘在场件数减半（无概率可乘，走"件数减半"规则）
             if (BuildConfig.ThiefMagnetDailyTheftEnabled && !purified)
             {
                 _stolenMap.Clear(); // 过天清理会话映射（旧上桌物品已销毁/清除，防残留；当天上桌会重新登记）
@@ -61,9 +62,12 @@ internal static class ThiefMagnetSystem
             bool hasTheftHistory = purified || WageSaveStore.GetInt(NS, KEY_THEFT_DAY, -1) != -1;
             bool chan = IsChannelFree(day);
             float rnd = UnityEngine.Random.value;
-            Core.LogMsg("[招贼体质] OnBeginDay day=" + day + " gate=" + gate + " 偷盗史=" + hasTheftHistory + " 通道空=" + chan + " random=" + rnd + " 阈值=" + BuildConfig.ThiefMagnetBlackMarketChance);
+            // 10-16 M1 节点5 看店：蛙娘在场 → 小偷上门概率 ×0.5（尊重三开关 gate；判定用 IsWatchingShop 而非 Exists）
+            float effChance = BuildConfig.ThiefMagnetBlackMarketChance;
+            if (WageGirlSystem.IsWatchingShop()) effChance *= 0.5f;
+            Core.LogMsg("[招贼体质] OnBeginDay day=" + day + " gate=" + gate + " 偷盗史=" + hasTheftHistory + " 通道空=" + chan + " random=" + rnd + " 阈值=" + effChance + " 看店=" + WageGirlSystem.IsWatchingShop());
             if (gate && hasTheftHistory && chan
-                && rnd < BuildConfig.ThiefMagnetBlackMarketChance)
+                && rnd < effChance)
             {
                 SpawnThiefVisit(day);
             }
@@ -105,6 +109,7 @@ internal static class ThiefMagnetSystem
         if (candidates.Count == 0) return;
 
         int count = Math.Max(1, BuildConfig.ThiefMagnetDailyTheftCount);
+        if (WageGirlSystem.IsWatchingShop()) count = Math.Max(1, count / 2); // 10-16 M1 节点5 看店：蛙娘在场件数减半（默认 Count=1 无感，调 2 时可见）
         // 10-06 A3：被偷物种类随机化——不再固定偷"价值最高那几件"（同一种会被重复偷）
         //   从高价值区 top K（count×3，至少 5 件）中随机取 count 件 → 价值仍优先、种类自然分散
         var ranked = candidates.OrderByDescending(x => x.value).ToList();

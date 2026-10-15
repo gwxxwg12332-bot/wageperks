@@ -98,6 +98,19 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
 
     internal static void SetExists(bool v) { try { SetStat(K_EXIST, v ? 1 : 0); } catch { } }
 
+    // 10-16 M1 节点5 看店判定：实体在场 + 非外出 + 好感节点5（信赖 [100,200]）
+    //   注意禁用 Exists()：跑路期 Exists 为 true，会把"她跑路了"误判成"在场"
+    internal static bool IsWatchingShop()
+    {
+        try
+        {
+            if (!ExistsInScene()) return false;
+            if (GetStat(K_LEAVE) > CurrentDay()) return false;
+            return GetAffNode(GetAffectionExact()) == 5;
+        }
+        catch { return false; }
+    }
+
     // 蛙娘全部持久化 key（清 default_run 残留用）
     // 09-27 B4 修：全量持久化 key 数组（Reset/清理共用；补 allowanceCount/allowance/savings/washMode/lastFedDay/stolenValue 6 个，原漏 12 key）
     private static readonly string[] ALL_STAT_KEYS = new string[]
