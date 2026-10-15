@@ -345,6 +345,75 @@ public static partial class WageGirlSystem
                     ReportLine(LangHelper.T("蛙娘打烊后在后屋捡到一件东西（" + sname + "，价值约 " + sval + "）！", "Wage Girl found something in the backroom (" + sname + ", ~" + sval + ")!"));
                 }
             }
+            // 节点4 代售（10-16 M1 P2-4b）：亲密节点 [50,99] 打烊后自动卖 1 件柜台货（每日 1 次键 K_SALE_DAY）
+            // 拆包事实：PlayerStore.SellItem(GameItem) 硬前置=必须有客户在场（无客户静默失败）→ 不自走 SellItem；
+            // 自实现=定价(unitValue，规格"售价=定价100%无议价叠加")→ModCash→柜台移除（样板=治安部没收链 DarkGridInspectorPerk.cs:94-133）
+            if (GetAffNode(GetAffectionExact()) == 4 && GetStat(K_SALE_DAY) != day)
+            {
+                GameItem soldItem = null; int soldPrice = 0; GameInventory showcaseInv = null;
+                try
+                {
+                    var emS = Il2Cpp.EmporiumEntry.Instance;
+                    if (emS != null) showcaseInv = emS.showcaseElement as GameInventory;
+                    if (showcaseInv != null && showcaseInv.childItems != null)
+                    {
+                        for (int i = 0; i < showcaseInv.childItems.Count && soldItem == null; i++)
+                        {
+                            GameItem c = showcaseInv.childItems[i];
+                            if (c == null) continue;
+                            try
+                            {
+                                if (Il2Cpp.ContrabandHelper.GetContrabandLevel(c) > 0) continue; // 违禁品不代售
+                                if (c.IsTag("ORDER_TICKET_TAG")) continue; // 点货签不代售
+                                if (c.IsTag("wage_bro_card") || c.IsTag("destiny_dice_tag")) continue; // mod 特殊物不代售
+                                int uv = 0; try { uv = (int)c.unitValue; } catch { }
+                                if (uv <= 0) continue;
+                                soldItem = c; soldPrice = uv;
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch (Exception exs) { Core.LogMsg("[蛙娘] 代售扫描异常: " + exs.Message); }
+                if (soldItem != null)
+                {
+                    string snm = ""; try { snm = soldItem.name ?? soldItem.identifier ?? ""; } catch { }
+                    ModCashN(soldPrice);
+                    try { if (showcaseInv != null) showcaseInv.Expel(soldItem); } catch (Exception exx) { Core.LogMsg("[蛙娘] 代售移除异常: " + exx.Message); }
+                    SetStat(K_SALE_DAY, day);
+                    ReportLine(LangHelper.T("蛙娘帮你把柜台上的「" + snm + "」卖了出去（进账 " + soldPrice + "）", "Wage Girl sold \"" + snm + "\" from the counter (+" + soldPrice + ")"));
+                }
+            }
+            // 节点5 代收（10-16 M1 P2-4b）：信赖节点 [100,200] 打烊后自动履约 1 件客户收购单（每日 1 次键 K_FULFILL_DAY）
+            // 拆包事实：StoreRequest.FillRequest() 可程序化直调（无客户在场/无营业约束）；完成后自动出队（天然防重）；DispenseReward=声望+钱双落点
+            // 时序：PostfixOnDayStart 挂 StoreEventManager.OnDayStart Postfix（_registry_generated.txt:139）→ 原版过期单已先被 HandleStoreRequests 清理，剩余均为有效单
+            if (GetAffNode(GetAffectionExact()) == 5 && GetStat(K_FULFILL_DAY) != day)
+            {
+                try
+                {
+                    var psF = Il2Cpp.PlayerStore.Instance;
+                    if (psF != null && psF.storeRequests != null)
+                    {
+                        foreach (var req in psF.storeRequests)
+                        {
+                            if (req == null) continue;
+                            try
+                            {
+                                if (req.CanFillRequest())
+                                {
+                                    string rTitle = ""; try { rTitle = req.title ?? req.requestedItem ?? ""; } catch { }
+                                    req.FillRequest();
+                                    SetStat(K_FULFILL_DAY, day);
+                                    ReportLine(LangHelper.T("蛙娘帮你交付了收购单「" + rTitle + "」（声望与奖励已到账）", "Wage Girl filled the request \"" + rTitle + "\" (reputation & reward received)"));
+                                    break;
+                                }
+                            }
+                            catch (Exception exr) { Core.LogMsg("[蛙娘] 代收履约异常: " + exr.Message); }
+                        }
+                    }
+                }
+                catch (Exception exf) { Core.LogMsg("[蛙娘] 代收扫描异常: " + exf.Message); }
+            }
             // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + N 钱，然后设 today；N=CFG WageGirlStealFirstAmount）
             if (lastSteal <= 0)
             {

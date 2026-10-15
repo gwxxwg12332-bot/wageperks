@@ -28,6 +28,9 @@ public static partial class WageGirlSystem
     private const string K_LIKE_DAY = "likeDay";
     // 10-16 M10：以物易物（exchangeDay=当日已用标记，每日 1 次）
     private const string K_EXCHANGE_DAY = "exchangeDay";
+    // 10-16 M1 P2-4b：节点4 代售（saleDay=当日已卖标记）+ 节点5 代收（fulfillDay=当日已履约标记，每日 1 次）
+    private const string K_SALE_DAY = "saleDay";
+    private const string K_FULFILL_DAY = "fulfillDay";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
     // 10-07 #10 好感重做：int×100 新键（两位小数精度 -200~200）；旧键 affection 保留门面（迁移后不再写）
     internal const string K_AFF_EXACT = "affectionExact";
@@ -119,7 +122,8 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
         K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON,
         K_ALLOWANCE_COUNT, K_ALLOWANCE, K_SAVINGS, K_WASH_MODE, "lastFedDay", "stolenValue",
         K_LIKE, K_LIKE_DAY, // 10-16 M5 喜好（随档：读档不重滚）
-        K_EXCHANGE_DAY // 10-16 M10 以物易物当日标记
+        K_EXCHANGE_DAY, // 10-16 M10 以物易物当日标记
+        K_SALE_DAY, K_FULFILL_DAY // 10-16 M1 P2-4b：节点4 代售 / 节点5 代收当日标记
     };
 
     // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
