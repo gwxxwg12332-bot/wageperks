@@ -20,6 +20,7 @@ internal static class WageBrother
     internal const string CLIENT_ID = "wage_brother";
     internal const string CARD_ID = "wage_brother_card";
     private static bool _cardSpawned = false;
+    private static bool _orderUsedThisVisit = false; // 10-16 P1-5.2：点货签本次到店已生效标记（CleanupCardIfGone 复位）
     // 10-07 C2-1/C2-2：名片/柜台货"该在"的状态随档键（对标小偷 KEY_THEFT_DAY 成功方案——
     //   柜台不随档+原一次性 180 帧补货超时=读档后柜台永远空；此键=持久愿望：上货成功置 1、清卡置 0，读档后按愿望重建柜台）
     private const string CARD_SPAWNED_KEY = "card_spawned";
@@ -27,6 +28,12 @@ internal static class WageBrother
     private const string CARD_GIVEN_KEY = "card_given";
     // 10-15 保护器随机出现概率加成（服务每级+10%，初始 30%，上限 90%）
     internal const string PROTECTOR_SPAWN_KEY = "protector_spawn_level";
+    // ===== 10-16 P1 升级：5.1 收货标签 / 5.2 点货签 =====
+    internal const string ORDER_TICKET_ID = "wage_order_ticket";
+    internal const string ORDER_TICKET_TAG = "wage_order_tag";        // 点货签类型标记
+    internal const string ORDER_TAG_PREFIX = "wage_order_";           // 品类编码前缀（tag 名=wage_order_<品类tag>）
+    private const string ORDER_CD_KEY = "wage_order_cd";              // 全局 CD（上次生效日；WageSaveStore "wage_brother" 空间）
+    private const string ORDER_USED_KEY = "wage_order_used_session";  // 本会话本次到店已生效标记（防同次多张）
 
     // 10-03 服务卡注册进物品库（PS_DebugTool/玩家生成工具调出=未注册ID→问号占位；照抄养蛊机RegisterOne模式）
     public static void RegisterCard(ItemDirectory dir)
@@ -42,6 +49,40 @@ internal static class WageBrother
             Core.LogMsg("[蛙哥] 服务卡 " + (ok ? "★ 已注册" : "⚠️ 注册失败") + " " + CARD_ID);
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] 服务卡注册异常: " + ex.Message); }
+    }
+
+    // 10-16 P1-5.2：点货签注册进物品库（品类 tag 在携带/购买时按实例 EnableTag("wage_order_<品类>") 编码）
+    public static void RegisterOrderTicket(ItemDirectory dir)
+    {
+        try
+        {
+            if (dir == null) return;
+            if (((Directory<GameItem>)(object)dir).Has(ORDER_TICKET_ID)) { Core.LogMsg("[蛙哥] 点货签已在物品库"); return; }
+            Il2CppSystem.Func<GameItem> factory = null;
+            System.Func<GameItem> sf = () => CreateOrderTicket();
+            factory = DelegateSupport.ConvertDelegate<Il2CppSystem.Func<GameItem>>((System.Delegate)sf);
+            bool ok = ((Directory<GameItem>)(object)dir).Add(ORDER_TICKET_ID, factory);
+            Core.LogMsg("[蛙哥] 点货签 " + (ok ? "★ 已注册" : "⚠️ 注册失败") + " " + ORDER_TICKET_ID);
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 点货签注册异常: " + ex.Message); }
+    }
+
+    // 点货签工厂：基础物品（形状/图标/类型标记）；品类由调用方 SetName + EnableTag("wage_order_<品类>") 编码
+    internal static GameItem CreateOrderTicket()
+    {
+        try
+        {
+            GameItem t = ItemDirectory.CreateEmptyItem(null);
+            if (t == null) return null;
+            t.identifier = ORDER_TICKET_ID;
+            t.SetName(LangHelper.T("点货签", "Order Ticket"));
+            t.shortDescription = LangHelper.T("点单凭证：蛙哥到店时把绑定的品类临时加入他的收购清单（本次到店生效，3 天冷却）。", "Order ticket: adds the bound category to Wage Brother's buying list for this visit (3-day cooldown).");
+            var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 1); t.SetShape(gsb.Build()); t.modifiedShape = gsb.Build();
+            try { t.EnableTag(ORDER_TICKET_TAG, true); } catch { }
+            try { t.EnableTag("paper", true); } catch { } // 文档属性（销赃不带）
+            return t;
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] CreateOrderTicket异常: " + ex.Message); return null; }
     }
     // 服务卡工厂：只建物品（不含上柜台；上柜台走 OnClientArrived）
     internal static GameItem CreateCard()
@@ -242,6 +283,10 @@ internal static class WageBrother
                 client.clientBuyingTagList.Add("MODULE");
             }
             catch (System.Exception exb) { Core.LogMsg("[蛙哥] 收购清单设置异常: " + exb.Message); }
+            // 10-16 P1 蛙哥升级：5.1 自定义收货标签（Lv2+ 门控，白名单校验）+ 5.2 点货签（CD 门控）——均在原生清单后追加不覆盖
+            TryApplyCustomBuyList(client);
+            SpawnOrderTickets();
+            TryApplyOrderTicket(client);
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { } Core.LogMsg("[蛙哥] 立绘注入完成");
             // 10-15 名片只发一次：card_given=1（已送过+电话簿已解锁）→ 之后蛙哥到店不再发卡，服务全走电话 1005 面板
             //   注意：只跳过【发卡块】——携带物品/许可货架/充电器货架是柜台服务，不依赖名片，必须照常上货
@@ -316,6 +361,197 @@ internal static class WageBrother
             catch (Exception exclean) { Core.LogMsg("[蛙哥] 清柜台异常: " + exclean.Message); }
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] OnClientArrived异常: " + ex.Message); }
+    }
+
+    // ===================== 10-16 P1 蛙哥升级：5.1 收货标签 / 5.2 点货签 =====================
+    // 收购安全白名单（正面允许的 tag；系统/禁售 tag 由 IsSafeBuyTag 拒绝）
+    private static readonly HashSet<string> OrderTagWhitelist = new HashSet<string>
+    {
+        "power_source_item", "MODULE", "CONTAINER_TAG", "WEAPON", "NARCOTIC", "FOOD", "MEDICAL", "LUXURY_ITEM", "DAILY_NEED", "DAILY_NEED_TAG"
+    };
+    private static readonly HashSet<string> OrderTagBlocklist = new HashSet<string>
+    {
+        "not_purchased", "TAG_NOT_PURCHASED", "stolen", "TAG_STOLEN", "contraband", "IS_OWNED_TAG", "EATEN_TAG",
+        "ITEM_HIDDEN_TAG", "SYSTEM_TAG", "SYSTEM_TAG_UTILITY", "hidden", "owned", "locked", "TAG_LOCKED",
+        "wage_bro_card", "paper", ORDER_TICKET_TAG, "destiny_dice_tag", "wage_washed", "STANDARD_MACHINE_TAG"
+    };
+    private static bool IsSafeBuyTag(string tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return false;
+        if (OrderTagBlocklist.Contains(tag)) return false;
+        if (tag.StartsWith("TAG_") || tag.StartsWith("tag_") || tag.StartsWith("ITEM_")) return false;
+        if (tag.StartsWith(ORDER_TAG_PREFIX)) return false; // 点货签自身品类编码不进白名单
+        return OrderTagWhitelist.Contains(tag);
+    }
+    private static bool IsSafeBuyId(string id)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            if (Core.ExcludedItemIds != null && System.Array.IndexOf(Core.ExcludedItemIds, id) >= 0) return false;
+            if (!DirectoryMaster.Has<GameItem>(id)) return false;
+            var g = DirectoryMaster.Item(id, false);
+            if (g == null) return false;
+            if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) return false; // 机器/容器不当收购目标
+            return true;
+        }
+        catch { return false; }
+    }
+
+    // 5.1 收货标签：蛙哥牛逼 Lv2+ → 配置的 id/tag 白名单校验后追加（不覆盖原生清单）；上限 Lv2=2 / Lv3=4 个（合计）
+    private static void TryApplyCustomBuyList(StoreClient client)
+    {
+        try
+        {
+            if (client == null) return;
+            int lv = B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId);
+            if (lv < 2) { Core.LogMsg("[蛙哥] 5.1 等级不足跳过（lv=" + lv + "，需 Lv2+）"); return; }
+            int cap = lv >= 3 ? 4 : 2;
+            int added = 0;
+            foreach (var raw in (BuildConfig.WageBrotherCustomBuyTags ?? "").Split(new char[] { ',', '，' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string t = raw.Trim();
+                if (added >= cap) break;
+                if (!IsSafeBuyTag(t)) { Core.LogMsg("[蛙哥] 5.1 拦截非法标签: " + t); continue; }
+                if (client.clientBuyingTagList == null) client.clientBuyingTagList = new Il2CppSystem.Collections.Generic.List<string>();
+                if (!client.clientBuyingTagList.Contains(t)) { client.clientBuyingTagList.Add(t); added++; Core.LogMsg("[蛙哥] 5.1 追加收购标签: " + t); }
+            }
+            foreach (var raw in (BuildConfig.WageBrotherCustomBuyIds ?? "").Split(new char[] { ',', '，' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string id = raw.Trim();
+                if (added >= cap) break;
+                if (!IsSafeBuyId(id)) { Core.LogMsg("[蛙哥] 5.1 拦截非法id: " + id); continue; }
+                if (client.clientBuyingIdList == null) client.clientBuyingIdList = new Il2CppSystem.Collections.Generic.List<string>();
+                if (!client.clientBuyingIdList.Contains(id)) { client.clientBuyingIdList.Add(id); added++; Core.LogMsg("[蛙哥] 5.1 追加收购id: " + id); }
+            }
+            Core.LogMsg("[蛙哥] 5.1 收货标签完成（lv=" + lv + " 上限=" + cap + " 追加=" + added + "）");
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 5.1 收货标签异常: " + ex.Message); }
+    }
+
+    // 5.2 携带：按配置 OrderTargetTags 每品类生成 1 张点货签上柜台（售价 BuildConfig.WageBrotherOrderPrice）；
+    //   柜台已有任何点货签则跳过（防读档补货/重复调用积累）
+    private static void SpawnOrderTickets()
+    {
+        try
+        {
+            var tags = (BuildConfig.WageBrotherOrderTargetTags ?? "").Split(new char[] { ',', '，' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tags.Length == 0) return;
+            var emp = Il2Cpp.EmporiumEntry.Instance;
+            if (emp != null)
+            {
+                var sh = emp.showcaseElement as GameInventory;
+                if (sh != null && sh.childItems != null)
+                    for (int i = 0; i < sh.childItems.Count; i++)
+                    {
+                        var it = sh.childItems[i];
+                        if (it == null) continue;
+                        bool isTicket = false; try { isTicket = it.IsTag(ORDER_TICKET_TAG); } catch { }
+                        if (isTicket) { Core.LogMsg("[蛙哥] 5.2 柜台已有点货签，跳过携带"); return; }
+                    }
+            }
+            foreach (var raw in tags)
+            {
+                string t = raw.Trim();
+                if (!IsSafeBuyTag(t)) { Core.LogMsg("[蛙哥] 5.2 拦截非法点货签品类: " + t); continue; }
+                var tk = DirectoryMaster.Item(ORDER_TICKET_ID, true);
+                if (tk == null) continue;
+                try { tk.EnableTag(ORDER_TAG_PREFIX + t, true); } catch { }
+                try { tk.SetName(LangHelper.T("点货签：" + t, "Order Ticket: " + t)); } catch { }
+                try { tk.unitValue = BuildConfig.WageBrotherOrderPrice; tk.unitBaseValue = BuildConfig.WageBrotherOrderPrice; } catch { }
+                try { tk.DisableTag("not_purchased", true); tk.DisableTag("TAG_NOT_PURCHASED", true); tk.EnableTag("IS_OWNED_TAG", true); } catch { }
+                try { PlayerStore.Instance.AddDirectSellingItemToTable(tk, true, false, false, 0); } catch (Exception ex) { Core.LogMsg("[蛙哥] 5.2 点货签上柜台异常: " + ex.Message); }
+                Core.LogMsg("[蛙哥] 5.2 点货签上柜台: " + t);
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 5.2 携带点货签异常: " + ex.Message); }
+    }
+
+    // 读取物品实例的业务标签（反射 tagSystem 字典，只收集启用项）——点货签品类扫描用
+    private static List<string> GetInstanceTags(GameItem item)
+    {
+        var tags = new List<string>();
+        try
+        {
+            if (item == null) return tags;
+            var fi = item.GetType().GetField("tagSystem", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            if (fi == null) fi = item.GetType().GetField("myTags", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            if (fi != null)
+            {
+                object ts = fi.GetValue(item);
+                if (ts != null)
+                {
+                    var dictProp = ts.GetType().GetProperty("dict", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                    if (dictProp != null)
+                    {
+                        object dict = dictProp.GetValue(ts);
+                        if (dict is System.Collections.IDictionary idict)
+                        {
+                            foreach (System.Collections.DictionaryEntry de in idict)
+                            {
+                                string key = de.Key?.ToString() ?? "";
+                                if (string.IsNullOrEmpty(key)) continue;
+                                bool enabled = false;
+                                try { object val = de.Value; if (val != null) { var m = val.GetType().GetMethod("IsEnabled"); if (m != null) enabled = (bool)m.Invoke(val, null); } } catch { enabled = false; }
+                                if (enabled) tags.Add(key);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] GetInstanceTags异常: " + ex.Message); }
+        return tags;
+    }
+
+    // 5.2 生效：扫描柜台找点货签（wage_order_tag）→ 读 wage_order_ 前缀品类 → CD 门控（全局键，默认 3 天）→
+    //   临时追加收购清单（不写常驻配置=本次到店失效）；单次到店最多 1 张生效
+    private static void TryApplyOrderTicket(StoreClient client)
+    {
+        try
+        {
+            if (client == null) return;
+            if (_orderUsedThisVisit) return; // 本会话本次到店已生效（CleanupCardIfGone 复位）
+            int day = 0; try { day = Il2Cpp.StoreStation.GetDayCounter(); } catch { }
+            int last = WageSaveStore.GetInt("wage_brother", ORDER_CD_KEY, -1);
+            int cd = BuildConfig.WageBrotherOrderCd;
+            if (cd > 0 && last >= 0 && day - last < cd)
+            {
+                Core.LogMsg("[蛙哥] 5.2 点货签冷却中（day=" + day + " last=" + last + " cd=" + cd + "）");
+                return;
+            }
+            var emp = Il2Cpp.EmporiumEntry.Instance;
+            if (emp == null) return;
+            var showcase = emp.showcaseElement as GameInventory;
+            if (showcase == null || showcase.childItems == null) return;
+            for (int i = 0; i < showcase.childItems.Count; i++)
+            {
+                var it = showcase.childItems[i];
+                if (it == null) continue;
+                bool isTicket = false; try { isTicket = it.IsTag(ORDER_TICKET_TAG); } catch { }
+                if (!isTicket) continue;
+                var tags = GetInstanceTags(it);
+                string target = null;
+                for (int j = 0; j < tags.Count; j++)
+                {
+                    if (tags[j].StartsWith(ORDER_TAG_PREFIX) && tags[j] != ORDER_TICKET_TAG)
+                    {
+                        target = tags[j].Substring(ORDER_TAG_PREFIX.Length);
+                        break;
+                    }
+                }
+                if (string.IsNullOrEmpty(target)) continue;
+                if (!IsSafeBuyTag(target)) { Core.LogMsg("[蛙哥] 5.2 点货签品类非法被拦: " + target); continue; }
+                if (client.clientBuyingTagList == null) client.clientBuyingTagList = new Il2CppSystem.Collections.Generic.List<string>();
+                if (!client.clientBuyingTagList.Contains(target)) client.clientBuyingTagList.Add(target);
+                WageSaveStore.SetInt("wage_brother", ORDER_CD_KEY, day);
+                _orderUsedThisVisit = true;
+                try { Il2Cpp.StoreUIManager.Instance.Notify(LangHelper.T("点货签生效：蛙哥本次收购「" + target + "」", "Order ticket active: Wage Brother buys \"" + target + "\" this visit"), "green"); } catch { }
+                Core.LogMsg("[蛙哥] 5.2 点货签生效: " + target + "（CD 至 day+" + cd + "）");
+                break;
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[蛙哥] 5.2 点货签生效异常: " + ex.Message); }
     }
 
     private static Sprite _portrait = null;
@@ -544,6 +780,7 @@ internal static class WageBrother
             if (!_cardSpawned) return;
             if (HasQueued()) return; // 蛙哥还在
             _cardSpawned = false;
+            _orderUsedThisVisit = false; // 10-16 P1-5.2：蛙哥走后复位点货签"本次到店"标记（下次到店可再生效）
             // 10-07 C2-1/C2-2：清卡=清除补货愿望（同步落盘——防读档重建柜台时按旧愿望补出蛙哥不在的卡）
             try { WageSaveStore.SetInt("wage_brother", CARD_SPAWNED_KEY, 0); WageSaveStore.Flush(); } catch (System.Exception exf) { Core.LogMsg("[蛙哥] 名片状态清盘失败: " + exf.Message); }
             // 清掉柜台上的服务卡（wage_bro_card tag）

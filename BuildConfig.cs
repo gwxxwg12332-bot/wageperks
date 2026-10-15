@@ -138,6 +138,12 @@ public static class BuildConfig
 	public static float WageGirlBudgetMultHigh => GetFloat("WageGirlBudgetMultHigh", 4f);
 	public static int WageGirlBudgetAffLow => GetInt("WageGirlBudgetAffLow", 30);
 	public static int WageGirlBudgetAffMid => GetInt("WageGirlBudgetAffMid", 60);
+	// ===== 蛙哥 P1 升级（10-16）：5.1 收货标签 / 5.2 点货签 =====
+	public static string WageBrotherCustomBuyIds => GetString("WageBrotherCustomBuyIds", "");
+	public static string WageBrotherCustomBuyTags => GetString("WageBrotherCustomBuyTags", "");
+	public static string WageBrotherOrderTargetTags => GetString("WageBrotherOrderTargetTags", "");
+	public static int WageBrotherOrderCd => GetInt("WageBrotherOrderCd", 3);
+	public static int WageBrotherOrderPrice => GetInt("WageBrotherOrderPrice", 800);
 	public static long WageGirlBudgetCap => 2147483646L;
 	// 六维
 	public static int WageGirlStatInit => GetInt("WageGirlStatInit", 60);
@@ -420,6 +426,11 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("DoctorVisitInterval", 7, "博士来访间隔(天)");
 			melonPreferences_Category.CreateEntry("DoctorExtraItems", 8, "博士夜店加货数量");
 			melonPreferences_Category.CreateEntry("WageBrotherVisitInterval", 7, "蛙哥到访间隔(天)");
+			melonPreferences_Category.CreateEntry("WageBrotherCustomBuyIds", "", "蛙哥自定义收购物品id（逗号分隔，蛙哥牛逼Lv2+生效）");
+			melonPreferences_Category.CreateEntry("WageBrotherCustomBuyTags", "", "蛙哥自定义收购标签（逗号分隔，白名单校验，蛙哥牛逼Lv2+生效）");
+			melonPreferences_Category.CreateEntry("WageBrotherOrderTargetTags", "", "点货签品类标签（逗号分隔，蛙哥到店携带对应点货签）");
+			melonPreferences_Category.CreateEntry("WageBrotherOrderCd", 3, "点货签冷却(天)");
+			melonPreferences_Category.CreateEntry("WageBrotherOrderPrice", 800, "点货签售价");
 			melonPreferences_Category.CreateEntry("NeuralChanceHard", 50, "硬爽博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralChanceNormal", 3, "普通博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralRollChance", 2, "普通拾荒独立roll受限模组(%)");
@@ -575,6 +586,18 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 		try
 		{
 			return MelonPreferences.GetEntryValue<bool>("WagesPerks", key);
+		}
+		catch
+		{
+			return def;
+		}
+	}
+
+	private static string GetString(string key, string def)
+	{
+		try
+		{
+			return MelonPreferences.GetEntryValue<string>("WagesPerks", key) ?? def;
 		}
 		catch
 		{
