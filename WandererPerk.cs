@@ -108,6 +108,19 @@ internal sealed class WandererPerk : CustomStartingPerk
         catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
     }
 
+    // 10-15 升级附赠（B2 面板 Lv2/Lv3）：每次再发 1 工具 + 1 日用品（2 件，不重复开局全量）
+    internal static void GiveUpgradeItems()
+    {
+        try
+        {
+            string tool = RandomFromPool(TOOL_IDS);
+            string house = RandomFromPool(HOUSEHOLD_IDS);
+            if (tool != null) GiveToBackpack(tool);
+            if (house != null) GiveToBackpack(house);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 升级附赠异常: " + ex.Message); }
+    }
+
     private static string RandomFromPool(string[] pool)
     {
         if (pool == null || pool.Length == 0) return null;

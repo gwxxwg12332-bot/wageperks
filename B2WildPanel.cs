@@ -487,7 +487,7 @@ internal static class B2WildPanel
     private static string UpgradeEffectsText(string perkId, int lv)
     {
         string key = perkId;
-        if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5；Lv2 已解锁蛙哥服务面板", "Lv3: WageBrother client budget x5; Lv2 unlocks the service panel") : LangHelper.T("Lv2：解锁蛙哥服务面板", "Lv2: unlocks the service panel");
+        if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5；蛙娘销赃加成 +10%；Lv2 已解锁蛙哥服务面板", "Lv3: WageBrother client budget x5; Wage Girl fence margin +10%; Lv2 unlocks the service panel") : LangHelper.T("Lv2：解锁蛙哥服务面板；蛙娘销赃加成 +5%", "Lv2: unlocks the service panel; Wage Girl fence margin +5%");
         if (key == DrJacksonFriendPerk.PerkId) return lv >= 3 ? LangHelper.T("Lv3：博士友情价 -15%", "Lv3: Jackson friend price -15%") : LangHelper.T("Lv2：博士友情价 -12%", "Lv2: Jackson friend price -12%");
         if (key == DestinyDicePerk.PerkId)    return lv >= 3 ? LangHelper.T("Lv3：命运骰触发阈值 300", "Lv3: dice trigger threshold 300") : LangHelper.T("Lv2：命运骰触发阈值 350", "Lv2: dice trigger threshold 350");
         if (key == LuckScoutPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：稀有物掉落率上限 +10%", "Lv3: rare drop cap +10%") : LangHelper.T("Lv2：稀有物掉落率上限 +5%", "Lv2: rare drop cap +5%");
@@ -496,6 +496,7 @@ internal static class B2WildPanel
         if (key == RiskTakerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：违禁品加价提升至 40%", "Lv3: contraband markup 40%") : LangHelper.T("Lv2：违禁品加价提升至 30%", "Lv2: contraband markup 30%");
         if (key == WaterMerchantPerk.PerkId || key == AlcoholMerchantPerk.PerkId || key == RetiredGunsmithPerk.PerkId)
             return lv >= 3 ? LangHelper.T("Lv3：专属商人折扣 -15%", "Lv3: merchant discount -15%") : LangHelper.T("Lv2：专属商人折扣 -10%", "Lv2: merchant discount -10%");
+        if (key == WandererPerk.PerkId)       return LangHelper.T("Lv2/Lv3：每次升级再赠 1 工具 + 1 日用品", "Lv2/Lv3: +1 tool & +1 household per level");
         if (key == WildeEvidencePerk.PerkId)  return lv >= 3 ? LangHelper.T("Lv3：线人减证据 -12、犯罪消除 -100", "Lv3: fixer reduces evidence 12, crime 100") : LangHelper.T("Lv2：线人减证据 -8、犯罪消除 -75", "Lv2: fixer reduces evidence 8, crime 75");
         return "";
     }
@@ -664,6 +665,7 @@ internal static class B2WildPanel
                 Notify(LangHelper.T(perk.DisplayName + " 升级到 Lv2", perk.DisplayName + " upgraded to Lv2"));
                 Core.LogMsg("[B2R] 已升级 " + e.PerkId + " → Lv2");
                 ReapplyCurrentClientBudget(); // FIX17b：升级即重算当前客户预算（好感倍率立即按新等级）
+                if (e.PerkId == WandererPerk.PerkId) { WandererPerk.GiveUpgradeItems(); Notify(LangHelper.T("流浪者再赠 1 工具 + 1 日用品", "Wanderer gives 1 tool + 1 household item")); }
             }
             else if (lv == 2)
             {
@@ -671,6 +673,7 @@ internal static class B2WildPanel
                 Notify(LangHelper.T(perk.DisplayName + " 升级到 Lv3（满级）", perk.DisplayName + " upgraded to Lv3 (MAX)"));
                 Core.LogMsg("[B2R] 已升级 " + e.PerkId + " → Lv3");
                 ReapplyCurrentClientBudget(); // FIX17b：蛙哥牛逼 Lv3 → 当前客户好感倍率 ×4→×5 立即生效
+                if (e.PerkId == WandererPerk.PerkId) { WandererPerk.GiveUpgradeItems(); Notify(LangHelper.T("流浪者再赠 1 工具 + 1 日用品", "Wanderer gives 1 tool + 1 household item")); }
             }
             RefreshDetail(e.Id);
         }
@@ -776,6 +779,11 @@ internal static class B2WildPanel
             {
                 DestinyDicePerk.GiveIfActive();
                 Core.LogMsg("[B2R] 命运之骰附赠触发（命运骰，防重由 GiveIfActive 内部保证）");
+            }
+            else if (perkId == WandererPerk.PerkId)
+            {
+                WandererPerk.GiveRandomItems();
+                Core.LogMsg("[B2R] 流浪者附赠触发（工具1+日用品1+随机4；开局清空/现金随机的 debuff 只在开局发生，B2 购买=纯加成面）");
             }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 附赠异常 " + perkId + ": " + ex.Message); }

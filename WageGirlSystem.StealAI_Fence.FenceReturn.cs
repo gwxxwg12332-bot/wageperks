@@ -177,8 +177,17 @@ private static void FenceReturn()
             if (amt <= 0) { ReportLine(LangHelper.T("蛙娘销赃回来了", "Wage Girl is back from fencing")); return; }
             int aff = GetAffection();
             // 09-26 C口径：margin = 好感加成(0~+20%) + 基准(+10%) + 随机(-10%~+30%) → 期望 ≥ 0 → 期望产出 ≥ 投入（CFG：WageGirlFenceAffBonusPct/MarginBasePct/MarginLow/MarginHigh）
+            // 10-15 升级接线：蛙娘并入蛙哥牛逼——蛙哥牛逼 Lv2 基准 +5%（→15%）、Lv3 +10%（→20%）
+            float basePct = BuildConfig.WageGirlFenceMarginBasePct;
+            try
+            {
+                int lv = B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId);
+                if (lv >= 3) basePct += 10;
+                else if (lv >= 2) basePct += 5;
+            }
+            catch { }
             float margin = (aff / (float)BuildConfig.WageGirlAffMax) * BuildConfig.WageGirlFenceAffBonusPct / 100f
-                + BuildConfig.WageGirlFenceMarginBasePct / 100f
+                + basePct / 100f
                 + Core.Rng.Next(BuildConfig.WageGirlFenceMarginLow, BuildConfig.WageGirlFenceMarginHigh + 1) / 100f;
             long target = (long)(amt * (1f + margin));
             if (target < 1) target = 1;
