@@ -116,6 +116,17 @@ public static partial class WageGirlSystem
 
             } catch { }
             b.AddLabel(LangHelper.T("💡 好好照顾她，她会越来越信任你", "💡 Take good care of her, and she will trust you more"), "wg_note");
+            // 10-16 M5：今日喜好显示（0=酒 1=食物 2=日用品）
+            try
+            {
+                int like = GetStat(K_LIKE);
+                if (like >= 0 && like <= 2)
+                {
+                    string[] likeNames = { LangHelper.T("酒", "Alcohol"), LangHelper.T("食物", "Food"), LangHelper.T("日用品", "Daily goods") };
+                    b.AddLabel(LangHelper.T("🍴 今日喜好：" + likeNames[like] + "（喂她喜欢的，好感×2 心情+10）", "🍴 Today she craves: " + likeNames[like] + " (feed it: affection x2, mood +10)"), "wg_like");
+                }
+            }
+            catch (System.Exception exLike) { Core.LogMsg("[蛙娘] 喜好显示异常: " + exLike.Message); }
             // 外出/离家出走状态（阶段 5+6：偷钱/销赃 1 天外出，跑路 14 天）
             try
             {

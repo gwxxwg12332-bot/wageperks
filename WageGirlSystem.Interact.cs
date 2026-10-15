@@ -261,6 +261,14 @@ public static partial class WageGirlSystem
                 }
             }
             else return false;
+            // 10-16 M5：今日喜好命中 → 好感 ×2、心情 +10（喜好类别 0=酒 1=食物 2=日用品；类别判定与喂食分支同序）
+            int like = GetStat(K_LIKE);
+            if (like >= 0 && like <= 2 && ItemLikeCategory(item) == like)
+            {
+                aff *= 2;
+                SetStat(K_MOOD, Math.Min(100, GetStat(K_MOOD) + 10));
+                msg = msg + LangHelper.T("（她超喜欢！好感×2 心情+10）", " (She loves it! Affection x2, Mood +10)");
+            }
             SetAffectionExact(GetAffectionExact() + aff); // 10-07 #10：两位小数精确写入（int×100 存储）
             SetStat("lastFedDay", CurrentDay()); // 记录今天喂过
             // 10-07 测试反馈 C（玩家"水洗面板提示未显示"）：Notify 带颜色（优质水绿/脏水红）+ null 检查（打烊无交易 UI 时
@@ -279,6 +287,17 @@ public static partial class WageGirlSystem
             try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
             SetAnimMode(2); // 09-22 吃掉瞬间切偷动画（播完回待机）
             return true;
+
+            // 10-16 M5：喜好类别判定（与喂食分支同序：日用品→食物→酒；零件无喂食交互路径→不入选，类目按文档标注修正）
+            int ItemLikeCategory(GameItem it)
+            {
+                if (it == null) return -1;
+                try { if (RobinCrusoePerk.IsDailyNeed(it)) return 2; } catch { }
+                try { if (RobinCrusoePerk.IsFood(it)) return 1; } catch { }
+                string iid = ""; try { iid = it.identifier; } catch { }
+                if (iid == "red_beer" || iid == "nudka" || iid == "galaxy_blend" || iid == "whiskey" || iid == "vodka") return 0;
+                return -1;
+            }
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 喂食异常: " + ex.Message); return false; }
     }

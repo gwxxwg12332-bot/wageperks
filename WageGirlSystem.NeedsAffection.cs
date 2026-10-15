@@ -296,6 +296,8 @@ public static partial class WageGirlSystem
             TravelDailyTick(day); // v1.3.1【8】旅行期间每日扣口粮
             // 2) 消失期：不偷拿不偷钱
             if (leaveDay > 0 && day < leaveDay) return;
+            // 10-16 M5：每日随机喜好（0=酒 1=食物 2=日用品 各 1/3；likeDay 随档=读档不重滚）
+            if (GetStat(K_LIKE_DAY) != day) { SetStat(K_LIKE_DAY, day); SetStat(K_LIKE, Core.Rng.Next(3)); }
             // #10 拍板 3：节点1 敌意[-200,-101] = 随机跑路（2-4 天）+ 不互动（喂食入口另拦截）
             if (GetAffNode(GetAffectionExact()) == 1 && GetStat(K_LEAVE) <= 0)
             {

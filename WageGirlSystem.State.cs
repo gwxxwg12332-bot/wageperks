@@ -23,6 +23,9 @@ public static partial class WageGirlSystem
     // 09-23 CFG 化：六维初始/上限/每日衰减/好感上限/偷钱周期/零花钱档位 全部移到 BuildConfig（WageGirl* 系列）
 
     private const string K_SAT = "sat", K_TH = "th", K_HEALTH = "health", K_MOOD = "mood", K_CLEAN = "clean", K_SLEEP = "sleep", K_SLEEP_DEBT = "sleepDebt";
+    // 10-16 M5：每日喜好（0=酒 1=食物 2=日用品；likeDay=roll 日，读档不重滚）
+    private const string K_LIKE = "like";
+    private const string K_LIKE_DAY = "likeDay";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
     // 10-07 #10 好感重做：int×100 新键（两位小数精度 -200~200）；旧键 affection 保留门面（迁移后不再写）
     internal const string K_AFF_EXACT = "affectionExact";
@@ -99,7 +102,8 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     {
         K_SAT, K_TH, K_HEALTH, K_MOOD, K_CLEAN, K_SLEEP, K_SLEEP_DEBT, K_AFF, K_AFF_EXACT, K_LAST_STEAL, K_LEAVE,
         K_STARVE, K_EXIST, K_STEAL_AMT, K_LAST_GIFT, K_FENCE_AMT, K_FENCE_PENDING, K_FENCE_CAT, K_LEAVE_REASON,
-        K_ALLOWANCE_COUNT, K_ALLOWANCE, K_SAVINGS, K_WASH_MODE, "lastFedDay", "stolenValue"
+        K_ALLOWANCE_COUNT, K_ALLOWANCE, K_SAVINGS, K_WASH_MODE, "lastFedDay", "stolenValue",
+        K_LIKE, K_LIKE_DAY // 10-16 M5 喜好（随档：读档不重滚）
     };
 
     // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
