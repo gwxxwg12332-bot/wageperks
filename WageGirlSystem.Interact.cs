@@ -86,6 +86,7 @@ public static partial class WageGirlSystem
         try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item) || IsContraband(item); } catch { return false; }
     }
     internal static bool ProvisionMode = false; // 按钮切换：拖食物到蛙娘身上 = 存口粮
+    internal static bool ExchangeMode = false; // 10-16 M10：按钮切换：拖物品给蛙娘 = 以物易物（每日 1 次）
     private static bool TryFeed(GameItem item, GameItem girl)
     {
         try
@@ -107,6 +108,39 @@ public static partial class WageGirlSystem
                     return true;
                 }
                 ProvisionMode = false; // 拖的不是食物：退出模式走正常喂食
+            }
+            // 10-16 M10：以物易物模式（面板按钮切换；每日 1 次；投入价值 1~500 非违禁品；回礼系数按好感档 + 喜好命中 +0.2）
+            if (ExchangeMode)
+            {
+                ExchangeMode = false; // 先退模式：判定失败不锁死后续拖拽
+                if (IsContraband(item))
+                {
+                    ReportLine(LangHelper.T("蛙娘：违禁品不交换，请拖给她洗白或销赃", "Wage Girl: contraband is not for barter, launder or fence it instead"));
+                    return true;
+                }
+                long exchVal = 0;
+                try { exchVal = item.GetCurrentValue(); } catch { }
+                if (exchVal <= 0) { try { exchVal = item.unitValue; } catch { } }
+                if (exchVal <= 0 || exchVal > 500)
+                {
+                    ReportLine(LangHelper.T("蛙娘：只收价值 1~500 的普通物品（" + exchVal + " 不合格）", "Wage Girl: only takes items worth 1~500 (" + exchVal + " rejected)"));
+                    return true;
+                }
+                if (GetStat(K_EXCHANGE_DAY) == CurrentDay())
+                {
+                    ReportLine(LangHelper.T("蛙娘：今天已经交换过啦，明天再来", "Wage Girl: traded once today, come back tomorrow"));
+                    return true;
+                }
+                double exchMult = GetAffectionExact() < 30 ? 0.8 : GetAffectionExact() < 60 ? 1.0 : 1.2; // 好感档
+                int likeNow = GetStat(K_LIKE);
+                if (likeNow >= 0 && likeNow <= 2 && ItemLikeCategory(item) == likeNow) exchMult += 0.2; // 喜好命中
+                long giftVal = (long)System.Math.Round(exchVal * exchMult);
+                QueueDestroy(item);
+                SetStat(K_EXCHANGE_DAY, CurrentDay());
+                GiveExchangeGift(giftVal);
+                ReportLine(LangHelper.T("蛙娘收下交换物（价值 " + exchVal + "，好感系数 ×" + exchMult.ToString("0.0") + "），回礼价值约 " + giftVal, "Wage Girl traded (value " + exchVal + ", affection x" + exchMult.ToString("0.0") + "), return gift ~" + giftVal));
+                ShowPanel();
+                return true;
             }
             // 09-23 修复「蛙娘只有在不营业时才可被照顾」：旧代码在交易 UI 打开时一律 return false，
             // 而营业期间柜台接客几乎全程开交易 UI → 照顾（喂食/喝水/清洁）实际只在打烊后可用。

@@ -88,6 +88,12 @@ public static partial class WageGirlSystem
                 {
                     var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ProvisionMode = !WageGirlSystem.ProvisionMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
                     b.AddButton(WageGirlSystem.ProvisionMode ? LangHelper.T("🍖 拖拽模式：把食物拖到蛙娘身上（当前" + GetStat(K_PROVISION) + "份）", "🍖 Drag food onto Wage Girl (" + GetStat(K_PROVISION) + " stored)") : LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
+                    // 10-16 M10：以物易物按钮（每日 1 次；投入价值 1~500 非违禁品；好感系数 0.8/1.0/1.2 + 喜好 +0.2）
+                    bool exchUsed = GetStat(K_EXCHANGE_DAY) == CurrentDay();
+                    var exchBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ExchangeMode = !WageGirlSystem.ExchangeMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 交换异常: " + ex.Message); } }));
+                    b.AddButton(WageGirlSystem.ExchangeMode
+                        ? LangHelper.T("🤝 交换模式：拖 1 件物品给她（" + (exchUsed ? "今日已用" : "今日可用") + "，价值 1~500，违禁品不收）", "🤝 Barter mode: drag 1 item to her (" + (exchUsed ? "used today" : "available today") + ", value 1~500, no contraband)")
+                        : LangHelper.T("🤝 以物易物（每日 1 次，" + (exchUsed ? "今日已用" : "换好物") + "）", "🤝 Barter (" + (exchUsed ? "used today" : "trade for goods") + ", daily 1)"), exchBtn, "wg_exchange_btn");
                 }
                 if (!isOutNow && GetAffectionExact() >= 20) // 10-07 #10：double 比较（冷淡/敌意=负值不显示旅行按钮）
                 {

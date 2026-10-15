@@ -490,6 +490,54 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 异常: " + ex.Message); }
     }
 
+    // ===== 10-16 M10：以物易物回礼（抽好物池价值 ≥ giftVal 的 1 件，装箱上柜台；复用 GiveGift 抽池模式）=====
+    private static void GiveExchangeGift(long giftVal)
+    {
+        try
+        {
+            GameItem it = null;
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null || ids.Count == 0) return;
+            var pool = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
+                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue;
+                pool.Add(ids[i]);
+            }
+            int tries = 0;
+            while (tries < 12 && pool.Count > 0)
+            {
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx];
+                try
+                {
+                    var g = DirectoryMaster.Item(id, true);
+                    if (g == null) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.unitValue < giftVal) { pool.RemoveAt(idx); tries++; continue; } // 回礼价值 ≥ giftVal
+                    it = g; break;
+                }
+                catch { pool.RemoveAt(idx); tries++; }
+            }
+            if (it == null) { ReportLine(LangHelper.T("蛙娘翻遍了好物池也没找到合适的回礼……", "Wage Girl could not find a return gift...")); return; }
+            GameItem giftCrate = CreateSupplyCrate(it.unitValue, out long unusedFilled);
+            if (giftCrate != null)
+            {
+                try { ContainerUpgradeV2.AddTagInt(giftCrate, GIFT_TAG, 1); } catch { }
+                AddToFront(giftCrate);
+                ReportLine(LangHelper.T("蛙娘回了一只物资箱（价值约 " + it.unitValue + "）！", "Wage Girl returned a supply crate (~" + it.unitValue + ")!"));
+            }
+            else
+            {
+                try { ContainerUpgradeV2.AddTagInt(it, GIFT_TAG, 1); } catch { }
+                AddToFront(it);
+                ReportLine(LangHelper.T("蛙娘回了一件好东西（价值约 " + it.unitValue + "）！", "Wage Girl returned a nice item (~" + it.unitValue + ")!"));
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 交换异常: " + ex.Message); }
+    }
+
     // ===== 10-05 好物读档补发（拆包实锤：好物日结发放远离 InitialSave→物品只在内存退出即丢；防重发标记K_LAST_GIFT已落盘=永久丢失）=====
     // 方案：GiveGift 发放物品打 GIFT_TAG 标记（随档）→ LoadGame 后 180 帧窗口检测：发过好物(K_LAST_GIFT>0)且后库无标记物品→补发
     // 对齐水瓶机质量读档恢复先例（PostfixLoadGameBottlePrinter + OnUpdateRestoreBottlePrinters 延迟帧重试）
