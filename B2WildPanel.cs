@@ -39,10 +39,10 @@ internal static class B2WildPanel
     internal const string SVC_GU = "b2_svc_gu";               // 养蛊机（一次性）
     internal const string SVC_AI = "b2_svc_ai";               // AI 生成器（一次性）
     internal const string SVC_PROTECTOR = "b2_svc_protector"; // 保护器核心（可重复购买）
-    private const int SVC_PRICE_WANDERER = 3000;
-    private const int SVC_PRICE_GU = 3000;
-    private const int SVC_PRICE_AI = 6000;
-    private const int SVC_PRICE_PROTECTOR = 1500;
+    private const int SVC_PRICE_WANDERER = 8000;  // 10-15 重定价：流浪者·重回第一天（一次性超强效果）
+    private const int SVC_PRICE_GU = 10000;       // 养蛊机（永久机器，3天融合×0.6）
+    private const int SVC_PRICE_AI = 15000;       // AI 生成器（永久机器，每天抽卡核心产线）
+    private const int SVC_PRICE_PROTECTOR = 3000; // 保护器（消耗品，可重复购买）
     private const int SVC_AFFECTION_GATE = 40; // 好感门槛
 
     private sealed class WildEntry
@@ -284,13 +284,14 @@ internal static class B2WildPanel
         {
             GameItem it = DirectoryMaster.Item(itemId, true);
             if (it == null) { Notify(LangHelper.T("物品生成失败", "Item create failed")); return; }
+            // 10-15 用户拍板：服务解锁物 → 柜台优先（电话 1005 购买后直接出现在柜台），桌面兜底
+            try { MerchantHelper.AddItemToCounter(itemId, 0, false); Core.LogMsg("[B2R] 服务发放 → 柜台: " + itemId); return; } catch { }
             var em = EmporiumEntry.Instance;
             if (em != null && em.invElement != null)
             {
                 var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
-                if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[B2R] 服务发放 → 桌面: " + itemId); return; } catch { } }
+                if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[B2R] 服务发放 → 桌面(柜台兜底): " + itemId); return; } catch { } }
             }
-            try { MerchantHelper.AddItemToCounter(itemId, 0, false); Core.LogMsg("[B2R] 服务发放 → 柜台: " + itemId); } catch { }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] GrantServiceItem 异常: " + ex.Message); }
     }
