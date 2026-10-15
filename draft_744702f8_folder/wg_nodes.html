@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="好感五节点功能解锁图修订V2：节点1改预算降档并附带修复跑路乘倍率怪象，节点5看店拆两半">
+<title>蛙娘好感节点功能解锁图（修订 V2）</title>
+<style>
+  body{margin:0;background:#FFFFFF;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1F2329;}
+  .wrap{padding:16px 8px;max-width:100%;box-sizing:border-box;}
+  .fig-title{font-size:17px;font-weight:700;margin:0 0 4px;}
+  .fig-sub{font-size:13px;color:#646A73;margin:0 0 14px;}
+  .legend{display:flex;gap:16px;font-size:12px;color:#646A73;margin-bottom:14px;flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+  .dot.now{background:#2B6CB0;}
+  .dot.new{background:#DD6B20;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .node{flex:1 1 180px;min-width:175px;border:1px solid #DEE3E8;border-radius:8px;padding:10px 12px;background:#FAFBFC;display:flex;flex-direction:column;gap:6px;}
+  .node .n{font-size:14px;font-weight:700;}
+  .node .range{font-size:12px;color:#646A73;}
+  .node ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.55;color:#333;}
+  .node li{margin:2px 0;}
+  .tag{display:inline-block;font-size:10.5px;border-radius:3px;padding:0 5px;line-height:1.7;}
+  .tag.now{background:#E7F0FB;color:#2B6CB0;}
+  .tag.new{background:#FDEEDC;color:#DD6B20;}
+  .foot{margin-top:14px;font-size:12.5px;color:#646A73;line-height:1.6;border-top:1px solid #EEF1F4;padding-top:10px;}
+  .foot b{color:#1F2329;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="fig-title">蛙娘好感 5 节点 → 功能解锁（修订 V2）</p>
+  <p class="fig-sub">蓝色 = 现有机制；橙色 = 本设计新增（已按评审修订）。预算分档 ×1.5/×2.5/×4 为现有。</p>
+  <div class="legend"><span><i class="dot now"></i>现有</span><span><i class="dot new"></i>本设计新增</span></div>
+  <div class="row">
+    <div class="node">
+      <div class="n">节点1 敌意</div>
+      <div class="range">好感 [-200,-101]</div>
+      <ul>
+        <li><span class="tag now">现有</span>拒绝照顾（喂食/洗白被拒）</li>
+        <li><span class="tag now">现有</span>高概率偷钱/偷货</li>
+        <li><span class="tag new">新增</span>当日预算倍率降档 ×1.5→×1.0</li>
+        <li><span class="tag new">附带修复</span>跑路期 Exists()=true 仍乘 ×1.5 的怪象一并消除</li>
+      </ul>
+    </div>
+    <div class="node">
+      <div class="n">节点2 冷淡</div>
+      <div class="range">好感 [-100,-1]</div>
+      <ul>
+        <li><span class="tag now">现有</span>预算 ×1.5（低档）</li>
+        <li><span class="tag now">现有</span>仍可能偷钱</li>
+        <li><span class="tag new">新增</span>无新增（惩罚缓冲带）</li>
+      </ul>
+    </div>
+    <div class="node">
+      <div class="n">节点3 友好</div>
+      <div class="range">好感 [0,49]</div>
+      <ul>
+        <li><span class="tag now">现有</span>预算 ×1.5 / ×2.5（0-29/30-49）</li>
+        <li><span class="tag now">现有</span>服务解锁门槛 ≥40</li>
+        <li><span class="tag new">新增</span>帮工：打烊后整理货架，次日清洁 +1</li>
+      </ul>
+    </div>
+    <div class="node">
+      <div class="n">节点4 亲密</div>
+      <div class="range">好感 [50,99]</div>
+      <ul>
+        <li><span class="tag now">现有</span>预算 ×2.5 / ×4（50-59/60-99）</li>
+        <li><span class="tag now">现有</span>自由移动（动画层）</li>
+        <li><span class="tag new">新增</span>代售：每日 1 次自动卖 1 件柜台货（定价 100%，无议价叠加）</li>
+        <li><span class="tag new">新增</span>捡漏：每日 1 次拾回随机 1 件物品</li>
+      </ul>
+    </div>
+    <div class="node">
+      <div class="n">节点5 信赖</div>
+      <div class="range">好感 [100,200]</div>
+      <ul>
+        <li><span class="tag now">现有</span>预算 ×4（好感 ≥60 即达）</li>
+        <li><span class="tag now">现有</span>不偷钱/偷货（≥100 完全豁免）</li>
+        <li><span class="tag new">新增·半1</span>看店-小偷上门：概率 ×0.5（尊重三开关 gate）</li>
+        <li><span class="tag new">新增·半2</span>看店-每日偷盗：无概率可乘，另定规则（隔天跳/件数减半）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot">
+    <b>在场判定（关键）：</b>看店所有「蛙娘在场」检查必须用 <b>ExistsInScene() && K_LEAVE ≤ 当日</b>，不能用 Exists()——后者在跑路期为 true，会把「她跑路了」误判成「在场」，反而给玩家减伤。
+  </div>
+</div>
+</body>
+</html>

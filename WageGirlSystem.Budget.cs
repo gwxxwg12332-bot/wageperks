@@ -19,14 +19,15 @@ public static partial class WageGirlSystem
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
     }
 
-    /// <summary>蛙哥牛逼升级接线（阶段1）：议价加成 Lv1=50 / Lv2=60 / Lv3=65（封顶 100 保持）。</summary>
+    /// <summary>蛙娘卡升级接线（P0 M3 10-16 拆分）：议价加成 Lv1=50 / Lv2=55 / Lv3=60（封顶 100 保持）。
+    /// 归属从蛙哥牛逼（原 60/65）改为蛙娘卡等级——再平衡 55/60（patch notes 标注），蛙娘在场基础 +50 无条件保留。</summary>
     private static int GetBargainBonus()
     {
         try
         {
-            int lv = B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId);
-            if (lv >= 3) return 65;
-            if (lv >= 2) return 60;
+            int lv = B2ServiceStore.GetEffectLevel(WageGirlPerk.PerkId);
+            if (lv >= 3) return 60;
+            if (lv >= 2) return 55;
             return 50;
         }
         catch { return 50; }
@@ -57,6 +58,7 @@ public static partial class WageGirlSystem
                 return;
             }
             if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
+            if (GetStat(K_LEAVE) > CurrentDay()) return; // #4 附带修复（P0）：跑路/离开中（Exists 跑路期为 true）不再应用好感预算倍率
             float mult = CurrentBudgetMult(__instance); // FIX17b：好感分档+蛙哥牛逼Lv3（现算，显示/重算共用）
             long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
@@ -83,7 +85,7 @@ public static partial class WageGirlSystem
         {
             if (c != null && (c.identifier == ENTITY_ID || c.identifier == "wage_brother")) return 1f;
             double affB = GetAffectionExact();
-            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
+            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? 1f // #4（P0）：敌意档不再乘（原×1.5→×1.0，低好感不奖励）
                 : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
             if (B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 && affB >= BuildConfig.WageGirlBudgetAffMid)
                 mult = 5f;

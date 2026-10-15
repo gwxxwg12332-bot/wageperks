@@ -315,6 +315,12 @@ public static partial class WageGirlSystem
                 return;
             }
             int lastSteal = GetStat(K_LAST_STEAL);
+            // 节点3 帮工（P0 M1）：友好节点 [0,49] 打烊后自动整理货架（纯表现 + 次日清洁 +1；每日 1 次由日结算天然保证，无需计数键）
+            if (GetAffNode(GetAffectionExact()) == 3)
+            {
+                SetStat(K_CLEAN, GetStat(K_CLEAN) + 1);
+                ReportLine(LangHelper.T("蛙娘打烊后帮忙整理了货架（帮工）清洁 +1", "Wage Girl tidied the shelves after closing (Help) Cleanliness +1"));
+            }
             // 4) 初次偷拿（lastSteal==0 → 初次偷 1 件 + N 钱，然后设 today；N=CFG WageGirlStealFirstAmount）
             if (lastSteal <= 0)
             {

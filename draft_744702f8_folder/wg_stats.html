@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="蛙娘六维修订V3：高六维改为成本侧对冲（减损失不增收益），避免多层倍率相乘叠加">
+<title>蛙娘六维：维护成本对冲结构（修订 V3）</title>
+<style>
+  body{margin:0;background:#FFFFFF;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1F2329;}
+  .wrap{padding:16px 8px;max-width:100%;box-sizing:border-box;}
+  .fig-title{font-size:17px;font-weight:700;margin:0 0 4px;}
+  .fig-sub{font-size:13px;color:#646A73;margin:0 0 14px;}
+  .cols{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;}
+  .side{flex:1 1 260px;min-width:250px;border-radius:8px;padding:12px 14px;}
+  .side.bad{background:#FBF4F0;border:1px solid #E8C9BC;}
+  .side.good{background:#F0F6F0;border:1px solid #C4D9C4;}
+  .side h3{margin:0 0 8px;font-size:14px;font-weight:700;}
+  .side.bad h3{color:#B03A2E;}
+  .side.good h3{color:#2E6B34;}
+  .side ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.6;color:#333;}
+  .side li{margin:3px 0;}
+  .side .hint{font-size:11.5px;color:#646A73;margin-top:8px;line-height:1.5;}
+  .mid{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;font-size:12px;color:#646A73;}
+  .mid .statbox{border:1px dashed #B8BFC8;border-radius:8px;padding:10px 12px;text-align:center;font-size:12px;line-height:1.7;background:#FFFFFF;}
+  .mid .statbox b{font-size:15px;color:#1F2329;}
+  .mid .arrow{font-size:20px;color:#8A919C;margin:6px 0;}
+  .foot{margin-top:14px;font-size:12.5px;color:#646A73;line-height:1.6;border-top:1px solid #EEF1F4;padding-top:10px;}
+  .foot b{color:#1F2329;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="fig-title">蛙娘六维：维护成本对冲（修订 V3）</p>
+  <p class="fig-sub">左 = 现有低六维惩罚；右 = 修订后高六维（≥80）奖励，全部为成本侧（减少损失），不做收益侧 % 叠加。容量型 additive 仅增加次数额度，不乘钱。</p>
+  <div class="cols">
+    <div class="side bad">
+      <h3>低六维（现有惩罚）</h3>
+      <ul>
+        <li>心情差 → 偷钱/偷货（间隔 5 天起，首偷 50，基础上限 100）</li>
+        <li>六维 ≤20 连续 5 天 → 跑路 14 天</li>
+        <li>六维低 → 好感额外衰减 −2~−5/天</li>
+        <li>口渴满时洗脏水澡 → 心情 −2~−5、健康 −5</li>
+      </ul>
+      <div class="hint">现有逻辑只惩罚「不养」，没有奖励「养好」。</div>
+    </div>
+    <div class="mid">
+      <div class="statbox">
+        <b>六维公共参数</b><br>
+        初始 60 / 上限 100<br>
+        日衰减 2（睡眠除外）<br>
+        睡眠日恢复 15
+      </div>
+      <div class="arrow">⇄</div>
+    </div>
+    <div class="side good">
+      <h3>高六维（M2 修订 V3，≥80 生效，成本侧）</h3>
+      <ul>
+        <li>六维每日衰减 2 → 1（好感衰减同步减半）</li>
+        <li>好感不掉档：当日无互动不再 −1~2（仅六维低额外衰减仍生效）</li>
+        <li>跑路阈值放宽：六维 ≤20 → ≤10 才计数跑路</li>
+        <li>全六维 ≥80（容量型）：零花钱每日 3→4 次（+1/+2/+3/+4）</li>
+        <li>全六维 ≥80：每日 +1 次喂食好感结算</li>
+        <li>睡眠 ≥80：睡眠债次日不累积</li>
+      </ul>
+      <div class="hint">全部是「减少损失 / 增加额度」，不进入预算/议价/销赃任何乘法链——天然不滚雪球。不做 +5% 议价 / +0.1 倍率等收益侧。</div>
+    </div>
+  </div>
+  <div class="foot">
+    <b>设计意图（修订理由）：</b>原 V2 的高六维收益（+5% 议价 / +0.1 预算）会与好感分档、蛙哥牛逼 Lv3 ×5、蛙娘卡三层倍率相乘叠加成 4~5 层乘区，既不可平衡玩家也看不懂。V3 改为成本侧对冲：养好 = 省维护、不掉档、防跑路，与低六维惩罚对称，且不参与任何乘区。
+  </div>
+</div>
+</body>
+</html>

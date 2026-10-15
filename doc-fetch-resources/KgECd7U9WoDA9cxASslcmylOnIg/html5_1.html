@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="蛙娘六维正反馈设计：低六维惩罚与高六维奖励的对称结构">
+<title>蛙娘六维正反馈循环图</title>
+<style>
+  body{margin:0;background:#FFFFFF;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1F2329;}
+  .wrap{padding:16px 8px;max-width:100%;box-sizing:border-box;}
+  .fig-title{font-size:17px;font-weight:700;margin:0 0 4px;}
+  .fig-sub{font-size:13px;color:#646A73;margin:0 0 14px;}
+  .cols{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;}
+  .side{flex:1 1 260px;min-width:250px;border-radius:8px;padding:12px 14px;}
+  .side.bad{background:#FBF4F0;border:1px solid #E8C9BC;}
+  .side.good{background:#F0F6F0;border:1px solid #C4D9C4;}
+  .side h3{margin:0 0 8px;font-size:14px;font-weight:700;}
+  .side.bad h3{color:#B03A2E;}
+  .side.good h3{color:#2E6B34;}
+  .side ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.6;color:#333;}
+  .side li{margin:3px 0;}
+  .side .hint{font-size:11.5px;color:#646A73;margin-top:8px;line-height:1.5;}
+  .mid{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;font-size:12px;color:#646A73;}
+  .mid .statbox{border:1px dashed #B8BFC8;border-radius:8px;padding:10px 12px;text-align:center;font-size:12px;line-height:1.7;background:#FFFFFF;}
+  .mid .statbox b{font-size:15px;color:#1F2329;}
+  .mid .arrow{font-size:20px;color:#8A919C;margin:6px 0;}
+  .foot{margin-top:14px;font-size:12.5px;color:#646A73;line-height:1.6;border-top:1px solid #EEF1F4;padding-top:10px;}
+  .foot b{color:#1F2329;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="fig-title">蛙娘六维：惩罚与奖励的对称结构</p>
+  <p class="fig-sub">左 = 现有机制（低六维惩罚，源码实锤）；右 = 本设计 M2 新增（高六维经营奖励）。中间为六维公共参数。</p>
+  <div class="cols">
+    <div class="side bad">
+      <h3>低六维（现有惩罚）</h3>
+      <ul>
+        <li>心情差 → 偷钱/偷货（间隔 5 天起，首偷 50，基础上限 100）</li>
+        <li>六维 ≤20 连续 5 天 → 跑路 14 天</li>
+        <li>六维低 → 好感额外衰减 −2~−5/天</li>
+        <li>口渴满时洗脏水澡 → 心情 −2~−5、健康 −5</li>
+      </ul>
+      <div class="hint">现有逻辑只惩罚「不养」，没有奖励「养好」——六维从 60 养到 100 与养到 61 无区别。</div>
+    </div>
+    <div class="mid">
+      <div class="statbox">
+        <b>六维公共参数</b><br>
+        初始 60 / 上限 100<br>
+        日衰减 2（睡眠除外）<br>
+        睡眠日恢复 15
+      </div>
+      <div class="arrow">⇄</div>
+    </div>
+    <div class="side good">
+      <h3>高六维（M2 新增奖励，≥80 生效）</h3>
+      <ul>
+        <li>饱食 ≥80 → 议价加成 +5%（封顶 100 内）</li>
+        <li>清洁 ≥80 → 次日客户好感度微升（预算倍率 +0.1 档）</li>
+        <li>心情 ≥80 → 偷钱概率 −50%（叠加好感豁免线）</li>
+        <li>睡眠 ≥80 → 次日工作 100% 效率（不偷懒）</li>
+        <li>六维全 ≥80 → 当日零花钱好感翻倍（+2/+4/+6）</li>
+      </ul>
+      <div class="hint">与惩罚对称：惩罚阈值 ≤20，奖励阈值 ≥80；养成区间 60→80 是「正常维持」的舒适带，冲 80+ 才有额外回报。</div>
+    </div>
+  </div>
+  <div class="foot">
+    <b>设计意图：</b>把六维从「防崩坏」变成「可投资」——玩家愿意为 80+ 多喂一档好食物，形成 投入食物/清洁 → 高六维 → 经营加成 → 更多收入 → 继续养 的正反馈，而不是只有「别让它崩」的防御式玩法。
+  </div>
+</div>
+</body>
+</html>
