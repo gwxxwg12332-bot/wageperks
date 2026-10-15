@@ -184,4 +184,10 @@ public class Core : MelonMod
 			Log?.Msg(msg);
 		}
 	}
+
+	// FIX15c：红色错误日志——打包版也输出（绕 DebugMode），MelonLoader Error=红色；供"异常恢复只报一次"类诊断用
+	public static void LogError(string msg)
+	{
+		try { Log?.Error(msg); } catch { }
+	}
 }

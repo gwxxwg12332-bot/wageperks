@@ -40,6 +40,27 @@ internal static class CompatibilityPatches
     // 10-05 第三方溢出兜底：CustomerCreditBoost 的 TrackClient Postfix → BoostClient → OverrideBudget(num4)
     // （预算×(100+num3)/100 指数累乘 → int 溢出写负，原版 OverrideBudget 零 clamp 直写字段）
     // → 挂 OverrideBudget Postfix 源头 clamp：任何调用（我方+第三方）写入前夹到 [0, 21.47亿]
+
+    // FIX15c：蛙哥预算异常去重日志——同一 client 连续异常只红色报一次（Core.LogError 打包版也输出），
+    //   恢复正常后清标志（下次异常再报一次）。防刷屏：异常恢复会高频触发（每帧判据/每次写入），不逐条打。
+    private static readonly System.Collections.Generic.Dictionary<StoreClient, bool> _wageBudgetAlerted = new System.Collections.Generic.Dictionary<StoreClient, bool>();
+
+    private static void CorrectWageBudget(StoreClient c)
+    {
+        bool abnormal = c.clientBudget < 0 || c.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20;
+        if (!abnormal)
+        {
+            if (_wageBudgetAlerted.ContainsKey(c)) _wageBudgetAlerted.Remove(c); // 恢复正常→清标志
+            return;
+        }
+        if (!_wageBudgetAlerted.ContainsKey(c))
+        {
+            _wageBudgetAlerted[c] = true;
+            Core.LogError("[兼容] 蛙哥预算异常恢复: " + c.clientBudget + " → " + WAGE_BROTHER_BUDGET);
+        }
+        c.clientBudget = WAGE_BROTHER_BUDGET;
+    }
+
     public static void PostfixOverrideBudget(StoreClient __instance)
     {
         try
@@ -50,11 +71,7 @@ internal static class CompatibilityPatches
             //   FIX15：补正溢出防护——>初始值+5% 视为第三方覆盖型爆正（指数累乘等），恢复初始
             if (__instance.identifier == "wage_brother")
             {
-                if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
-                {
-                    Core.LogMsg("[兼容] 蛙哥预算异常恢复: " + __instance.clientBudget + " → " + WAGE_BROTHER_BUDGET);
-                    __instance.clientBudget = WAGE_BROTHER_BUDGET;
-                }
+                CorrectWageBudget(__instance);
                 return;
             }
             if (__instance.clientBudget < 0)
@@ -80,11 +97,7 @@ internal static class CompatibilityPatches
         try
         {
             if (__instance == null || __instance.identifier != "wage_brother") return;
-            if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
-            {
-                Core.LogMsg("[兼容] 蛙哥ModBudget异常clamp: " + __instance.clientBudget + " → " + WAGE_BROTHER_BUDGET);
-                __instance.clientBudget = WAGE_BROTHER_BUDGET;
-            }
+            CorrectWageBudget(__instance);
         } catch { }
     }
 
@@ -96,10 +109,7 @@ internal static class CompatibilityPatches
         try
         {
             if (__instance == null || __instance.identifier != "wage_brother") return;
-            if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
-            {
-                __instance.clientBudget = WAGE_BROTHER_BUDGET;
-            }
+            CorrectWageBudget(__instance);
         } catch { }
     }
 
