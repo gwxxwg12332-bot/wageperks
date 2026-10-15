@@ -43,8 +43,8 @@ internal static class B2WildPanel
     private const int SVC_PRICE_WANDERER = 20000;  // 10-15 重定价（锚=充电器3=50000）：流浪者·重回第一天
     private const int SVC_PRICE_GU = 30000;        // 养蛊机（永久机器，3天融合×0.6）
     private const int SVC_PRICE_AI = 40000;        // AI 生成器（永久机器，每天抽卡核心产线）
-    private const int SVC_PRICE_PROTECTOR = 10000; // 保护器（消耗品，可重复购买）
-    private const int SVC_PRICE_PROTECTOR_CHANCE = 15000; // 10-15 保护器出现概率 +10%/级（可重复，上限 90%）
+    private const int SVC_PRICE_PROTECTOR = 3000; // 10-15 修正：消耗品定价对齐原版消耗带（原版顶500×6），防AI产线运营成本崩坏
+    private const int SVC_PRICE_PROTECTOR_CHANCE = 3000; // 10-15 修正：概率服务=保护器价对齐（白嫖回本≈10次到店，无套利）
 
     // ===== 10-15 许可/充电器搬进电话簿（用户拍板：也搬进电话簿；柜台一级保留+合成升级不变） =====
     internal const string SVC_PERMIT1 = "b2_svc_permit1";
