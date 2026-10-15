@@ -23,6 +23,8 @@ internal static class WageBrother
     // 10-07 C2-1/C2-2：名片/柜台货"该在"的状态随档键（对标小偷 KEY_THEFT_DAY 成功方案——
     //   柜台不随档+原一次性 180 帧补货超时=读档后柜台永远空；此键=持久愿望：上货成功置 1、清卡置 0，读档后按愿望重建柜台）
     private const string CARD_SPAWNED_KEY = "card_spawned";
+    // 10-15 名片只发一次：card_given=1=已送过名片（首次见面送，解锁电话簿 1005），之后蛙哥到店不再发卡
+    private const string CARD_GIVEN_KEY = "card_given";
 
     // 10-03 服务卡注册进物品库（PS_DebugTool/玩家生成工具调出=未注册ID→问号占位；照抄养蛊机RegisterOne模式）
     public static void RegisterCard(ItemDirectory dir)
@@ -47,8 +49,9 @@ internal static class WageBrother
             LoadCardSprite();
             GameItem card = ItemDirectory.CreateEmptyItem(null); // 无参构造不存在，照养蛊机CreateGuMachine:79
             card.identifier = CARD_ID;
-            card.SetName("蛙哥名片·消perk 500~8000");
-            card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。招贼体质固定5000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Thief Magnet: 5000 fixed. Removing Infamous: +3000 per faction.");
+            card.SetName(LangHelper.T("蛙哥的名片", "Wage Brother's Card"));
+            // 10-15 名片改电话簿用途：取消消perk费用详表（服务已走电话 1005 面板）；号码写进描述 + 文档tag
+            card.shortDescription = LangHelper.T("蛙哥的名片。拨打 1005 即可联系蛙哥——他的全部服务已存入电话簿，随时叫货。", "Wage Brother's business card. Dial 1005 to reach him - all his services are saved to your phonebook, call anytime.");
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
@@ -238,6 +241,13 @@ internal static class WageBrother
             }
             catch (System.Exception exb) { Core.LogMsg("[蛙哥] 收购清单设置异常: " + exb.Message); }
             try { LoadPortrait(); client.spriteName = "wage_brother_portrait"; try { client.possibleSprites.Clear(); client.possibleSprites.Add("wage_brother_portrait"); } catch { } try { if (StoreClientMono.Instance != null && StoreClientMono.Instance.image != null && _portrait != null) { StoreClientMono.Instance.image.sprite = _portrait; Core.LogMsg("[蛙哥] 立绘已刷"); } } catch (System.Exception exr) { Core.LogMsg("[蛙哥] 刷立绘异常: " + exr.Message); } } catch { } Core.LogMsg("[蛙哥] 立绘注入完成");
+            // 10-15 名片只发一次：card_given=1（已送过+电话簿已解锁）→ 之后蛙哥到店不再发卡，服务全走电话 1005 面板
+            if (WageSaveStore.GetInt("wage_brother", CARD_GIVEN_KEY, 0) == 1)
+            {
+                _refillPending = false;
+                Core.LogMsg("[蛙哥] 名片已送过（card_given=1），不再发卡");
+                return;
+            }
             // 不依赖门控，每次到场都加卡（柜台有卡则原生去重）`r`n            Core.LogMsg("[蛙哥] _cardSpawned=" + _cardSpawned + " 强制加卡");
             var ps = PlayerStore.Instance; if (ps == null) return;
             GameItem card = null;
@@ -249,7 +259,7 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName("蛙哥名片·消perk 500~8000"); card.shortDescription = LangHelper.T("双击：花信用点消除一项负面特性。费用按Cost分档：轻微500·较重2000·重5000·极重8000。招贼体质固定5000。消除声名狼藉时每势力另收3000。", "Double-click: pay credits to remove a negative perk. Fees by severity: 500/2000/5000/8000. Thief Magnet: 5000 fixed. Removing Infamous: +3000 per faction."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName(LangHelper.T("蛙哥的名片", "Wage Brother's Card")); card.shortDescription = LangHelper.T("蛙哥的名片。拨打 1005 即可联系蛙哥——他的全部服务已存入电话簿，随时叫货。", "Wage Brother's business card. Dial 1005 to reach him - all his services are saved to your phonebook, call anytime."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
                     try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
                 } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
@@ -257,8 +267,10 @@ internal static class WageBrother
                 _cardSpawned = true;
                 // 10-07 C2-1/C2-2：名片/柜台货状态随档+立即落盘（对标小偷 KEY_THEFT_DAY——小退=进程退出，
                 //   WageSaveStore 只在 SaveGame/EndDay Flush → 不 Flush 重进读文件=旧值=柜台空）
-                try { WageSaveStore.SetInt("wage_brother", CARD_SPAWNED_KEY, 1); WageSaveStore.Flush(); } catch (System.Exception exf) { Core.LogMsg("[蛙哥] 名片状态落盘失败: " + exf.Message); }
-                Core.LogMsg("[蛙哥] 到场，服务卡已上柜台");
+                // 10-15 名片只发一次：card_given=1 落盘（下次到店不再发）+ 幂等解锁电话簿 1005（电话簿直接可见、直接可拨）
+                try { WageSaveStore.SetInt("wage_brother", CARD_GIVEN_KEY, 1); WageSaveStore.SetInt("wage_brother", CARD_SPAWNED_KEY, 1); WageSaveStore.Flush(); } catch (System.Exception exf) { Core.LogMsg("[蛙哥] 名片状态落盘失败: " + exf.Message); }
+                try { B2WildPanel.EnsurePhoneRegistered(); try { StoreUIManager.Instance.Notify(LangHelper.T("蛙哥的电话已存入电话簿：1005", "Wage Brother's number saved to phonebook: 1005"), "green"); } catch { } Core.LogMsg("[蛙哥] 电话簿已解锁 1005"); } catch (System.Exception exp) { Core.LogMsg("[蛙哥] 解锁电话簿异常: " + exp.Message); }
+                Core.LogMsg("[蛙哥] 到场，名片已上柜台（首次）");
             }
             // 小概率携带售卖AI制造机/养蛊机/保护器
             try
