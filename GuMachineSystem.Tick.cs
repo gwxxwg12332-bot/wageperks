@@ -127,8 +127,8 @@ public static partial class GuMachineSystem
             string name = "养蛊模组";
             try { name = result.GetDisplayName(); } catch { try { name = result.name ?? baseId; } catch { } }
             string line = LangHelper.T(
-                "养蛊机炼成 " + name + " · 性能+" + newPerf + " 效率+" + newEff + " 质量+" + newQual + "（×1.2）",
-                "Swarm Forge forged " + name + " · Perf+" + newPerf + " Eff+" + newEff + " Qual+" + newQual + " (x1.2)");
+                "养蛊机炼成 " + name + " · 性能+" + newPerf + " 效率+" + newEff + " 质量+" + newQual + "（×0.6）",
+                "Swarm Forge forged " + name + " · Perf+" + newPerf + " Eff+" + newEff + " Qual+" + newQual + " (x0.6)");
             try { StoreUIManager.Instance.Notify(line); } catch { }
             try { var ps = PlayerStore.Instance; if (ps != null) ps.AddNightLog(line, "#7FC97F"); } catch { } // 09-19 亮绿(#00FF00)改柔和绿——刺眼反馈
             Core.AddNightReportLine(line);
@@ -210,7 +210,9 @@ public static partial class GuMachineSystem
                     eff += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_EFFICIENCY_INT");
                     qual += RobinCrusoePerk.GetTagIntSafe(m, "BONUS_PERCENTAGE_QUALITY_INT");
                 }
-                double okMult = safe ? 1.8 : 1.0; // 保护器版×1.8
+                // 10-15 用户拍板：不稳定版倍率随机 0.05~0.8（多数亏、运气好也只到 0.8）；保护器版固定 ×1.2
+                //   结构保留 mood 成败：成功 → [0.4,0.8] 均匀；失败 → [0.05,0.4] 均匀（总区间 0.05~0.8）
+                double okMult = safe ? 1.2 : (0.4 + Core.Rng.NextDouble() * 0.4);
                 int newP = (int)(perf * okMult);
                 int newE = (int)(eff * okMult);
                 int newQ = (int)(qual * okMult);
@@ -251,11 +253,8 @@ public static partial class GuMachineSystem
             }
             else
             {
-                // 10-01 用户拍板：失败不再全报废，而是产出打折模组——倍率 0.05~1.5，失败越惨倍率越低
-                // roll=successPct（刚过线）→倍率1.5；roll=99（最惨）→倍率0.05，线性插值
-                double failMult = 1.5 - (1.5 - 0.05) * (double)(roll - successPct) / (double)(99 - successPct);
-                if (failMult < 0.05) failMult = 0.05;
-                if (failMult > 1.5) failMult = 1.5;
+                // 10-15 用户拍板：失败打折倍率 0.05~0.4 均匀（总区间与成功[0.4,0.8]合为 0.05~0.8）
+                double failMult = 0.05 + Core.Rng.NextDouble() * 0.35;
                 int cap = 99999; // 失败也无上限（按用户要求）
                 int perf = 0, eff = 0, qual = 0;
                 foreach (var m in mods)

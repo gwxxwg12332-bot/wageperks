@@ -311,7 +311,7 @@ public static class BuildConfig
 	public static int GuMachinePrice => GetInt("GuMachinePrice", 3000);
 
 	public const int GuChargeDays = 3;
-	public const int GuForgeMult = 120;
+	public const int GuForgeMult = 60; // 10-15 用户拍板：养蛊机合成倍率 ×1.2 → ×0.6（削弱超标，困难加在解锁上）
 	public const int GuForgeCap = 150;
 	public const int GuBeastCap = 999;
 

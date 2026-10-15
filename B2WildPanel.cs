@@ -33,11 +33,25 @@ internal static class B2WildPanel
     internal const int CANNIBAL_PRICE = 3000;
     internal const long WAGE_PHONE_NUMBER = 1005;
 
+    // ===== 服务条目（10-15 用户拍板：养蛊机/AI/保护器从博士供货改服务解锁 + 流浪者=服务购买效果） =====
+    // 前置困难（价格+混合）：蛙哥牛逼 Lv2 + 蛙娘好感≥40 + 价格阶梯
+    internal const string SVC_WANDERER = "b2_svc_wanderer";   // 流浪者·重回第一天（一次性）
+    internal const string SVC_GU = "b2_svc_gu";               // 养蛊机（一次性）
+    internal const string SVC_AI = "b2_svc_ai";               // AI 生成器（一次性）
+    internal const string SVC_PROTECTOR = "b2_svc_protector"; // 保护器核心（可重复购买）
+    private const int SVC_PRICE_WANDERER = 3000;
+    private const int SVC_PRICE_GU = 3000;
+    private const int SVC_PRICE_AI = 6000;
+    private const int SVC_PRICE_PROTECTOR = 1500;
+    private const int SVC_AFFECTION_GATE = 40; // 好感门槛
+
     private sealed class WildEntry
     {
         internal string Id;
-        internal string PerkId;   // null = 吞噬季特殊条目
-        internal bool IsCannibal => PerkId == null;
+        internal string PerkId;    // 特性条目
+        internal string ServiceId; // 服务条目（null=特性/吞噬季）
+        internal bool IsCannibal => PerkId == null && ServiceId == null;
+        internal bool IsService => ServiceId != null;
     }
 
     private static readonly WildEntry[] Entries = BuildEntries();
@@ -50,6 +64,10 @@ internal static class B2WildPanel
         foreach (var perk in CustomStartingPerks.All)
             list.Add(new WildEntry { Id = PREFIX + perk.Id, PerkId = perk.Id });
         list.Add(new WildEntry { Id = CANNIBAL_ID, PerkId = null });
+        list.Add(new WildEntry { Id = SVC_WANDERER, ServiceId = "wanderer_day1" });
+        list.Add(new WildEntry { Id = SVC_GU, ServiceId = "gu_machine" });
+        list.Add(new WildEntry { Id = SVC_AI, ServiceId = "ai_generator" });
+        list.Add(new WildEntry { Id = SVC_PROTECTOR, ServiceId = "protector" });
         return list.ToArray();
     }
 
@@ -81,7 +99,7 @@ internal static class B2WildPanel
                 var u = new NetworkUpgrade(e.Id);
                 u.subtitle = "";
                 u.cost = 0;                      // 定价走 Patch GetCost
-                u.isRepeatable = e.IsCannibal;   // 吞噬季：已购后再次点击 = 切换模式
+                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector";   // 吞噬季/保护器：可重复购买
                 u.cooldownCurrent = 0;
                 u.cooldownDuration = 0;
                 u.prerequisite = null;
@@ -119,7 +137,7 @@ internal static class B2WildPanel
                 var u = new NetworkUpgrade(e.Id);
                 u.subtitle = "";
                 u.cost = 0;
-                u.isRepeatable = e.IsCannibal;
+                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector";
                 u.cooldownCurrent = 0;
                 u.cooldownDuration = 0;
                 u.prerequisite = null;
@@ -163,6 +181,7 @@ internal static class B2WildPanel
     {
         var e = FindEntry(u.id);
         if (e == null) return 0;
+        if (e.IsService) return ServiceCost(e); // 服务条目（机器/流浪者）
         if (e.IsCannibal)
         {
             return B2ServiceStore.IsCannibalOwned ? 0 : CANNIBAL_PRICE; // 已购再点 = 切换模式（免费）
@@ -196,6 +215,109 @@ internal static class B2WildPanel
         return toLevel == 2 ? baseP : baseP * 2;
     }
 
+    // ===== 服务条目：定价 / 标题 / 副标题 / 描述 / 解锁 / 发放（10-15） =====
+    private static int ServiceCost(WildEntry e)
+    {
+        if (e.ServiceId == "protector") return SVC_PRICE_PROTECTOR; // 可重复购买
+        if (B2ServiceStore.GetLevel(e.Id) >= 1) return 0; // 一次性已购
+        switch (e.ServiceId)
+        {
+            case "wanderer_day1": return SVC_PRICE_WANDERER;
+            case "gu_machine": return SVC_PRICE_GU;
+            case "ai_generator": return SVC_PRICE_AI;
+        }
+        return 0;
+    }
+
+    private static string ServiceTitle(WildEntry e)
+    {
+        switch (e.ServiceId)
+        {
+            case "wanderer_day1": return LangHelper.T("流浪者·重回第一天", "Wanderer: Back to Day 1");
+            case "gu_machine": return LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge");
+            case "ai_generator": return LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator");
+            case "protector": return LangHelper.T("蛙哥保护器核心", "Wage's Protector Core");
+        }
+        return e.Id;
+    }
+
+    private static string ServiceSubtitle(WildEntry e)
+    {
+        string s = LangHelper.T("服务", "Service");
+        if (e.ServiceId == "protector") s += LangHelper.T(" · 可重复", " · repeatable");
+        return s;
+    }
+
+    private static string ServiceDescription(WildEntry e)
+    {
+        string req = LangHelper.T("\n\n解锁条件：蛙哥牛逼 Lv2 + 蛙娘好感≥" + SVC_AFFECTION_GATE, "\n\nRequires: WageBrother Lv2 + affection >= " + SVC_AFFECTION_GATE);
+        switch (e.ServiceId)
+        {
+            case "wanderer_day1":
+                return LangHelper.T("购买后解锁主动能力「重回第一天」：把时间拨回第 1 天，商店所有物品清空并用 mod 好物池随机刷新（玩家资产保留），冷却 3 天。", "Unlocks Back to Day 1: rewind time to Day 1, refresh store from mod item pool (assets kept), 3-day cooldown.") + req;
+            case "gu_machine":
+                return LangHelper.T("传奇当铺主蛙哥留下的炼蛊机器：打烊充能（3天）后自动炼蛊（三属性之和×0.6，上限150%）；舱内老鼠自动互食。", "A forging machine left by Wage: 3-day charge then forge (sum x0.6, cap 150%); rats in bay devour each other.") + req;
+            case "ai_generator":
+                return LangHelper.T("不稳定 AI 生成器：打烊自动抽卡；装保护器=稳定×1.2，不装=倍率随机 0.05~0.8（多数亏）。", "Unstable AI generator: auto-draw at close; with Protector=stable x1.2, without=random 0.05~0.8 (usually a loss).") + req;
+            case "protector":
+                return LangHelper.T("稳定器：放入 AI 生成器舱即稳定版（100%成功，属性×1.2），每次抽卡消耗 1 个，可重复购买。", "Stabilizer: place in AI generator bay for stable mode (100%, x1.2), 1 per draw, repeatable.") + req;
+        }
+        return e.Id + req;
+    }
+
+    private static bool ServiceUnlockable()
+    {
+        try
+        {
+            if (B2ServiceStore.GetLevel(WagePowerPerk.PerkId) < 2) return false; // 蛙哥牛逼 Lv2 起步
+            if (WageGirlSystem.GetAffectionExact() < SVC_AFFECTION_GATE) return false;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static string ServiceRequirementText() => LangHelper.T("解锁条件不足：需蛙哥牛逼 Lv2 + 蛙娘好感≥" + SVC_AFFECTION_GATE, "Need WageBrother Lv2 + affection >= " + SVC_AFFECTION_GATE);
+
+    private static void GrantServiceItem(string itemId)
+    {
+        try
+        {
+            GameItem it = DirectoryMaster.Item(itemId, true);
+            if (it == null) { Notify(LangHelper.T("物品生成失败", "Item create failed")); return; }
+            var em = EmporiumEntry.Instance;
+            if (em != null && em.invElement != null)
+            {
+                var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
+                if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[B2R] 服务发放 → 桌面: " + itemId); return; } catch { } }
+            }
+            try { MerchantHelper.AddItemToCounter(itemId, 0, false); Core.LogMsg("[B2R] 服务发放 → 柜台: " + itemId); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] GrantServiceItem 异常: " + ex.Message); }
+    }
+
+    private static void OnUnlockService(WildEntry e)
+    {
+        try
+        {
+            if (e.ServiceId == "protector")
+            {
+                if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
+                GrantServiceItem(GuMachineSystem.PROTECTOR_ID);
+                Notify(LangHelper.T("已获得 蛙哥保护器核心（放入AI生成器舱即稳定版）", "Got Wage's Protector Core (place in AI generator bay for stable mode)"));
+                return;
+            }
+            if (B2ServiceStore.GetLevel(e.Id) >= 1) { Notify(LangHelper.T("该服务已解锁", "Service already unlocked")); return; }
+            if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
+            B2ServiceStore.SetLevel(e.Id, 1);
+            if (e.ServiceId == "gu_machine") GrantServiceItem(GuMachineSystem.GU_MACHINE_ID);
+            else if (e.ServiceId == "ai_generator") GrantServiceItem(GuMachineSystem.AI_GENERATOR_ID);
+            else if (e.ServiceId == "wanderer_day1") Notify(LangHelper.T("已解锁「重回第一天」！", "Unlocked Back to Day 1!"));
+            else Notify(LangHelper.T("服务已解锁", "Service unlocked"));
+            Core.LogMsg("[B2R] 服务解锁: " + e.Id);
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] OnUnlockService 异常: " + ex.Message); }
+    }
+
     public static void PostfixGetLocalizedTitle(NetworkUpgrade __instance, ref string __result)
     {
         try
@@ -203,6 +325,7 @@ internal static class B2WildPanel
             if (!IsB2(__instance)) return;
             var e = FindEntry(__instance.id);
             if (e == null) return;
+            if (e.IsService) { __result = ServiceTitle(e); return; } // 服务条目
             if (e.IsCannibal) { __result = LangHelper.T("吞噬季", "Cannibalism Season"); return; }
             var perk = FindPerk(e.PerkId);
             __result = perk != null ? perk.DisplayName : e.PerkId;
@@ -217,6 +340,7 @@ internal static class B2WildPanel
             if (!IsB2(__instance)) return;
             var e = FindEntry(__instance.id);
             if (e == null) return;
+            if (e.IsService) { __result = ServiceSubtitle(e); return; } // 服务条目
             if (e.IsCannibal) { __result = LangHelper.T("机器模组/电池互食盛宴", "Machines devour modules & batteries"); return; }
             var perk = FindPerk(e.PerkId);
             if (perk == null) return;
@@ -244,6 +368,7 @@ internal static class B2WildPanel
             if (!IsB2(__instance)) return;
             var e = FindEntry(__instance.id);
             if (e == null) return;
+            if (e.IsService) { __result = ServiceDescription(e); return; } // 服务条目
             if (e.IsCannibal)
             {
                 if (B2ServiceStore.IsCannibalOwned)
@@ -369,6 +494,7 @@ internal static class B2WildPanel
     {
         try
         {
+            if (e.IsService) { OnUnlockService(e); RefreshDetail(e.Id); return; } // 服务条目（机器/流浪者）
             if (e.IsCannibal)
             {
                 if (!B2ServiceStore.IsCannibalOwned)
