@@ -31,6 +31,13 @@ internal static class CompatibilityPatches
     // StoreClient.ApplyBudgetModifier Prefix（存原预算）
     private static readonly System.Collections.Generic.Dictionary<StoreClient, int> _origBudget = new();
 
+    // FIX17：预算显示取原版基础值（ApplyBudgetModifier 前 clientBudget）
+    internal static bool TryGetOrigBudget(StoreClient c, out int orig)
+    {
+        orig = 0;
+        try { if (c == null) return false; return _origBudget.TryGetValue(c, out orig); } catch { return false; }
+    }
+
     // FIX14：蛙哥预算常量（与 WageBrother.cs:219 / PatchRegistry.cs:54 的 SetBudget(1109707341, 10000000) 第一参数同值收口）
     //   游戏程序集签名：SetBudget(int budget, int budgetConversion)——第一参数=预算，第二=conversion（10-15 玩家拍板=10000000）
     //   设计目标（玩家拍板 10-15）：蛙哥每次到店初始预算固定 1,109,707,341；成交后允许正常扣减（ModBudget 直减字段）；

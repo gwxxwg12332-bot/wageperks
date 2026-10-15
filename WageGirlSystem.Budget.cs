@@ -72,7 +72,7 @@ public static partial class WageGirlSystem
         "wine_bottle","red_beer","nudka","beer","alcohol","wine_berry","beer_case","beer_bottle",
         "water_bottle","bottled_water","empty_bottle","wine","whiskey","vodka","rum","champagne","sake"
     });
-    private static bool BuysWaterOrBooze(StoreClient c)
+    internal static bool BuysWaterOrBooze(StoreClient c)
     {
         try {
             if (c.clientBuyingIdList == null) return false;
