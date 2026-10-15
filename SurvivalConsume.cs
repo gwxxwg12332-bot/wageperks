@@ -65,7 +65,7 @@ internal static partial class SurvivalFood
     private static readonly HashSet<string> NON_EDIBLE_BOTTLE_IDS = new HashSet<string>(new string[] { "wine_bottle", "beer_bottle", "empty_beer_bottle", "beer_case_0", "beer_case", "beer_crate", "beer_box", "beer_keg" });
     // 机器白名单全集（与 WagePerks RobinCrusoePerk.ContainerUpgrade.Upgrade.cs:149 同源：
     // STANDARD_MACHINE_TAG 拆包 2.5.30 仅 8 台；"所有机器可升级"→ 自定义全集判定）
-    private static readonly HashSet<string> NON_EDIBLE_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
+    private static readonly HashSet<string> NON_EDIBLE_MACHINE_IDS = new HashSet<string>(new string[] { "alarm_system", "moisture_farm", "water_purifier", "mirage_projector", "desequencer", "furnace", "wine_rack", "turbo_booster", "bottle_printer", "water_bottle_printer", "box_dispenser", "cassette_player", "animal_feeder", "recharger_base", "fridge", "blender", "chem_finisher", "deal_maker", "heating_plate", "hydroponic", "broken_machine" });
 
     /// 机器类：GetGameItemType()=="MACHINE"（拆包 10-05 实锤原版机器统一授予：MachineAlarm:667/Desequencer:1206/FeedDispenser:1000/Fridge:597/MoistureFarm:764/Purifier:787/Projector:639/Recharger:576/WineRack:649）
     /// + STANDARD_MACHINE_TAG（8台）+ 白名单兜底（bottle_printer 无 MACHINE 类型需白名单；broken_machine 疑第三方）
