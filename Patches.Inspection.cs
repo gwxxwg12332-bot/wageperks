@@ -41,7 +41,8 @@ internal static partial class Patches
 		try
 		{
 			// 10-06 决策#10 快件：招贼体质=无法豁免治安豁免（SEC_VIP）——RiskTaker 或 ThiefMagnet 激活都关豁免；PostfixIsPerkUnlocked 自动同步（_secVipOverride→SEC_VIP=false）
-			_secVipOverride = RiskTakerPerk.IsActive() || ThiefMagnetPerk.IsActive();
+			// 10-15 净化：招贼净化后不再关豁免（只保留黑市面）
+			_secVipOverride = RiskTakerPerk.IsActive() || ThiefMagnetPerk.IsActiveDebuff();
 		}
 		catch
 		{
@@ -78,7 +79,7 @@ internal static partial class Patches
 	{
 		try
 		{
-			if (!RiskTakerPerk.IsActive() && !ThiefMagnetPerk.IsActive())
+			if (!RiskTakerPerk.IsActive() && !ThiefMagnetPerk.IsActiveDebuff())
 			{
 				return;
 			}
@@ -95,7 +96,7 @@ internal static partial class Patches
 				return;
 			}
 			bool num2 = RiskTakerPerk.IsActive();
-			bool flag = ThiefMagnetPerk.IsActive();
+			bool flag = ThiefMagnetPerk.IsActiveDebuff();
 			bool flag2 = num2;
 			if (!num2 && flag)
 			{
@@ -108,7 +109,7 @@ internal static partial class Patches
 			}
 			try
 			{
-				if (!RiskTakerPerk.IsActive() && !ThiefMagnetPerk.IsActive())
+				if (!RiskTakerPerk.IsActive() && !ThiefMagnetPerk.IsActiveDebuff())
 				{
 					return;
 				}

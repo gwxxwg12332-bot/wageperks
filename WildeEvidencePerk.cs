@@ -37,6 +37,30 @@ internal static class WildeFixerPatch
     public const int EvidenceReduce = 5;    // 09-22 用户拍板：证据条 -5
     public const int ExtraCrimeReduce = 50; // 每种犯罪额外 -50
 
+    // 10-15 升级接线：Lv1=5/50、Lv2=8/75、Lv3=12/100
+    public static int EvidenceReduceLv()
+    {
+        try
+        {
+            int lv = B2ServiceStore.GetEffectLevel(WildeEvidencePerk.PerkId);
+            if (lv >= 3) return 12;
+            if (lv >= 2) return 8;
+            return EvidenceReduce;
+        }
+        catch { return EvidenceReduce; }
+    }
+    public static int ExtraCrimeReduceLv()
+    {
+        try
+        {
+            int lv = B2ServiceStore.GetEffectLevel(WildeEvidencePerk.PerkId);
+            if (lv >= 3) return 100;
+            if (lv >= 2) return 75;
+            return ExtraCrimeReduce;
+        }
+        catch { return ExtraCrimeReduce; }
+    }
+
     public static void Postfix(SecData __instance)
     {
         try
@@ -47,14 +71,14 @@ internal static class WildeFixerPatch
             if (__instance == null) return;
 
             // 1. 直接减 evidenceLevel（原版完全不做的，效果最显著）
-            __instance.evidenceLevel = Mathf.Max(0, __instance.evidenceLevel - EvidenceReduce);
+            __instance.evidenceLevel = Mathf.Max(0, __instance.evidenceLevel - EvidenceReduceLv());
 
             // 2. 增强 crimeAmount 消除（原版已减半+减50，这里追加）
             if (__instance.crimeAmount != null)
             {
                 for (int i = 0; i < __instance.crimeAmount.Count; i++)
                 {
-                    __instance.crimeAmount[i] = Mathf.Max(0, __instance.crimeAmount[i] - ExtraCrimeReduce);
+                    __instance.crimeAmount[i] = Mathf.Max(0, __instance.crimeAmount[i] - ExtraCrimeReduceLv());
                 }
             }
 
@@ -63,7 +87,7 @@ internal static class WildeFixerPatch
             {
                 for (int i = 0; i < __instance.crimeAmountTotal.Count; i++)
                 {
-                    __instance.crimeAmountTotal[i] = Mathf.Max(0, __instance.crimeAmountTotal[i] - ExtraCrimeReduce);
+                    __instance.crimeAmountTotal[i] = Mathf.Max(0, __instance.crimeAmountTotal[i] - ExtraCrimeReduceLv());
                 }
             }
 

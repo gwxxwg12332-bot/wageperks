@@ -42,9 +42,11 @@ internal static class ThiefMagnetSystem
         {
             if (!ThiefMagnetPerk.IsActive()) { Core.LogMsg("[招贼体质] OnBeginDay跳过：特性未激活"); return; }
             int day = GetDay();
+            bool purified = B2ServiceStore.IsPurified(ThiefMagnetPerk.PerkId);
 
             // ① 每日偷盗（夜里发生，每晚必偷——独立于上门事件，不被黑市/跳脸 return 阻断）
-            if (BuildConfig.ThiefMagnetDailyTheftEnabled)
+            // 10-15 净化：不再偷盗（debuff 移除）
+            if (BuildConfig.ThiefMagnetDailyTheftEnabled && !purified)
             {
                 _stolenMap.Clear(); // 过天清理会话映射（旧上桌物品已销毁/清除，防残留；当天上桌会重新登记）
                 RunDailyTheft(day);
@@ -54,8 +56,9 @@ internal static class ThiefMagnetSystem
             //    跳脸=小偷昨晚偷了货 → 今天上门半价卖回；同时带黑市的货来卖（BlackMarketEnabled）
             //    每日按 BlackMarketChance（默认 1.0=必来）；与 AddictOfficer 事件通道互斥
             //    10-06 A7：无偷盗史（新档第一天/从未被偷）→ 小偷不上门（无偷盗则无跳脸）
+            //    10-15 净化：不再偷盗 → 无偷盗史；黑市买家通道独立保留（不依赖偷盗史），只带黑市货
             bool gate = BuildConfig.ThiefMagnetVisitEnabled || BuildConfig.ThiefMagnetBlackMarketEnabled;
-            bool hasTheftHistory = WageSaveStore.GetInt(NS, KEY_THEFT_DAY, -1) != -1;
+            bool hasTheftHistory = purified || WageSaveStore.GetInt(NS, KEY_THEFT_DAY, -1) != -1;
             bool chan = IsChannelFree(day);
             float rnd = UnityEngine.Random.value;
             Core.LogMsg("[招贼体质] OnBeginDay day=" + day + " gate=" + gate + " 偷盗史=" + hasTheftHistory + " 通道空=" + chan + " random=" + rnd + " 阈值=" + BuildConfig.ThiefMagnetBlackMarketChance);

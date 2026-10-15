@@ -176,6 +176,19 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
+	/// <summary>三之友升级接线（阶段2）：水商/酒商/退休枪匠折扣 Lv1=-5 / Lv2=-10 / Lv3=-15。</summary>
+	private static float MerchantDiscount(string perkId)
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(perkId);
+			if (lv >= 3) return 0.85f;
+			if (lv >= 2) return 0.90f;
+			return 0.95f;
+		}
+		catch { return 0.95f; }
+	}
+
 	private static float GetFriendBuyDiscount(out string clientName, out string clientId)
 	{
 		clientName = "";
@@ -191,15 +204,15 @@ itemFeature.isFeatureExposed = true;
 			clientName = currentClient.displayName ?? "";
 			if (clientId == "retired_gunsmith" && RetiredGunsmithPerk.IsActive())
 			{
-				return 0.95f;
+				return MerchantDiscount(RetiredGunsmithPerk.PerkId);
 			}
 			if (clientId == "retired_water_merchant" && WaterMerchantPerk.IsActive())
 			{
-				return 0.95f;
+				return MerchantDiscount(WaterMerchantPerk.PerkId);
 			}
 			if (clientId == "retired_winemaker" && AlcoholMerchantPerk.IsActive())
 			{
-				return 0.95f;
+				return MerchantDiscount(AlcoholMerchantPerk.PerkId);
 			}
 			if (DrJacksonFriendPerk.IsActive() && (clientName.Contains("博士") || clientId.Contains("jackson") || clientId.Contains("inventor")))
 			{

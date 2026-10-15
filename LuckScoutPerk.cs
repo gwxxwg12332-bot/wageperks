@@ -137,7 +137,21 @@ internal sealed partial class LuckScoutPerk : CustomStartingPerk
 
     private static int UPGRADE_CHANCE => BuildConfig.UpgradeChance;            // 每级 +%（CFG 可调）
 
-    private static int MAX_CHANCE => BuildConfig.HardMode ? BuildConfig.LuckMaxChanceHard : BuildConfig.LuckMaxChance;   // 稀有物发现几率上限（CFG 可调：标准25%/硬爽50%）
+    private static int MAX_CHANCE => EffectiveMaxChance();   // 稀有物发现几率上限（CFG 可调：标准25%/硬爽50%）
+
+    // 10-15 升级接线（B2 面板 Lv2/Lv3）：稀有率上限 +5/+10（标准 25→30→35；硬爽 50→55→60）
+    private static int EffectiveMaxChance()
+    {
+        int baseMax = BuildConfig.HardMode ? BuildConfig.LuckMaxChanceHard : BuildConfig.LuckMaxChance;
+        try
+        {
+            int lv = B2ServiceStore.GetEffectLevel(PerkId);
+            if (lv >= 3) return baseMax + 10;
+            if (lv >= 2) return baseMax + 5;
+        }
+        catch { }
+        return baseMax;
+    }
 
     private static int LEVELUP_EVERY => BuildConfig.LevelupEvery;             // 每 N 次拾荒升 1 级（CFG 可调）
 

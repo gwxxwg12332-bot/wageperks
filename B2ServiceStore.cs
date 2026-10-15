@@ -36,6 +36,18 @@ internal static class B2ServiceStore
     internal static void Eliminate(string perkId)
         => WageSaveStore.SetInt(NS, "owned_" + perkId, -1);
 
+    // ---- 净化（10-15：保留正面/中性加成，只移除负面 debuff）----
+    // 键：purified_<perkId> = 1（独立于 owned_<id>=-1 完全消除；净化=改良，特性仍激活）
+    internal static bool IsPurified(string perkId)
+        => WageSaveStore.GetInt(NS, "purified_" + perkId, 0) == 1;
+
+    internal static void Purify(string perkId)
+        => WageSaveStore.SetInt(NS, "purified_" + perkId, 1);
+
+    /// <summary>可净化特性（有正面加成面 + 负面 debuff 面，净化才有意义）。</summary>
+    internal static bool IsPurifiable(string perkId)
+        => perkId == SmilingTigerPerk.PerkId || perkId == ThiefMagnetPerk.PerkId;
+
     /// <summary>
     /// 有效等级（阶段1 统一读取，兼容三来源）：
     ///   面板购/升级 → 1/2/3；开局已选（B2 无键但激活）→ 1 基础效果；已消除 → 0。

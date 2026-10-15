@@ -321,11 +321,13 @@ internal static partial class Patches
 		}
 		if (flag3 && flag)
 		{
-			num2 *= 1.2f;
+			// 10-15 升级接线：退休枪匠违禁加价 Lv1=×1.2 / Lv2=×1.3 / Lv3=×1.4
+			num2 *= RiskTakerMarkup();
 		}
 		if (WineLoverPerk.IsActive() && flag2)
 		{
-			num2 *= 1.25f;
+			// 10-15 升级接线：酒鬼酒类加价 Lv1=×1.25 / Lv2=×1.35 / Lv3=×1.50
+			num2 *= WineLoverMarkup();
 		}
 		if (num2 > 1f)
 		{
@@ -335,17 +337,64 @@ internal static partial class Patches
 	}
 
 	// ⑤ 笑面虎/童叟无欺：卖出价 ±25%
+	// 10-15 升级接线：笑面虎加价 Lv1=×1.25 / Lv2=×1.30 / Lv3=×1.40
+	private static float SmilingFaceMarkup()
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(SmilingFacePerk.PerkId);
+			if (lv >= 3) return 1.40f;
+			if (lv >= 2) return 1.30f;
+			return 1.25f;
+		}
+		catch { return 1.25f; }
+	}
+	private static int SmilingFacePct()
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(SmilingFacePerk.PerkId);
+			if (lv >= 3) return 40;
+			if (lv >= 2) return 30;
+			return 25;
+		}
+		catch { return 25; }
+	}
+	// 退休枪匠违禁加价 Lv1=1.2 / Lv2=1.3 / Lv3=1.4
+	private static float RiskTakerMarkup()
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(RiskTakerPerk.PerkId);
+			if (lv >= 3) return 1.4f;
+			if (lv >= 2) return 1.3f;
+			return 1.2f;
+		}
+		catch { return 1.2f; }
+	}
+	// 酒鬼酒类加价 Lv1=1.25 / Lv2=1.35 / Lv3=1.50
+	private static float WineLoverMarkup()
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(WineLoverPerk.PerkId);
+			if (lv >= 3) return 1.5f;
+			if (lv >= 2) return 1.35f;
+			return 1.25f;
+		}
+		catch { return 1.25f; }
+	}
 	private static void ApplyFaceMarkup(GameItem item, ref long result)
 	{
 		double faceMult = 1.0;
 		string faceLabelId = null;
 		string faceLabel = null;
-		if (SmilingFacePerk.IsActive()) { faceMult = 1.25; faceLabelId = "smiling_face_markup"; faceLabel = LangHelper.T("笑面虎加价", "Smiling Face Markup"); }
-		else if (SmilingTigerPerk.IsActive()) { faceMult = 0.75; faceLabelId = "honest_dealer_discount"; faceLabel = LangHelper.T("童叟无欺折让", "Honest Dealer Discount"); }
+		if (SmilingFacePerk.IsActive()) { faceMult = SmilingFaceMarkup(); faceLabelId = "smiling_face_markup"; faceLabel = LangHelper.T("笑面虎加价", "Smiling Face Markup"); }
+		else if (SmilingTigerPerk.IsActive() && !B2ServiceStore.IsPurified(SmilingTigerPerk.PerkId)) { faceMult = 0.75; faceLabelId = "honest_dealer_discount"; faceLabel = LangHelper.T("童叟无欺折让", "Honest Dealer Discount"); }
 		if (faceMult != 1.0)
 		{
 			result = (long)((double)result * faceMult);
-			int facePct = SmilingFacePerk.IsActive() ? 25 : -25;
+			int facePct = SmilingFacePerk.IsActive() ? SmilingFacePct() : -25;
 				AddTradeLabel(item, faceLabelId, faceLabel, ItemFeature.FeatureType.TemporarySelling, facePct);
 		}
 	}

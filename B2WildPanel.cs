@@ -213,9 +213,9 @@ internal static class B2WildPanel
         var perk = FindPerk(e.PerkId);
         if (perk == null) return 0;
         int lv = B2ServiceStore.GetLevel(e.PerkId);
-        if (perk.Cost < 0) // 负面：已消除免费占位，未消除显示消除价
+        if (perk.Cost < 0) // 负面：已消除/已净化免费占位，未处理显示消除价
         {
-            if (B2ServiceStore.IsEliminated(e.PerkId)) return 0;
+            if (B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId)) return 0;
             if (e.PerkId == InfamousPerk.PerkId) return 0; // 声名狼藉特殊：分势力恢复（免费开窗）
             if (e.PerkId == ThiefMagnetPerk.PerkId) return 5000; // 招贼体质固定消除价（B2 定价沿用）
             return WageBrother.PriceForCost(perk.Cost);
@@ -425,7 +425,8 @@ internal static class B2WildPanel
                        : (c == 0 ? LangHelper.T("零价特性", "Free") : LangHelper.T("正面特性", "Positive"));
             if (perk.Cost < 0)
             {
-                if (B2ServiceStore.IsEliminated(e.PerkId)) type += LangHelper.T(" · 已消除", " · eliminated");
+                if (B2ServiceStore.IsPurified(e.PerkId)) type += LangHelper.T(" · 已净化", " · purified");
+                else if (B2ServiceStore.IsEliminated(e.PerkId)) type += LangHelper.T(" · 已消除", " · eliminated");
             }
             else
             {
@@ -467,9 +468,36 @@ internal static class B2WildPanel
             __result = perk.Description;
             int lv = B2ServiceStore.GetLevel(e.PerkId);
             if (perk.Cost >= 0 && lv >= 1)
-                __result += LangHelper.T("\n\n当前等级：Lv" + lv + (lv >= 3 ? "（已满级）" : "（升级增强效果开发中）"), "");
+            {
+                string up = UpgradeEffectsText(e.PerkId, lv);
+                if (!string.IsNullOrEmpty(up))
+                    __result += LangHelper.T("\n\n" + up, "");
+                else
+                    __result += LangHelper.T("\n\n当前等级：Lv" + lv + (lv >= 3 ? "（已满级）" : ""), "");
+            }
+            else if (perk.Cost < 0 && B2ServiceStore.IsPurified(e.PerkId))
+            {
+                __result += LangHelper.T("\n\n（已净化：保留加成面，负面效果已移除）", "");
+            }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] Description 异常: " + ex.Message); }
+    }
+
+    /// <summary>升级效果文案（10-15：与效果接线一一对应，未接线特性不显示）。</summary>
+    private static string UpgradeEffectsText(string perkId, int lv)
+    {
+        string key = perkId;
+        if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5；Lv2 已解锁蛙哥服务面板", "Lv3: WageBrother client budget x5; Lv2 unlocks the service panel") : LangHelper.T("Lv2：解锁蛙哥服务面板", "Lv2: unlocks the service panel");
+        if (key == DrJacksonFriendPerk.PerkId) return lv >= 3 ? LangHelper.T("Lv3：博士友情价 -15%", "Lv3: Jackson friend price -15%") : LangHelper.T("Lv2：博士友情价 -12%", "Lv2: Jackson friend price -12%");
+        if (key == DestinyDicePerk.PerkId)    return lv >= 3 ? LangHelper.T("Lv3：命运骰触发阈值 300", "Lv3: dice trigger threshold 300") : LangHelper.T("Lv2：命运骰触发阈值 350", "Lv2: dice trigger threshold 350");
+        if (key == LuckScoutPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：稀有物掉落率上限 +10%", "Lv3: rare drop cap +10%") : LangHelper.T("Lv2：稀有物掉落率上限 +5%", "Lv2: rare drop cap +5%");
+        if (key == SmilingFacePerk.PerkId)    return lv >= 3 ? LangHelper.T("Lv3：卖出加价提升至 40%", "Lv3: sell markup 40%") : LangHelper.T("Lv2：卖出加价提升至 30%", "Lv2: sell markup 30%");
+        if (key == WineLoverPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：酒类卖出加价提升至 50%", "Lv3: alcohol markup 50%") : LangHelper.T("Lv2：酒类卖出加价提升至 35%", "Lv2: alcohol markup 35%");
+        if (key == RiskTakerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：违禁品加价提升至 40%", "Lv3: contraband markup 40%") : LangHelper.T("Lv2：违禁品加价提升至 30%", "Lv2: contraband markup 30%");
+        if (key == WaterMerchantPerk.PerkId || key == AlcoholMerchantPerk.PerkId || key == RetiredGunsmithPerk.PerkId)
+            return lv >= 3 ? LangHelper.T("Lv3：专属商人折扣 -15%", "Lv3: merchant discount -15%") : LangHelper.T("Lv2：专属商人折扣 -10%", "Lv2: merchant discount -10%");
+        if (key == WildeEvidencePerk.PerkId)  return lv >= 3 ? LangHelper.T("Lv3：线人减证据 -12、犯罪消除 -100", "Lv3: fixer reduces evidence 12, crime 100") : LangHelper.T("Lv2：线人减证据 -8、犯罪消除 -75", "Lv2: fixer reduces evidence 8, crime 75");
+        return "";
     }
 
     public static void PostfixGetLocalizedAlreadyBought(NetworkUpgrade __instance, ref string __result)
@@ -484,7 +512,8 @@ internal static class B2WildPanel
             if (perk == null) return;
             if (perk.Cost < 0)
             {
-                if (B2ServiceStore.IsEliminated(e.PerkId)) __result = LangHelper.T("已消除", "eliminated");
+                if (B2ServiceStore.IsPurified(e.PerkId)) __result = LangHelper.T("已净化", "purified");
+                else if (B2ServiceStore.IsEliminated(e.PerkId)) __result = LangHelper.T("已消除", "eliminated");
                 return;
             }
             int lv = B2ServiceStore.GetLevel(e.PerkId);
@@ -511,7 +540,7 @@ internal static class B2WildPanel
             if (e.IsCannibal) { __result = false; return; } // 吞噬季永远可点（购买/切换模式）
             var perk = FindPerk(e.PerkId);
             if (perk == null) return;
-            if (perk.Cost < 0) { __result = B2ServiceStore.IsEliminated(e.PerkId); return; }
+            if (perk.Cost < 0) { __result = B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId); return; }
             __result = B2ServiceStore.GetLevel(e.PerkId) >= 3;
         }
         catch (Exception ex) { Core.LogMsg("[B2R] IsUnlocked 异常: " + ex.Message); }
@@ -535,7 +564,7 @@ internal static class B2WildPanel
                 if (e.PerkId == ThiefMagnetPerk.PerkId && ThiefMagnetSystem.StolenCount() > 0)
                     __result = false; // 招贼体质：被偷未赎回 → 锁（提示走消业障）
                 else
-                    __result = !B2ServiceStore.IsEliminated(e.PerkId);
+                    __result = !B2ServiceStore.IsEliminated(e.PerkId) && !B2ServiceStore.IsPurified(e.PerkId);
                 return false;
             }
             __result = B2ServiceStore.GetLevel(e.PerkId) < 3;
@@ -598,9 +627,9 @@ internal static class B2WildPanel
             if (perk == null) return;
             int lv = B2ServiceStore.GetLevel(e.PerkId);
 
-            if (perk.Cost < 0) // 负面：消除
+            if (perk.Cost < 0) // 负面：消除 / 净化
             {
-                if (B2ServiceStore.IsEliminated(e.PerkId)) return;
+                if (B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId)) return;
                 if (e.PerkId == InfamousPerk.PerkId)
                 {
                     // 声名狼藉特殊：分势力恢复窗口（全正才真正消除，走既有逻辑；本条目免费开窗）
@@ -612,6 +641,8 @@ internal static class B2WildPanel
                     Notify(LangHelper.T("被偷物品还没赎完，招贼体质暂时消不掉——先点「消业障」里的赎回", "Redeem stolen items first."));
                     return;
                 }
+                // 10-15 净化购买：可净化特性弹选择窗（消除=全移除 / 净化=保留加成只删 debuff）
+                if (B2ServiceStore.IsPurifiable(e.PerkId)) { ShowPurifyWindow(e, perk); return; }
                 B2ServiceStore.Eliminate(e.PerkId);
                 Notify(LangHelper.T("已消除负面特性：" + perk.DisplayName, "Negative perk removed: " + perk.DisplayName));
                 Core.LogMsg("[B2R] 已消除 " + e.PerkId);
@@ -644,6 +675,75 @@ internal static class B2WildPanel
             RefreshDetail(e.Id);
         }
         catch (Exception ex) { Core.LogMsg("[B2R] OnUnlock 异常: " + ex.Message); }
+    }
+
+    // ============ 净化购买（10-15：保留正面/中性加成，只移除负面 debuff） ============
+    // 净化价 = 消除价 × 2（童叟无欺 4000 / 招贼体质 10000）
+    private static int PurifyPrice(WildEntry e, CustomStartingPerk perk)
+    {
+        try
+        {
+            int basePrice = e.PerkId == ThiefMagnetPerk.PerkId ? 5000 : WageBrother.PriceForCost(perk.Cost);
+            return basePrice * 2;
+        }
+        catch { return 4000; }
+    }
+
+    private static void ShowPurifyWindow(WildEntry e, CustomStartingPerk perk)
+    {
+        try
+        {
+            if (PlayerStore.Instance == null) return;
+            var mgr = CustomUIManager.Instance; if (mgr == null) return;
+            if (mgr.IsOpen("b2_purify_window")) mgr.CloseWindow("b2_purify_window");
+            var w = mgr.CreateWindow("b2_purify_window", LangHelper.T("净化 · 保留加成", "Purify · Keep the bonus"), "overlay");
+            if (w == null) return;
+            w.SetSize(380, 300).SetPosition(Vector2.zero);
+            w.BeginColumn(4f);
+            w.AddLabel(LangHelper.T("蛙哥：这招能去邪气，也能只去邪气留本事。", "Wage Brother: I can remove the whole perk, or just the bad part."), "b2_purify_hint");
+            var ps = PlayerStore.Instance;
+            w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "b2_purify_cash");
+            string bonus = perk.Id == ThiefMagnetPerk.PerkId
+                ? LangHelper.T("保留：黑市买家每日上门（额外销售渠道）", "Keep: black-market buyers visit daily (extra sales)")
+                : LangHelper.T("保留：声誉获取 +25%（客户更信任你）", "Keep: reputation gain +25% (customers trust you)");
+            string debuff = perk.Id == ThiefMagnetPerk.PerkId
+                ? LangHelper.T("移除：治安检查 +20% 与夜间丢物", "Remove: inspection +20% and nightly theft")
+                : LangHelper.T("移除：卖出收益 -25%", "Remove: sale income -25%");
+            w.AddLabel(bonus, "b2_purify_bonus");
+            w.AddLabel(debuff, "b2_purify_debuff");
+            int elimPrice = e.PerkId == ThiefMagnetPerk.PerkId ? 5000 : WageBrother.PriceForCost(perk.Cost);
+            int purifyPrice = PurifyPrice(e, perk);
+            var elimAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => {
+                try
+                {
+                    if (ps.playerCash < elimPrice) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
+                    ps.playerCash -= elimPrice;
+                    StartingPerk.RemovePerk(perk.Id);
+                    B2ServiceStore.Eliminate(perk.Id);
+                    StoreUIManager.Instance.Notify(LangHelper.T("蛙哥收了" + elimPrice + "块，" + perk.DisplayName + "整个消了", "Removed " + perk.DisplayName + " for " + elimPrice));
+                    Core.LogMsg("[B2R] 净化窗消除 " + perk.Id + "，扣 " + elimPrice);
+                    RefreshDetail(e.Id);
+                    try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("b2_purify_window"); } catch { }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 净化窗消除异常: " + ex.Message); }
+            }));
+            var purifyAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => {
+                try
+                {
+                    if (ps.playerCash < purifyPrice) { StoreUIManager.Instance.Notify(LangHelper.T("钱不够", "Not enough credits")); return; }
+                    ps.playerCash -= purifyPrice;
+                    B2ServiceStore.Purify(perk.Id);
+                    StoreUIManager.Instance.Notify(LangHelper.T("蛙哥收了" + purifyPrice + "块，" + perk.DisplayName + "净化完成——加成还在，邪气去了", "Purified " + perk.DisplayName + " for " + purifyPrice + " - bonus kept, debuff gone"));
+                    Core.LogMsg("[B2R] 净化 " + perk.Id + "，扣 " + purifyPrice);
+                    RefreshDetail(e.Id);
+                    try { if (CustomUIManager.Instance != null) CustomUIManager.Instance.CloseWindow("b2_purify_window"); } catch { }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 净化异常: " + ex.Message); }
+            }));
+            w.AddButton(LangHelper.T("彻底消除 · " + elimPrice + " 信用点", "Remove entirely · " + elimPrice + " cr"), elimAct, "b2_purify_elim");
+            w.AddButton(LangHelper.T("净化 · " + purifyPrice + " 信用点", "Purify · " + purifyPrice + " cr"), purifyAct, "b2_purify_do");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] ShowPurifyWindow 异常: " + ex.Message); }
     }
 
     // FIX17b：升级后重算当前在场客户预算（蛙哥牛逼 Lv3 ×4→×5 立即生效；无客户/未覆盖则静默跳过）

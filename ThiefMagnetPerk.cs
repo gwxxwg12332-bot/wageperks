@@ -28,4 +28,11 @@ internal sealed class ThiefMagnetPerk : CustomStartingPerk
         return Core.PerkActive(PerkId);
     }
 
+    // 10-15 净化（保留加成只删 debuff）：净化后不再参与治安检查与夜间偷盗判定，
+    // 但黑市买家/小偷上门通道仍保留（B2ServiceStore.IsPurified）。
+    internal static bool IsActiveDebuff()
+    {
+        return IsActive() && !B2ServiceStore.IsPurified(PerkId);
+    }
+
 }
