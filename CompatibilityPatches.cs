@@ -45,11 +45,12 @@ internal static class CompatibilityPatches
         try
         {
             if (__instance == null) return;
-            // FIX14：蛙哥分支——只防负数异常（叠加 mod 溢出写坏）恢复初始预算；
+            // FIX14：蛙哥分支——只防异常（溢出写负 / 覆盖型爆正），恢复初始预算；
             //   不再压 >1000（旧逻辑与 1,109,707,341 设计值冲突）；成交扣减正常递减，不强制补满
+            //   FIX15：补正溢出防护——>初始值+5% 视为第三方覆盖型爆正（指数累乘等），恢复初始
             if (__instance.identifier == "wage_brother")
             {
-                if (__instance.clientBudget < 0)
+                if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
                 {
                     Core.LogMsg("[兼容] 蛙哥预算异常恢复: " + __instance.clientBudget + " → " + WAGE_BROTHER_BUDGET);
                     __instance.clientBudget = WAGE_BROTHER_BUDGET;
