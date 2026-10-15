@@ -28,7 +28,7 @@ public static partial class WageGirlSystem
             it.SetName(LangHelper.T("蛙娘", "Wage Girl"));
             it.identifier = ENTITY_ID; // 公开 setter（照骰子先例）——identifier 随档
             it.identifierName = "TYPE-STRING_" + ENTITY_ID; // 公开 setter
-            it.shortDescription = LangHelper.T("蛙娘——蛙哥留下的仿生女仆。她会自己吃喝、干活，心情不好还会偷拿你的钱和货。但只要你好好照顾她，她会越来越信任你——从刚来时偷你100块，到后来只偷你个小零食；从站在角落不理你，到粘在你身边帮你抬价、叫客、销赃。双击打开她的状态面板。", "Wage Girl — an android maid left by Wage. She eats, works, and steals when moody. But take care of her, and she'll trust you more — from stealing 100 credits on day one to just a snack later; from hiding in the corner to standing by your side, boosting prices, calling customers, and fencing goods. Double-click to open her status panel.");
+            it.shortDescription = LangHelper.T("蛙娘——蛙哥留下的仿生女仆。她会自己吃喝、干活，心情不好还会偷拿你的钱和货。但只要你好好照顾她，她会越来越信任你——从刚来时偷你50块，到后来只偷你个小零食；从站在角落不理你，到粘在你身边帮你抬价、叫客、销赃。双击打开她的状态面板。", "Wage Girl — an android maid left by Wage. She eats, works, and steals when moody. But take care of her, and she'll trust you more — from stealing 50 credits on day one to just a snack later; from hiding in the corner to standing by your side, boosting prices, calling customers, and fencing goods. Double-click to open her status panel."); // 10-15 修正：首偷 50（WageGirlStealFirstAmount=50），描述原写 100 与实现不符
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
             return it;
