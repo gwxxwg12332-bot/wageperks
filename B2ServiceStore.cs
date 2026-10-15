@@ -36,6 +36,19 @@ internal static class B2ServiceStore
     internal static void Eliminate(string perkId)
         => WageSaveStore.SetInt(NS, "owned_" + perkId, -1);
 
+    /// <summary>
+    /// 有效等级（阶段1 统一读取，兼容三来源）：
+    ///   面板购/升级 → 1/2/3；开局已选（B2 无键但激活）→ 1 基础效果；已消除 → 0。
+    /// 规格定稿 V3 §3「等级语义」：0 未购 / 1 基础效果 / 2 增强 / 3 进阶。
+    /// </summary>
+    internal static int GetEffectLevel(string perkId)
+    {
+        int lv = GetLevel(perkId);
+        if (lv >= 1) return lv;
+        if (lv < 0) return 0; // 已消除
+        return Core.PerkActive(perkId) ? 1 : 0; // 开局已选=基础效果 Lv1
+    }
+
     // ---- 吞噬季 ----
     internal static bool IsCannibalOwned
         => WageSaveStore.GetInt(NS, "cannibal_owned", 0) == 1;

@@ -13,10 +13,23 @@ public static partial class WageGirlSystem
         try
         {
             if (!Exists()) return; // 蛙娘未出现 → 无增益
-            __result += 50;
+            __result += GetBargainBonus();
             if (__result > 100) __result = 100;
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
+    }
+
+    /// <summary>蛙哥牛逼升级接线（阶段1）：议价加成 Lv1=50 / Lv2=60 / Lv3=65（封顶 100 保持）。</summary>
+    private static int GetBargainBonus()
+    {
+        try
+        {
+            int lv = B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId);
+            if (lv >= 3) return 65;
+            if (lv >= 2) return 60;
+            return 50;
+        }
+        catch { return 50; }
     }
     public static void PostfixApplyBudgetModifier(StoreClient __instance)
     {
@@ -45,6 +58,9 @@ public static partial class WageGirlSystem
             double affB = GetAffectionExact(); // 10-07 #10：double 精确比较（负好感走低档倍率）
             float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
                 : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
+            // 蛙哥牛逼 Lv3（阶段1）：好感分档上限 ×4 → ×5（仍不含蛙哥本人——本方法 :26 已排除 wage_brother）
+            if (B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 && affB >= BuildConfig.WageGirlBudgetAffMid)
+                mult = 5f;
             long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
             WageAPI.WageTrade.OverrideBudget(__instance, newBudget);

@@ -38,7 +38,19 @@ namespace WagePerks
         public const string DICE_THRESHOLD_TAG = "destinyDiceThreshold"; // 当前摇骰门槛（初始400，每次掷骰+400）
         public const string DICE_LAST_COST_TAG = "destinyDiceLastCost"; // 最近一次掷骰消耗的门槛（卸载返还50%）
         public const string DICE_PENDING_EVENT_TAG = "destinyDicePendingEventId"; // 已排队事件id（string，卸载用）
-        public static int DICE_BASE_THRESHOLD => BuildConfig.DiceTriggerValue;
+
+        /// <summary>命运之骰升级接线（阶段1）：基础触发阈值 Lv1=CFG(400)、Lv2=350、Lv3=300（回落/上涨/初值共用）。</summary>
+        public static int GetBaseThreshold()
+        {
+            try
+            {
+                int lv = B2ServiceStore.GetEffectLevel(DestinyDicePerk.PerkId);
+                if (lv >= 3) return 300;
+                if (lv >= 2) return 350;
+                return BuildConfig.DiceTriggerValue;
+            }
+            catch { return BuildConfig.DiceTriggerValue; }
+        }
 
 
 
@@ -141,7 +153,7 @@ namespace WagePerks
                 SetTagInt(item, DICE_VALUE_TAG, 0);
 
                 SetTagInt(item, DICE_TRIGGER_TAG, 0);
-                SetTagInt(item, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD);
+                SetTagInt(item, DICE_THRESHOLD_TAG, GetBaseThreshold());
                 SetTagInt(item, DICE_LAST_COST_TAG, 0);
                 // 名称和描述（计数显示在名称/描述上，吸收后实时更新）
 
@@ -391,7 +403,7 @@ namespace WagePerks
             if (dice == null || !IsDice(dice)) return;
             int value = GetTagInt(dice, DICE_VALUE_TAG);
             int threshold = GetTagInt(dice, DICE_THRESHOLD_TAG);
-            if (threshold < DICE_BASE_THRESHOLD) threshold = DICE_BASE_THRESHOLD;
+            if (threshold < GetBaseThreshold()) threshold = GetBaseThreshold();
             if (value < threshold)
             {
                 try { StoreUIManager.Instance.Notify(LangHelper.T("价值不足，还需 " + (threshold - value) + " 才能掷骰", "Need " + (threshold - value) + " more value to roll"), "orange"); } catch { }
@@ -399,7 +411,7 @@ namespace WagePerks
             }
             value -= threshold;
             SetTagInt(dice, DICE_VALUE_TAG, value);
-            SetTagInt(dice, DICE_THRESHOLD_TAG, threshold + DICE_BASE_THRESHOLD);
+            SetTagInt(dice, DICE_THRESHOLD_TAG, threshold + GetBaseThreshold());
             SetTagInt(dice, DICE_LAST_COST_TAG, threshold);
             int trig = GetTagInt(dice, DICE_TRIGGER_TAG);
             SetTagInt(dice, DICE_TRIGGER_TAG, trig + 1);
@@ -491,7 +503,7 @@ namespace WagePerks
         catch (System.Exception ex) { Core.LogMsg("[DestinyDice.Core] 异常: " + ex.Message); }
     }
 
-    // 每日打烊门槛回落：threshold 归位到 DICE_BASE_THRESHOLD；value 永不受影响
+    // 每日打烊门槛回落：threshold 归位到 GetBaseThreshold()；value 永不受影响
     // 10-05 修复（玩家反馈"一直涨"实锤）：
     // ① 挂点从 OnDayStart 挪到 EndDay（打烊即回落，不再等新一天开始；见 PatchRegistryTable EndDay 条目）
     // ② 幅度从 -400/天 改为直接归 400——旧实现每天只回一档，玩家当天掷 2 次(+800)只回-400 → 净涨400/天
@@ -508,9 +520,9 @@ namespace WagePerks
                 if (it == null || !IsDice(it)) continue;
                 found++;
                 int tt = GetTagInt(it, DICE_THRESHOLD_TAG);
-                if (tt > DICE_BASE_THRESHOLD)
+                if (tt > GetBaseThreshold())
                 {
-                    SetTagInt(it, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD);
+                    SetTagInt(it, DICE_THRESHOLD_TAG, GetBaseThreshold());
                     reset++;
                     // 10-05 实锤：只改 tag 不改名称 → 玩家打烊后看骰子名称仍是旧门槛（"没回落"假象）
                     // 归位后立即刷新名称显示（UpdateDicePanelTitle 内部幂等剥除事件文本，无害）
@@ -565,7 +577,7 @@ namespace WagePerks
 
                 int trig = GetTagInt(dice, DICE_TRIGGER_TAG);
                 int threshold = GetTagInt(dice, DICE_THRESHOLD_TAG);
-                if (threshold < DICE_BASE_THRESHOLD) threshold = DICE_BASE_THRESHOLD;
+                if (threshold < GetBaseThreshold()) threshold = GetBaseThreshold();
                 string pendingEvt = GetTagString(dice, DICE_PENDING_EVENT_TAG);
                 string evtZh = "";
                 if (pendingEvt != "") { try { if (!EventZhName.TryGetValue(pendingEvt, out evtZh)) evtZh = pendingEvt; } catch { evtZh = pendingEvt; } }

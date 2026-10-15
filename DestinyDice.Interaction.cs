@@ -517,7 +517,7 @@ namespace WagePerks
 
                 try { SetTagInt(it, DICE_TRIGGER_TAG, 0); } catch { }
 
-                try { SetTagInt(it, DICE_THRESHOLD_TAG, DICE_BASE_THRESHOLD); } catch { }
+                try { SetTagInt(it, DICE_THRESHOLD_TAG, GetBaseThreshold()); } catch { }
 
                 try { SetTagInt(it, DICE_LAST_COST_TAG, 0); } catch { }
 

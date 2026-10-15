@@ -58,7 +58,7 @@ internal static partial class Patches
 				itemFeature.featureType = ItemFeature.FeatureType.TemporaryBuying;
 				itemFeature.valueStage = ItemFeature.ValueStage.Market;
 				itemFeature.valueModifier = 0;
-				itemFeature.preExposeValueModifier = -5;
+				itemFeature.preExposeValueModifier = FriendDiscountPct();
 				itemFeature.usePreExposeValue = true;
 				itemFeature.initiallyShown = true;
 itemFeature.isFeatureMatch = true;
@@ -89,6 +89,19 @@ itemFeature.isFeatureExposed = true;
 		}
 	}
 
+	/// <summary>博士之友升级接线（阶段1）：友情价百分比 Lv1=-5 / Lv2=-12 / Lv3=-15。</summary>
+	private static int FriendDiscountPct()
+	{
+		try
+		{
+			int lv = B2ServiceStore.GetEffectLevel(DrJacksonFriendPerk.PerkId);
+			if (lv >= 3) return -15;
+			if (lv >= 2) return -12;
+			return -5;
+		}
+		catch { return -5; }
+	}
+
 	private static void TryApplyFriendDiscountFeature(GameItem item)
 	{
 		try
@@ -113,7 +126,7 @@ itemFeature.isFeatureExposed = true;
 				itemFeature.featureType = ItemFeature.FeatureType.TemporaryBuying;
 				itemFeature.valueStage = ItemFeature.ValueStage.Market;
 				itemFeature.valueModifier = 0;
-				itemFeature.preExposeValueModifier = -5;
+				itemFeature.preExposeValueModifier = FriendDiscountPct();
 				itemFeature.usePreExposeValue = true;
 				itemFeature.initiallyShown = true;
 itemFeature.isFeatureMatch = true;
@@ -190,6 +203,10 @@ itemFeature.isFeatureExposed = true;
 			}
 			if (DrJacksonFriendPerk.IsActive() && (clientName.Contains("博士") || clientId.Contains("jackson") || clientId.Contains("inventor")))
 			{
+				// 博士之友升级接线（阶段1）：Lv1=0.95（-5%）、Lv2=0.88（-12%）、Lv3=0.85（-15%）
+				int lv = B2ServiceStore.GetEffectLevel(DrJacksonFriendPerk.PerkId);
+				if (lv >= 3) return 0.85f;
+				if (lv >= 2) return 0.88f;
 				return 0.95f;
 			}
 		}
