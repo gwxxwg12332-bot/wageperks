@@ -39,10 +39,12 @@ internal static class B2WildPanel
     internal const string SVC_GU = "b2_svc_gu";               // 养蛊机（一次性）
     internal const string SVC_AI = "b2_svc_ai";               // AI 生成器（一次性）
     internal const string SVC_PROTECTOR = "b2_svc_protector"; // 保护器核心（可重复购买）
+    internal const string SVC_PROTECTOR_CHANCE = "b2_svc_protector_chance"; // 保护器出现概率提升（可重复购买，每级+10%）
     private const int SVC_PRICE_WANDERER = 20000;  // 10-15 重定价（锚=充电器3=50000）：流浪者·重回第一天
     private const int SVC_PRICE_GU = 30000;        // 养蛊机（永久机器，3天融合×0.6）
     private const int SVC_PRICE_AI = 40000;        // AI 生成器（永久机器，每天抽卡核心产线）
     private const int SVC_PRICE_PROTECTOR = 10000; // 保护器（消耗品，可重复购买）
+    private const int SVC_PRICE_PROTECTOR_CHANCE = 15000; // 10-15 保护器出现概率 +10%/级（可重复，上限 90%）
 
     // ===== 10-15 许可/充电器搬进电话簿（用户拍板：也搬进电话簿；柜台一级保留+合成升级不变） =====
     internal const string SVC_PERMIT1 = "b2_svc_permit1";
@@ -82,6 +84,7 @@ internal static class B2WildPanel
         list.Add(new WildEntry { Id = SVC_GU, ServiceId = "gu_machine" });
         list.Add(new WildEntry { Id = SVC_AI, ServiceId = "ai_generator" });
         list.Add(new WildEntry { Id = SVC_PROTECTOR, ServiceId = "protector" });
+        list.Add(new WildEntry { Id = SVC_PROTECTOR_CHANCE, ServiceId = "protector_chance" });
         // 10-15 许可/充电器进电话簿（3级各一条，柜台一级+合成升级保留）
         list.Add(new WildEntry { Id = SVC_PERMIT1, ServiceId = "permit1" });
         list.Add(new WildEntry { Id = SVC_PERMIT2, ServiceId = "permit2" });
@@ -120,7 +123,7 @@ internal static class B2WildPanel
                 var u = new NetworkUpgrade(e.Id);
                 u.subtitle = "";
                 u.cost = 0;                      // 定价走 Patch GetCost
-                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector";   // 吞噬季/保护器：可重复购买
+                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector" || e.ServiceId == "protector_chance";   // 吞噬季/保护器/概率提升：可重复购买
                 u.cooldownCurrent = 0;
                 u.cooldownDuration = 0;
                 u.prerequisite = null;
@@ -240,6 +243,7 @@ internal static class B2WildPanel
     private static int ServiceCost(WildEntry e)
     {
         if (e.ServiceId == "protector") return SVC_PRICE_PROTECTOR; // 可重复购买
+        if (e.ServiceId == "protector_chance") return SVC_PRICE_PROTECTOR_CHANCE; // 可重复购买（概率提升）
         if (B2ServiceStore.GetLevel(e.Id) >= 1) return 0; // 一次性已购
         switch (e.ServiceId)
         {
@@ -271,7 +275,7 @@ internal static class B2WildPanel
     private static string ServiceSubtitle(WildEntry e)
     {
         string s = LangHelper.T("服务", "Service");
-        if (e.ServiceId == "protector") s += LangHelper.T(" · 可重复", " · repeatable");
+        if (e.ServiceId == "protector" || e.ServiceId == "protector_chance") s += LangHelper.T(" · 可重复", " · repeatable");
         return s;
     }
 
@@ -288,6 +292,8 @@ internal static class B2WildPanel
                 return LangHelper.T("不稳定 AI 生成器：打烊自动抽卡；装保护器=稳定×1.2，不装=倍率随机 0.05~0.8（多数亏）。", "Unstable AI generator: auto-draw at close; with Protector=stable x1.2, without=random 0.05~0.8 (usually a loss).") + req;
             case "protector":
                 return LangHelper.T("稳定器：放入 AI 生成器舱即稳定版（100%成功，属性×1.2），每次抽卡消耗 1 个，可重复购买。", "Stabilizer: place in AI generator bay for stable mode (100%, x1.2), 1 per draw, repeatable.") + req;
+            case "protector_chance":
+                return LangHelper.T("提升蛙哥到店时随机带保护器的概率：每级 +10%（初始 30%，上限 90%），当前 " + (30 + WageSaveStore.GetInt(WageBrother.CLIENT_ID, WageBrother.PROTECTOR_SPAWN_KEY, 0) * 10) + "%。可重复购买。", "Increase Wage Brother's random protector carry chance: +10% per tier (base 30%, cap 90%), currently " + (30 + WageSaveStore.GetInt(WageBrother.CLIENT_ID, WageBrother.PROTECTOR_SPAWN_KEY, 0) * 10) + "%. Repeatable.") + req;
             case "permit1":
                 return LangHelper.T("蛙哥的许可（一级）：每晚外出次数 +1（可叠加），拾荒仍可能受伤。购买后直接上柜台。", "Wage's Permit (Tier 1): +1 night outing (stacks), scavenging may still injure. Placed on counter after purchase.") + req;
             case "permit2":
@@ -344,6 +350,18 @@ internal static class B2WildPanel
                 if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
                 GrantServiceItem(GuMachineSystem.PROTECTOR_ID);
                 Notify(LangHelper.T("已获得 蛙哥保护器核心（放入AI生成器舱即稳定版）", "Got Wage's Protector Core (place in AI generator bay for stable mode)"));
+                return;
+            }
+            if (e.ServiceId == "protector_chance")
+            {
+                if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
+                int lv = WageSaveStore.GetInt(WageBrother.CLIENT_ID, WageBrother.PROTECTOR_SPAWN_KEY, 0);
+                if (lv >= 6) { Notify(LangHelper.T("保护器出现概率已达上限 90%", "Protector spawn chance already maxed (90%)")); return; }
+                lv++;
+                WageSaveStore.SetInt(WageBrother.CLIENT_ID, WageBrother.PROTECTOR_SPAWN_KEY, lv);
+                WageSaveStore.Flush();
+                Notify(LangHelper.T("保护器随机出现概率提升至 " + (30 + lv * 10) + "%", "Protector random spawn chance up to " + (30 + lv * 10) + "%"));
+                Core.LogMsg("[B2R] 保护器概率提升: Lv" + lv + " → " + (30 + lv * 10) + "%");
                 return;
             }
             if (B2ServiceStore.GetLevel(e.Id) >= 1) { Notify(LangHelper.T("该服务已解锁", "Service already unlocked")); return; }

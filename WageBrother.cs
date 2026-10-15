@@ -25,6 +25,8 @@ internal static class WageBrother
     private const string CARD_SPAWNED_KEY = "card_spawned";
     // 10-15 名片只发一次：card_given=1=已送过名片（首次见面送，解锁电话簿 1005），之后蛙哥到店不再发卡
     private const string CARD_GIVEN_KEY = "card_given";
+    // 10-15 保护器随机出现概率加成（服务每级+10%，初始 30%，上限 90%）
+    internal const string PROTECTOR_SPAWN_KEY = "protector_spawn_level";
 
     // 10-03 服务卡注册进物品库（PS_DebugTool/玩家生成工具调出=未注册ID→问号占位；照抄养蛊机RegisterOne模式）
     public static void RegisterCard(ItemDirectory dir)
@@ -269,33 +271,15 @@ internal static class WageBrother
                 try { B2WildPanel.EnsurePhoneRegistered(); try { StoreUIManager.Instance.Notify(LangHelper.T("蛙哥的电话已存入电话簿：1005", "Wage Brother's number saved to phonebook: 1005"), "green"); } catch { } Core.LogMsg("[蛙哥] 电话簿已解锁 1005"); } catch (System.Exception exp) { Core.LogMsg("[蛙哥] 解锁电话簿异常: " + exp.Message); }
                 Core.LogMsg("[蛙哥] 到场，名片已上柜台（首次）");
             }
-            } // end if(!cardGivenOnce) 发卡块——携带物/许可货架/充电器货架在块外照常上货
-            // 小概率携带售卖AI制造机/养蛊机/保护器
+            } // end if(!cardGivenOnce) 发卡块——携带物在块外照常上货
+            // 10-15 用户拍板：AI生成器/养蛊机只走服务（电话簿 1005 发放，不再随机携带）；
+            // 保护器随机出现：初始 30%，服务可花钱加概率（每级 +10%，上限 90%）
             try
             {
-                if (Core.Rng.Next(100) < 50)
-                {
-                    var aiGen = DirectoryMaster.Item("wage_ai_generator", true);
-                    if (aiGen != null)
-                    {
-                        aiGen.DisableTag("not_purchased", true);
-                        aiGen.EnableTag("IS_OWNED_TAG", true);
-                        PlayerStore.Instance.AddDirectSellingItemToTable(aiGen, false, false, false, 0);
-                        Core.LogMsg("[蛙哥] 携带AI制造机售卖");
-                    }
-                }
-                if (Core.Rng.Next(100) < 30)
-                {
-                    var guMachine = DirectoryMaster.Item("wage_gu_machine", true);
-                    if (guMachine != null)
-                    {
-                        guMachine.DisableTag("not_purchased", true);
-                        guMachine.EnableTag("IS_OWNED_TAG", true);
-                        PlayerStore.Instance.AddDirectSellingItemToTable(guMachine, false, false, false, 0);
-                        Core.LogMsg("[蛙哥] 携带养蛊机售卖");
-                    }
-                }
-                if (Core.Rng.Next(100) < 40)
+                int spawnLevel = WageSaveStore.GetInt("wage_brother", PROTECTOR_SPAWN_KEY, 0);
+                int protectorChance = 30 + spawnLevel * 10;
+                if (protectorChance > 90) protectorChance = 90;
+                if (Core.Rng.Next(100) < protectorChance)
                 {
                     var protector = DirectoryMaster.Item("wage_protector_core", true);
                     if (protector != null)
@@ -303,7 +287,7 @@ internal static class WageBrother
                         protector.DisableTag("not_purchased", true);
                         protector.EnableTag("IS_OWNED_TAG", true);
                         PlayerStore.Instance.AddDirectSellingItemToTable(protector, false, false, false, 0);
-                        Core.LogMsg("[蛙哥] 携带保护器售卖");
+                        Core.LogMsg("[蛙哥] 携带保护器售卖（概率=" + protectorChance + "%）");
                     }
                 }
             }
