@@ -45,7 +45,7 @@ internal static partial class Patches
 			bool flag = false;
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "friend_discount")
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "friend_discount", System.StringComparison.Ordinal))
 				{
 					flag = true;
 					break;
@@ -113,7 +113,7 @@ itemFeature.isFeatureExposed = true;
 			bool flag = false;
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "friend_discount")
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "friend_discount", System.StringComparison.Ordinal))
 				{
 					flag = true;
 					break;

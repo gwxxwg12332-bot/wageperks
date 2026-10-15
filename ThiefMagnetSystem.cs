@@ -289,7 +289,7 @@ internal static class ThiefMagnetSystem
             bool flag = false;
             for (int i = 0; i < item.itemFeatures.Count; i++)
             {
-                if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "stolen_half_price") { flag = true; break; }
+                if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "stolen_half_price", System.StringComparison.Ordinal)) { flag = true; break; }
             }
             if (flag) return;
             ItemFeature f = new ItemFeature();
@@ -319,7 +319,7 @@ internal static class ThiefMagnetSystem
         {
             if (item == null || item.itemFeatures == null) return;
             for (int i = 0; i < item.itemFeatures.Count; i++)
-                if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "black_market_markup") return; // 防重复
+                if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "black_market_markup", System.StringComparison.Ordinal)) return; // 防重复
             ItemFeature f = new ItemFeature();
             f.identifier = "black_market_markup";
             f.featureType = ItemFeature.FeatureType.TemporaryBuying;
@@ -350,7 +350,7 @@ internal static class ThiefMagnetSystem
             {
                 for (int i = item.itemFeatures.Count - 1; i >= 0; i--)
                 {
-                    try { if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "stolen_half_price") item.itemFeatures.RemoveAt(i); } catch { }
+                    try { if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "stolen_half_price", System.StringComparison.Ordinal)) item.itemFeatures.RemoveAt(i); } catch { }
                 }
             }
             Core.LogMsg("[招贼体质] 买回恢复原价+清半价feature");

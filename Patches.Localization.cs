@@ -170,8 +170,8 @@ internal static partial class Patches
 					{
 						var ff = __instance.itemFeatures[fi];
 						if (ff == null || string.IsNullOrEmpty(ff.identifier)) continue;
-						if (ff.identifier == "stolen_half_price") halfPrice = true;
-						else if (ff.identifier == "wages_robin_buy") robinBuy = true;
+						if (string.Equals(ff.identifier, "stolen_half_price", System.StringComparison.Ordinal)) halfPrice = true;
+						else if (string.Equals(ff.identifier, "wages_robin_buy", System.StringComparison.Ordinal)) robinBuy = true;
 					}
 					if (halfPrice) __result = __result + LangHelper.T("（半价卖回）", " (Half price resale)");
 					if (robinBuy) __result = __result + LangHelper.T("（双倍价）", " (x2 price)");

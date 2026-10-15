@@ -529,7 +529,7 @@ itemFeature.isFeatureExposed = true;
 			string txt = LangHelper.T("奥丁的怒火（收购价-" + pct + "%）", "Odin's Wrath (buyback -" + pct + "%)");
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "odin_pressure") { item.itemFeatures[i].publicDisplay = txt; item.itemFeatures[i].actualDisplay = txt; return; }
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "odin_pressure", System.StringComparison.Ordinal)) { item.itemFeatures[i].publicDisplay = txt; item.itemFeatures[i].actualDisplay = txt; return; }
 			}
 			ItemFeature f = new ItemFeature();
 			f.identifier = "odin_pressure";

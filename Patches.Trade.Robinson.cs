@@ -66,7 +66,7 @@ internal static partial class Patches
 			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_food_quality")
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "wages_food_quality", System.StringComparison.Ordinal))
 				{
 					item.itemFeatures[i].publicDisplay = text;
 					item.itemFeatures[i].actualDisplay = text;
@@ -111,7 +111,7 @@ itemFeature.isFeatureExposed = true;
 			int found = 0;
 			for (int j = item.itemFeatures.Count - 1; j >= 0; j--)
 			{
-				if (item.itemFeatures[j] != null && item.itemFeatures[j].identifier == "wages_node_buff") { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
+				if (item.itemFeatures[j] != null && string.Equals(item.itemFeatures[j].identifier, "wages_node_buff", System.StringComparison.Ordinal)) { found++; if (found > keepMax) item.itemFeatures.RemoveAt(j); }
 			}
 			if (excludedType || !RobinCrusoePerk.IsActive()) return;
 			string tradeBuffDisplay = RobinCrusoePerk.GetTradeBuffDisplay();
@@ -135,7 +135,7 @@ itemFeature.isFeatureExposed = true;
 			}
 			for (int i = 0; i < item.itemFeatures.Count; i++)
 			{
-				if (item.itemFeatures[i] != null && item.itemFeatures[i].identifier == "wages_node_buff")
+				if (item.itemFeatures[i] != null && string.Equals(item.itemFeatures[i].identifier, "wages_node_buff", System.StringComparison.Ordinal))
 				{
 					item.itemFeatures[i].publicDisplay = tradeBuffDisplay;
 					item.itemFeatures[i].actualDisplay = tradeBuffDisplay;
