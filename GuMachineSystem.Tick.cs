@@ -63,7 +63,7 @@ public static partial class GuMachineSystem
             if (baseMod == null) baseMod = mods[0];
             string baseId = "system_module_overclock";
             try { string bid = baseMod.identifier ?? ""; if (bid.Length > 0) baseId = bid; } catch { }
-            // 三属性之和 ×1.2（上限 150）
+            // 10-15 拍板：三属性之和 ×0.6（上限 150）——养蛊融合（GuForgeMult=60）
             int perf = 0, eff = 0, qual = 0;
             foreach (var m in mods)
             {
@@ -202,7 +202,7 @@ public static partial class GuMachineSystem
             if (success)
             {
                 // 09-15 用户拍板：生成器产出"不稳定AI模组"实物（不是机器属性吸收）——属性 = 投入模组之和，上限 cap
-                // 10-01 用户拍板：不稳定版取消上限（无 cap）；保护器版×1.8倍（稳定保护奖励），无75%截断
+                // 10-15 拍板：保护器版固定 ×1.2（稳定保护奖励，无截断）
                 int perf = 0, eff = 0, qual = 0;
                 foreach (var m in mods)
                 {

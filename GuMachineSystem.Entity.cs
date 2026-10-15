@@ -151,8 +151,8 @@ public static partial class GuMachineSystem
             it.SetName(LangHelper.T("蛙哥保护器核心", "Wage's Protector Core"));
             SetField(it, "_identifier_k__BackingField", PROTECTOR_ID);
             SetField(it, "_identifierName_k__BackingField", "TYPE-STRING_" + PROTECTOR_ID);
-            it.shortDescription = LangHelper.T("蛙哥保护器核心——蛙哥（Wage）研制的稳定器：放入蛙哥不稳定AI生成器舱即稳定版（100%成功，属性×1.2倍），每次抽卡消耗1个；蛙哥服务面板可解锁购买（1500）", "Wage's Protector Core - a stabilizer made by Wage: place in Wage's Unstable AI Generator bay for stable mode (100% success, stats x1.2), 1 consumed per draw; unlockable at Wage's B2 service panel (1500)");
-            it.longDescription = LangHelper.T("蛙哥保护器核心——蛙哥（Wage）研制的稳定器：放入蛙哥不稳定AI生成器舱即稳定版（100%成功，属性×1.2倍），每次抽卡消耗1个；蛙哥服务面板可解锁购买（1500）", "Wage's Protector Core - a stabilizer made by Wage: place in Wage's Unstable AI Generator bay for stable mode (100% success, stats x1.2), 1 consumed per draw; unlockable at Wage's B2 service panel (1500)"); // 09-15 原生属性
+            it.shortDescription = LangHelper.T("蛙哥保护器核心——蛙哥（Wage）研制的稳定器：放入蛙哥不稳定AI生成器舱即稳定版（100%成功，属性×1.2倍），每次抽卡消耗1个；蛙哥服务面板可解锁购买", "Wage's Protector Core - a stabilizer made by Wage: place in Wage's Unstable AI Generator bay for stable mode (100% success, stats x1.2), 1 consumed per draw; unlockable at Wage's B2 service panel");
+            it.longDescription = LangHelper.T("蛙哥保护器核心——蛙哥（Wage）研制的稳定器：放入蛙哥不稳定AI生成器舱即稳定版（100%成功，属性×1.2倍），每次抽卡消耗1个；蛙哥服务面板可解锁购买", "Wage's Protector Core - a stabilizer made by Wage: place in Wage's Unstable AI Generator bay for stable mode (100% success, stats x1.2), 1 consumed per draw; unlockable at Wage's B2 service panel"); // 10-15 价格去数字化：服务价 3000 是配置项，描述写死 1500 会漂移
             it.unitValue = BuildConfig.ProtectorPrice; it.unitBaseValue = BuildConfig.ProtectorPrice; // 拆包实锤 09-15：原生属性
             // 10-02 修：保护器shape=2x2（原来默认1x1）
             try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); } catch { }
