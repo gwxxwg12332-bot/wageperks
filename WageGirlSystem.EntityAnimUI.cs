@@ -53,6 +53,10 @@ public static partial class WageGirlSystem
     // ===================== 动画系统（09-22 蛙娘动画帧集成，用户拍板 B：真移动+走动帧） =====================
     // 12 帧 base64（WageGirlAnimFrames.cs）→ 运行时解码 Texture2D → Sprite[]（64×96 超采样，Point 缩回 32×48）
     private static Sprite[] _spIdle, _spHappy, _spHungry, _spThirsty, _spSick, _spDirty, _spSleepy, _spAngry, _spShy, _spFull, _spAway, _spReturn, _spWalk;
+    // 10-16 M4 档1 换装：form1 副本（_sp1*，默认档）+ form3 换装档（_sp2*，WageGirlAnimFrames2.cs）；_outfitTier=-1 未初始化/0=form1/1=form3
+    private static Sprite[] _sp1Idle, _sp1Happy, _sp1Hungry, _sp1Thirsty, _sp1Sick, _sp1Dirty, _sp1Sleepy, _sp1Angry, _sp1Shy, _sp1Full, _sp1Away, _sp1Return, _sp1Walk;
+    private static Sprite[] _sp2Idle, _sp2Happy, _sp2Hungry, _sp2Thirsty, _sp2Sick, _sp2Dirty, _sp2Sleepy, _sp2Angry, _sp2Shy, _sp2Full, _sp2Away, _sp2Return, _sp2Walk;
+    private static int _outfitTier = -1;
     private static string _curState = "idle";
     private static float _stateFrameSec = 0.375f;
     private static float _leavingTimer = 0f;

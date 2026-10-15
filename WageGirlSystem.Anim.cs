@@ -33,9 +33,62 @@ public static partial class WageGirlSystem
             _spAway = LoadSpriteGroup(WageGirlAnimFrames.Away);
             _spReturn = LoadSpriteGroup(WageGirlAnimFrames.Return);
             _spWalk = LoadSpriteGroup(WageGirlAnimFrames.Walk);
+            // 10-16 M4 档1：form1 副本（换装切回用；仅首次加载时存）
+            if (_sp1Idle == null) { _sp1Idle = _spIdle; _sp1Happy = _spHappy; _sp1Hungry = _spHungry; _sp1Thirsty = _spThirsty; _sp1Sick = _spSick; _sp1Dirty = _spDirty; _sp1Sleepy = _spSleepy; _sp1Angry = _spAngry; _sp1Shy = _spShy; _sp1Full = _spFull; _sp1Away = _spAway; _sp1Return = _spReturn; _sp1Walk = _spWalk; }
             _curAnimSprites = _spIdle;
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
+    }
+    // 10-16 M4 档1：form3 换装档懒加载（13 组；防重入按 _sp2Idle）
+    private static void EnsureSprites2()
+    {
+        if (_sp2Idle != null && _sp2Idle.Length > 0 && _sp2Idle[0] != null) return;
+        try
+        {
+            _sp2Idle = LoadSpriteGroup(WageGirlAnimFrames2.Idle);
+            _sp2Happy = LoadSpriteGroup(WageGirlAnimFrames2.Happy);
+            _sp2Hungry = LoadSpriteGroup(WageGirlAnimFrames2.Hungry);
+            _sp2Thirsty = LoadSpriteGroup(WageGirlAnimFrames2.Thirsty);
+            _sp2Sick = LoadSpriteGroup(WageGirlAnimFrames2.Sick);
+            _sp2Dirty = LoadSpriteGroup(WageGirlAnimFrames2.Dirty);
+            _sp2Sleepy = LoadSpriteGroup(WageGirlAnimFrames2.Sleepy);
+            _sp2Angry = LoadSpriteGroup(WageGirlAnimFrames2.Angry);
+            _sp2Shy = LoadSpriteGroup(WageGirlAnimFrames2.Shy);
+            _sp2Full = LoadSpriteGroup(WageGirlAnimFrames2.Full);
+            _sp2Away = LoadSpriteGroup(WageGirlAnimFrames2.Away);
+            _sp2Return = LoadSpriteGroup(WageGirlAnimFrames2.Return);
+            _sp2Walk = LoadSpriteGroup(WageGirlAnimFrames2.Walk);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 异常: " + ex.Message); }
+    }
+    // 10-16 M4 档1：换装应用（tier 0=form1 / 1=form3）——切引用 + 停播复位（下一帧 EvalState 按当前状态重选帧组，防错帧）
+    internal static void ApplyOutfit(int tier)
+    {
+        try
+        {
+            if (tier == 1) { EnsureSprites2(); EnsureSprites(); _spIdle = _sp2Idle; _spHappy = _sp2Happy; _spHungry = _sp2Hungry; _spThirsty = _sp2Thirsty; _spSick = _sp2Sick; _spDirty = _sp2Dirty; _spSleepy = _sp2Sleepy; _spAngry = _sp2Angry; _spShy = _sp2Shy; _spFull = _sp2Full; _spAway = _sp2Away; _spReturn = _sp2Return; _spWalk = _sp2Walk; }
+            else { EnsureSprites(); _spIdle = _sp1Idle; _spHappy = _sp1Happy; _spHungry = _sp1Hungry; _spThirsty = _sp1Thirsty; _spSick = _sp1Sick; _spDirty = _sp1Dirty; _spSleepy = _sp1Sleepy; _spAngry = _sp1Angry; _spShy = _sp1Shy; _spFull = _sp1Full; _spAway = _sp1Away; _spReturn = _sp1Return; _spWalk = _sp1Walk; }
+            _outfitTier = tier;
+            _curAnimSprites = null; // 停播：强制下一帧 EvalState 重选（防错帧）
+            _curState = ""; _frameIndex = 0; _frameTimer = 0f; _animMode = 0;
+            Core.LogMsg("[蛙娘] 换装应用: tier=" + tier);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 换装异常: " + ex.Message); }
+    }
+    // 10-16 M4 档1：当前换装档（读存档；老档默认 0=form1）
+    internal static int GetOutfitTier() { try { return GetStat(K_OUTFIT_TIER, 0) == 1 ? 1 : 0; } catch { return 0; } }
+    // 10-16 M4 档1：面板换装切换（门槛=已解锁 + 好感≥80，防白嫖外观；写档持久化）
+    internal static void ApplyOutfitToggle()
+    {
+        try
+        {
+            if (GetStat(K_UNLOCK_OUTFIT) != 1) { Core.LogMsg("[蛙娘] 换装未解锁（小金库余额需 ≥" + BuildConfig.WageGirlSavingsUnlockOutfit + "）"); return; }
+            if (GetAffectionExact() < 80) { Core.LogMsg("[蛙娘] 好感需 ≥80 才能换装（当前 " + GetAffectionExact().ToString("0.00") + "）"); return; }
+            int nt = GetOutfitTier() == 1 ? 0 : 1;
+            ApplyOutfit(nt);
+            SetStat(K_OUTFIT_TIER, nt);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Anim] 换装切换异常: " + ex.Message); }
     }
     private static Sprite[] LoadSpriteGroup(string[] b64s)
     {
@@ -328,7 +381,12 @@ public static partial class WageGirlSystem
                     try { TryGiveToBackpack(); } catch { }
                     _cachedGirlItem = FindGirlItem(); // 重新找新实体
                     _spIdle = null; _spHappy = null; _spHungry = null; _spThirsty = null; _spSick = null; _spDirty = null; _spSleepy = null; _spAngry = null; _spShy = null; _spFull = null; _spAway = null; _spReturn = null; _spWalk = null;
+                    // 10-16 M4 档1：读档后清双档全部引用 + 按存档档位重应用（form3 懒加载重载）
+                    _sp1Idle = null; _sp1Happy = null; _sp1Hungry = null; _sp1Thirsty = null; _sp1Sick = null; _sp1Dirty = null; _sp1Sleepy = null; _sp1Angry = null; _sp1Shy = null; _sp1Full = null; _sp1Away = null; _sp1Return = null; _sp1Walk = null;
+                    _sp2Idle = null; _sp2Happy = null; _sp2Hungry = null; _sp2Thirsty = null; _sp2Sick = null; _sp2Dirty = null; _sp2Sleepy = null; _sp2Angry = null; _sp2Shy = null; _sp2Full = null; _sp2Away = null; _sp2Return = null; _sp2Walk = null;
+                    _outfitTier = -1;
                     try { EnsureSprites(); } catch { }
+                    try { if (GetStat(K_OUTFIT_TIER, 0) == 1) ApplyOutfit(1); } catch { }
                     _curState = ""; _frameIndex = 0; _frameTimer = 0f;
                 }
                 {

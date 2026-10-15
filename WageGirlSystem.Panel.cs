@@ -42,6 +42,19 @@ public static partial class WageGirlSystem
             string outfitSt = GetStat(K_UNLOCK_OUTFIT) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockOutfit;
             string channelSt = GetStat(K_UNLOCK_CHANNEL) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockChannel;
             b.AddLabel(LangHelper.T("解锁：换装 " + outfitSt + " · 收购渠道 " + channelSt, "Unlocks: Outfit " + outfitSt + " · Channel " + channelSt), "wg_unlocks");
+            // 10-16 M4 档1 换装本体：form1/form3 游戏内切换（门槛=已解锁 K_UNLOCK_OUTFIT + 好感≥80，防白嫖外观）
+            try
+            {
+                int curTier = GetOutfitTier();
+                bool outfitUnlocked = GetStat(K_UNLOCK_OUTFIT) == 1;
+                string outfitBtnText;
+                if (!outfitUnlocked) outfitBtnText = LangHelper.T("🔒 换装（未解锁：小金库 ≥" + BuildConfig.WageGirlSavingsUnlockOutfit + "）", "🔒 Outfit (locked: savings ≥" + BuildConfig.WageGirlSavingsUnlockOutfit + ")");
+                else if (GetAffectionExact() < 80) outfitBtnText = LangHelper.T("👗 换装（当前：" + (curTier == 1 ? "form3" : "form1") + "，需好感 ≥80）", "👗 Outfit (current: " + (curTier == 1 ? "form3" : "form1") + ", need aff ≥80)");
+                else outfitBtnText = LangHelper.T("👗 换装（当前：" + (curTier == 1 ? "form3" : "form1") + "，点击切换）", "👗 Outfit (current: " + (curTier == 1 ? "form3" : "form1") + ", click to switch)");
+                var outfitBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ApplyOutfitToggle(); ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 换装异常: " + ex.Message); } }));
+                b.AddButton(outfitBtnText, outfitBtn, "wg_outfit_btn");
+            }
+            catch (Exception ex) { Core.LogMsg("[蛙娘] 换装按钮异常: " + ex.Message); }
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100  " + GetStatText(K_SAT), "wg_sat_l");
             b.AddProgressBar(GetStat(K_SAT) / 100f, "wg_sat");
             b.AddLabel(LangHelper.T("口渴 ", "Thirst ") + GetStat(K_TH) + "/100  " + GetStatText(K_TH), "wg_th_l");

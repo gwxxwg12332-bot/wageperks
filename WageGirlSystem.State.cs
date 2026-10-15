@@ -41,6 +41,8 @@ public static partial class WageGirlSystem
     // 10-16 P4a：M4 小金库唯一性消耗解锁标记（一次性，余额降不回退）
     private const string K_UNLOCK_OUTFIT = "unlockOutfit";
     private const string K_UNLOCK_CHANNEL = "unlockChannel";
+    // 10-16 M4 档1：换装档位（0=form1 默认 / 1=form3；随档保存，老档缺失默认 0）
+    private const string K_OUTFIT_TIER = "outfitTier";
     private const string K_AFF = "affection", K_LAST_STEAL = "lastStealDay", K_LEAVE = "leaveDay", K_STARVE = "starveStreak";
     // 10-07 #10 好感重做：int×100 新键（两位小数精度 -200~200）；旧键 affection 保留门面（迁移后不再写）
     internal const string K_AFF_EXACT = "affectionExact";
@@ -136,7 +138,8 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
         K_SALE_DAY, K_FULFILL_DAY, // 10-16 M1 P2-4b：节点4 代售 / 节点5 代收当日标记
         K_EVENT_DAY, K_SMART_DAY, K_INSPIRE_DAY, // 10-16 P4a：M6 事件（保底日/精明/灵感）
         K_CARE_STREAK, K_MEMORIAL_GIVEN, // 10-16 P4a：M8 回馈（连续照顾/纪念日）
-        K_UNLOCK_OUTFIT, K_UNLOCK_CHANNEL // 10-16 P4a：M4 小金库解锁标记
+        K_UNLOCK_OUTFIT, K_UNLOCK_CHANNEL, // 10-16 P4a：M4 小金库解锁标记
+        K_OUTFIT_TIER // 10-16 M4 档1：换装档位（0=form1 / 1=form3，随档）
     };
 
     // 09-22 新档防串档：清 default_run 的蛙娘残留（A 档开局 runID 空时写的一次性 key 残留 → 新档误读误判）
