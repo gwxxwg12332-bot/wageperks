@@ -309,29 +309,7 @@ internal static class WageBrother
             }
             catch (Exception exai) { Core.LogMsg("[蛙哥] 携带物品上柜台异常: " + exai.Message); }
 
-            // 蛙哥的许可货架（10-04 用户拍板：一次只卖初级；阶梯解锁曾因HasPermit扫Emporium全量含货架→连锁全开，先停用等成长机制确认）
-            try
-            {
-                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 10000); // 10-15 重定价：只卖一级 10000（锚=充电器3=50000）
-                // if (WageBrokerPermitHelper.HasPermit(1))
-                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 30000);
-                // if (WageBrokerPermitHelper.HasPermit(2))
-                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 50000);
-                Core.LogMsg("[蛙哥] 许可货架已上（仅一级），等级=" + WageBrokerPermitHelper.GetMaxPermitLevel());
-            }
-            catch (Exception expermit) { Core.LogMsg("[蛙哥] 许可货架异常: " + expermit.Message); }
-
-            // 蛙哥的充电器货架（10-04 同上：一次只卖初级）
-            try
-            {
-                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 5000); // 10-15 重定价：只卖一级 5000
-                // if (WageBrokerChargerHelper.HasCharger(1))
-                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 25000);
-                // if (WageBrokerChargerHelper.HasCharger(2))
-                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 50000);
-                Core.LogMsg("[蛙哥] 充电器货架已上（仅一级），等级=" + WageBrokerChargerHelper.GetMaxChargerLevel());
-            }
-            catch (Exception excharger) { Core.LogMsg("[蛙哥] 充电器货架异常: " + excharger.Message); }
+            // 10-15 用户拍板：柜台不再上许可/充电器（已搬进电话簿 1005，购买后发柜台）；携带物（AI/养蛊/保护器）照常
 
             // 清wanted7模板残留PEAT/JUICE
             try
