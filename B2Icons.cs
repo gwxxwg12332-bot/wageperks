@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace WagePerks
@@ -5699,6 +5700,42 @@ namespace WagePerks
                 };
             }
             if (idx >= 0 && idx < _sprites.Length) return _sprites[idx];
+            return null;
+        }
+
+        // 10-15 蛙娘拆分独立卡：图标改按 PerkId 映射（索引无关，加卡不产生错位；蛙娘用实体空闲帧首帧）
+        private static Dictionary<string, Sprite> _perkIconCache = null;
+        public static Sprite PerkIcon(string perkId)
+        {
+            if (string.IsNullOrEmpty(perkId)) return null;
+            if (_perkIconCache == null)
+            {
+                _perkIconCache = new Dictionary<string, Sprite>();
+                Sprite Make(Color[] px) => CreatePixelSprite(px, 32, 32, 100f);
+                _perkIconCache["蛙哥牛逼"] = Make(WagePower);
+                _perkIconCache["博士之友"] = Make(DoctorFriend);
+                _perkIconCache["水商之友"] = Make(WaterMerchant);
+                _perkIconCache["酒商之友"] = Make(AlcoholMerchant);
+                _perkIconCache["捡漏直觉"] = Make(LuckScout);
+                _perkIconCache["退休枪匠之友"] = Make(RiskTaker);
+                _perkIconCache["好酒之徒"] = Make(WineLover);
+                _perkIconCache["童叟无欺"] = Make(HonestDealer);
+                _perkIconCache["笑面虎"] = Make(SmilingTiger);
+                _perkIconCache["招贼体质"] = Make(ThiefMagnet);
+                _perkIconCache["霉运缠身"] = Make(BadLuck);
+                _perkIconCache["信誉扫地"] = Make(BadReputation);
+                _perkIconCache["治安部眼线"] = Make(SecurityInformant);
+                _perkIconCache["王尔德之手"] = Make(WageTouch);
+                _perkIconCache["狄仁杰之手"] = Make(Detective);
+                _perkIconCache["人神共愤"] = Make(HatedByAll);
+                _perkIconCache["精神错乱"] = Make(Madness);
+                _perkIconCache["命运之骰"] = Make(DestinyDice);
+                _perkIconCache["流浪者"] = Make(Wanderer);
+                _perkIconCache["声名狼藉"] = Make(Infamous);
+                _perkIconCache["干燥空气"] = Make(DryAir);
+                try { var g = WageGirlSystem.CardIconSprite(); if (g != null) _perkIconCache["蛙娘"] = g; } catch { }
+            }
+            if (_perkIconCache.TryGetValue(perkId, out var sp)) return sp;
             return null;
         }
         public static Sprite CreatePixelSprite(Color[] pixels, int w, int h, float ppu)

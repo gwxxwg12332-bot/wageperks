@@ -15,7 +15,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
 
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("蛙哥牛逼", "Wage Power");
-    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱），并附赠仿生女仆蛙娘：喂食/照顾提升六维，在店时客户预算×4、议价+50%。喂她违禁品可洗白或销赃，克扣存小金库。妙妙箱拖螺丝或放箱内过夜自动升级（1/10/20/40/50），满级得第二个妙妙箱。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage) and his biomimetic maid: feed/care raise 6 stats, in-store budget x4 and bargain +50%. Feed contraband to launder or fence, kept money goes to savings. Wonder Box upgrades with screws (1/10/20/40/50), max level gives a second box.");
+    internal override string Description => LangHelper.T("蛙哥真传。开局赠送蛙哥妙妙箱（超大容量储物箱）。妙妙箱拖螺丝或放箱内过夜自动升级（1/10/20/40/50），满级得第二个妙妙箱。升级到 Lv2 解锁蛙哥服务面板（流浪者/养蛊/AI/保护器/许可/充电器）；Lv3 蛙哥到店客户预算 ×5。蛙娘已拆分独立特性，请单独选择。", "Wage's legacy. Start with Wage's Wonder Box (extra-large storage). Wonder Box upgrades with screws (1/10/20/40/50), max level gives a second box. Lv2 unlocks the service panel; Lv3 gives Wage Brother's client budget x5. Wage Girl is now a separate perk.");
     internal override int Cost => BuildConfig.HardMode ? 7 : 5; // 09-23 用户拍板：普通5/硬爽7
     internal override int Type => 0;
 

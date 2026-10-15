@@ -97,6 +97,12 @@ public static partial class WageGirlSystem
         }
         return false;
     }
+    // 10-15 B2 购买蛙娘卡 → 立即发放实体（防重由 TryGiveToBackpack 内部 ExistsInScene 保证）
+    internal static void GiveEntityNow()
+    {
+        try { TryGiveToBackpack(); } catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem] GiveEntityNow 异常: " + ex.Message); }
+    }
+
     private static void TryGiveToBackpack()
     {
         try

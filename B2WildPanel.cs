@@ -487,7 +487,8 @@ internal static class B2WildPanel
     private static string UpgradeEffectsText(string perkId, int lv)
     {
         string key = perkId;
-        if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5；蛙娘销赃加成 +10%；Lv2 已解锁蛙哥服务面板", "Lv3: WageBrother client budget x5; Wage Girl fence margin +10%; Lv2 unlocks the service panel") : LangHelper.T("Lv2：解锁蛙哥服务面板；蛙娘销赃加成 +5%", "Lv2: unlocks the service panel; Wage Girl fence margin +5%");
+        if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5", "Lv3: WageBrother client budget x5") : LangHelper.T("Lv2：解锁蛙哥服务面板", "Lv2: unlocks the service panel");
+        if (key == WageGirlPerk.PerkId)       return lv >= 3 ? LangHelper.T("Lv3：蛙娘销赃加成 +10%", "Lv3: Wage Girl fence margin +10%") : LangHelper.T("Lv2：蛙娘销赃加成 +5%", "Lv2: Wage Girl fence margin +5%");
         if (key == DrJacksonFriendPerk.PerkId) return lv >= 3 ? LangHelper.T("Lv3：博士友情价 -15%", "Lv3: Jackson friend price -15%") : LangHelper.T("Lv2：博士友情价 -12%", "Lv2: Jackson friend price -12%");
         if (key == DestinyDicePerk.PerkId)    return lv >= 3 ? LangHelper.T("Lv3：命运骰触发阈值 300", "Lv3: dice trigger threshold 300") : LangHelper.T("Lv2：命运骰触发阈值 350", "Lv2: dice trigger threshold 350");
         if (key == LuckScoutPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：稀有物掉落率上限 +10%", "Lv3: rare drop cap +10%") : LangHelper.T("Lv2：稀有物掉落率上限 +5%", "Lv2: rare drop cap +5%");
@@ -785,6 +786,11 @@ internal static class B2WildPanel
                 WandererPerk.GiveRandomItems();
                 Core.LogMsg("[B2R] 流浪者附赠触发（工具1+日用品1+随机4；开局清空/现金随机的 debuff 只在开局发生，B2 购买=纯加成面）");
             }
+            else if (perkId == WageGirlPerk.PerkId)
+            {
+                WageGirlSystem.GiveEntityNow();
+                Core.LogMsg("[B2R] 蛙娘附赠触发（立即发实体，防重由 TryGiveToBackpack 内部 ExistsInScene 保证）");
+            }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 附赠异常 " + perkId + ": " + ex.Message); }
     }
@@ -903,12 +909,12 @@ internal static class B2WildPanel
                     }
                 }
                 catch (Exception ex) { Core.LogMsg("[B2R] ICON 尺寸诊断异常 " + e.Id + ": " + ex.Message); }
-                // FIX6c：绑定蛙哥专属图标（拆包定论：icon=Image(0x48) public，直接改 sprite，不动 0x150 字典）
+                // FIX6c + 10-15 蛙娘拆分：perk 卡按 PerkId 映射图标（索引无关）；吞噬季/服务条目走 Icon(idx) 兜底
                 try
                 {
                     if (el.icon != null)
                     {
-                        var sp = B2Icons.Icon(idx);
+                        var sp = e.PerkId != null ? B2Icons.PerkIcon(e.PerkId) : B2Icons.Icon(idx);
                         if (sp != null) el.icon.sprite = sp;
                     }
                 }

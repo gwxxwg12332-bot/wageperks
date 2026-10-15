@@ -8,6 +8,13 @@ namespace WagePerks;
 
 public static partial class WageGirlSystem
 {
+    // 10-15 蛙娘独立卡：B2 面板卡图标用实体空闲帧首帧
+    internal static Sprite CardIconSprite()
+    {
+        try { EnsureSprites(); if (_spIdle != null && _spIdle.Length > 0 && _spIdle[0] != null) return _spIdle[0]; } catch { }
+        return null;
+    }
+
     private static void EnsureSprites()
     {
         if (_spIdle != null && _spIdle.Length > 0 && _spIdle[0] != null) return; // 09-20 修：元素级防重入
