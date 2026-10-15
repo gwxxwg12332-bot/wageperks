@@ -312,11 +312,11 @@ internal static class WageBrother
             // 蛙哥的许可货架（10-04 用户拍板：一次只卖初级；阶梯解锁曾因HasPermit扫Emporium全量含货架→连锁全开，先停用等成长机制确认）
             try
             {
-                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 5000); // 10-15 重定价：只卖一级 5000（锚=充电器3=20000）
+                AddPermitToCounter(WageBrokerPermitHelper.PERMIT_1_ID, 10000); // 10-15 重定价：只卖一级 10000（锚=充电器3=50000）
                 // if (WageBrokerPermitHelper.HasPermit(1))
-                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 12000);
+                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_2_ID, 30000);
                 // if (WageBrokerPermitHelper.HasPermit(2))
-                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 20000);
+                //     AddPermitToCounter(WageBrokerPermitHelper.PERMIT_3_ID, 50000);
                 Core.LogMsg("[蛙哥] 许可货架已上（仅一级），等级=" + WageBrokerPermitHelper.GetMaxPermitLevel());
             }
             catch (Exception expermit) { Core.LogMsg("[蛙哥] 许可货架异常: " + expermit.Message); }
@@ -324,11 +324,11 @@ internal static class WageBrother
             // 蛙哥的充电器货架（10-04 同上：一次只卖初级）
             try
             {
-                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 4000); // 10-15 重定价：只卖一级 4000
+                AddChargerToCounter(WageBrokerChargerHelper.CHARGER_1_ID, 5000); // 10-15 重定价：只卖一级 5000
                 // if (WageBrokerChargerHelper.HasCharger(1))
-                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 10000);
+                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_2_ID, 25000);
                 // if (WageBrokerChargerHelper.HasCharger(2))
-                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 20000);
+                //     AddChargerToCounter(WageBrokerChargerHelper.CHARGER_3_ID, 50000);
                 Core.LogMsg("[蛙哥] 充电器货架已上（仅一级），等级=" + WageBrokerChargerHelper.GetMaxChargerLevel());
             }
             catch (Exception excharger) { Core.LogMsg("[蛙哥] 充电器货架异常: " + excharger.Message); }
@@ -1026,10 +1026,10 @@ internal static class WageBrother
             w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wc_cash");
 
             // 许可（只补差价）
-            var actP2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_1_ID, WageBrokerPermitHelper.PERMIT_2_ID, 7000, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的许可 → 二级 · 7000信用点", "Permit → Tier 2 · 7000 cr"), actP2, "wc_permit2");
-            var actP3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_2_ID, WageBrokerPermitHelper.PERMIT_3_ID, 8000, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的许可 → 三级 · 8000信用点", "Permit → Tier 3 · 8000 cr"), actP3, "wc_permit3");
+            var actP2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_1_ID, WageBrokerPermitHelper.PERMIT_2_ID, 20000, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的许可 → 二级 · 20000信用点", "Permit → Tier 2 · 20000 cr"), actP2, "wc_permit2");
+            var actP3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerPermitHelper.PERMIT_2_ID, WageBrokerPermitHelper.PERMIT_3_ID, 20000, null); } catch (Exception ex) { Core.LogMsg("[蛙哥] 许可合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的许可 → 三级 · 20000信用点", "Permit → Tier 3 · 20000 cr"), actP3, "wc_permit3");
 
             // 充电器（差价+原版涡轮+能量阵列+充能器；二级各1，三级各5）
             var c2Mats = new System.Collections.Generic.List<System.Tuple<string, int>>
@@ -1038,16 +1038,16 @@ internal static class WageBrother
                 System.Tuple.Create(CRAFT_POWER_ARRAY_ID, 1),
                 System.Tuple.Create(CRAFT_RECHARGER_ID, 1)
             };
-            var actC2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_1_ID, WageBrokerChargerHelper.CHARGER_2_ID, 6000, c2Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的充电器 → 二级 · 6000信用点 + 涡轮×1 + 阵列×1 + 充能器×1", "Charger → Tier 2 · 6000 cr + turbo x1 + array x1 + recharger x1"), actC2, "wc_charger2");
+            var actC2 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_1_ID, WageBrokerChargerHelper.CHARGER_2_ID, 20000, c2Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的充电器 → 二级 · 20000信用点 + 涡轮×1 + 阵列×1 + 充能器×1", "Charger → Tier 2 · 20000 cr + turbo x1 + array x1 + recharger x1"), actC2, "wc_charger2");
             var c3Mats = new System.Collections.Generic.List<System.Tuple<string, int>>
             {
                 System.Tuple.Create(CRAFT_TURBO_ID, 2),
                 System.Tuple.Create(CRAFT_POWER_ARRAY_ID, 5),
                 System.Tuple.Create(CRAFT_RECHARGER_ID, 5)
             };
-            var actC3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_2_ID, WageBrokerChargerHelper.CHARGER_3_ID, 10000, c3Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
-            w.AddButton(LangHelper.T("蛙哥的充电器 → 三级 · 10000信用点 + 涡轮×2 + 阵列×5 + 充能器×5", "Charger → Tier 3 · 10000 cr + turbo x2 + array x5 + recharger x5"), actC3, "wc_charger3");
+            var actC3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoCraft(WageBrokerChargerHelper.CHARGER_2_ID, WageBrokerChargerHelper.CHARGER_3_ID, 25000, c3Mats); } catch (Exception ex) { Core.LogMsg("[蛙哥] 充电器合成异常: " + ex.Message); } }));
+            w.AddButton(LangHelper.T("蛙哥的充电器 → 三级 · 25000信用点 + 涡轮×2 + 阵列×5 + 充能器×5", "Charger → Tier 3 · 25000 cr + turbo x2 + array x5 + recharger x5"), actC3, "wc_charger3");
             // 10-05 引导 MVP：蛙哥指南按钮
             var wbGuideBtn3 = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowWageBrotherGuide(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); } }));
             w.AddButton(LangHelper.T("📖 蛙哥指南", "📖 Guide"), wbGuideBtn3, "wb_guide_btn");

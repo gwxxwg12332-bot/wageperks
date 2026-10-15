@@ -107,7 +107,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(PERMIT_1_ID,
                 LangHelper.T("蛙哥的许可（一级）", "Wage's Permit (Tier 1)"),
                 LangHelper.T("每晚外出次数 +1（可叠加）。拾荒时仍可能受伤。", "+1 night outing per night (stacks). Scavenging may still cause injuries."),
-                5000, "wage_permit_1_sprite"); // 10-15 重定价：锚=充电器3级20000，许可1=5000
+                10000, "wage_permit_1_sprite"); // 10-15 重定价：锚=充电器3级50000，许可1=10000
             if (it == null) return null;
             try { it.EnableTag("paper", true); } catch { } // 文档属性
             return it;
@@ -122,7 +122,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(PERMIT_2_ID,
                 LangHelper.T("蛙哥的许可（二级）", "Wage's Permit (Tier 2)"),
                 LangHelper.T("每晚外出次数 +1（可叠加）。拾荒受伤概率减半。", "+1 night outing per night (stacks). Scavenging injury chance halved."),
-                12000, "wage_permit_2_sprite"); // 10-15 重定价：许可2=12000
+                30000, "wage_permit_2_sprite"); // 10-15 重定价：许可2=30000
             if (it == null) return null;
             try { it.EnableTag("paper", true); } catch { }
             return it;
@@ -137,7 +137,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(PERMIT_3_ID,
                 LangHelper.T("蛙哥的许可（三级）", "Wage's Permit (Tier 3)"),
                 LangHelper.T("每晚外出次数 +1（可叠加）。拾荒时完全不会受伤。", "+1 night outing per night (stacks). Complete immunity to scavenging injuries."),
-                20000, "wage_permit_3_sprite"); // 10-15 重定价：许可3=20000（与充电器3同级顶级）
+                50000, "wage_permit_3_sprite"); // 10-15 重定价：许可3=50000（与充电器3同级顶级）
             if (it == null) return null;
             try { it.EnableTag("paper", true); } catch { }
             return it;
@@ -153,7 +153,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(CHARGER_1_ID,
                 LangHelper.T("蛙哥充电器（一级）", "Wage's Charger (Tier 1)"),
                 LangHelper.T("每晚自动给背包所有电池充3点电量（拥有即生效，不消耗）。", "Automatically charges all batteries in your backpack by 3 per night (persistent, not consumed)."),
-                4000, "wage_charger_1_sprite"); // 10-15 重定价：充电器1=4000（锚20%）
+                5000, "wage_charger_1_sprite"); // 10-15 重定价：充电器1=5000（锚10%）
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥物品] CreateCharger1异常: " + ex.Message); return null; }
@@ -166,7 +166,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(CHARGER_2_ID,
                 LangHelper.T("蛙哥充电器（二级）", "Wage's Charger (Tier 2)"),
                 LangHelper.T("每晚自动给背包所有电池充6点电量（拥有即生效，不消耗）。", "Automatically charges all batteries in your backpack by 6 per night (persistent, not consumed)."),
-                10000, "wage_charger_2_sprite"); // 10-15 重定价：充电器2=10000（锚50%）
+                25000, "wage_charger_2_sprite"); // 10-15 重定价：充电器2=25000（锚50%）
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥物品] CreateCharger2异常: " + ex.Message); return null; }
@@ -179,7 +179,7 @@ internal static class WageBrokerItems
             var it = CreateBaseItem(CHARGER_3_ID,
                 LangHelper.T("蛙哥充电器（三级）", "Wage's Charger (Tier 3)"),
                 LangHelper.T("每晚自动给背包所有电池充满电（拥有即生效，不消耗）。", "Fully charges all batteries in your backpack every night (persistent, not consumed)."),
-                20000, "wage_charger_3_sprite"); // 10-15 重定价锚点：充电器3=20000（玩家拍板"完全值得几万"）
+                50000, "wage_charger_3_sprite"); // 10-15 重定价锚点：充电器3=50000（玩家拍板"完全值得几万"）
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥物品] CreateCharger3异常: " + ex.Message); return null; }

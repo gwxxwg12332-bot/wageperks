@@ -39,10 +39,24 @@ internal static class B2WildPanel
     internal const string SVC_GU = "b2_svc_gu";               // 养蛊机（一次性）
     internal const string SVC_AI = "b2_svc_ai";               // AI 生成器（一次性）
     internal const string SVC_PROTECTOR = "b2_svc_protector"; // 保护器核心（可重复购买）
-    private const int SVC_PRICE_WANDERER = 8000;  // 10-15 重定价：流浪者·重回第一天（一次性超强效果）
-    private const int SVC_PRICE_GU = 10000;       // 养蛊机（永久机器，3天融合×0.6）
-    private const int SVC_PRICE_AI = 15000;       // AI 生成器（永久机器，每天抽卡核心产线）
-    private const int SVC_PRICE_PROTECTOR = 3000; // 保护器（消耗品，可重复购买）
+    private const int SVC_PRICE_WANDERER = 20000;  // 10-15 重定价（锚=充电器3=50000）：流浪者·重回第一天
+    private const int SVC_PRICE_GU = 30000;        // 养蛊机（永久机器，3天融合×0.6）
+    private const int SVC_PRICE_AI = 40000;        // AI 生成器（永久机器，每天抽卡核心产线）
+    private const int SVC_PRICE_PROTECTOR = 10000; // 保护器（消耗品，可重复购买）
+
+    // ===== 10-15 许可/充电器搬进电话簿（用户拍板：也搬进电话簿；柜台一级保留+合成升级不变） =====
+    internal const string SVC_PERMIT1 = "b2_svc_permit1";
+    internal const string SVC_PERMIT2 = "b2_svc_permit2";
+    internal const string SVC_PERMIT3 = "b2_svc_permit3";
+    internal const string SVC_CHARGER1 = "b2_svc_charger1";
+    internal const string SVC_CHARGER2 = "b2_svc_charger2";
+    internal const string SVC_CHARGER3 = "b2_svc_charger3";
+    private const int SVC_PRICE_PERMIT1 = 10000;   // 与柜台一级价一致
+    private const int SVC_PRICE_PERMIT2 = 30000;
+    private const int SVC_PRICE_PERMIT3 = 50000;
+    private const int SVC_PRICE_CHARGER1 = 5000;   // 与柜台一级价一致
+    private const int SVC_PRICE_CHARGER2 = 25000;
+    private const int SVC_PRICE_CHARGER3 = 50000;
     private const int SVC_AFFECTION_GATE = 40; // 好感门槛
 
     private sealed class WildEntry
@@ -68,6 +82,13 @@ internal static class B2WildPanel
         list.Add(new WildEntry { Id = SVC_GU, ServiceId = "gu_machine" });
         list.Add(new WildEntry { Id = SVC_AI, ServiceId = "ai_generator" });
         list.Add(new WildEntry { Id = SVC_PROTECTOR, ServiceId = "protector" });
+        // 10-15 许可/充电器进电话簿（3级各一条，柜台一级+合成升级保留）
+        list.Add(new WildEntry { Id = SVC_PERMIT1, ServiceId = "permit1" });
+        list.Add(new WildEntry { Id = SVC_PERMIT2, ServiceId = "permit2" });
+        list.Add(new WildEntry { Id = SVC_PERMIT3, ServiceId = "permit3" });
+        list.Add(new WildEntry { Id = SVC_CHARGER1, ServiceId = "charger1" });
+        list.Add(new WildEntry { Id = SVC_CHARGER2, ServiceId = "charger2" });
+        list.Add(new WildEntry { Id = SVC_CHARGER3, ServiceId = "charger3" });
         return list.ToArray();
     }
 
@@ -225,6 +246,12 @@ internal static class B2WildPanel
             case "wanderer_day1": return SVC_PRICE_WANDERER;
             case "gu_machine": return SVC_PRICE_GU;
             case "ai_generator": return SVC_PRICE_AI;
+            case "permit1": return SVC_PRICE_PERMIT1;
+            case "permit2": return SVC_PRICE_PERMIT2;
+            case "permit3": return SVC_PRICE_PERMIT3;
+            case "charger1": return SVC_PRICE_CHARGER1;
+            case "charger2": return SVC_PRICE_CHARGER2;
+            case "charger3": return SVC_PRICE_CHARGER3;
         }
         return 0;
     }
@@ -261,6 +288,18 @@ internal static class B2WildPanel
                 return LangHelper.T("不稳定 AI 生成器：打烊自动抽卡；装保护器=稳定×1.2，不装=倍率随机 0.05~0.8（多数亏）。", "Unstable AI generator: auto-draw at close; with Protector=stable x1.2, without=random 0.05~0.8 (usually a loss).") + req;
             case "protector":
                 return LangHelper.T("稳定器：放入 AI 生成器舱即稳定版（100%成功，属性×1.2），每次抽卡消耗 1 个，可重复购买。", "Stabilizer: place in AI generator bay for stable mode (100%, x1.2), 1 per draw, repeatable.") + req;
+            case "permit1":
+                return LangHelper.T("蛙哥的许可（一级）：每晚外出次数 +1（可叠加），拾荒仍可能受伤。购买后直接上柜台。", "Wage's Permit (Tier 1): +1 night outing (stacks), scavenging may still injure. Placed on counter after purchase.") + req;
+            case "permit2":
+                return LangHelper.T("蛙哥的许可（二级）：每晚外出次数 +1（可叠加），拾荒受伤概率减半。", "Wage's Permit (Tier 2): +1 night outing (stacks), injury chance halved.") + req;
+            case "permit3":
+                return LangHelper.T("蛙哥的许可（三级）：每晚外出次数 +1（可叠加），拾荒时完全不会受伤。", "Wage's Permit (Tier 3): +1 night outing (stacks), complete immunity to scavenging injuries.") + req;
+            case "charger1":
+                return LangHelper.T("蛙哥充电器（一级）：每晚自动给背包所有电池充 3 点电量（拥有即生效，不消耗）。", "Wage's Charger (Tier 1): +3 charge to all backpack batteries nightly (persistent).") + req;
+            case "charger2":
+                return LangHelper.T("蛙哥充电器（二级）：每晚自动给背包所有电池充 6 点电量（拥有即生效，不消耗）。", "Wage's Charger (Tier 2): +6 charge to all backpack batteries nightly (persistent).") + req;
+            case "charger3":
+                return LangHelper.T("蛙哥充电器（三级）：每晚自动给背包所有电池充满电（拥有即生效，不消耗）。", "Wage's Charger (Tier 3): fully charges all backpack batteries nightly (persistent).") + req;
         }
         return e.Id + req;
     }
@@ -313,6 +352,12 @@ internal static class B2WildPanel
             if (e.ServiceId == "gu_machine") GrantServiceItem(GuMachineSystem.GU_MACHINE_ID);
             else if (e.ServiceId == "ai_generator") GrantServiceItem(GuMachineSystem.AI_GENERATOR_ID);
             else if (e.ServiceId == "wanderer_day1") Notify(LangHelper.T("已解锁「重回第一天」！", "Unlocked Back to Day 1!"));
+            else if (e.ServiceId == "permit1") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_1_ID); Notify(LangHelper.T("已获得 蛙哥的许可（一级），已上柜台", "Got Wage's Permit (Tier 1), placed on counter")); }
+            else if (e.ServiceId == "permit2") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_2_ID); Notify(LangHelper.T("已获得 蛙哥的许可（二级），已上柜台", "Got Wage's Permit (Tier 2), placed on counter")); }
+            else if (e.ServiceId == "permit3") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_3_ID); Notify(LangHelper.T("已获得 蛙哥的许可（三级），已上柜台", "Got Wage's Permit (Tier 3), placed on counter")); }
+            else if (e.ServiceId == "charger1") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_1_ID); Notify(LangHelper.T("已获得 蛙哥充电器（一级），已上柜台", "Got Wage's Charger (Tier 1), placed on counter")); }
+            else if (e.ServiceId == "charger2") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_2_ID); Notify(LangHelper.T("已获得 蛙哥充电器（二级），已上柜台", "Got Wage's Charger (Tier 2), placed on counter")); }
+            else if (e.ServiceId == "charger3") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_3_ID); Notify(LangHelper.T("已获得 蛙哥充电器（三级），已上柜台", "Got Wage's Charger (Tier 3), placed on counter")); }
             else Notify(LangHelper.T("服务已解锁", "Service unlocked"));
             Core.LogMsg("[B2R] 服务解锁: " + e.Id);
         }
