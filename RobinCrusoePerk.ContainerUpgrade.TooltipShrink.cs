@@ -76,10 +76,11 @@ internal static partial class RobinCrusoePerk
                 else
                 {
                     // 09-19 P3：显示当前模式（读舱内保护器实时判定）+ 失败结果提示
+                    // 10-15 同步机制：保护器版=稳定×1.2（上限已取消）；不稳定版=蛙娘心情成败，失败=打折模组（不再报废）
                     bool hasProt = GetCachedHasProt(item);
                     string mode = hasProt
-                        ? LangHelper.T("阉割版（100%成功，上限75%）", "Stable (100% success, cap 75%)")
-                        : LangHelper.T("不稳定版（50%成功，失败产报废模组）", "Unstable (50% success, fail -> scrap module)");
+                        ? LangHelper.T("稳定版（100%成功，属性×1.2倍）", "Stable (100% success, stats x1.2)")
+                        : LangHelper.T("不稳定版（成功率=蛙娘心情，失败产打折模组×0.05~0.4）", "Unstable (success = Wage Girl mood, fail -> debuffed module x0.05~0.4)");
                     builder.AddLine(LangHelper.T(
                         "◆ 打烊自动抽卡（舱内≥2模组）· 当前：" + mode,
                         "◆ Auto-draw at close (≥2 modules) · Now: " + mode), bold: true);
