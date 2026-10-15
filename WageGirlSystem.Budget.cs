@@ -45,6 +45,7 @@ public static partial class WageGirlSystem
             {
                 long hungover = (long)(budget * 0.9f);
                 WageAPI.WageTrade.OverrideBudget(__instance, hungover);
+                LastBudgetInfo[__instance] = (0.9f, BudgetSource.WineHungover); // FIX17b：记录来源（显示+升级重算用）
                 return;
             }
             // v1.3.1【7b】干燥空气：水酒客户预算+25%（不依赖蛙娘，独立 perk）
@@ -52,20 +53,69 @@ public static partial class WageGirlSystem
             {
                 long dry = (long)(budget * DryAirPerk.GetWaterBoozeBudgetBonus());
                 WageAPI.WageTrade.OverrideBudget(__instance, dry);
+                LastBudgetInfo[__instance] = (DryAirPerk.GetWaterBoozeBudgetBonus(), BudgetSource.DryAir); // FIX17b
                 return;
             }
             if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
-            double affB = GetAffectionExact(); // 10-07 #10：double 精确比较（负好感走低档倍率）
-            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
-                : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
-            // 蛙哥牛逼 Lv3（阶段1）：好感分档上限 ×4 → ×5（仍不含蛙哥本人——本方法 :26 已排除 wage_brother）
-            if (B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 && affB >= BuildConfig.WageGirlBudgetAffMid)
-                mult = 5f;
+            float mult = CurrentBudgetMult(__instance); // FIX17b：好感分档+蛙哥牛逼Lv3（现算，显示/重算共用）
             long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
             WageAPI.WageTrade.OverrideBudget(__instance, newBudget);
+            LastBudgetInfo[__instance] = (mult, BudgetSource.Affection); // FIX17b
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
+    }
+
+    // ===== FIX17b：预算倍率记录 + 显示/升级重算（修复「Lv3 升级后当前客户预算不重算」「显示层倍率与覆盖层不一致」） =====
+    internal enum BudgetSource { None, WineHungover, DryAir, Affection }
+    internal static readonly System.Collections.Generic.Dictionary<StoreClient, (float Mult, BudgetSource Src)> LastBudgetInfo = new();
+    internal static bool TryGetBudgetInfo(StoreClient c, out float mult, out BudgetSource src)
+    {
+        mult = 1f; src = BudgetSource.None;
+        try { if (c != null && LastBudgetInfo.TryGetValue(c, out var v)) { mult = v.Mult; src = v.Src; return true; } } catch { }
+        return false;
+    }
+
+    /// <summary>好感分档现算倍率（含蛙哥牛逼 Lv3 ×5）——覆盖层/显示层/重算层共用同一源，杜绝口径漂移。</summary>
+    internal static float CurrentBudgetMult(StoreClient c)
+    {
+        try
+        {
+            if (c != null && (c.identifier == ENTITY_ID || c.identifier == "wage_brother")) return 1f;
+            double affB = GetAffectionExact();
+            float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
+                : (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
+            if (B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 && affB >= BuildConfig.WageGirlBudgetAffMid)
+                mult = 5f;
+            return mult;
+        }
+        catch { return 1f; }
+    }
+
+    /// <summary>升级后重算当前客户预算：基于「已应用倍率反推基础值」（防累乘），再按新等级倍率覆盖。</summary>
+    internal static void ReapplyBudgetFor(StoreClient c)
+    {
+        try
+        {
+            if (c == null || Patches._inBudgetOverride) return;
+            if (!LastBudgetInfo.TryGetValue(c, out var info) || info.Mult <= 0f) return; // 未覆盖过不动
+            int cur = WageAPI.WageTrade.GetBudget(c);
+            if (cur <= 0) return;
+            int baseVal = (int)(cur / info.Mult); // 反推基础预算（=原版预算，无累乘）
+            float newMult = CurrentBudgetMult(c);
+            if (System.Math.Abs(newMult - info.Mult) < 0.001f) return; // 倍率没变不重算
+            long target = (long)(baseVal * newMult);
+            if (target > BuildConfig.WageGirlBudgetCap) target = BuildConfig.WageGirlBudgetCap;
+            Patches._inBudgetOverride = true;
+            try
+            {
+                WageAPI.WageTrade.OverrideBudget(c, target);
+                LastBudgetInfo[c] = (newMult, BudgetSource.Affection);
+                Core.LogMsg("[预算显示] 升级重算: " + c.identifier + " 基础=" + baseVal + " ×" + newMult + " → " + target);
+            }
+            finally { Patches._inBudgetOverride = false; }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[预算显示] 重算异常: " + ex.Message); }
     }
     // v1.3.1【7b】：客户购买清单含水/酒物品？
     private static readonly System.Collections.Generic.HashSet<string> WaterBoozeIds = new System.Collections.Generic.HashSet<string>(new string[] {

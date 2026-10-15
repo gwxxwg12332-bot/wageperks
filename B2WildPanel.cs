@@ -430,16 +430,31 @@ internal static class B2WildPanel
                 B2ServiceStore.SetLevel(e.PerkId, 2);
                 Notify(LangHelper.T(perk.DisplayName + " 升级到 Lv2", perk.DisplayName + " upgraded to Lv2"));
                 Core.LogMsg("[B2R] 已升级 " + e.PerkId + " → Lv2");
+                ReapplyCurrentClientBudget(); // FIX17b：升级即重算当前客户预算（好感倍率立即按新等级）
             }
             else if (lv == 2)
             {
                 B2ServiceStore.SetLevel(e.PerkId, 3);
                 Notify(LangHelper.T(perk.DisplayName + " 升级到 Lv3（满级）", perk.DisplayName + " upgraded to Lv3 (MAX)"));
                 Core.LogMsg("[B2R] 已升级 " + e.PerkId + " → Lv3");
+                ReapplyCurrentClientBudget(); // FIX17b：蛙哥牛逼 Lv3 → 当前客户好感倍率 ×4→×5 立即生效
             }
             RefreshDetail(e.Id);
         }
         catch (Exception ex) { Core.LogMsg("[B2R] OnUnlock 异常: " + ex.Message); }
+    }
+
+    // FIX17b：升级后重算当前在场客户预算（蛙哥牛逼 Lv3 ×4→×5 立即生效；无客户/未覆盖则静默跳过）
+    private static void ReapplyCurrentClientBudget()
+    {
+        try
+        {
+            var ps = PlayerStore.Instance;
+            var client = ps?.currentClientInstance?.storeClient;
+            if (client == null) return;
+            WageGirlSystem.ReapplyBudgetFor(client);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[B2R] 升级重算预算异常: " + ex.Message); }
     }
 
     // 附赠开局物品：只有真实开局发物的特性才附赠（盘点 10-14 实锤）
@@ -649,19 +664,23 @@ internal static class B2WildPanel
     internal static void EnsurePhoneRegistered(Il2CppSystem.Collections.Generic.Dictionary<long, StorePhoneClient> dict)
     {
         if (dict == null) return;
-        if (dict.ContainsKey(WAGE_PHONE_NUMBER)) return; // 幂等
-        var pc = new StorePhoneClient();
-        pc.phoneClientType = StorePhoneClient.PhoneClientType.Supplier;
-        pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
-        pc.displayName = LangHelper.T("蛙娘", "Wage Brother"); // 2026-10-14 显示名纠正：蛙哥→蛙娘
-        pc.locID = "";
-        pc.dialogFuncId = WAGE_DIALOG_ID; // B2-R2：走蛙哥对话链（GetCallDialog 按 dialogFuncId 查 DialogFuncs）
-        pc.cooldownDuration = 0;
-        pc.currentCooldown = 0;
-        pc.dialedBefore = true; // 直接可拨（无需先到店）
-        dict.Add(WAGE_PHONE_NUMBER, pc);
-        Core.LogMsg("[B2R] 蛙哥电话 1005 已注册（电话簿直接可见）");
-        RegisterWageBrotherDialog(); // B2-R2：同步注册对话工厂
+        if (!dict.ContainsKey(WAGE_PHONE_NUMBER))
+        {
+            var pc = new StorePhoneClient();
+            pc.phoneClientType = StorePhoneClient.PhoneClientType.Supplier;
+            pc.phoneState = (StorePhoneClient.PhoneState)4; // 解锁态（电话簿可见）
+            pc.displayName = LangHelper.T("蛙娘", "Wage Brother"); // 2026-10-14 显示名纠正：蛙哥→蛙娘
+            pc.locID = "";
+            pc.dialogFuncId = WAGE_DIALOG_ID; // B2-R2：走蛙哥对话链（GetCallDialog 按 dialogFuncId 查 DialogFuncs）
+            pc.cooldownDuration = 0;
+            pc.currentCooldown = 0;
+            pc.dialedBefore = true; // 直接可拨（无需先到店）
+            dict.Add(WAGE_PHONE_NUMBER, pc);
+            Core.LogMsg("[B2R] 蛙哥电话 1005 已注册（电话簿直接可见）");
+        }
+        // FIX17b：对话工厂注册移出「电话已存在」分支——10-15 实测日志「蛙哥对话未注册，回退直开面板」：
+        //   旧档电话号已注册 → 直接 return → RegisterWageBrotherDialog 从未执行 → 拨号无对话文字。幂等 ContainsKey 防重。
+        RegisterWageBrotherDialog();
     }
 
     // 读档兜底：OnStoreGameLoaded 时从已加载的 PhoneClientDict 实例上补注册（B2-R-H1）

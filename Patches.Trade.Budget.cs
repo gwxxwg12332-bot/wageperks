@@ -102,11 +102,10 @@ internal static partial class Patches
 
 	// 10-06 议价加成可见性已删（原 PostfixItemFeatureGetActualDisplay——WS SurvivalTrade.PostfixItemFeatureGetActualDisplay 承接，10-08 已部署）
 
-	// ===== FIX17（拆包回传 10-15）：客户预算显示追加「原版预算+加成来源」 =====
-	// 拆包实锤：NegociationUIManager.clientBudget(0xA8 TMP)=客户预算唯一显示位；RefreshUI() 唯一写点
-	//   （触发面 11 个：Update 0.2s 定时 + OpenUI/ToggleUI + Buy/Sell 6 + CycleBarterOfferSet + StoreClientMono.OnClick + ItemFeature.ExposeFeature）；
-	//   显示值=StoreClient.clientBudget(0x34).ToString()——我方 OverrideBudget/ModBudget 直写后 TMP 自动显示加成值；
-	//   本 Postfix 只追加来源说明（public 0xA8 直接读写）。⚠️ RefreshUI 开头无客户分支会清空 TMP（dump :10747-10762）→ 判空。
+	// ===== FIX17b（拆包 FIX17 回传 10-15 + 玩家实测）：客户预算显示追加「原版预算+加成来源」，精简单行版 =====
+	// 拆包实锤：NegociationUIManager.clientBudget(0xA8 TMP)=唯一显示位；RefreshUI() 唯一写点（11 触发面）；
+	//   显示值=StoreClient.clientBudget(0x34).ToString()——我方 OverrideBudget 直写后 TMP 自动显示加成值，本 Postfix 只追加来源。
+	// FIX17b：数据源=WageGirlSystem.LastBudgetInfo（覆盖层记录的倍率+来源，反推基础值，稳定不瞬态）；倍率=CurrentBudgetMult（Lv3 显示 ×5 正确）。
 	public static void PostfixRefreshUI(NegociationUIManager __instance)
 	{
 		try
@@ -123,36 +122,25 @@ internal static partial class Patches
 		catch (System.Exception ex) { Core.LogMsg("[预算显示] 异常: " + ex.Message); }
 	}
 
-	// 来源判定与 WageGirlSystem.Budget.cs PostfixApplyBudgetModifier 同序（互斥 return：宿醉 → 干燥 → 好感；蛙哥固定不乘好感）
+	// 来源判定=LastBudgetInfo 记录的覆盖分支（与 WageGirlSystem.Budget.cs Postfix 同源，杜绝口径漂移）
 	private static string BuildBudgetSourceText(StoreClient client)
 	{
 		try
 		{
-			int cur = client.clientBudget;
-			int orig = 0;
-			bool hasOrig = CompatibilityPatches.TryGetOrigBudget(client, out orig);
 			if (client.identifier == "wage_brother")
-			{
-				if (hasOrig && orig != cur)
-					return LangHelper.T("（原版 " + orig + " → 蛙哥固定预算）", " (orig " + orig + " -> Wage fixed budget)");
-				return LangHelper.T("（蛙哥固定预算）", " (Wage fixed budget)");
-			}
-			if (WineLoverPerk.IsHungover()) // 酒徒宿醉：预算-10%
-				return LangHelper.T("（原版 " + (hasOrig ? orig.ToString() : cur.ToString()) + " → " + cur + "，-10% 酒徒宿醉）", " (orig " + (hasOrig ? orig.ToString() : cur.ToString()) + " -> " + cur + ", -10% hungover)");
-			if (DryAirPerk.IsActive() && WageGirlSystem.BuysWaterOrBooze(client)) // 干燥空气：水酒客户+25%
-				return LangHelper.T("（原版 " + (hasOrig ? orig.ToString() : cur.ToString()) + " → " + cur + "，+25% 干燥空气）", " (orig " + (hasOrig ? orig.ToString() : cur.ToString()) + " -> " + cur + ", +25% dry air)");
-			if (WageGirlSystem.Exists()) // 蛙娘在场：好感分档（与 Budget.cs:44-53 同源）
-			{
-				double affB = WageGirlSystem.GetAffectionExact();
-				float mult = affB < BuildConfig.WageGirlBudgetAffLow ? BuildConfig.WageGirlBudgetMultLow
-					: (affB < BuildConfig.WageGirlBudgetAffMid ? BuildConfig.WageGirlBudgetMultMid : BuildConfig.WageGirlBudgetMultHigh);
-				string multDesc = "";
-				if (B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 && affB >= BuildConfig.WageGirlBudgetAffMid)
-					multDesc = LangHelper.T("，蛙哥牛逼Lv3", ", WageBrother Lv3");
-				int o = hasOrig ? orig : (int)(cur / mult);
-				return LangHelper.T("（原版 " + o + " → " + cur + "，蛙娘好感 ×" + mult + multDesc + "，好感 " + (int)affB + "）", " (orig " + o + " -> " + cur + ", affection x" + mult + multDesc + ", aff " + (int)affB + ")");
-			}
-			return "";
+				return LangHelper.T("（蛙哥固定）", " (Wage fixed)");
+			if (!WageGirlSystem.TryGetBudgetInfo(client, out float applied, out WageGirlSystem.BudgetSource src) || applied <= 0f)
+				return ""; // 未覆盖：不追加
+			int cur = client.clientBudget;
+			int baseVal = (int)(cur / applied); // 反推原版预算
+			if (src == WageGirlSystem.BudgetSource.WineHungover)
+				return LangHelper.T("（原版 " + baseVal + " → " + cur + "，-10%宿醉）", " (orig " + baseVal + " -> " + cur + ", -10% hungover)");
+			if (src == WageGirlSystem.BudgetSource.DryAir)
+				return LangHelper.T("（原版 " + baseVal + " → " + cur + "，+25%干燥）", " (orig " + baseVal + " -> " + cur + ", +25% dry air)");
+			float mult = WageGirlSystem.CurrentBudgetMult(client);
+			string lv3 = B2ServiceStore.GetEffectLevel(WagePowerPerk.PerkId) >= 3 ? "Lv3" : "";
+			string m = mult.ToString("0.#");
+			return LangHelper.T("（原版 " + baseVal + " → " + cur + "，好感×" + m + lv3 + "）", " (orig " + baseVal + " -> " + cur + ", aff x" + m + lv3 + ")");
 		}
 		catch (System.Exception ex) { Core.LogMsg("[预算显示] 来源判定异常: " + ex.Message); return ""; }
 	}
