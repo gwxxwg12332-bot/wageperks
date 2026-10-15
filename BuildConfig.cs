@@ -315,7 +315,7 @@ public static class BuildConfig
 	public const int GuForgeCap = 150;
 	public const int GuBeastCap = 999;
 
-	public static int AiGenPrice => GetInt("AiGenPrice", 1000);
+	public static int AiGenPrice => GetInt("AiGenPrice", 4000); // 10-15 本体价值修正：1000→4000 对齐服务价10%比例（养蛊30000:3000=AI40000:4000），消除两机器本体倒挂
 
 	public const int AiSuccessPct = 50;
 
@@ -487,7 +487,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("BatteryInterval", 8, "电池吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("InspectInterval", 15, "治安部眼线检查间隔(天)");
 			melonPreferences_Category.CreateEntry("GuMachinePrice", 3000, "养蛊机售价");
-			melonPreferences_Category.CreateEntry("AiGenPrice", 1000, "AI生成器售价");
+			melonPreferences_Category.CreateEntry("AiGenPrice", 4000, "AI生成器售价");
 			melonPreferences_Category.CreateEntry("AiStableCap", 75, "阉割版属性上限");
 			melonPreferences_Category.CreateEntry("AiUnstableCap", 150, "不稳定版属性上限");
 			melonPreferences_Category.CreateEntry("ProtectorPrice", 1500, "保护器核心售价");

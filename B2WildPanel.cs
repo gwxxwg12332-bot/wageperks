@@ -321,7 +321,19 @@ internal static class B2WildPanel
         catch { return false; }
     }
 
-    private static string ServiceRequirementText() => LangHelper.T("解锁条件不足：需蛙哥牛逼 Lv2 + 蛙娘好感≥" + SVC_AFFECTION_GATE, "Need WageBrother Lv2 + affection >= " + SVC_AFFECTION_GATE);
+    private static string ServiceRequirementText()
+    {
+        // 10-15 好感可视化：失败提示动态显示当前好感+差值（好感不足时）；好感达标则提示 Lv2
+        try
+        {
+            int gate = SVC_AFFECTION_GATE;
+            int cur = (int)WageGirlSystem.GetAffectionExact();
+            if (cur < gate)
+                return LangHelper.T("解锁条件不足：蛙娘好感 " + cur + "/" + gate + "（还差 " + (gate - cur) + "）", "Need affection " + cur + "/" + gate + " (+" + (gate - cur) + ")");
+        }
+        catch { }
+        return LangHelper.T("解锁条件不足：需蛙哥牛逼 Lv2", "Need WageBrother Lv2");
+    }
 
     private static void GrantServiceItem(string itemId)
     {
@@ -1102,6 +1114,25 @@ internal static class B2WildPanel
     }
 
     // 顶部页面标题：无代码挂点（拆包 C1 实锤——WildUIManager 方法表全无 Find，OpenUI/CloseUI 不重置该 TMP）
+    // 10-15 好感可视化：顶部横幅文本 = 标题 + 好感状态（门槛 SVC_AFFECTION_GATE=40）
+    private static string BuildAffectionBanner()
+    {
+        string head = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+        try
+        {
+            int gate = SVC_AFFECTION_GATE;
+            int cur = (int)WageGirlSystem.GetAffectionExact();
+            if (cur >= gate) return head + "｜" + LangHelper.T("好感 " + cur + "/" + gate + " 已达标", "Affection " + cur + "/" + gate + " OK");
+            return head + "｜" + LangHelper.T("好感 " + cur + "/" + gate + " 还差 " + (gate - cur), "Affection " + cur + "/" + gate + " (+" + (gate - cur) + ")");
+        }
+        catch { return head; }
+    }
+    private static UnityEngine.Color BannerColor()
+    {
+        try { return (int)WageGirlSystem.GetAffectionExact() >= SVC_AFFECTION_GATE ? new UnityEngine.Color(0.3f, 0.72f, 0.38f) : new UnityEngine.Color(0.85f, 0.28f, 0.28f); }
+        catch { return UnityEngine.Color.white; }
+    }
+
     // 运行时遍历 panel 子树找最靠上的非详情/非元素 TMP → SetText；改一次存活，缓存引用
     private static Il2CppTMPro.TextMeshProUGUI _headerTmp = null;
     private static bool _headerSearched = false;
@@ -1112,7 +1143,8 @@ internal static class B2WildPanel
             if (_headerSearched && _headerTmp == null) return; // 已搜过没找到，不再搜
             if (_headerTmp != null)
             {
-                _headerTmp.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
+                _headerTmp.text = BuildAffectionBanner();
+                _headerTmp.color = BannerColor();
                 return;
             }
             if (ui.panel == null) return;
@@ -1150,8 +1182,9 @@ internal static class B2WildPanel
             _headerSearched = true;
             if (_headerTmp != null)
             {
-                _headerTmp.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network");
-                Core.LogMsg("[B2R] 顶部标题已替换为「蛙哥人脉网络」（" + (_headerTmp.text ?? "") + "）");
+                _headerTmp.text = BuildAffectionBanner();
+                _headerTmp.color = BannerColor();
+                Core.LogMsg("[B2R] 顶部标题已替换为「" + (_headerTmp.text ?? "") + "」");
             }
             else
             {
