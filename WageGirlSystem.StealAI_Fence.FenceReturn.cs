@@ -380,6 +380,14 @@ private static void FenceReturn()
                     ReportLine(LangHelper.T("蛙娘回来了，带了份物资箱补偿你", "Wage Girl is back with a supply crate to make up"));
                 }
             else ReportLine(LangHelper.T("蛙娘回来了", "Wage Girl is back"));
+            // 10-16 P4a M8：跑路回归额外带 1 件旅行纪念品（价值 100~300，随档；并入既有发放链新增分支，不并列新建链）
+            GameItem souvenir = PickSouvenirItem();
+            if (souvenir != null)
+            {
+                string souvName = ""; try { souvName = souvenir.name ?? souvenir.identifier ?? ""; } catch { }
+                AddToFront(souvenir);
+                ReportLine(LangHelper.T("蛙娘还带了份旅行纪念品（" + souvName + "，价值约 " + souvenir.unitValue + "）", "Wage Girl also brought a travel souvenir (" + souvName + ", ~" + souvenir.unitValue + ")"));
+            }
             // 09-22 砍：跑路回归不偷（只带回来给玩家）
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.StealAI_Fence] 异常: " + ex.Message); }

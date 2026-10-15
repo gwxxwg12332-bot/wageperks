@@ -298,6 +298,24 @@ public static partial class WageGirlSystem
             if (leaveDay > 0 && day < leaveDay) return;
             // 10-16 M5：每日随机喜好（0=酒 1=食物 2=日用品 各 1/3；likeDay 随档=读档不重滚）
             if (GetStat(K_LIKE_DAY) != day) { SetStat(K_LIKE_DAY, day); SetStat(K_LIKE, Core.Rng.Next(3)); }
+            // 10-16 P4a M4：小金库唯一性消耗解锁标记（一次性，余额降不回退；效果本体=换装素材/渠道定义待拍板）
+            int savNow = GetStat(K_SAVINGS);
+            if (savNow >= BuildConfig.WageGirlSavingsUnlockOutfit && GetStat(K_UNLOCK_OUTFIT) == 0) SetStat(K_UNLOCK_OUTFIT, 1);
+            if (savNow >= BuildConfig.WageGirlSavingsUnlockChannel && GetStat(K_UNLOCK_CHANNEL) == 0) SetStat(K_UNLOCK_CHANNEL, 1);
+            // 10-16 P4a M8 纪念日：连续照顾（今天喂过=1 天）30 天且好感≥50 → 一次性专属礼物（价值 500；并入回馈通道，无双发）
+            if (WasFedToday()) SetStat(K_CARE_STREAK, GetStat(K_CARE_STREAK) + 1);
+            else SetStat(K_CARE_STREAK, 0);
+            if (GetStat(K_CARE_STREAK) >= BuildConfig.WageGirlMemorialDays && GetAffectionExact() >= 50 && GetStat(K_MEMORIAL_GIVEN) == 0)
+            {
+                GameItem memGift = PickMemorialGift();
+                if (memGift != null)
+                {
+                    string memName = ""; try { memName = memGift.name ?? memGift.identifier ?? ""; } catch { }
+                    AddToFront(memGift);
+                    SetStat(K_MEMORIAL_GIVEN, 1);
+                    ReportLine(LangHelper.T("蛙娘陪你整整 " + BuildConfig.WageGirlMemorialDays + " 天了，送了件专属礼物（" + memName + "，价值约 500）！", "Wage Girl has been with you for " + BuildConfig.WageGirlMemorialDays + " days and gives you a special gift (" + memName + ", ~500)!"));
+                }
+            }
             // #10 拍板 3：节点1 敌意[-200,-101] = 随机跑路（2-4 天）+ 不互动（喂食入口另拦截）
             if (GetAffNode(GetAffectionExact()) == 1 && GetStat(K_LEAVE) <= 0)
             {
@@ -327,6 +345,42 @@ public static partial class WageGirlSystem
                 return;
             }
             int lastSteal = GetStat(K_LAST_STEAL);
+            // 10-16 P4a M6 保底事件：好感≥40 且在店（实体在场+非外出）→ 每 5 天保底 1 次 + 10% 概率 → 好感加权（正面权重随好感升，正面 3/负面 1）
+            // 事件效果=纯当日内存态（读档不重放），仅 eventDay 随档（保底计算）；精明/灵感为当日待生效标记（消费一次即失效）
+            if (GetAffectionExact() >= 40 && ExistsInScene() && GetStat(K_LEAVE) <= day && GetStat(K_EVENT_DAY) != day)
+            {
+                int lastEv = GetStat(K_EVENT_DAY);
+                bool evTrigger = (day - lastEv >= BuildConfig.WageGirlEventGuaranteeDays) || (Core.Rng.Next(100) < BuildConfig.WageGirlEventChancePct);
+                if (evTrigger)
+                {
+                    SetStat(K_EVENT_DAY, day);
+                    double affEv = GetAffectionExact();
+                    // 正面概率 = 60% + 好感×0.1%（好感 40→64%、200→80%）；整数 roll 避免浮点
+                    int posThreshold = 600 + (int)affEv;
+                    int posRoll = Core.Rng.Next(1000);
+                    int ev = posRoll < posThreshold ? Core.Rng.Next(3) : 3; // 0 亲切 1 精明 2 灵感 3 意外
+                    switch (ev)
+                    {
+                        case 0: // 亲切：好感+1，不送物品（避免与好物池/回馈链重叠——评审）
+                            SetAffection(GetAffection() + 1);
+                            ReportLine(LangHelper.T("蛙娘跟你分享今天的见闻，心情特别好（亲切：好感 +1）", "Wage Girl shares today's stories with you (Affection +1)"));
+                            break;
+                        case 1: // 精明：当日首次交易售价 ×1.05（单次，议价加成 +5 封顶 100 保持）
+                            SetStat(K_SMART_DAY, day);
+                            ReportLine(LangHelper.T("蛙娘帮你记住了今天的行情，下一笔交易能多卖一点（精明：首笔 +5%）", "Wage Girl memorized today's prices (Smart: +5% on next sale)"));
+                            break;
+                        case 2: // 灵感：下个客户预算 +20%（单次，不超预算上限）
+                            SetStat(K_INSPIRE_DAY, day);
+                            ReportLine(LangHelper.T("蛙娘出了个好主意，下个客户愿意出更高的价（灵感：下客预算 +20%）", "Wage Girl has a bright idea (Inspiration: next client budget +20%)"));
+                            break;
+                        case 3: // 意外：清洁-10、好感-1（负面事件平衡）
+                            SetStat(K_CLEAN, GetStat(K_CLEAN) - 10);
+                            SetAffection(GetAffection() - 1);
+                            ReportLine(LangHelper.T("蛙娘不小心打翻了货架（意外：清洁 -10、好感 -1）", "Wage Girl knocked over the shelves (Cleanliness -10, Affection -1)"));
+                            break;
+                    }
+                }
+            }
             // 节点3 帮工（P0 M1）：友好节点 [0,49] 打烊后自动整理货架（纯表现 + 次日清洁 +1；每日 1 次由日结算天然保证，无需计数键）
             if (GetAffNode(GetAffectionExact()) == 3)
             {
@@ -650,6 +704,74 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 捡漏异常: " + ex.Message); }
+        return null;
+    }
+
+    // ===== 10-16 P4a M8：旅行纪念品（抽全物品池价值 100~300 的 1 件，跑路回归时携带；PickSalvageItem 蓝本改价值带）=====
+    private static GameItem PickSouvenirItem()
+    {
+        try
+        {
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null || ids.Count == 0) return null;
+            var pool = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
+                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue;
+                pool.Add(ids[i]);
+            }
+            int tries = 0;
+            while (tries < 12 && pool.Count > 0)
+            {
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx];
+                try
+                {
+                    var g = DirectoryMaster.Item(id, true);
+                    if (g == null) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.unitValue < 100 || g.unitValue > 300) { pool.RemoveAt(idx); tries++; continue; } // 纪念品价值 100~300
+                    return g;
+                }
+                catch { pool.RemoveAt(idx); tries++; }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 纪念品异常: " + ex.Message); }
+        return null;
+    }
+
+    // ===== 10-16 P4a M8：纪念日专属礼物（抽全物品池价值 400~600 的 1 件≈价值 500，一次性；并入回馈通道）=====
+    private static GameItem PickMemorialGift()
+    {
+        try
+        {
+            var ids = DirectoryMaster.GetIdentifierList<GameItem>(null);
+            if (ids == null || ids.Count == 0) return null;
+            var pool = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (string.IsNullOrEmpty(ids[i]) || ids[i] == ENTITY_ID) continue;
+                if (System.Array.IndexOf(Core.ExcludedItemIds, ids[i]) >= 0) continue;
+                pool.Add(ids[i]);
+            }
+            int tries = 0;
+            while (tries < 12 && pool.Count > 0)
+            {
+                int idx = Core.Rng.Next(pool.Count);
+                string id = pool[idx];
+                try
+                {
+                    var g = DirectoryMaster.Item(id, true);
+                    if (g == null) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
+                    if (g.unitValue < 400 || g.unitValue > 600) { pool.RemoveAt(idx); tries++; continue; } // 专属礼物≈500
+                    return g;
+                }
+                catch { pool.RemoveAt(idx); tries++; }
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 纪念礼物异常: " + ex.Message); }
         return null;
     }
 

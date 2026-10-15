@@ -38,6 +38,10 @@ public static partial class WageGirlSystem
             // 09-20 优化：顶部好感度显示；10-07 #10 两位小数 + /200 + 5 节点文本
             b.AddLabel(LangHelper.T("好感度：" + GetAffectionExact().ToString("0.00") + "/200（" + GetAffLevelText() + "）", "Affection: " + GetAffectionExact().ToString("0.00") + "/200 (" + GetAffLevelText() + ")"), "wg_aff");
             b.AddLabel(LangHelper.T("💰 小金库：" + GetStat(K_SAVINGS) + " 块", "💰 Savings: " + GetStat(K_SAVINGS) + " credits"), "wg_savings");
+            // 10-16 P4a M4：小金库唯一性消耗解锁进度（一次性解锁，效果本体=换装素材/渠道定义待拍板）
+            string outfitSt = GetStat(K_UNLOCK_OUTFIT) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockOutfit;
+            string channelSt = GetStat(K_UNLOCK_CHANNEL) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockChannel;
+            b.AddLabel(LangHelper.T("解锁：换装 " + outfitSt + " · 收购渠道 " + channelSt, "Unlocks: Outfit " + outfitSt + " · Channel " + channelSt), "wg_unlocks");
             b.AddLabel(LangHelper.T("饱食 ", "Satiety ") + GetStat(K_SAT) + "/100  " + GetStatText(K_SAT), "wg_sat_l");
             b.AddProgressBar(GetStat(K_SAT) / 100f, "wg_sat");
             b.AddLabel(LangHelper.T("口渴 ", "Thirst ") + GetStat(K_TH) + "/100  " + GetStatText(K_TH), "wg_th_l");

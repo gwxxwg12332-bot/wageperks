@@ -14,6 +14,8 @@ public static partial class WageGirlSystem
         {
             if (!Exists()) return; // 蛙娘未出现 → 无增益
             __result += GetBargainBonus();
+            // 10-16 P4a M6 精明：当日标记未消费 → 议价加成再 +5（≈首笔售价 ×1.05，封顶 100 保持；消费一次即失效）
+            if (GetStat(K_SMART_DAY) == CurrentDay()) { __result += 5; SetStat(K_SMART_DAY, 0); }
             if (__result > 100) __result = 100;
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.Budget] 异常: " + ex.Message); }
@@ -60,6 +62,8 @@ public static partial class WageGirlSystem
             if (!Exists()) return; // 蛙娘未出现 → 无增益（DryAir 已独立处理）
             if (GetStat(K_LEAVE) > CurrentDay()) return; // #4 附带修复（P0）：跑路/离开中（Exists 跑路期为 true）不再应用好感预算倍率
             float mult = CurrentBudgetMult(__instance); // FIX17b：好感分档+蛙哥牛逼Lv3（现算，显示/重算共用）
+            // 10-16 P4a M6 灵感：当日标记未消费 → 下个客户预算 ×1.2（单次，仍受 cap 约束；消费一次即失效）
+            if (GetStat(K_INSPIRE_DAY) == CurrentDay()) { mult *= 1.2f; SetStat(K_INSPIRE_DAY, 0); }
             long newBudget = (long)(budget * mult);
             if (newBudget > BuildConfig.WageGirlBudgetCap) newBudget = BuildConfig.WageGirlBudgetCap;
             WageAPI.WageTrade.OverrideBudget(__instance, newBudget);

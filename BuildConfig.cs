@@ -175,6 +175,14 @@ public static class BuildConfig
 	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
 	public static int WageGirlRunawayStreak => GetInt("WageGirlRunawayStreak", 5);
 	public static int WageGirlRunawayDays => GetInt("WageGirlRunawayDays", 14);
+	// 10-16 P4a：M4 小金库唯一性消耗门槛（一次性解锁，余额降不回退）
+	public static int WageGirlSavingsUnlockOutfit => GetInt("WageGirlSavingsUnlockOutfit", 3000);
+	public static int WageGirlSavingsUnlockChannel => GetInt("WageGirlSavingsUnlockChannel", 5000);
+	// 10-16 P4a：M6 保底事件（好感≥40 且在店；每 N 天保底 1 次 + Pct% 概率，好感加权正面）
+	public static int WageGirlEventGuaranteeDays => GetInt("WageGirlEventGuaranteeDays", 5);
+	public static int WageGirlEventChancePct => GetInt("WageGirlEventChancePct", 10);
+	// 10-16 P4a：M8 纪念日（连续照顾 N 天且好感≥50 → 一次性专属礼物价值 500）
+	public static int WageGirlMemorialDays => GetInt("WageGirlMemorialDays", 30);
 	// 命运之骰（决策#10 快件 10-06：可丢售卖品开关——默认开=保留现行为，关→在售物品也拒绝丢入）
 	public static bool DestinyDiceAllowSellingItems => GetBool("DestinyDiceAllowSellingItems", true);
 	// 招贼体质大改（决策#10 10-06：6 配置——检查概率可调 + 每日偷盗/黑市/跳脸开关）
@@ -471,6 +479,11 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");
 			melonPreferences_Category.CreateEntry("WageGirlWashCostPerLevel", 50, "蛙娘洗白·每级违禁品消耗");
 			melonPreferences_Category.CreateEntry("WageGirlWashMasterMult", 0.5f, "蛙娘洗白·Lv3洗白大师系数(0.5=减半)");
+			melonPreferences_Category.CreateEntry("WageGirlSavingsUnlockOutfit", 3000, "蛙娘小金库·换装解锁门槛(余额≥此值一次性解锁)");
+			melonPreferences_Category.CreateEntry("WageGirlSavingsUnlockChannel", 5000, "蛙娘小金库·渠道解锁门槛(余额≥此值一次性解锁)");
+			melonPreferences_Category.CreateEntry("WageGirlEventGuaranteeDays", 5, "蛙娘事件·保底间隔天数(好感≥40且在场)");
+			melonPreferences_Category.CreateEntry("WageGirlEventChancePct", 10, "蛙娘事件·非保底日概率%");
+			melonPreferences_Category.CreateEntry("WageGirlMemorialDays", 30, "蛙娘纪念日·连续照顾天数门槛");
 			melonPreferences_Category.CreateEntry("DestinyDiceAllowSellingItems", true, "命运之骰允许丢入在售物品(默认开=现行为；关=柜台/货架待售品也拒绝丢入)");
 			melonPreferences_Category.CreateEntry("ThiefMagnetInspectionChance", 0.2f, "招贼体质·治安检查概率(默认0.2=20%)");
 			melonPreferences_Category.CreateEntry("ThiefMagnetDailyTheftEnabled", true, "招贼体质·每日丢价值最高物品开关");
