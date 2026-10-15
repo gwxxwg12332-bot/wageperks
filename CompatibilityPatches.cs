@@ -72,6 +72,37 @@ internal static class CompatibilityPatches
         } catch { }
     }
 
+    // FIX15b 层2：Patch StoreClient.ModBudget(int)——成交扣款/讲价加减路径（拆包实锤：纯加减无 clamp，全 ISIL 仅 3 调用点：
+    //   BargainUIManager.OfferDiscount / OfferMarkup / PlayerStore.SellItem）。蛙哥时异常值（<0 或爆正）恢复初始，
+    //   正常扣减放行。堵住"加减型写入"这条第二入口。
+    public static void PostfixModBudget(StoreClient __instance)
+    {
+        try
+        {
+            if (__instance == null || __instance.identifier != "wage_brother") return;
+            if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
+            {
+                Core.LogMsg("[兼容] 蛙哥ModBudget异常clamp: " + __instance.clientBudget + " → " + WAGE_BROTHER_BUDGET);
+                __instance.clientBudget = WAGE_BROTHER_BUDGET;
+            }
+        } catch { }
+    }
+
+    // FIX15b 层3：Patch StoreClient.HasBudgetLeftToBuy(GameItem)——交易判据（拆包实锤：判据=GetNegociatedValue(gameItem,0)<=clientBudget；
+    //   两个提前返回 true 分支 useClientBudget=false / gameItem=null 都在读取 clientBudget 之前——Prefix 改预算不误伤）。
+    //   判据前校正：蛙哥异常预算恢复初始，保证"买得起"判据不被污染字段带偏。最精准、不破坏成交扣减。
+    public static void PrefixHasBudgetLeftToBuy(StoreClient __instance)
+    {
+        try
+        {
+            if (__instance == null || __instance.identifier != "wage_brother") return;
+            if (__instance.clientBudget < 0 || __instance.clientBudget > WAGE_BROTHER_BUDGET + WAGE_BROTHER_BUDGET / 20)
+            {
+                __instance.clientBudget = WAGE_BROTHER_BUDGET;
+            }
+        } catch { }
+    }
+
     public static void PrefixApplyBudgetModifier(StoreClient __instance)
     {
         try
