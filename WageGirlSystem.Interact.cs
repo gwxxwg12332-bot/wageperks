@@ -121,7 +121,10 @@ public static partial class WageGirlSystem
                     int lvl = 0;
                     try { lvl = Il2Cpp.ContrabandHelper.GetContrabandLevel(item); } catch { lvl = 1; }
                     if (lvl <= 0) lvl = 1;
-                    int washCost = lvl * 50;
+                    int washCost = lvl * BuildConfig.WageGirlWashCostPerLevel;
+                    // 10-16 M7：蛙娘卡 Lv3 洗白大师 → 消耗减半（成本侧质变，不进议价/销赃乘法链）
+                    if (B2ServiceStore.GetEffectLevel(WageGirlPerk.PerkId) >= 3)
+                        washCost = (int)(washCost * BuildConfig.WageGirlWashMasterMult);
                     int savings = GetStat(K_SAVINGS);
                     if (savings < washCost) {
                         ReportLine(LangHelper.T("蛙娘：小金库余额不足（洗白需要 " + washCost + " 块）", "Wage Girl: not enough savings (need " + washCost + ")"));

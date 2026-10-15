@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="use-iframe" content="true">
 <meta name="html-box-height-mode" content="auto">
-<meta name="description" content="蛙娘六维正反馈设计：低六维惩罚与高六维奖励的对称结构">
-<title>蛙娘六维正反馈循环图</title>
+<meta name="description" content="蛙娘六维修订V3：高六维改为成本侧对冲（减损失不增收益），避免多层倍率相乘叠加">
+<title>蛙娘六维：维护成本对冲结构（修订 V3）</title>
 <style>
   body{margin:0;background:#FFFFFF;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1F2329;}
   .wrap{padding:16px 8px;max-width:100%;box-sizing:border-box;}
@@ -32,8 +32,8 @@
 </head>
 <body>
 <div class="wrap">
-  <p class="fig-title">蛙娘六维：惩罚与奖励的对称结构</p>
-  <p class="fig-sub">左 = 现有机制（低六维惩罚，源码实锤）；右 = 本设计 M2 新增（高六维经营奖励）。中间为六维公共参数。</p>
+  <p class="fig-title">蛙娘六维：维护成本对冲（修订 V3）</p>
+  <p class="fig-sub">左 = 现有低六维惩罚；右 = 修订后高六维（≥80）奖励，全部为成本侧（减少损失），不做收益侧 % 叠加。容量型 additive 仅增加次数额度，不乘钱。</p>
   <div class="cols">
     <div class="side bad">
       <h3>低六维（现有惩罚）</h3>
@@ -43,7 +43,7 @@
         <li>六维低 → 好感额外衰减 −2~−5/天</li>
         <li>口渴满时洗脏水澡 → 心情 −2~−5、健康 −5</li>
       </ul>
-      <div class="hint">现有逻辑只惩罚「不养」，没有奖励「养好」——六维从 60 养到 100 与养到 61 无区别。</div>
+      <div class="hint">现有逻辑只惩罚「不养」，没有奖励「养好」。</div>
     </div>
     <div class="mid">
       <div class="statbox">
@@ -55,19 +55,20 @@
       <div class="arrow">⇄</div>
     </div>
     <div class="side good">
-      <h3>高六维（M2 新增奖励，≥80 生效）</h3>
+      <h3>高六维（M2 修订 V3，≥80 生效，成本侧）</h3>
       <ul>
-        <li>饱食 ≥80 → 议价加成 +5%（封顶 100 内）</li>
-        <li>清洁 ≥80 → 次日客户好感度微升（预算倍率 +0.1 档）</li>
-        <li>心情 ≥80 → 偷钱概率 −50%（叠加好感豁免线）</li>
-        <li>睡眠 ≥80 → 次日工作 100% 效率（不偷懒）</li>
-        <li>六维全 ≥80 → 当日零花钱好感翻倍（+2/+4/+6）</li>
+        <li>六维每日衰减 2 → 1（好感衰减同步减半）</li>
+        <li>好感不掉档：当日无互动不再 −1~2（仅六维低额外衰减仍生效）</li>
+        <li>跑路阈值放宽：六维 ≤20 → ≤10 才计数跑路</li>
+        <li>全六维 ≥80（容量型）：零花钱每日 3→4 次（+1/+2/+3/+4）</li>
+        <li>全六维 ≥80：每日 +1 次喂食好感结算</li>
+        <li>睡眠 ≥80：睡眠债次日不累积</li>
       </ul>
-      <div class="hint">与惩罚对称：惩罚阈值 ≤20，奖励阈值 ≥80；养成区间 60→80 是「正常维持」的舒适带，冲 80+ 才有额外回报。</div>
+      <div class="hint">全部是「减少损失 / 增加额度」，不进入预算/议价/销赃任何乘法链——天然不滚雪球。不做 +5% 议价 / +0.1 倍率等收益侧。</div>
     </div>
   </div>
   <div class="foot">
-    <b>设计意图：</b>把六维从「防崩坏」变成「可投资」——玩家愿意为 80+ 多喂一档好食物，形成 投入食物/清洁 → 高六维 → 经营加成 → 更多收入 → 继续养 的正反馈，而不是只有「别让它崩」的防御式玩法。
+    <b>设计意图（修订理由）：</b>原 V2 的高六维收益（+5% 议价 / +0.1 预算）会与好感分档、蛙哥牛逼 Lv3 ×5、蛙娘卡三层倍率相乘叠加成 4~5 层乘区，既不可平衡玩家也看不懂。V3 改为成本侧对冲：养好 = 省维护、不掉档、防跑路，与低六维惩罚对称，且不参与任何乘区。
   </div>
 </div>
 </body>

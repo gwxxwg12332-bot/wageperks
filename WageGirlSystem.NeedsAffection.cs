@@ -218,18 +218,27 @@ public static partial class WageGirlSystem
             {
                 int v = GetStat(k);
                 if (v <= 0) v = BuildConfig.WageGirlStatInit;
-                SetStat(k, v - BuildConfig.WageGirlDailyDecay);
+                int decayBy = BuildConfig.WageGirlDailyDecay;
+                if (v >= 80) decayBy = Math.Max(1, decayBy / 2); // 10-16 M2：单项≥80 该维每日衰减 2→1（成本侧对冲）
+                SetStat(k, v - decayBy);
             }
             SetStat(K_ALLOWANCE_COUNT, 0); // 09-23 每天重置零花钱计数
             // 睡眠自然增长（过夜充电/睡觉恢复）
                         // 09-23 睡眠 debt 机制：先扣债（偷钱/销赃/偷拿熬夜）再自然恢复
-            int sleepDebt = GetSleepDebt(); SetSleepDebt(0);
+            int sleepDebt = GetStat(K_SLEEP) >= 80 ? 0 : GetSleepDebt(); // 10-16 M2：睡眠≥80 睡眠债次日不累积
+            SetSleepDebt(0);
             SetStat(K_SLEEP, GetStat(K_SLEEP) - sleepDebt + BuildConfig.WageGirlSleepRecover);
             // 好感每日回落（不照顾）
             // 好感衰减：当天没互动 -1~2，六维低额外 -2~5（范围 CFG：WageGirlAffDecay*）
             int decay = 0;
-            if (!WasFedToday()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayMin, BuildConfig.WageGirlAffDecayMax + 1); // 完全没互动
-            if (IsAnyStatLow()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayLowMin, BuildConfig.WageGirlAffDecayLowMax + 1); // 六维低额外
+            // 10-16 M2：任一维≥80 → 当日无互动不再 -1~2（好感不掉档；六维低额外衰减仍生效）
+            if (!WasFedToday() && !HasAnyStatHigh()) decay += UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayMin, BuildConfig.WageGirlAffDecayMax + 1);
+            if (IsAnyStatLow())
+            {
+                int extra = UnityEngine.Random.Range(BuildConfig.WageGirlAffDecayLowMin, BuildConfig.WageGirlAffDecayLowMax + 1);
+                if (HasAnyStatHigh()) extra = Math.Max(1, extra / 2); // 10-16 M2：任一维≥80 六维低额外衰减减半
+                decay += extra;
+            }
             if (decay > 0) SetAffection(GetAffection() - decay);
             // 10-07 测试反馈 B（玩家"好感50 三件套未触发"）：DebugTool 直写旧键 affection（不走 SetAffectionExact）
             //   → CheckAffection50Reward 从未触发 → 三件套永不发放。日结补触发：好感≥50 且未发过 → 标记延迟队列（Anim 帧首 Flush）
@@ -299,7 +308,8 @@ public static partial class WageGirlSystem
             }
             // 3) 跑路检查：连续 N 天任一六维 <阈值 → 离家出走 M 天（CFG：WageGirlRunaway*）
             int lowStreak = GetStat(K_STARVE);
-            if (IsAnyStatLow())
+            int runawayLow = HasAnyStatHigh() ? Math.Max(1, BuildConfig.WageGirlRunawayLowStat / 2) : BuildConfig.WageGirlRunawayLowStat; // 10-16 M2：任一维≥80 跑路阈值 20→10
+            if (IsAnyStatLow(runawayLow))
             {
                 lowStreak++;
                 SetStat(K_STARVE, lowStreak);
@@ -382,11 +392,36 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
     // 任一六维 <阈值（跑路判定；CFG：WageGirlRunawayLowStat）
     private static bool IsAnyStatLow()
     {
+        try { return IsAnyStatLow(BuildConfig.WageGirlRunawayLowStat); } catch { return false; }
+    }
+    private static bool IsAnyStatLow(int low)
+    {
         try
         {
-            int low = BuildConfig.WageGirlRunawayLowStat;
             return GetStat(K_SAT) < low || GetStat(K_TH) < low || GetStat(K_HEALTH) < low
                 || GetStat(K_MOOD) < low || GetStat(K_CLEAN) < low || GetStat(K_SLEEP) < low;
+        }
+        catch { return false; }
+    }
+
+    // 10-16 M2：任一六维 ≥80（高维保护判定——成本侧对冲触发条件）
+    private static bool HasAnyStatHigh()
+    {
+        try
+        {
+            return GetStat(K_SAT) >= 80 || GetStat(K_TH) >= 80 || GetStat(K_HEALTH) >= 80
+                || GetStat(K_MOOD) >= 80 || GetStat(K_CLEAN) >= 80 || GetStat(K_SLEEP) >= 80;
+        }
+        catch { return false; }
+    }
+
+    // 10-16 M2：全部六维 ≥80（容量型 additive：零花钱 3→4 次）
+    private static bool AllStatsHigh()
+    {
+        try
+        {
+            return GetStat(K_SAT) >= 80 && GetStat(K_TH) >= 80 && GetStat(K_HEALTH) >= 80
+                && GetStat(K_MOOD) >= 80 && GetStat(K_CLEAN) >= 80 && GetStat(K_SLEEP) >= 80;
         }
         catch { return false; }
     }
@@ -513,17 +548,18 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                 // 09-23 改：零花钱进小金库（不出去逛街）
                 SetStat(K_SAVINGS, GetStat(K_SAVINGS) + amt);
                 SetStat(K_ALLOWANCE, amt); // 09-27 B5 修（总控拍板）：写 K_ALLOWANCE 当天标记——RunDayEvents 豁免/回归分支读它（此前恒 0 → 给零花钱后当天不偷断裂）
-                // 09-23 新增：前三次加好感（好感 = 档位序数，CFG 改档位自动适配）
+                // 09-23 新增：前三次加好感（好感 = 档位序数，CFG 改档位自动适配）；10-16 M2：全六维≥80 每日 3→4 次（+1/+2/+3/+4，容量型 additive）
                 int allowCount = GetStat(K_ALLOWANCE_COUNT);
-                if (allowCount < 3) {
+                int affCap = AllStatsHigh() ? 4 : 3;
+                if (allowCount < affCap) {
                     int[] steps = BuildConfig.WageGirlAllowanceSteps;
                     int idx = System.Array.IndexOf(steps, _allowanceSel);
                     int affGain = idx >= 0 ? idx + 1 : 1;
                     SetAffection(GetAffection() + affGain);
                     SetStat(K_ALLOWANCE_COUNT, allowCount + 1);
-                    ReportLine(LangHelper.T("蛙娘把 " + amt + " 块零花钱存进小金库（好感 +" + affGain + "，今日第 " + (allowCount+1) + "/3 次）", "Wage Girl saved " + amt + " credits (affection +" + affGain + ", today " + (allowCount+1) + "/3)"));
+                    ReportLine(LangHelper.T("蛙娘把 " + amt + " 块零花钱存进小金库（好感 +" + affGain + "，今日第 " + (allowCount+1) + "/" + affCap + " 次）", "Wage Girl saved " + amt + " credits (affection +" + affGain + ", today " + (allowCount+1) + "/" + affCap + ")"));
                 } else {
-                    ReportLine(LangHelper.T("蛙娘把 " + amt + " 块零花钱存进小金库（今日已给三次，不再加好感）", "Wage Girl saved " + amt + " credits (no more affection today)"));
+                    ReportLine(LangHelper.T("蛙娘把 " + amt + " 块零花钱存进小金库（今日已给 " + affCap + " 次，不再加好感）", "Wage Girl saved " + amt + " credits (no more affection today)"));
                 }
                 try { if (Il2Cpp.CustomUIManager.Instance != null && Il2Cpp.CustomUIManager.Instance.IsOpen("wage_girl_panel")) ShowPanel(); } catch { }
             } catch { }

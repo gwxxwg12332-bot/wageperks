@@ -488,7 +488,7 @@ internal static class B2WildPanel
     {
         string key = perkId;
         if (key == WagePowerPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：蛙哥到店客户预算 ×5", "Lv3: WageBrother client budget x5") : LangHelper.T("Lv2：解锁蛙哥服务面板", "Lv2: unlocks the service panel");
-        if (key == WageGirlPerk.PerkId)       return lv >= 3 ? LangHelper.T("Lv3：蛙娘销赃加成 +10%", "Lv3: Wage Girl fence margin +10%") : LangHelper.T("Lv2：蛙娘销赃加成 +5%", "Lv2: Wage Girl fence margin +5%");
+        if (key == WageGirlPerk.PerkId)       return lv >= 3 ? LangHelper.T("Lv3：议价+60、销赃+10%、洗白消耗减半", "Lv3: bargain +60, fence +10%, wash cost halved") : LangHelper.T("Lv2：议价+55、销赃+5%", "Lv2: bargain +55, fence +5%");
         if (key == DrJacksonFriendPerk.PerkId) return lv >= 3 ? LangHelper.T("Lv3：博士友情价 -15%", "Lv3: Jackson friend price -15%") : LangHelper.T("Lv2：博士友情价 -12%", "Lv2: Jackson friend price -12%");
         if (key == DestinyDicePerk.PerkId)    return lv >= 3 ? LangHelper.T("Lv3：命运骰触发阈值 300", "Lv3: dice trigger threshold 300") : LangHelper.T("Lv2：命运骰触发阈值 350", "Lv2: dice trigger threshold 350");
         if (key == LuckScoutPerk.PerkId)      return lv >= 3 ? LangHelper.T("Lv3：稀有物掉落率上限 +10%", "Lv3: rare drop cap +10%") : LangHelper.T("Lv2：稀有物掉落率上限 +5%", "Lv2: rare drop cap +5%");

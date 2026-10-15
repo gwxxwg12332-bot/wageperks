@@ -169,6 +169,8 @@ public static class BuildConfig
 	public static int WageGirlSnatchSleepDebt => GetInt("WageGirlSnatchSleepDebt", 10);
 	public static int WageGirlStealNoStealAff => GetInt("WageGirlStealNoStealAff", 100); // 10-07 #10：80→100（节点5 信赖 100+ 才不偷）
 	// 洗白费用（每件违禁品）
+	public static int WageGirlWashCostPerLevel => GetInt("WageGirlWashCostPerLevel", 50);
+	public static float WageGirlWashMasterMult => GetFloat("WageGirlWashMasterMult", 0.5f);
 	// 跑路
 	public static int WageGirlRunawayLowStat => GetInt("WageGirlRunawayLowStat", 20);
 	public static int WageGirlRunawayStreak => GetInt("WageGirlRunawayStreak", 5);
@@ -467,6 +469,8 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlRunawayLowStat", 20, "蛙娘跑路·六维低于此值计1天");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayStreak", 5, "蛙娘跑路·连续天数门槛");
 			melonPreferences_Category.CreateEntry("WageGirlRunawayDays", 14, "蛙娘跑路·离家天数");
+			melonPreferences_Category.CreateEntry("WageGirlWashCostPerLevel", 50, "蛙娘洗白·每级违禁品消耗");
+			melonPreferences_Category.CreateEntry("WageGirlWashMasterMult", 0.5f, "蛙娘洗白·Lv3洗白大师系数(0.5=减半)");
 			melonPreferences_Category.CreateEntry("DestinyDiceAllowSellingItems", true, "命运之骰允许丢入在售物品(默认开=现行为；关=柜台/货架待售品也拒绝丢入)");
 			melonPreferences_Category.CreateEntry("ThiefMagnetInspectionChance", 0.2f, "招贼体质·治安检查概率(默认0.2=20%)");
 			melonPreferences_Category.CreateEntry("ThiefMagnetDailyTheftEnabled", true, "招贼体质·每日丢价值最高物品开关");
