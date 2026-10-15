@@ -216,7 +216,7 @@ internal static class WageBrother
                 Core.LogMsg("[蛙哥] OnClientArrived: 本会话已上过货，防重复跳过（清轮询愿望）");
                 return;
             }
-            try { if (client != null) { client.SetBudget(1109707341, 1000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } } catch { } Core.LogMsg("[蛙哥] intent已设=" + (client != null ? client.clientIntent.ToString() : "null(上货模式)"));
+            try { if (client != null) { client.SetBudget(1109707341, 10000000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } } catch { } Core.LogMsg("[蛙哥] intent已设=" + (client != null ? client.clientIntent.ToString() : "null(上货模式)"));
             // 10-05 蛙哥收购扩展（拆包实锤：clientBuyingIdList id精确 + clientBuyingTagList tag精确 + SELLNBUY 买路径）
             // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③建议500-1000，单品全覆盖+可收2-3件）
             try

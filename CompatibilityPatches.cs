@@ -31,6 +31,12 @@ internal static class CompatibilityPatches
     // StoreClient.ApplyBudgetModifier Prefix（存原预算）
     private static readonly System.Collections.Generic.Dictionary<StoreClient, int> _origBudget = new();
 
+    // FIX14：蛙哥预算常量（与 WageBrother.cs:219 / PatchRegistry.cs:54 的 SetBudget(1109707341, 10000000) 第一参数同值收口）
+    //   游戏程序集签名：SetBudget(int budget, int budgetConversion)——第一参数=预算，第二=conversion（10-15 玩家拍板=10000000）
+    //   设计目标（玩家拍板 10-15）：蛙哥每次到店初始预算固定 1,109,707,341；成交后允许正常扣减（ModBudget 直减字段）；
+    //   下次到店再恢复初始值。旧"任何 >1000 改回 1000"兜底与设计值直接冲突（会把 1.1B 压成 1000）→ 已废。
+    private const int WAGE_BROTHER_BUDGET = 1_109_707_341;
+
     // 10-05 第三方溢出兜底：CustomerCreditBoost 的 TrackClient Postfix → BoostClient → OverrideBudget(num4)
     // （预算×(100+num3)/100 指数累乘 → int 溢出写负，原版 OverrideBudget 零 clamp 直写字段）
     // → 挂 OverrideBudget Postfix 源头 clamp：任何调用（我方+第三方）写入前夹到 [0, 21.47亿]
@@ -39,14 +45,14 @@ internal static class CompatibilityPatches
         try
         {
             if (__instance == null) return;
-            // 10-06 加强：蛙哥预算专用 clamp [0,1000]——CustomerCreditBoost TrackClient 指数累乘
-            //   爆正（21亿）/溢出负都会覆盖蛙哥设计预算（工厂 100 / 收购扩展 1000）→ 恢复设计值，交易与 UI 正常
+            // FIX14：蛙哥分支——只防负数异常（叠加 mod 溢出写坏）恢复初始预算；
+            //   不再压 >1000（旧逻辑与 1,109,707,341 设计值冲突）；成交扣减正常递减，不强制补满
             if (__instance.identifier == "wage_brother")
             {
-                if (__instance.clientBudget < 0 || __instance.clientBudget > 1000)
+                if (__instance.clientBudget < 0)
                 {
-                    Core.LogMsg("[兼容] 蛙哥预算兜底: " + __instance.clientBudget + " → 1000");
-                    __instance.clientBudget = 1000;
+                    Core.LogMsg("[兼容] 蛙哥预算异常恢复: " + __instance.clientBudget + " → " + WAGE_BROTHER_BUDGET);
+                    __instance.clientBudget = WAGE_BROTHER_BUDGET;
                 }
                 return;
             }
