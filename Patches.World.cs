@@ -65,6 +65,7 @@ internal static partial class Patches
 		{
 			WageBrokerItems.RegisterToDirectory(__instance);
 			WageBrother.RegisterCard(__instance); // 10-03 服务卡进物品库（PS_DebugTool可调出真卡）
+			WageBrother.RegisterOrderTicket(__instance); // 10-16 P1-5.2 点货签进物品库
 		}
 		catch (System.Exception ex4)
 		{
