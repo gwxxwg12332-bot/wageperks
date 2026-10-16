@@ -51,6 +51,21 @@ namespace WagePerks
         private const string KEY_FROG_DONE = "m3_done";   // M3 节点已触发（SpawnNode doneKey）
         private const string KEY_FROG_M3 = "m3_choice";   // M3 三选一：inherit 传承 / transcend 超越 / sever 断绝
 
+        // ============ 双轴新增角色线（P2 五线 + 环⑤守护；测试版固定天数，不进 BuildConfig 免配置文档负担） ============
+        private const string NS_OLD = "story_oldghost";   // 老鬼（下层区·蛙哥旧战友·活历史）
+        private const string NS_ED = "story_editor";      // 墨（记者·报纸叙述者·追查蛙哥）
+        private const string NS_PRE = "story_preacher";   // 织魂者（神经教派·蛙娘灵魂线）
+        private const string NS_RIP = "story_ripper";     // 焊针（持牌机械师·蛙娘身体威胁）
+        private const string NS_SH = "story_shadow";      // 影蛙（antagonist·暗镜·冒名夺产）
+        private const string KEY_SHADOW = "shadow_outcome"; // 影蛙结局：fall 影蛙败 / win 影蛙胜（纵轴"断绝"因子）
+        private const string NS_GUARD = "story_guard";    // 环⑤ 蛙娘柜台守护（好感≥50 触发一次）
+        private const string KEY_GUARD = "guard_done";
+        private static readonly int[] DAY_OLD = { 10, 25, 33, 41 }; // 错峰：避开五线 15/22/29/36、Nellis 20、FrogM3 30
+        private static readonly int[] DAY_ED = { 12, 26, 34, 42 };
+        private static readonly int[] DAY_PRE = { 16, 27, 35, 43 };
+        private static readonly int[] DAY_RIP = { 18, 28, 37, 44 };
+        private static readonly int[] DAY_SH = { 21, 32, 38, 45 };
+
         // ============ 真结局：PrefixExecuteGameOver（PatchRegistryTable 注册） ============
         // 实锤链（PlayerStore.txt:12126-12449）：ExecuteGameOver=TrackGameOver→14键String.Equals→分支读
         // mech_end_{key}_reason/desc→GameOverUIManager.DisplayUI(reason,desc,r9)；未匹配14键=走rent默认文案。
@@ -102,6 +117,10 @@ namespace WagePerks
             catch (Exception ex) { Core.LogMsg("[StoryPlot] Nellis 调度异常: " + ex.Message); }
             try { MaybeAdvanceFrogM3(); }
             catch (Exception ex) { Core.LogMsg("[StoryPlot] 蛙哥 M3 调度异常: " + ex.Message); }
+            try { MaybeAdvanceNewCastLines(GetDay()); }
+            catch (Exception ex) { Core.LogMsg("[StoryPlot] 双轴五线调度异常: " + ex.Message); }
+            try { MaybeAdvanceGuardian(); }
+            catch (Exception ex) { Core.LogMsg("[StoryPlot] 蛙娘守护调度异常: " + ex.Message); }
         }
 
         public static void PostfixCheckStoryLineOfficerLun()
@@ -257,6 +276,90 @@ namespace WagePerks
             if (traced >= 2) SpawnFrogM3(day);
         }
 
+        // ============ 双轴 P2 五条新线集中调度（老鬼/墨/织魂者/焊针/影蛙；挂 Eleanor Postfix，同一天只推一个新线节点） ============
+        private static void MaybeAdvanceNewCastLines(int day)
+        {
+            if (day < 0) return;
+            if (TrySettleReport(day)) return;
+            if (TryAdvanceLine(NS_OLD, DAY_OLD, day, SpawnOldGhostN1, SpawnOldGhostN2, SpawnOldGhostN3, SpawnOldGhostN4)) return;
+            if (TryAdvanceLine(NS_ED, DAY_ED, day, SpawnEditorN1, SpawnEditorN2, SpawnEditorN3, SpawnEditorN4)) return;
+            if (TryAdvanceLine(NS_PRE, DAY_PRE, day, SpawnPreacherN1, SpawnPreacherN2, SpawnPreacherN3, SpawnPreacherN4)) return;
+            if (TryAdvanceLine(NS_RIP, DAY_RIP, day, SpawnRipperN1, SpawnRipperN2, SpawnRipperN3, SpawnRipperN4)) return;
+            if (TryAdvanceLine(NS_SH, DAY_SH, day, SpawnShadowN1, SpawnShadowN2, SpawnShadowN3, SpawnShadowN4)) return;
+        }
+
+        private static bool TryAdvanceLine(string ns, int[] days, int day,
+            Action<int> s1, Action<int> s2, Action<int> s3, Action<int> s4)
+        {
+            bool n1 = WageSaveStore.GetBool(ns, KEY_N1, false);
+            bool n2 = WageSaveStore.GetBool(ns, KEY_N2, false);
+            bool n3 = WageSaveStore.GetBool(ns, KEY_N3, false);
+            bool n4 = WageSaveStore.GetBool(ns, KEY_N4, false);
+            if (!n1 && day >= days[0] && WageSaveStore.GetInt(ns, KEY_LAST_SPAWN, -1) != day) { s1(day); return true; }
+            if (n1 && !n2 && day >= days[1] && WageSaveStore.GetInt(ns, KEY_LAST_SPAWN, -1) != day) { s2(day); return true; }
+            if (n2 && !n3 && day >= days[2] && WageSaveStore.GetInt(ns, KEY_LAST_SPAWN, -1) != day) { s3(day); return true; }
+            if (n3 && !n4 && day >= days[3] && WageSaveStore.GetInt(ns, KEY_LAST_SPAWN, -1) != day) { s4(day); return true; }
+            return false;
+        }
+
+        // ============ 环⑤ 蛙娘柜台守护（设计文档：好感高了替你守店；好感≥50=亲密档触发一次） ============
+        private static void MaybeAdvanceGuardian()
+        {
+            int day = GetDay();
+            if (day < 0) return;
+            if (TrySettleReport(day)) return;
+            if (WageSaveStore.GetBool(NS_GUARD, KEY_GUARD, false)) return;
+            if (day < 14) return; // 错峰：第 2 周起（五线 N1=15 前）
+            if (WageSaveStore.GetInt(NS_GUARD, KEY_LAST_SPAWN, -1) == day) return;
+            double aff = 0;
+            try { aff = WageGirlSystem.GetAffectionExact(); } catch { }
+            if (aff >= 50) SpawnGuardian(day);
+        }
+
+        private static void SpawnGuardian(int day)
+        {
+            SpawnNode("蛙娘", NS_GUARD, KEY_GUARD, day,
+                LangHelper.T("（柜台后，蛙娘回头看你）主人。这事我来。", "(Behind the counter, Wage Girl turns to you.) Boss. Let me handle this."),
+                new ChoiceDef[]
+                {
+                    new ChoiceDef(LangHelper.T("让她来", "Let her handle it"),
+                        () => { try { WageGirlSystem.SetAffectionExact(WageGirlSystem.GetAffectionExact() + 3); } catch { } }, null,
+                        LangHelper.T("（她把砸门的人撂在门口）主人。店里没事了。", "(She plants the troublemaker at the door.) Boss. The shop's safe.")),
+                    new ChoiceDef(LangHelper.T("我来", "I'll handle it"),
+                        null, null,
+                        LangHelper.T("（她退到柜台后，眼睛一直盯着门外）好。", "(She steps back behind the counter, eyes on the door.) Fine.")),
+                },
+                LangHelper.T("有人砸卷帘门。蛙娘先一步挡在门口。", "Someone's pounding the shutter. Wage Girl steps in front of it first."));
+        }
+
+        // ============ 环⑧ 蛙哥每 7 天考官点评（WageBrother.OnClientArrived 到店时调用；按纵轴进度变台词：看摊的→同行→顾问） ============
+        public static void MaybeFrogVisitComment()
+        {
+            try
+            {
+                int day = GetDay();
+                if (day < 0) return;
+                string m3 = WageSaveStore.GetString(NS_FROG, KEY_FROG_M3, "");
+                if (!string.IsNullOrEmpty(m3))
+                {
+                    if (m3 == "inherit") Core.AddNightReportLine(LangHelper.T("蛙哥到店：往后你是当铺主，我只当顾问。招牌没砸。", "Frog Bro visited: from now on you're the owner, I'm just an advisor. Sign's intact."));
+                    else if (m3 == "transcend") Core.AddNightReportLine(LangHelper.T("蛙哥到店：干得比我当年好。继续走，别回头。", "Frog Bro visited: doing better than I ever did. Keep going, don't look back."));
+                    else if (m3 == "sever") Core.AddNightReportLine(LangHelper.T("蛙哥到店：……我教你的，你全还回来了。", "Frog Bro visited: ...everything I taught you, you threw back."));
+                    return;
+                }
+                int traced = 0;
+                if (WageSaveStore.GetBool(NS_EL, KEY_N3, false)) traced++;
+                if (WageSaveStore.GetBool(NS_LUN, KEY_N3, false)) traced++;
+                if (WageSaveStore.GetBool(NS_GEO, KEY_N3, false)) traced++;
+                if (WageSaveStore.GetBool(NS_REV, KEY_N3, false)) traced++;
+                if (WageSaveStore.GetBool(NS_CARTEL, KEY_N3, false)) traced++;
+                if (traced >= 2) { Core.AddNightReportLine(LangHelper.T("蛙哥到店：五边都有人找你？行，你混出名堂了。", "Frog Bro visited: all five sides come to you? You've made a name.")); return; }
+                if (day >= BuildConfig.StoryDayN1) { Core.AddNightReportLine(LangHelper.T("蛙哥到店：招牌没砸。有点意思。", "Frog Bro visited: sign's intact. Interesting.")); return; }
+                Core.AddNightReportLine(LangHelper.T("蛙哥到店：看摊的。还行，别砸了招牌。", "Frog Bro visited: keeper. Not bad. Don't wreck the sign."));
+            }
+            catch (Exception ex) { Core.LogMsg("[StoryPlot] 蛙哥点评异常: " + ex.Message); }
+        }
+
         private static void SpawnFrogM3(int day) => SpawnNode("蛙哥", NS_FROG, KEY_FROG_DONE, day,
             LangHelper.T("摊子看住了，人脉也攒住了。干得还行。往后招牌你扛，还是还我？", "You kept the shop together, held the network too. Not bad. So: you carry the sign now, or give it back?"),
             new ChoiceDef[]
@@ -271,6 +374,269 @@ namespace WagePerks
                     null, () => WageSaveStore.SetString(NS_FROG, KEY_FROG_M3, "sever"),
                     LangHelper.T("……行。你亲手的东西，你自己了断。别回头。", "...Fine. What's yours, you end yourself. Don't look back.")),
             }, LangHelper.T("我每七天来一趟，就看看你砸没砸招牌。还行，没砸。", "I come by every seven days to see if you wrecked the sign. You didn't. Good."));
+
+        // ============ 双轴 P2 五线剧情节点（老鬼/墨/织魂者/焊针/影蛙；台词=实施稿口语短句，选项[动作（代价）]格式） ============
+        // ---- 老鬼（下层区·蛙哥旧战友）：N1 认出蛙娘 / N2 蛙哥往事 / N3 蛙娘护不护 / N4 认可接班人
+        private static void SpawnOldGhostN1(int day) => SpawnNode("老鬼", NS_OLD, KEY_N1, day,
+            LangHelper.T("老鬼认得蛙哥。三十年前一个锅里抢过饭。你替他看摊？行，那往后我常来坐坐。", "Old Ghost knew Frog Bro. Thirty years back we fought over the same pot. You're keeping his shop? Fine, I'll sit here often."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("您认识蛙哥？讲讲他", "You knew Frog Bro? Tell me about him"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("他年轻时候敢跟卡特尔抢货。现在轮到你接他的摊子，别怂。", "As a young man he'd snatch goods right under the cartel's nose. Now his shop's on you. Don't flinch.")),
+                new ChoiceDef(LangHelper.T("您老慢走", "Take it easy, old timer"),
+                    null, null,
+                    LangHelper.T("行。改天带点吃的来，顺便看看这摊子。", "Fine. I'll bring food another day, and check on the shop too.")),
+            },
+            LangHelper.T("……那台女仆的芯，是蛙哥的手艺。他没死？好，好得很。", "...That maid's core. Frog Bro's handiwork. He's not dead? Good. Very good."));
+
+        private static void SpawnOldGhostN2(int day) => SpawnNode("老鬼", NS_OLD, KEY_N2, day,
+            LangHelper.T("他被人追杀过，被查封过，都没低头。你摊上这担子，撑得住吗？", "He was hunted, shut down, never bowed. Now this weight's on you. Can you hold it?"),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("撑得住", "I can hold it"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("好。下层区最缺的就是硬气。", "Good. The lower level runs short on spine.")),
+                new ChoiceDef(LangHelper.T("我尽力", "I'll do my best"),
+                    null, null,
+                    LangHelper.T("尽力就行。别把命搭进去。", "Best is fine. Just don't lose your life over it.")),
+            },
+            LangHelper.T("当年蛙哥白手起家，一条命换了这间铺子。", "Back then Frog Bro built this shop from nothing, paid in blood."));
+
+        private static void SpawnOldGhostN3(int day) => SpawnNode("老鬼", NS_OLD, KEY_N3, day,
+            LangHelper.T("你护得住她吗？护不住，就趁早送走，别害她。", "Can you protect her? If not, send her away early. Don't doom her."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("我护着她", "I'll protect her"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("……好。蛙哥没看错人。", "...Good. Frog Bro read you right.")),
+                new ChoiceDef(LangHelper.T("再说吧", "I'll think about it"),
+                    null, null,
+                    LangHelper.T("你再想想。时间不等人。", "Think it over. Time waits for no one.")),
+            },
+            LangHelper.T("有人说蛙娘是活的。也有人想拆了她。", "Some say Wage Girl is alive. Some want her taken apart."));
+
+        private static void SpawnOldGhostN4(int day) => SpawnNode("老鬼", NS_OLD, KEY_N4, day,
+            LangHelper.T("我看了你这些天。招牌你扛得住。往后下层区认你。", "I've watched you all these days. You can carry the sign. From now on, the lower level answers to you."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("谢了，老鬼", "Thanks, Old Ghost"),
+                    () => ApplyRep("LL", 10), null,
+                    LangHelper.T("该谢的是你自己。", "Thank yourself. You earned it.")),
+            },
+            LangHelper.T("蛙哥那小子，走之前跟我说：摊子交给靠谱的人了。", "Before he left, Frog Bro told me: the shop's in good hands."));
+
+        // ---- 墨（记者·报纸叙述者）：N1 挖底细 / N2 头条招风 / N3 影蛙线索 / N4 终章定传说
+        private static void SpawnEditorN1(int day) => SpawnNode("墨", NS_ED, KEY_N1, day,
+            LangHelper.T("我写报纸的。想挖挖这位传奇的底细。你配合，我笔下留情。", "I write the paper. I want the truth about that legend. Cooperate, and I'll write kindly."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("配合", "Cooperate"),
+                    () => ApplyRep("LL", 3), null,
+                    LangHelper.T("明天的头条见。", "See you on tomorrow's front page.")),
+                new ChoiceDef(LangHelper.T("别写我", "Leave me out of it"),
+                    null, null,
+                    LangHelper.T("行。那我自己查。", "Fine. I'll dig on my own.")),
+            },
+            LangHelper.T("蛙哥的当铺易主，是你接的盘？", "Frog Bro's pawnshop changed hands. You took it?"));
+
+        private static void SpawnEditorN2(int day) => SpawnNode("墨", NS_ED, KEY_N2, day,
+            LangHelper.T("三拨人找我打听你。传奇的招牌，果然招风。", "Three factions came asking about you. A legend's sign draws wind."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("打听我什么", "What did they ask?"),
+                    null, null,
+                    LangHelper.T("问你是不是蛙哥的私生子。呵。", "Whether you're Frog Bro's bastard. Ha.")),
+                new ChoiceDef(LangHelper.T("少写点", "Write less about me"),
+                    null, null,
+                    LangHelper.T("晚了。报纸都印了。", "Too late. It's already printed.")),
+            },
+            LangHelper.T("头条发出去了。你猜怎么着？", "The headline's out. Guess what?"));
+
+        private static void SpawnEditorN3(int day) => SpawnNode("墨", NS_ED, KEY_N3, day,
+            LangHelper.T("那人叫影蛙，道上都以为他是蛙哥本人。你小心点。", "His name's Shadow Frog. The street thinks he IS Frog Bro. Watch your back."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("多谢提醒", "Thanks for the tip"),
+                    () => ApplyRep("LL", 3), null,
+                    LangHelper.T("不谢。我写新闻的，巴不得你们打起来。", "Don't thank me. I write news. I'd love to see you two fight.")),
+                new ChoiceDef(LangHelper.T("影蛙是谁", "Who's Shadow Frog?"),
+                    null, null,
+                    LangHelper.T("另一个传奇当铺主。黑暗的那种。", "Another legendary pawnshop owner. The dark kind.")),
+            },
+            LangHelper.T("我查到点有意思的。有人在冒蛙哥的名收债。", "I found something interesting. Someone's collecting debts in Frog Bro's name."));
+
+        private static void SpawnEditorN4(int day) => SpawnNode("墨", NS_ED, KEY_N4, day,
+            LangHelper.T("要不要登？登了，你就真成了这站的传说。", "Run it or not? If I do, you become this station's legend."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("登", "Run it"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("明天头版，标题我都想好了。", "Front page tomorrow. I've got the headline ready.")),
+                new ChoiceDef(LangHelper.T("低调点", "Keep it low-key"),
+                    null, null,
+                    LangHelper.T("行。那就角落里一行字。", "Fine. A single line in the corner.")),
+            },
+            LangHelper.T("终章我写好了：新掌柜接过了传奇的摊子。", "The final chapter's written: the new keeper takes the legend's shop."));
+
+        // ---- 织魂者（神经教派·蛙娘灵魂线）：N1 断言有魂 / N2 仪式邀请 / N3 护或交 / N4 成人判词
+        private static void SpawnPreacherN1(int day) => SpawnNode("织魂者", NS_PRE, KEY_N1, day,
+            LangHelper.T("我是神经教派的织魂者。我闻得见魂。她的魂，是真的。", "I'm the Soulweaver of the Neuro Faith. I can smell souls. Hers is real."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("当真？", "Really?"),
+                    null, null,
+                    LangHelper.T("真。比你这当铺老板还真。", "Real. More real than you, pawnshop keeper.")),
+                new ChoiceDef(LangHelper.T("你疯了吧", "You're insane"),
+                    null, null,
+                    LangHelper.T("疯的是这世界，不是我。", "The world is insane. Not me.")),
+            },
+            LangHelper.T("那台仿生女仆，有魂。", "That android maid. She has a soul."));
+
+        private static void SpawnPreacherN2(int day) => SpawnNode("织魂者", NS_PRE, KEY_N2, day,
+            LangHelper.T("教派会为她开一场仪式。你若信，就带她来。", "The Faith will hold a rite for her. If you believe, bring her."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("带去", "I'll bring her"),
+                    () => ApplyRep("LL", 3), null,
+                    LangHelper.T("她会有记忆。她会记住你。", "She'll keep the memory. She'll remember you.")),
+                new ChoiceDef(LangHelper.T("不去", "No"),
+                    null, null,
+                    LangHelper.T("那就算了。魂会等。", "Then so be it. Souls wait.")),
+            },
+            LangHelper.T("把她带来。我为她祝祷。", "Bring her. I'll pray for her."));
+
+        private static void SpawnPreacherN3(int day) => SpawnNode("织魂者", NS_PRE, KEY_N3, day,
+            LangHelper.T("你护，还是交？一句话的事。", "Protect her, or hand her over? One word decides."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("我护", "I'll protect her"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("好。这才像个主人。", "Good. That's what a keeper should be.")),
+                new ChoiceDef(LangHelper.T("交出去", "Hand her over"),
+                    () => ApplyRep("Sec", 5), null,
+                    LangHelper.T("……你做了选择。魂会记得。", "...You chose. The soul will remember.")),
+            },
+            LangHelper.T("焊针要拆她了。治安部也盯着她。", "The Ripper wants her taken apart. Security has eyes on her too."));
+
+        private static void SpawnPreacherN4(int day) => SpawnNode("织魂者", NS_PRE, KEY_N4, day,
+            LangHelper.T("你养出了一个'人'。她自由了。", "You raised a 'person'. She's free now."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("她该自由", "She deserves freedom"),
+                    () => { WageSaveStore.SetBool(NS_PRE, "soul_free", true); ApplyRep("LL", 5); }, null,
+                    LangHelper.T("教派会为她作证。", "The Faith will testify for her.")),
+                new ChoiceDef(LangHelper.T("她还是我的", "She's still mine"),
+                    null, null,
+                    LangHelper.T("……占有也是一种爱。你自己信就行。", "...Possession is a kind of love too. Believe what you like.")),
+            },
+            LangHelper.T("我验过了。她的魂，是真的。", "I've verified it. Her soul is real."));
+
+        // ---- 焊针（持牌机械师·蛙娘身体威胁）：N1 收购核心 / N2 检查条子 / N3 拆或保 / N4 放手
+        private static void SpawnRipperN1(int day) => SpawnNode("焊针", NS_RIP, KEY_N1, day,
+            LangHelper.T("我是持牌机械师。她的芯，值得一张上层的牌照。", "I'm a licensed mechanic. Her core is worth an upper-level permit."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("多少钱", "How much?"),
+                    () => ModCash(300), null,
+                    LangHelper.T("成交。明天来拆。", "Deal. I'll come take her apart tomorrow.")),
+                new ChoiceDef(LangHelper.T("不卖", "Not selling"),
+                    null, null,
+                    LangHelper.T("你护着她？行，那就看你能护多久。", "You're keeping her? Fine, let's see how long you can.")),
+            },
+            LangHelper.T("蛙哥造的那台仿生女仆，我出价收她的核心。", "That android maid Frog Bro built. I'm bidding for her core."));
+
+        private static void SpawnRipperN2(int day) => SpawnNode("焊针", NS_RIP, KEY_N2, day,
+            LangHelper.T("我看看她的芯。例行公事。", "I'll take a look at her core. Routine."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("让她查", "Let her check"),
+                    () => ApplyRep("Sec", 5), null,
+                    LangHelper.T("很干净。……你运气好。", "Clean. ...You got lucky.")),
+                new ChoiceDef(LangHelper.T("不行", "No"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("挡我？你挡得住治安部的条子吗？", "Block me? Can you block Security's warrant?")),
+            },
+            LangHelper.T("治安部批了我的条子。违禁品检查。", "Security stamped my warrant. Contraband inspection."));
+
+        private static void SpawnRipperN3(int day) => SpawnNode("焊针", NS_RIP, KEY_N3, day,
+            LangHelper.T("你开店要牌照，她只是一台机器。算得过来吗？", "You need a permit to run this shop. She's just a machine. Does the math work?"),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("拆", "Take her apart"),
+                    () => ApplyRep("UL", 10), null,
+                    LangHelper.T("成交。……机器就是机器。", "Deal. ...A machine is a machine.")),
+                new ChoiceDef(LangHelper.T("不拆", "No"),
+                    null, null,
+                    LangHelper.T("你选了一台机器。行。我敬你。", "You chose a machine over a permit. Fine. I respect that.")),
+            },
+            LangHelper.T("最后一次出价。拆了她，换一张上层的牌照。", "Last offer. Take her apart, get an upper-level permit."));
+
+        private static void SpawnRipperN4(int day) => SpawnNode("焊针", NS_RIP, KEY_N4, day,
+            LangHelper.T("但下次来的就不是我了。会有别人，带着更大的条子。", "But next time it won't be me. Someone else will come, with a bigger warrant."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("来就来", "Let them come"),
+                    () => ApplyRep("LL", 5), null,
+                    LangHelper.T("有骨气。但愿你有命。", "You've got spine. Hope you keep it.")),
+            },
+            LangHelper.T("你保住了她。这单我不接了。", "You kept her safe. I'm dropping this job."));
+
+        // ---- 影蛙（antagonist·暗镜）：N1 冒名 / N2 设计之争 / N3 逼宫 / N4 决战（影蛙败→fall / 交遗产→win）
+        private static void SpawnShadowN1(int day) => SpawnNode("影蛙", NS_SH, KEY_N1, day,
+            LangHelper.T("你是谁？替我看摊的？", "Who are you? Keeping my shop?"),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("你是冒牌货", "You're a fake"),
+                    null, null,
+                    LangHelper.T("冒牌？蛙哥的名，本来就是我先用的。", "Fake? The name Frog Bro was mine first.")),
+                new ChoiceDef(LangHelper.T("……", "..."),
+                    null, null,
+                    LangHelper.T("吓着了？正常。", "Scared? Natural.")),
+            },
+            LangHelper.T("摊子？呵。我才是蛙哥。", "This shop? Ha. I am Frog Bro."));
+
+        private static void SpawnShadowN2(int day) => SpawnNode("影蛙", NS_SH, KEY_N2, day,
+            LangHelper.T("蛙哥偷了我的设计。他造了个赝品，然后说是他的作品。", "Frog Bro stole my design. He built a fake, then claimed it as his own."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("不信", "I don't believe you"),
+                    () => ApplyRep("LL", 3), null,
+                    LangHelper.T("信不信由你。时间会说话。", "Believe what you like. Time will tell.")),
+                new ChoiceDef(LangHelper.T("你骗我", "You're lying to me"),
+                    null, null,
+                    LangHelper.T("我从不骗人。我只收债。", "I never lie. I only collect debts.")),
+            },
+            LangHelper.T("你手里那台女仆，是我做的原型。", "That maid in your hands. She's my prototype."));
+
+        private static void SpawnShadowN3(int day) => SpawnNode("影蛙", NS_SH, KEY_N3, day,
+            LangHelper.T("交出来，我留你一条活路。", "Hand it over and I'll leave you alive."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("休想", "Never"),
+                    () => ApplyRep("LL", 10), null,
+                    LangHelper.T("硬气。可惜硬气换不来命。", "Bold. Pity boldness doesn't buy you life.")),
+                new ChoiceDef(LangHelper.T("谈条件", "Let's negotiate"),
+                    () => ApplyRep("BM", 5), null,
+                    LangHelper.T("聪明。可惜我不谈条件。", "Clever. Pity I don't negotiate.")),
+            },
+            LangHelper.T("把遗产交出来。妙妙箱，机器，还有那台女仆。", "Hand over the legacy. The Wonder Box, the machines, and the maid."));
+
+        private static void SpawnShadowN4(int day) => SpawnNode("影蛙", NS_SH, KEY_N4, day,
+            LangHelper.T("二选一。挑吧。", "Two options. Choose."),
+            new ChoiceDef[]
+            {
+                new ChoiceDef(LangHelper.T("正面干", "Face him head-on"),
+                    () => { WageSaveStore.SetString(NS_SH, KEY_SHADOW, "fall"); ApplyRep("LL", 10); }, null,
+                    LangHelper.T("我小看你了。……蛙哥的名，归你了。", "I underestimated you. ...The name Frog Bro is yours now.")),
+                new ChoiceDef(LangHelper.T("借治安部的手", "Use Security's hand"),
+                    () => { WageSaveStore.SetString(NS_SH, KEY_SHADOW, "fall"); ApplyRep("Sec", 15); }, null,
+                    LangHelper.T("你比我想的阴。……行，这局你赢。", "Darker than I thought. ...Fine, you win this round.")),
+                new ChoiceDef(LangHelper.T("交出遗产", "Hand over the legacy"),
+                    () => { WageSaveStore.SetString(NS_SH, KEY_SHADOW, "win"); ApplyRep("BM", 20); }, null,
+                    LangHelper.T("识相。往后这摊子，我罩了。", "Smart. From now on, I look after this shop.")),
+            },
+            LangHelper.T("最后一面了。要么你死，要么蛙哥的名从此消失。", "Last meeting. Either you die, or the name Frog Bro vanishes."));
 
         // 军需官（革命军）+ Cartel（黑市）：无原生 CheckStoryLine，挂 Eleanor Postfix 调度（endlessMode 门一致）
         private static void MaybeAdvanceRevCartelLines(int day)
@@ -1028,6 +1394,12 @@ namespace WagePerks
             if (speaker.Contains("Nellis")) return SpriteDict.GetRandomScavSpriteName();
             if (speaker.Contains("军需官")) return SpriteDict.GetRandomRevMaleSpriteName();
             if (speaker.Contains("Cartel")) return SpriteDict.GetRandomBMMaleSpriteName();
+            if (speaker.Contains("老鬼")) return SpriteDict.GetRandomScavSpriteName();
+            if (speaker.Contains("墨")) return SpriteDict.GetRandomLowerMaleSpriteName();
+            if (speaker.Contains("织魂者")) return SpriteDict.GetRandomShadySpriteName();
+            if (speaker.Contains("焊针")) return SpriteDict.GetRandomSecMaleSpriteName();
+            if (speaker.Contains("影蛙")) return SpriteDict.GetRandomShadySpriteName();
+            if (speaker.Contains("蛙娘")) return SpriteDict.GetRandomUpperFemaleSpriteName();
             return SpriteDict.GetRandomLowerLevelSpriteName();
         }
 

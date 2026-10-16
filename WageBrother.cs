@@ -261,6 +261,8 @@ internal static class WageBrother
             // 10-07 P0-1/P0-2：读档补货可传 null（上货模式）——读档后拿不到蛙哥 client 实例但仍需补柜台货；
             //   client==null 时跳过 client 相关块（SetBudget/立绘/对话——各自 try/catch 已兜 NRE），只走上货链。
             if (client != null && client.identifier != CLIENT_ID) { if (Core.DebugMode) Core.LogMsg("[蛙哥] OnClientArrived: identifier=" + (client!=null?client.identifier:"null")+" 不是蛙哥,跳过"); return; } Core.LogMsg("[蛙哥] OnClientArrived 入口, client=" + (client!=null?client.identifier:"null"));
+            // 10-16 环⑧：蛙哥每 7 天到店=一次考官点评（按纵轴进度变台词：看摊的→招牌没砸→五边混出名堂→M3 后顾问/超越/断绝）；放防重前=每次到店都点评
+            try { StoryPlotSystem.MaybeFrogVisitComment(); } catch { }
             // 10-07 防两套（玩家"蛙哥没小退时刷了两套物品"）：OnClientArrived 无内部防重，正常到店事件链 + 读档轮询兜底
             //   可双触发（各自带防重互不感知）→ 全套上货两次。_cardSpawned=本会话已上货标志（加卡成功才置 true，
             //   蛙哥走后 CleanupCardIfGone 重置）→ 重复调用直接跳过并清轮询愿望；上货失败（_cardSpawned 未置）仍可重试。
