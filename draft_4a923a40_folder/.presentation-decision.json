@@ -1,0 +1,1 @@
+{"audience":"Wage Perks mod 开发与总控","reader_task":"理解 5 派系多结局剧情设计、关键选择节点、数值与 mod 落地路径","genre_contract":null,"adapter":null,"presentation_mode":"rich","visual_plan":{"reason":"多结局结构与选择节点是多分支关系，用 HTML 交互图呈现五派系结局网络；数值与节点清单用表格承载","blocks":[{"type":"html5-block","min_count":1,"purpose":"五派系多结局网络图（演化阶段到结局分支到复合结局交汇）"}]}}

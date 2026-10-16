@@ -79,14 +79,6 @@ public class Core : MelonMod
 		try { WageBrother.LoadAllIcons(); } catch (System.Exception ex) { Log.Msg("[图标预加载] 许可/充电器异常: " + ex.Message); }
 		try
 		{
-			Log.Msg("[Patch] 蛙哥牛逼特性补丁应用成功（AddClient/DismissClient/NewDay）");
-		}
-		catch (System.Exception ex2)
-		{
-			Log.Msg("[Patch] 蛙哥牛逼特性补丁应用失败: " + ex2.Message);
-		}
-		try
-		{
 			if (StartingPerkList.Perks != null)
 			{
 				CustomStartingPerks.EnsureRegistered();

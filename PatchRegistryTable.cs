@@ -21,6 +21,7 @@ namespace WagePerks
             public string Method;
             public string Prefix;
             public string Postfix;
+            public string Finalizer; // 10-16 审阅 P0-1/P0-2：落地时丢列的防御性 Finalizer（保险丝），ApplyAll 透传
             public System.Type   Host;
             public int    Priority;
             public string System;
@@ -61,11 +62,11 @@ namespace WagePerks
             new PatchEntry { Target = typeof(GameMaster), Method = "QuitToMenu", Prefix = null, Postfix = "PostfixQuitToMenu", Host = typeof(WageAPI.WageSaveStore), Priority = DEFAULT_PRIORITY, System = "SaveStore", YieldMod = null, Note = "10-06 A8小退落盘(QuitToMenu不触发SaveGame/EndDay→Flush补一次,KEY_STOLEN等小退不丢)" },
             new PatchEntry { Target = typeof(EscapeUIManager), Method = "OnMainMenu", Prefix = null, Postfix = "PostfixOnMainMenu", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(GameMaster), Method = "NewGame", Prefix = null, Postfix = "PostfixNewGame", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(ScavHelper), Method = "GetRandomScavengedItem", Prefix = null, Postfix = "PostfixGetRandomScavengedItem", Host = typeof(LuckScoutPerk), Priority = -1000, System = "LuckScout", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(ScavHelper), Method = "GetRandomScavengedItem", Prefix = null, Postfix = "PostfixGetRandomScavengedItem", Finalizer = "FinalizerGetRandomScavengedItem", Host = typeof(LuckScoutPerk), Priority = -1000, System = "LuckScout", YieldMod = null, Note = "10-16 审阅 P0-2 接线：拾荒异常保险丝" },
             new PatchEntry { Target = typeof(ScavHelper), Method = "CreateTooltip", Prefix = null, Postfix = "PostfixCreateTooltip", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(EmporiumEntry), Method = "GetAllAfterhourOwnedItems", Prefix = null, Postfix = "PostfixGetAllAfterhourOwnedItems", Host = typeof(LuckScoutPerk), Priority = DEFAULT_PRIORITY, System = "LuckScout", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(PerkUIController), Method = "OpenUI", Prefix = null, Postfix = "PostfixPerkUiOpen", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO/PerkPointMod 不提供我方perk元素，让路=特性不可选；EnsurePickerElements自带防重复" },
-            new PatchEntry { Target = typeof(PerkUIController), Method = "OnChange", Prefix = null, Postfix = null, Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(PerkUIController), Method = "OpenUI", Prefix = null, Postfix = "PostfixPerkUiOpen", Finalizer = "FinalizerPerkUiOpen", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO/PerkPointMod 不提供我方perk元素，让路=特性不可选；EnsurePickerElements自带防重复；10-16 审阅 P0-2 接线：OpenUI 崩溃保险丝（LocHelper 异步未就绪）" },
+            new PatchEntry { Target = typeof(PerkUIController), Method = "OnChange", Prefix = null, Postfix = null, Finalizer = "FinalizerPerkUiOnChange", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-16 审阅 P0-1 修复：原条目 Prefix/Postfix 全 null=空挂点假阳性；Finalizer 接线后非空挂点（孤儿保险丝找回）" },
             new PatchEntry { Target = typeof(StartingPerkIconLoader), Method = "Start", Prefix = null, Postfix = "PostfixIconLoaderStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO 不注册我方assetId图标，让路=图标消失；只注入我方HasCustomIcon条目安全" },
             // ===== 10-04 本地化四挂点补迁（对齐 cheatsheet 16.1.1）=====
             // 阶段6迁移时漏迁 LocHelper.GetLocalizedPerkTable（旧区块 PatchRegistry.cs:179 已废弃死代码）→ 当前版翻译必然失效。
@@ -197,7 +198,7 @@ namespace WagePerks
             new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(WandererPerk), Priority = DEFAULT_PRIORITY, System = "Wanderer", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(InfamousPerk), Priority = DEFAULT_PRIORITY, System = "Infamous", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(Il2Cpp.StoreService), Method = "UpdateCost", Prefix = null, Postfix = "PostfixUpdateCost", Host = typeof(InfamousPerk), Priority = DEFAULT_PRIORITY, System = "Infamous", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(Il2Cpp.ItemMultiSelectHandler), Method = "EndGroupDrag", Prefix = "PrefixEndGroupDrag", Postfix = "PostfixEndGroupDrag", Host = typeof(BatchDragUpgrade), Priority = DEFAULT_PRIORITY, System = "BatchDrag", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(Il2Cpp.ItemMultiSelectHandler), Method = "EndGroupDrag", Prefix = "PrefixEndGroupDrag", Postfix = "PostfixEndGroupDrag", Finalizer = "FinalizerEndGroupDrag", Host = typeof(BatchDragUpgrade), Priority = DEFAULT_PRIORITY, System = "BatchDrag", YieldMod = null, Note = "10-16 审阅 P0-2 接线：批量拖拽异常保险丝" },
             // 10-07 阶段D D-2 补删（第5条）：PlayerStore.StartNewGame PostfixStartNewGame RobinCrusoePerk（原 :205）已删——WS SaveStore.PostfixStartNewGame 承接（清血量缓存+清命名空间+设默认六维，让路 4 点含 StartNewGame）
             new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(DrJacksonFriendPerk), Priority = DEFAULT_PRIORITY, System = "DrJacksonFriend", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(PlayerStore), Method = "StartNewGame", Prefix = null, Postfix = "PostfixStartNewGame", Host = typeof(WaterMerchantPerk), Priority = DEFAULT_PRIORITY, System = "WaterMerchant", YieldMod = null, Note = "" },
@@ -232,7 +233,7 @@ namespace WagePerks
             new PatchEntry { Target = typeof(StoreClient), Method = "ApplyBudgetModifier", Prefix = null, Postfix = "PostfixApplyBudgetModifier", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(BargainUIManager), Method = "GetDealMakerBonus", Prefix = null, Postfix = "PostfixGetDealMakerBonus", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "已实锤叠加：WageGirlSystem 蛙娘在场+50封顶100 / Patches 鲁滨逊+GetBargainBonusPct，双宿主同名 Postfix" },
             new PatchEntry { Target = typeof(GameItemElement), Method = "ApplyAnimationFrame", Prefix = "PrefixApplyAnimationFrame", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(GameItemElement), Method = "ResolveSpriteByName", Prefix = "PostfixResolveSpriteByName", Postfix = null, Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "" },
+            new PatchEntry { Target = typeof(GameItemElement), Method = "ResolveSpriteByName", Prefix = null, Postfix = "PostfixResolveSpriteByName", Host = typeof(WageGirlSystem), Priority = DEFAULT_PRIORITY, System = "WageGirl", YieldMod = null, Note = "10-16 审阅 P0-3 修复：原 Prefix 槽填 Postfix 方法（ref Sprite __result 被原方法覆盖=空转），改回 Postfix 槽" },
             new PatchEntry { Target = typeof(StoreClientManager), Method = "PickClient", Prefix = null, Postfix = "PostfixStoreClientManagerPickClient", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "" },
             // 10-07 鲁滨逊完全归 WS（决策 1：交易归 WS——删交易 6 之②-⑥）：BargainUIManager.OfferBuyingMarkup/GetDealMakerBonus + ItemFeatureList.BargainBuyingMarkup + ItemFeature.GetActualDisplay + StoreClient.OnDealAccepted Host=Patches（原 :243-247）已删——WS SurvivalTrade.cs 承接（交易域唯一宿主）
             new PatchEntry { Target = typeof(PlayerStore), Method = "LoadGame", Prefix = null, Postfix = "PostfixLoadGameOldSaveHint", Host = typeof(NewStartTypeUI), Priority = DEFAULT_PRIORITY, System = "NewStartType", YieldMod = null, Note = "10-07 WS-4 旧档引导：无 WS 读鲁滨逊档弹提示装 WageSurvival（会话内一次）" },
@@ -333,7 +334,8 @@ namespace WagePerks
                     else
                     {
                         if (ManualPatcher.TryPatch(e.Target, e.Method, e.Prefix, e.Postfix,
-                                                   parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority)) ok++; else fail++;
+                                                   parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority,
+                                                   finalizer: e.Finalizer)) ok++; else fail++;
                     }
                 }
                 catch (System.Exception ex)
@@ -346,43 +348,6 @@ namespace WagePerks
             foreach (var group in REGISTRY.GroupBy(e => e.Target.Name + "." + e.Method).Where(g => g.Count() >= 2))
                 Core.LogMsg($"[统一注册] 多挂 {group.Key} ×{group.Count()}: {string.Join(",", group.Select(e => e.System))}");
         }
-
-        private static void ApplyBatch(PatchEntry[] batch, int[] c)
-        {
-            foreach (var e in batch)
-            {
-                try
-                {
-                    // 10-11 所有权表 Step 2：YieldMod="Survival" 专用白名单让路（WS 承接同目标=双挂，非一刀切）
-                    // 注：不走 ModCompat.ShouldYield（其 IsLoaded(YieldMod) 探测 "Survival" 程序集=不存在）
-                    if (e.YieldMod == "Survival" && NewStartTypeUI.IsWageSurvivalPresent())
-                    {
-                        Core.LogMsg($"[统一注册] 让路(WS承接): [{e.System}] {e.Target.Name}.{e.Method}");
-                        c[2]++; continue;
-                    }
-                    if (e.YieldMod != null && ModCompat.ShouldYield(e.Target, e.Method, out var mod))
-                    {
-                        Core.LogMsg($"[统一注册] 让路: [{e.System}] {e.Target.Name}.{e.Method} ← {mod}");
-                        c[2]++; continue;
-                    }
-                    // 10-16 闪退护栏：栈溢出(Il2CppInterop泛型cctor)不可捕获、进不了catch——挂载前先落盘，崩溃前最后一行=元凶条目（诊断20261016 §3）
-                    Core.LogMsg($"[统一注册] >>> [{e.System}] {e.Target.Name}.{e.Method}");
-                    if (e.UseByName)
-                    {
-                        if (ManualPatcher.TryPatchByName(e.Target, e.Method, e.Prefix, e.Postfix, patchHost: e.Host)) c[0]++; else c[1]++;
-                    }
-                    else
-                    {
-                        if (ManualPatcher.TryPatch(e.Target, e.Method, e.Prefix, e.Postfix,
-                                                   parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority)) c[0]++; else c[1]++;
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    Core.LogMsg($"[统一注册] 异常: [{e.System}] {e.Target.Name}.{e.Method}: {ex.Message}");
-                    c[1]++;
-                }
-            }
-        }
+        // 10-16 审阅 P1-3：ApplyBatch（分批+新线程）已被 10-16 闪退修复7 证伪废弃，整段删除（原 :350-386，零调用点死代码）
     }
 }

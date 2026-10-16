@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="深空当铺 5 派系多结局网络图：五条势力线从演化阶段到结局分支，底部为复合/失败/隐藏结局交汇，悬停查看达成条件">
+<title>五派系多结局网络</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #FFFFFF; color: #1F2329; }
+  .wrap { width: 100%; max-width: 820px; padding: 16px 12px; }
+  .title { font-size: 17px; font-weight: 700; margin-bottom: 4px; color: #1F2329; }
+  .sub { font-size: 13px; color: #646A73; margin-bottom: 12px; }
+  .hint { font-size: 12px; color: #646A73; margin-bottom: 10px; }
+  .faction { margin-bottom: 8px; border: 1px solid #DEE3E8; border-radius: 8px; overflow: hidden; }
+  .f-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; user-select: none; }
+  .f-head:hover { background: #F5F7FA; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .f-name { font-size: 14px; font-weight: 700; }
+  .f-src { font-size: 12px; color: #646A73; margin-left: 4px; }
+  .f-status { margin-left: auto; font-size: 12px; color: #646A73; }
+  .f-body { display: none; padding: 6px 10px 10px; border-top: 1px solid #F0F2F5; }
+  .faction.open .f-body { display: block; }
+  .stage-row { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+  .stage { flex: 1; min-width: 0; border: 1px solid #DEE3E8; border-radius: 6px; padding: 6px 6px; text-align: center; font-size: 12px; line-height: 1.5; background: #FBFCFD; }
+  .stage b { display: block; font-size: 12px; margin-bottom: 2px; }
+  .stage .ev { color: #646A73; font-size: 11px; }
+  .arrow { align-self: center; color: #C0C4CC; font-size: 12px; flex-shrink: 0; }
+  .ends { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .end { flex: 1; min-width: 130px; border-radius: 6px; padding: 6px 8px; font-size: 12px; line-height: 1.5; border: 1px solid; cursor: default; }
+  .end b { display: block; font-size: 12px; margin-bottom: 2px; }
+  .end .cond { color: #646A73; font-size: 11px; }
+  .endA { background: #F3F9F3; border-color: #9BC89B; }
+  .endB { background: #FBF3F3; border-color: #D9A0A0; }
+  .endC { background: #F7F7F2; border-color: #CDCB9C; }
+  .meta { margin-top: 10px; border-top: 1px solid #DEE3E8; padding-top: 8px; }
+  .meta .row { display: flex; gap: 6px; font-size: 12px; color: #646A73; line-height: 1.6; flex-wrap: wrap; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: #F5F7FA; border: 1px solid #DEE3E8; color: #1F2329; }
+  .chip.r { background: #FDECEC; border-color: #E5B8B8; }
+  .chip.g { background: #EAF4EA; border-color: #AFCBAF; }
+  .chip.p { background: #F1EBF7; border-color: #C9B8DC; }
+  .chip.b { background: #E9F1F7; border-color: #AFC7DA; }
+  .chip.n { background: #ECF4EC; border-color: #B3D2B3; }
+  .chip.o { background: #F5F0E6; border-color: #D4C5A0; }
+  @media (max-width: 600px) { .stage-row { flex-wrap: wrap; } .stage { min-width: 30%; } .end { min-width: 45%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">五派系多结局网络：演化 → 选择 → 结局</div>
+  <div class="sub">视角：杂货店老板 · 载体：每日报纸 + 客人对话 · 素材：小说《这游戏也太真实了》势力演化 → 深空当铺 5 派系</div>
+  <div class="hint">点击派系行展开演化阶段与选择节点；悬停结局框查看达成条件。每个选择同时影响 2 方声望，专注 1–2 条线可达对应结局。</div>
+
+  <!-- 革命军 -->
+  <div class="faction" id="f-rev">
+    <div class="f-head" onclick="toggle('f-rev')">
+      <span class="dot" style="background:#B85C5C"></span>
+      <span class="f-name">革命军</span>
+      <span class="f-src">小说映射：抵抗组织 / 铁塔组织 → 新联盟</span>
+      <span class="f-status">互斥：治安部</span>
+    </div>
+    <div class="f-body">
+      <div class="stage-row">
+        <div class="stage"><b>E0 地下</b><span class="ev">联络人上门试探</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E1 需求</b><span class="ev">N1 代收军火 / N2 窝藏伤员</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E2 围剿</b><span class="ev">N3 资助起义（据点/佣金）</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E3 决战</b><span class="ev">N4 起义之夜开门配合？</span></div>
+      </div>
+      <div class="ends">
+        <div class="end endA"><b>A 革命成功</b><span class="cond">声望≥60 且 N4 配合</span></div>
+        <div class="end endB"><b>B 革命失败</b><span class="cond">声望&lt;40 或 N4 关门</span></div>
+        <div class="end endC"><b>C 改良收编</b><span class="cond">声望40–59 且 N3 保持距离</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 上层区 -->
+  <div class="faction" id="f-up">
+    <div class="f-head" onclick="toggle('f-up')">
+      <span class="dot" style="background:#C0A24F"></span>
+      <span class="f-name">上层区</span>
+      <span class="f-src">小说映射：企业（理想城）/ 猎鹰王国 / 西岚帝国 / 布格拉自由邦</span>
+      <span class="f-status">弱互斥：下层区</span>
+    </div>
+    <div class="f-body">
+      <div class="stage-row">
+        <div class="stage"><b>E0 涌入</b><span class="ev">落难富人抛售奢侈品</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E1 抛售</b><span class="ev">N1 压价/公平价/劝工；N2 借款赎信物</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E2 政变</b><span class="ev">N3 藏匿资产（洗钱？）</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E3 清算</b><span class="ev">N4 政变名单：掩护/划清/领赏</span></div>
+      </div>
+      <div class="ends">
+        <div class="end endA"><b>A 攀附成功</b><span class="cond">声望≥60：获上层进货渠道</span></div>
+        <div class="end endB"><b>B 被清算</b><span class="cond">声望&lt;-20 或站错队</span></div>
+        <div class="end endC"><b>C 财富保全</b><span class="cond">声望20–59：两边下注</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 黑市 -->
+  <div class="faction" id="f-bl">
+    <div class="f-head" onclick="toggle('f-bl')">
+      <span class="dot" style="background:#8B6FA8"></span>
+      <span class="f-name">黑市</span>
+      <span class="f-src">小说映射：器官黑市 / 黑蛇佣兵团 / 走私渠道</span>
+      <span class="f-status">互斥：治安部</span>
+    </div>
+    <div class="f-body">
+      <div class="stage-row">
+        <div class="stage"><b>E0 扩张</b><span class="ev">掮客提出收赃合作</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E1 收赃</b><span class="ev">N1 合作/拒绝/举报；N2 销毁存货</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E2 扫荡</b><span class="ev">N3 垄断协议（独家供货）</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E3 火并</b><span class="ev">N4 黑市vs治安部之夜</span></div>
+      </div>
+      <div class="ends">
+        <div class="end endA"><b>A 地下之王</b><span class="cond">声望≥60：地下经济枢纽</span></div>
+        <div class="end endB"><b>B 黑市覆灭</b><span class="cond">声望&lt;30 且未站黑市</span></div>
+        <div class="end endC"><b>C 洗白上岸</b><span class="cond">声望30–59 且中途抽身</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 治安部 -->
+  <div class="faction" id="f-sec">
+    <div class="f-head" onclick="toggle('f-sec')">
+      <span class="dot" style="background:#5B83A8"></span>
+      <span class="f-name">治安部</span>
+      <span class="f-src">小说映射：新联盟执法 / 巨石城管理 / 理想城安保</span>
+      <span class="f-status">互斥：革命军、黑市</span>
+    </div>
+    <div class="f-body">
+      <div class="stage-row">
+        <div class="stage"><b>E0 疲软</b><span class="ev">治安官要求配合举报</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E1 配合</b><span class="ev">N1 配合/敷衍；N2 通缉犯上门报警？</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E2 腐败</b><span class="ev">N3 作伪证换好处？</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E3 清洗</b><span class="ev">N4 协助抓捕/通风/旁观</span></div>
+      </div>
+      <div class="ends">
+        <div class="end endA"><b>A 正义卫士</b><span class="cond">声望≥60 且 N3 拒绝伪证</span></div>
+        <div class="end endB"><b>B 腐化蛀虫</b><span class="cond">声望≥60 且 N3 作伪证</span></div>
+        <div class="end endC"><b>C 治安部垮台</b><span class="cond">声望&lt;40：腐败曝光</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下层区 -->
+  <div class="faction" id="f-low">
+    <div class="f-head" onclick="toggle('f-low')">
+      <span class="dot" style="background:#6E9E6E"></span>
+      <span class="f-name">下层区</span>
+      <span class="f-src">小说映射：避难所居民 / 拾荒者 / 流浪者</span>
+      <span class="f-status">弱互斥：上层区</span>
+    </div>
+    <div class="f-body">
+      <div class="stage-row">
+        <div class="stage"><b>E0 求生</b><span class="ev">拾荒者上门（乔治奥式）</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E1 赊账</b><span class="ev">N1 揭穿/善意提醒；N2 赊账买必需品</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E2 物价</b><span class="ev">N3 暴动前供武器/物资？</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><b>E3 暴动</b><span class="ev">N4 加入/闭店/协助治安部</span></div>
+      </div>
+      <div class="ends">
+        <div class="end endA"><b>A 平民守护者</b><span class="cond">声望≥60：下层信赖</span></div>
+        <div class="end endB"><b>B 压榨者被清算</b><span class="cond">声望&lt;-20：店被砸</span></div>
+        <div class="end endC"><b>C 独善其身</b><span class="cond">声望0–30：见证时代</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="row">
+      <span class="chip r">复合：革命军A×下层A＝民众革命</span>
+      <span class="chip b">复合：治安部A×上层A＝秩序资本共治</span>
+      <span class="chip p">复合：黑市A×上层A＝地下帝国</span>
+      <span class="chip b">复合：治安部B×黑市A＝黑白双修</span>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <span class="chip o">失败：破产被逐（租金链断裂）</span>
+      <span class="chip o">失败：被清算处决（声望&lt;-60 且对立势力获胜）</span>
+      <span class="chip g">隐藏：中立守望（第90天 5方声望均 -10~+10）</span>
+      <span class="chip g">隐藏：新纪元（五方和平，开启无尽新内容）</span>
+    </div>
+  </div>
+</div>
+<script>
+  function toggle(id){ var el=document.getElementById(id); el.classList.toggle('open'); }
+</script>
+</body>
+</html>

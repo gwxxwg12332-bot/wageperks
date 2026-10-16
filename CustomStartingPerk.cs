@@ -84,7 +84,7 @@ internal abstract class CustomStartingPerk
 /// 标记「非可选特性」：是 CustomStartingPerk 子类，但**有意**不登记进 CustomStartingPerks.All。
 /// 用途：DEBUG 期漏登记断言据此豁免，避免把"有意排除"误报成"漏登记"。
 /// 现有例子：WageGirlPerk（门面特性，IsActive 委托给 WagePowerPerk，并入「蛙哥牛逼」不单独选择）。
-/// 反例：RetiredGunsmithPerk 是**已取消**特性——不加本标注，因为断言应该把它报出来提醒清理（阶段6 随死代码删除）。
+/// 反例：RetiredGunsmithPerk 是**已取消**特性——10-16 审阅 P1-2 拍板废弃后已补 [NonSelectablePerk]（豁免断言，不再报提醒）。
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
 internal sealed class NonSelectablePerkAttribute : Attribute { }

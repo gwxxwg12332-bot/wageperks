@@ -5,7 +5,6 @@ namespace WagePerks;
 
 public static class TurboBoostN
 {
-    private static int _pendingN;
     private static GameItem _turboMachine;
     private static int _turboN;
 
@@ -45,16 +44,9 @@ public static class TurboBoostN
         }
         catch (System.Exception ex) { Core.LogMsg("[涡轮N] Target异常: " + ex.Message); }
     }
-    public static void PostfixUpdateSprite(GameItem item, GameSlotInventory batterySlot)
-    {
-        try
-        {
-            int n = RobinCrusoePerk.GetTagIntSafe(item, "wage_turbo_n");
-            Core.LogMsg("[涡轮N] UpdateSprite id=" + item.identifier + " n=" + n);
-            if (n > 1) _pendingN = n;
-        }
-        catch { }
-    }
+    // 10-16 闪退修复2：PostfixUpdateSprite（观察 MachineTurboBoosterAdv.UpdateSprite）已整条删除——
+    //   目标签名含 GameSlotInventory → Il2CppInterop 1.5.1 解析即 cctor 栈溢出；且该方法只写死变量 _pendingN（无消费点）
+    //   涡轮 N 主路径 = PrefixTarget/PostfixTarget(_turboN)，不受影响。
 
     // 10-10 #48 C6：读档清跨档 static 残留——拖拽设值（PrefixTarget:27-28/PostfixTarget:43-44）后未消费就退出 → _turboN 保持旧值
     //   + _turboMachine 旧引用 → 读档后新档机器对象复用同地址 → 消费点机器匹配（:84）误命中 → 误补产 (n-1) 次
@@ -62,7 +54,6 @@ public static class TurboBoostN
     {
         _turboN = 0;
         _turboMachine = null;
-        _pendingN = 0; // 顺带清 UpdateSprite 缓存
     }
 
     private static int FindTurboNInMachine(GameItem machine)

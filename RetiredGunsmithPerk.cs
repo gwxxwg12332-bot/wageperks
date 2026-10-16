@@ -9,6 +9,8 @@ namespace WagePerks;
 
 // 退休枪匠之友特性
 // 解锁退休枪匠NPC，每周来一次，卖枪械模组和弹药
+// 10-16 审阅 P1-2（R-1 拍板）：已废弃特性——打 [NonSelectablePerk] 豁免漏登记断言，不再作为可选特性
+[NonSelectablePerk]
 internal sealed class RetiredGunsmithPerk : CustomStartingPerk
 {
     internal const string PerkId = "退休枪匠之友";

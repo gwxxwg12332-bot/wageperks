@@ -35,7 +35,7 @@ internal static class B2WildPanel
 
     // ===== 服务条目（10-15 用户拍板：养蛊机/AI/保护器从博士供货改服务解锁 + 流浪者=服务购买效果） =====
     // 前置困难（价格+混合）：蛙哥牛逼 Lv2 + 蛙娘好感≥40 + 价格阶梯
-    internal const string SVC_WANDERER = "b2_svc_wanderer";   // 流浪者·重回第一天（一次性）
+    internal const string SVC_WANDERER = "b2_svc_wanderer";   // 10-17 重回第一天已迁流浪者 Lv3（本常量仅作 Lv3 价格锚，不再有服务条目）
     internal const string SVC_GU = "b2_svc_gu";               // 养蛊机（一次性）
     internal const string SVC_AI = "b2_svc_ai";               // AI 生成器（一次性）
     internal const string SVC_PROTECTOR = "b2_svc_protector"; // 保护器核心（可重复购买）
@@ -80,7 +80,6 @@ internal static class B2WildPanel
         foreach (var perk in CustomStartingPerks.All)
             list.Add(new WildEntry { Id = PREFIX + perk.Id, PerkId = perk.Id });
         list.Add(new WildEntry { Id = CANNIBAL_ID, PerkId = null });
-        list.Add(new WildEntry { Id = SVC_WANDERER, ServiceId = "wanderer_day1" });
         list.Add(new WildEntry { Id = SVC_GU, ServiceId = "gu_machine" });
         list.Add(new WildEntry { Id = SVC_AI, ServiceId = "ai_generator" });
         list.Add(new WildEntry { Id = SVC_PROTECTOR, ServiceId = "protector" });
@@ -222,6 +221,8 @@ internal static class B2WildPanel
         }
         if (lv >= 3) return 0; // 满级
         if (lv == 0) return BuyPrice(perk);
+        // 10-17 用户拍板：重回第一天迁流浪者 Lv3（对齐原服务价 20000，防免费白嫖清档）
+        if (e.PerkId == WandererPerk.PerkId && lv == 2) return SVC_PRICE_WANDERER;
         return UpgradePrice(perk, lv + 1);
     }
 
@@ -247,7 +248,6 @@ internal static class B2WildPanel
         if (B2ServiceStore.GetLevel(e.Id) >= 1) return 0; // 一次性已购
         switch (e.ServiceId)
         {
-            case "wanderer_day1": return SVC_PRICE_WANDERER;
             case "gu_machine": return SVC_PRICE_GU;
             case "ai_generator": return SVC_PRICE_AI;
             case "permit1": return SVC_PRICE_PERMIT1;
@@ -264,7 +264,6 @@ internal static class B2WildPanel
     {
         switch (e.ServiceId)
         {
-            case "wanderer_day1": return LangHelper.T("流浪者·重回第一天", "Wanderer: Back to Day 1");
             case "gu_machine": return LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge");
             case "ai_generator": return LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator");
             case "protector": return LangHelper.T("蛙哥保护器核心", "Wage's Protector Core");
@@ -291,8 +290,6 @@ internal static class B2WildPanel
         string req = LangHelper.T("\n\n解锁条件：蛙哥牛逼 Lv2 + 蛙娘好感≥" + SVC_AFFECTION_GATE, "\n\nRequires: WageBrother Lv2 + affection >= " + SVC_AFFECTION_GATE);
         switch (e.ServiceId)
         {
-            case "wanderer_day1":
-                return LangHelper.T("购买后解锁主动能力「重回第一天」：把时间拨回第 1 天，商店所有物品清空并用 mod 好物池随机刷新（玩家资产保留），冷却 3 天。", "Unlocks Back to Day 1: rewind time to Day 1, refresh store from mod item pool (assets kept), 3-day cooldown.") + req;
             case "gu_machine":
                 return LangHelper.T("传奇当铺主蛙哥留下的炼蛊机器：打烊充能（3天）后自动炼蛊（三属性之和×0.6，上限150%）；舱内老鼠自动互食。", "A forging machine left by Wage: 3-day charge then forge (sum x0.6, cap 150%); rats in bay devour each other.") + req;
             case "ai_generator":
@@ -411,7 +408,6 @@ internal static class B2WildPanel
             B2ServiceStore.SetLevel(e.Id, 1);
             if (e.ServiceId == "gu_machine") GrantServiceItem(GuMachineSystem.GU_MACHINE_ID);
             else if (e.ServiceId == "ai_generator") GrantServiceItem(GuMachineSystem.AI_GENERATOR_ID);
-            else if (e.ServiceId == "wanderer_day1") Notify(LangHelper.T("已解锁「重回第一天」！", "Unlocked Back to Day 1!"));
             else if (e.ServiceId == "permit1") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_1_ID); Notify(LangHelper.T("已获得 蛙哥的许可（一级），已上柜台", "Got Wage's Permit (Tier 1), placed on counter")); }
             else if (e.ServiceId == "permit2") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_2_ID); Notify(LangHelper.T("已获得 蛙哥的许可（二级），已上柜台", "Got Wage's Permit (Tier 2), placed on counter")); }
             else if (e.ServiceId == "permit3") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_3_ID); Notify(LangHelper.T("已获得 蛙哥的许可（三级），已上柜台", "Got Wage's Permit (Tier 3), placed on counter")); }
@@ -422,6 +418,48 @@ internal static class B2WildPanel
             Core.LogMsg("[B2R] 服务解锁: " + e.Id);
         }
         catch (Exception ex) { Core.LogMsg("[B2R] OnUnlockService 异常: " + ex.Message); }
+    }
+
+    // 10-17 重回第一天（wanderer_day1）：买完立刻生效、一次性（拆包AI Q4 全清落地清单，Memos nChyYHKex6U2sejaf2ScLs）
+    //   字段全 public 直接可写：dayCounter=0 拨回第1天；gridInv.ExpelAll 清柜台（第三方货自动隔离）；
+    //   客户排期/声望/犯罪证据清零；好物池随机刷新（复用 AddRandomItemsToCounter，force 跳过 HardMode 门）
+    private static void ApplyWandererDayOne()
+    {
+        try
+        {
+            var ss = StoreStation.Instance;
+            if (ss != null) ss.dayCounter = 0;
+
+            var ps = PlayerStore.Instance;
+            if (ps != null)
+            {
+                try { if (ps.gridInv != null) ps.gridInv.ExpelAll(); } catch (Exception ex) { Core.LogMsg("[B2R] 清柜台异常: " + ex.Message); }
+                try { if (ps.futurStoreClientIdQueue != null) ps.futurStoreClientIdQueue.Clear(); } catch (Exception ex) { Core.LogMsg("[B2R] 清客户排期ID异常: " + ex.Message); }
+                try { if (ps.futurStoreClientDayQueue != null) ps.futurStoreClientDayQueue.Clear(); } catch (Exception ex) { Core.LogMsg("[B2R] 清客户排期天异常: " + ex.Message); }
+                try
+                {
+                    if (ps.storeReputations != null)
+                    {
+                        foreach (var rep in ps.storeReputations)
+                        {
+                            if (rep == null) continue;
+                            try { int cur = rep.GetReputation(); if (cur != 0) rep.ModReputation(-cur); } catch { }
+                        }
+                    }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 声望重置异常: " + ex.Message); }
+                try { if (ps.soldItemsTracker != null) ps.soldItemsTracker.Clear(); } catch (Exception ex) { Core.LogMsg("[B2R] 清销售记录异常: " + ex.Message); }
+                try { if (ps.wantedStatus != null) ps.wantedStatus.Clear(); } catch (Exception ex) { Core.LogMsg("[B2R] 清通缉状态异常: " + ex.Message); }
+                try { ps.wrongfulReportCount = 0; } catch (Exception ex) { Core.LogMsg("[B2R] 清零诬告计数异常: " + ex.Message); }
+                try { ps.soldStolenOrContrabandThisRun = false; } catch (Exception ex) { Core.LogMsg("[B2R] 清零违禁销售标记异常: " + ex.Message); }
+            }
+
+            // 好物池随机刷新 4 件（force 跳过 HardMode 门——用户拍板普通版也可触发）
+            WagePowerPerk.AddRandomItemsToCounter(null, true, 4);
+
+            Core.LogMsg("[B2R] 重回第一天执行：dayCounter=0，柜台清空，排期/声望/犯罪证据清零，好物池刷新×4");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] ApplyWandererDayOne 异常: " + ex.Message); }
     }
 
     public static void PostfixGetLocalizedTitle(NetworkUpgrade __instance, ref string __result)
@@ -714,7 +752,12 @@ internal static class B2WildPanel
                 Notify(LangHelper.T(perk.DisplayName + " 升级到 Lv3（满级）", perk.DisplayName + " upgraded to Lv3 (MAX)"));
                 Core.LogMsg("[B2R] 已升级 " + e.PerkId + " → Lv3");
                 ReapplyCurrentClientBudget(); // FIX17b：蛙哥牛逼 Lv3 → 当前客户好感倍率 ×4→×5 立即生效
-                if (e.PerkId == WandererPerk.PerkId) { WandererPerk.GiveUpgradeItems(); Notify(LangHelper.T("流浪者再赠 1 工具 + 1 日用品", "Wanderer gives 1 tool + 1 household item")); }
+                if (e.PerkId == WandererPerk.PerkId)
+                {
+                    // 10-17 用户拍板：重回第一天迁流浪者 Lv3（满级触发，对齐原服务价 20000；Lv3 不再赠物）
+                    ApplyWandererDayOne();
+                    Notify(LangHelper.T("流浪者 Lv3：重回第一天！时间拨回第1天，商店已清空并用好物池刷新", "Wanderer Lv3: Back to Day 1! Time reset, store restocked"));
+                }
             }
             RefreshDetail(e.Id);
         }
@@ -1153,6 +1196,60 @@ internal static class B2WildPanel
                 catch (Exception ex) { Core.LogMsg("[B2R] 打开面板异常: " + ex.Message); }
             }));
             main.AddChoice(icon, "", "", playDlgA, openAct, null);
+            // 10-17 吞噬季电话控制：已购 → 按状态显示「开始吞噬季/终止吞噬季」（随时开始、随时终止，动态单选项）
+            if (B2ServiceStore.IsCannibalOwned)
+            {
+                bool manualActive = B2ServiceStore.CannibalManualStartDay > 0;
+                if (manualActive)
+                {
+                    var playDlgStop = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("终止吞噬季", "Stop cannibalism season"));
+                    var stopAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                    {
+                        try
+                        {
+                            B2ServiceStore.SetCannibalManualStartDay(0);
+                            Notify(LangHelper.T("吞噬季已终止（回归原调度）", "Cannibalism season stopped (back to schedule)"));
+                            Core.LogMsg("[B2R] 电话终止吞噬季（手动窗口清零）");
+                        }
+                        catch (Exception ex) { Core.LogMsg("[B2R] 电话终止吞噬季异常: " + ex.Message); }
+                    }));
+                    main.AddChoice(icon, "", "", playDlgStop, stopAct, null);
+                }
+                else
+                {
+                    var playDlgStart = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("开始吞噬季", "Start cannibalism season"));
+                    var startAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                    {
+                        try
+                        {
+                            int dayNow = DeterministicSchedule.CurrentDay;
+                            // 防重复：原模式今天是否已在自动窗口（自动窗口内不重复手动开启）
+                            bool inAutoWindow = false;
+                            if (B2ServiceStore.CannibalMode == 0)
+                            {
+                                int sd = B2ServiceStore.CannibalDay;
+                                if (sd > 0 && dayNow >= sd && dayNow - sd <= 2) inAutoWindow = true;
+                            }
+                            else
+                            {
+                                int iv = B2ServiceStore.CannibalInterval > 0 ? B2ServiceStore.CannibalInterval : 10;
+                                if (dayNow % iv <= 2) inAutoWindow = true;
+                            }
+                            if (inAutoWindow)
+                            {
+                                Notify(LangHelper.T("今天已在吞噬季中，无需重复开启", "Cannibalism season is already active today"));
+                                return;
+                            }
+                            B2ServiceStore.SetCannibalManualStartDay(dayNow);
+                            ModCannibalism.OnDayStartPostfix(); // 立即执行一次互食（num=0，开始提示+吞噬）
+                            Notify(LangHelper.T("吞噬季已手动开始（持续 3 天）", "Cannibalism season started manually (3 days)"));
+                            Core.LogMsg("[B2R] 电话开始吞噬季 day=" + dayNow);
+                        }
+                        catch (Exception ex) { Core.LogMsg("[B2R] 电话开始吞噬季异常: " + ex.Message); }
+                    }));
+                    main.AddChoice(icon, "", "", playDlgStart, startAct, null);
+                }
+            }
             // 选项B：再见 → PLAYER 台词「再见」+ 挂断（王尔德 b__1 同款：OnPhoneDialogEnd(1)）
             var playDlgB = new Il2Cpp.Dialogue().SetText("PLAYER", LangHelper.T("再见", "Goodbye"));
             var hangAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>

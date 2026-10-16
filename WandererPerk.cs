@@ -19,8 +19,8 @@ internal sealed class WandererPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("流浪者", "Wanderer");
     internal override string Description => LangHelper.T(
-        "你两手空空地来到空间站——开局现金随机（可能一文不名，也可能小有积蓄），随身只有 6 件随机物品（必含 1 件工具 + 1 件日用品），原版开局物资不会给你。",
-        "You arrive at the station empty-handed - starting cash is random (maybe nothing, maybe a little), and you carry only 6 random items (1 tool + 1 household item included). Original starting supplies are not given.");
+        "你两手空空地来到空间站——开局现金随机（可能一文不名，也可能小有积蓄），随身只有 6 件随机物品（必含 1 件工具 + 1 件日用品），原版开局物资不会给你。Lv2 再赠 1 工具 + 1 日用品；Lv3 解锁「重回第一天」（20000₵）：把时间拨回第 1 天，商店清空并用好物池刷新，玩家资产保留。",
+        "You arrive at the station empty-handed - starting cash is random (maybe nothing, maybe a little), and you carry only 6 random items (1 tool + 1 household item included). Original starting supplies are not given. Lv2 gives 1 tool + 1 household item; Lv3 unlocks Back to Day 1 (20000): rewind to Day 1, refresh store from mod item pool, assets kept.");
     internal override int Cost => 0;   // 免费不占点
     internal override int Type => 2;   // 09-17 用户拍板：中立特性（黄色）
 

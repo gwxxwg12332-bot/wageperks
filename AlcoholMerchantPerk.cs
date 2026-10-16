@@ -82,8 +82,9 @@ internal sealed class AlcoholMerchantPerk : CustomStartingPerk
             // 酒类售卖列表：葡萄多放、不卖空酒瓶（wine_bottle），啤酒/红啤/超级酵母/优质水各一
             string[] sellWines = { "wine_yeast", "wine_superyeast", "bottled_water" }; // 收酒商模式：只卖制酒原料（酵母+水），不卖酒；葡萄已在上面单独售卖
 
-            // 0. 葡萄：只卖小葡萄（cond=10，玩家酿酒用）
-            for (int g = 0; g < 3; g++)
+            // 0. 葡萄：只卖小葡萄（cond=10，玩家酿酒用）；10-17 用户拍板：等级越高葡萄越多（Lv1=3 / Lv2=6 / Lv3=9）
+            int berryCount = 3 * Math.Max(1, B2ServiceStore.GetEffectLevel(PerkId));
+            for (int g = 0; g < berryCount; g++)
             {
                 try
                 {

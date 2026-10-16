@@ -13,6 +13,7 @@ namespace WagePerks;
 //   cannibal_day      = 单次模式触发日（第N天）
 //   cannibal_interval = 周期模式间隔（每N天）
 //   cannibal_last     = 上次触发起始日（防同日重复；暂未用，保留）
+//   cannibal_manual_start_day = 手动窗口开始日（>0=电话随时开始，持续3天；0=无。10-17 新增）
 // ============================================================
 internal static class B2ServiceStore
 {
@@ -91,4 +92,11 @@ internal static class B2ServiceStore
 
     internal static void SetCannibalLast(int day)
         => WageSaveStore.SetInt(NS, "cannibal_last", day);
+
+    // ---- 吞噬季 · 电话手动窗口（10-17） ----
+    internal static int CannibalManualStartDay
+        => WageSaveStore.GetInt(NS, "cannibal_manual_start_day", 0);
+
+    internal static void SetCannibalManualStartDay(int d)
+        => WageSaveStore.SetInt(NS, "cannibal_manual_start_day", d);
 }

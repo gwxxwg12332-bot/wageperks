@@ -75,69 +75,9 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Scavenge] 异常: " + ex.Message); }
         return 5;
     }
-    // 拾荒池多加官方药品+食物（用户拍板 09-09）：每次成功拾荒 60% 概率额外翻出 1 件（官方已开放）
-    private static readonly string[] SCROUNGE_FOODS = {
-        "morsel", "small_morsel", "cat_bar", "processed_meat", "small_raw_meat", "raw_meat",
-        "processed_cheese", "cup_noodle", "processed_juice", "li_eat_snackbar", "processed_milk"
-    };
-    private static readonly string[] SCROUNGE_MEDS = {
-        "bandage_item", "hemostatic_bandage_item", "topical_bandage_item", "phagimycin_pill",
-        "med_bottle_blue", "med_bottle_red", "salve", "blood_bag"
-    };
-    // 10-06 用户拍板：拾荒 100% 掉落正品免疫宁（可用版=SetItemOwned→双击可打；区别于拾荒池原版 expired 过期蓝图 cheatsheet:420）
-    // 10-06 正品实锤：免疫宁"正品"=物品带 CATEGORY_GENUINE_INJECTOR feature（HealthData:3982 FindItemFeatureByID 判定→正品效果档位）；
-    //   DirectoryMaster.Item("large_purple_injector") 创建的=普通版（无正品 feature，"能用但好像不是正品"）——
-    //   原版正品免疫宁=PreBuiltItemHelper.CreateRealGenuineInjector()（ExchangeList_NestedType:4377 ImmunivaxBarter 交易同款，RealGenuine=真·正品）
-    public static void PostfixGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result)
-    {
-        try
-        {
-            if (!IsActive()) return;
-            if (__result == null) return;
-            // 10-06 G（用户拍板：哨兵门控 1%——替代 10-06 无条件 100%）：选原生「哨兵综合症」→ 拾荒 1% 掉正品免疫宁；不选不掉
-            //   拆包实锤（memos/hQvCsbLJpdTsA6mQtkEHPU）：原版拾荒免疫宁=Rng<1 分支（ScavHelper.txt:1168-1175），正品=CATEGORY_GENUINE_INJECTOR feature
-            try
-            {
-                if (Il2Cpp.HealthData.IsSentinel() && UnityEngine.Random.Range(0, 100) < 1)
-                {
-                    TryAddImmunivax(__result);
-                    Core.LogMsg("[空间站鲁滨逊] 哨兵综合症拾荒 1% 免疫宁判定命中");
-                }
-            }
-            catch (System.Exception exg) { Core.LogMsg("[空间站鲁滨逊] 哨兵免疫宁判定异常: " + exg.Message); }
-            if (UnityEngine.Random.Range(0f, 1f) > 0.6f) return; // 60% 概率
-            bool food = UnityEngine.Random.Range(0, 2) == 0;
-            string[] pool = food ? SCROUNGE_FOODS : SCROUNGE_MEDS;
-            string id = pool[UnityEngine.Random.Range(0, pool.Length)];
-            GameItem item = DirectoryMaster.Item(id, true);
-            if (item == null) return;
-            __result.Add(item);
-        }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 拾荒额外掉落异常: " + ex.Message); }
-    }
-    // 拾荒 100% 正品免疫宁（PreBuiltItemHelper.CreateRealGenuineInjector=原版正品免疫宁工厂；SetItemOwned→可双击使用）
-    private static void TryAddImmunivax(Il2CppSystem.Collections.Generic.List<GameItem> __result)
-    {
-        try
-        {
-            GameItem it = Il2Cpp.PreBuiltItemHelper.CreateRealGenuineInjector();
-            if (it == null) { Core.LogMsg("[空间站鲁滨逊] 正品免疫宁创建失败（CreateRealGenuineInjector null）"); return; }
-            try { Il2Cpp.GeneralHelper.SetItemOwned(it, true); } catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 免疫宁 SetItemOwned 异常: " + ex.Message); }
-            __result.Add(it);
-            Core.LogMsg("[空间站鲁滨逊] 拾荒正品免疫宁掉落: " + (it.identifier ?? "?") + "（哨兵综合症·1%）");
-        }
-        catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] 免疫宁掉落异常: " + ex.Message); }
-    }
-    // 09-26 拾荒守卫（P1）：priority -1000 后置跑（第三方 __result.Clear() 之后追加）；Finalizer 兜异常时也补跑追加
-    public static System.Exception FinalizerGetRandomScavengedItem(Il2CppSystem.Collections.Generic.List<GameItem> __result, System.Exception __exception)
-    {
-        if (__exception != null)
-        {
-            try { PostfixGetRandomScavengedItem(__result); } catch { }
-            Core.LogMsg("[拾荒守卫] GetRandomScavengedItem 异常被 Finalizer 兜住，已补跑额外掉落追加");
-        }
-        return null;
-    }
+    // 10-16 审阅 P0-2 清理：SCROUNGE_FOODS/SCROUNGE_MEDS（原 :79-86）随拾荒守卫段删除一并移除（无引用死数组）
+    // 10-07 鲁滨逊完全归 WS（拾荒守卫段原 :87-140 整段删除）：PostfixGetRandomScavengedItem/TryAddImmunivax/FinalizerGetRandomScavengedItem
+    //   已由 WS SurvivalScavenge.cs 承接（Postfix :75 + Finalizer :113，同构）；10-16 审阅 P0-2 清理 WP 侧无条目死代码
     // 拾荒消耗睡眠（v5.7+：外出拾荒睡眠 -15%，疲劳影响拾荒次数/效率）
     public static void PostfixScavengeDumpingGrounds()
     {

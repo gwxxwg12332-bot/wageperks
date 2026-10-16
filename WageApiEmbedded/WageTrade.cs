@@ -52,4 +52,16 @@ public static class WageTrade
         }
         catch (Exception ex) { Core.Log?.Msg("[WageTrade] OverrideBudget 异常: " + ex.Message); }
     }
+
+    /// <summary>
+    /// 失效生存系统交易缓存（售价/预算/议价 + 报价面板文本）。10-16 双装桥接：
+    /// 鲁滨逊日结/吃食物归 WS（WP OnDayStart 挂点已删），WS 写状态键只刷 WS 缓存——
+    /// WP 交易算价（Patches.Trade.Markup GetSellBonusPct）与 WP 生存面板仍读 WP 静态缓存 → 残留旧节点值
+    /// （玩家实测：面板"节点+10%"但"总售价-10%"，购买价值不对）。WS 状态变化时必须同步失效 WP 缓存。
+    /// </summary>
+    public static void InvalidateSurvivalCaches()
+    {
+        try { WagePerks.RobinCrusoePerk.InvalidateTradeCaches(); }
+        catch (Exception ex) { Core.Log?.Msg("[WageTrade] InvalidateSurvivalCaches 异常: " + ex.Message); }
+    }
 }

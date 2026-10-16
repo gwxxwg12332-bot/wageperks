@@ -133,12 +133,13 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
         catch
         { }
     }
-    internal static void AddRandomItemsToCounter(StoreClient client)
+    internal static void AddRandomItemsToCounter(StoreClient client, bool force = false, int itemCount = 1)
     {
         try
         {
             // 09-14 用户拍板：普通版取消"精选好货"赠送（硬爽版保留）
-            if (!BuildConfig.HardMode) return;
+            // 10-17 重回第一天（wanderer_day1）复用：force=true 时跳过 HardMode 门（普通版也可触发好物池刷新），itemCount 可指定件数
+            if (!BuildConfig.HardMode && !force) return;
             PlayerStore instance = PlayerStore.Instance;
             if (instance == null)
             {
@@ -155,7 +156,6 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             // 客户自带货（not owned）由原版离店清理（RemoveNotOwnedItemFromTable 正常流程）处理。
 
             // 一个人卖一件物品（根据玩家现有资金过滤，确保能批发下来）
-            int itemCount = 1;
             int added = 0;
             List<string> addedItems = new List<string>();
             // 蛙哥推荐物品累计总预算 = 玩家现金50%（给客户自带物品留空间，确保总价可批发）

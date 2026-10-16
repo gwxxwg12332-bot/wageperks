@@ -46,21 +46,35 @@ internal static partial class ModCannibalism
 				return;
 			}
 			int dayNow = DeterministicSchedule.CurrentDay;
-			int num;
-			if (B2ServiceStore.CannibalMode == 0)
+			int num = -1; // 10-17 初始化防 CS0165（手动/自动分支互斥赋值，-1 不会越过下方 num>2 守卫）
+			// 10-17 电话手动窗口：CannibalManualStartDay>0 优先（随时开始，持续 3 天；结束自动清零回归原调度）
+			int manualStart = B2ServiceStore.CannibalManualStartDay;
+			if (manualStart > 0)
 			{
-				// 单次模式：第N天起持续 3 天（num=0 开始提示 / 1-2 互食 / 2 结束提示）
-				int startDay = B2ServiceStore.CannibalDay;
-				if (startDay <= 0 || dayNow < startDay) return;
-				num = dayNow - startDay;
-				if (num > 2) return;
+				num = dayNow - manualStart;
+				if (num > 2)
+				{
+					B2ServiceStore.SetCannibalManualStartDay(0); // 手动窗口 3 天自然结束
+					manualStart = 0;
+				}
 			}
-			else
+			if (manualStart <= 0)
 			{
-				// 周期模式：每N天自动触发（对齐原版 num 语义）
-				int interval = B2ServiceStore.CannibalInterval > 0 ? B2ServiceStore.CannibalInterval : 10;
-				num = dayNow % interval;
-				if (num > 2) return;
+				if (B2ServiceStore.CannibalMode == 0)
+				{
+					// 单次模式：第N天起持续 3 天（num=0 开始提示 / 1-2 互食 / 2 结束提示）
+					int startDay = B2ServiceStore.CannibalDay;
+					if (startDay <= 0 || dayNow < startDay) return;
+					num = dayNow - startDay;
+					if (num > 2) return;
+				}
+				else
+				{
+					// 周期模式：每N天自动触发（对齐原版 num 语义）
+					int interval = B2ServiceStore.CannibalInterval > 0 ? B2ServiceStore.CannibalInterval : 10;
+					num = dayNow % interval;
+					if (num > 2) return;
+				}
 			}
 			if (num == 0)
 			{

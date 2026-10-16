@@ -77,7 +77,7 @@ internal static class ManualPatcher
         Type host = patchHost ?? typeof(Patches);
         try
         {
-            _registeredMethods.Add(type.Name + "." + name + (prefix != null ? " → Prefix " + host.Name + "." + prefix : "") + (postfix != null ? " → Postfix " + host.Name + "." + postfix : ""));
+            _registeredMethods.Add(type.Name + "." + name + (prefix != null ? " → Prefix " + host.Name + "." + prefix : "") + (postfix != null ? " → Postfix " + host.Name + "." + postfix : "") + (finalizer != null ? " → Finalizer " + host.Name + "." + finalizer : ""));
             MethodBase method = parameterTypes != null
                 ? AccessTools.Method(type, name, parameterTypes)
                 : AccessTools.Method(type, name);
@@ -86,6 +86,14 @@ internal static class ManualPatcher
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 未找到，补丁未应用");
                 MarkFail($"{type.Name}.{name}", "方法未找到");
+                return false;
+            }
+
+            // 10-16 审阅 P0-1：空挂点校验（prefix/postfix/finalizer 全 null = 什么都没挂，Harmony 仍接受返回 true → 自检假阳性）
+            if (prefix == null && postfix == null && finalizer == null)
+            {
+                Core.LogMsg($"[Patch失败] {type.Name}.{name} 空挂点（Prefix/Postfix/Finalizer 全空），补丁未应用");
+                MarkFail($"{type.Name}.{name}", "空挂点");
                 return false;
             }
 
@@ -130,6 +138,13 @@ internal static class ManualPatcher
             {
                 Core.LogMsg($"[Patch失败] {type.Name}.{name} 按名未找到，补丁未应用");
                 MarkFail($"{type.Name}.{name}（按名）", "方法未找到");
+                return false;
+            }
+            // 10-16 审阅 P0-1：TryPatchByName 同样防空挂点（防御一致性）
+            if (prefix == null && postfix == null)
+            {
+                Core.LogMsg($"[Patch失败] {type.Name}.{name}（按名）空挂点（Prefix/Postfix 全空），补丁未应用");
+                MarkFail($"{type.Name}.{name}（按名）", "空挂点");
                 return false;
             }
             _harmony.Patch(method,

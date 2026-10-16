@@ -178,6 +178,18 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
                     }
                     // 用通用方法添加到柜台（清标签+克隆+添加+再清标签）
                     GameItem sellW = MerchantHelper.AddItemToCounter(w, 100, false);
+                    // 10-17 用户拍板：水商升级→瓶印机自带质量起点（Lv1=100 基准水 / Lv2=150 高质水 / Lv3=200 纯水）
+                    // 读端 GetBottleQuality 优先 wageBottleQlty tag（PostfixTryPrint 按 100/150/200 三档装水）
+                    if (wid == "bottle_printer" && sellW != null)
+                    {
+                        try
+                        {
+                            int lv = Math.Max(1, B2ServiceStore.GetEffectLevel(PerkId));
+                            int q = lv >= 3 ? 200 : lv >= 2 ? 150 : 100;
+                            RobinCrusoePerk.AddTagInt(sellW, "wageBottleQlty", q); // 读端 GetBottleQuality 优先此 tag（B3 双链并存，不干扰升瓶型 tag）
+                        }
+                        catch (Exception ex) { Core.LogMsg("[水商] 瓶印机质量 tag 设置失败: " + ex.Message); }
+                    }
                     added++;
                 }
                 catch (Exception ex) { Core.LogMsg("[水商] 加 " + wid + " 失败: " + ex.Message); }
@@ -269,6 +281,8 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
     private static int _bottleRestoreFramesLeft = 0;
     // 10-05 开局发放帧重试（StartNewGame Postfix 时 EmporiumEntry 可能未建好→延迟补发）
     private static int _bottleGiveFramesLeft = 0;
+    // 10-17 双写补写低频检查计数（卖出链：买入后写键，读档前必已写）
+    private static int _bottleSaveCheckFrames = 60;
 
     // 判级读端：独立 tag 优先（当档/跨档恢复后都在此），无则回退原版 Getter（兼容第三方写的聚合 tag）
     internal static int GetBottleQuality(GameItem printer)
@@ -398,11 +412,53 @@ internal sealed class WaterMerchantPerk : CustomStartingPerk
         catch (Exception ex) { Core.LogMsg("[水商] 水瓶机恢复挂点异常: " + ex.Message); }
     }
 
-    // Core 帧循环调用：延迟重试恢复
+    // ===== 10-17 水商卖出瓶印机双写补写（用户拍板"做升级那种存档双写"）=====
+    // 升级链（RobinCrusoePerk.ContainerUpgrade.Upgrade.cs:171-174）在库存内即时写键；
+    // 卖出链在柜台（GetBottlePrinterIndex=-1 不写）→ 玩家买入后进入库存网格，
+    // 由本方法按出现顺序补写键，读档时 RestoreAllBottlePrinters 即可恢复质量 tag。
+    // 键语义与升级链一致（SurvivalGlobal/wage_bottle_q<n>，弱对应可接受，不降级）。
+    internal static void EnsureBottlePrinterSaveKeys()
+    {
+        try
+        {
+            int n = 0;
+            foreach (var inv in GetPlayerInventories())
+            {
+                if (inv == null || inv.childItems == null) continue;
+                for (int i = 0; i < inv.childItems.Count; i++)
+                {
+                    var it = inv.childItems[i];
+                    if (it == null) continue;
+                    string id = ""; try { id = it.identifier ?? ""; } catch { }
+                    if (id.ToLowerInvariant() != "bottle_printer") continue;
+                    int cur = RobinCrusoePerk.GetTagIntSafe(it, "wageBottleQlty");
+                    if (cur > 0)
+                    {
+                        int saved = WageSaveStore.GetInt("SurvivalGlobal", "wage_bottle_q" + n, -1);
+                        if (saved < cur)
+                        {
+                            WageSaveStore.SetInt("SurvivalGlobal", "wage_bottle_q" + n, cur);
+                            Core.LogMsg("[水商] 瓶印机补写双写: q=" + cur + " idx=" + n);
+                        }
+                    }
+                    n++;
+                }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[水商] 瓶印机双写补写异常: " + ex.Message); }
+    }
+
+    // Core 帧循环调用：延迟重试恢复 + 低频双写补写
     public static void OnUpdateRestoreBottlePrinters()
     {
         try
         {
+            // 10-17 双写补写低频检查（每 ~60 帧一次；买入后 1 秒内写键，读档前必已写）
+            if (--_bottleSaveCheckFrames <= 0)
+            {
+                _bottleSaveCheckFrames = 60;
+                EnsureBottlePrinterSaveKeys();
+            }
             // 10-05 开局发放帧重试（StartNewGame 时后库未就绪→延迟补发）
             if (_bottleGiveFramesLeft > 0)
             {
