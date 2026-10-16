@@ -147,12 +147,12 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             }
 
 
-            // 先清空柜台
-            try { 
-                instance.RemoveNotOwnedItemFromTable();
-            } catch (Exception ex) {
-                Core.LogMsg("[蛙哥牛逼] 清空柜台失败: " + ex.Message);
-            }
+            // 10-16 兼容修复：去掉 RemoveNotOwnedItemFromTable 清台。
+            // 原清台会清掉柜台所有"非玩家所有"商品——BrewingExpansion/TobaccoExpansion 等第三方扩展
+            // 在 OnNextClientArrived 流程刚上柜的 NPC 货（isOwend=false）被误清（日志：四十七上货7件
+            // contains=true → 随机商品上桌后背包计数 7→1，parentInventory 全 null）。
+            // 改为不清台：第三方货保留；随机商品 isOwend=true（免费送）本就不被清台清；
+            // 客户自带货（not owned）由原版离店清理（RemoveNotOwnedItemFromTable 正常流程）处理。
 
             // 一个人卖一件物品（根据玩家现有资金过滤，确保能批发下来）
             int itemCount = 1;
