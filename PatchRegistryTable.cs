@@ -116,12 +116,8 @@ namespace WagePerks
             new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixStoreEventOnDayStart", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "DestinyDice", YieldMod = null, Note = "10-04共存：XIAOWO现金流纯hash，双Postfix安全；10-05门槛回落已挪EndDay，本挂点仅剩事件注入+联动" },
             new PatchEntry { Target = typeof(PlayerStore), Method = "EndDay", Prefix = null, Postfix = "PostfixEndDayDiceThreshold", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "DestinyDice", YieldMod = null, Note = "10-05骰子门槛打烊回落：旧挂OnDayStart玩家感知打烊不回落且每天只回一档多掷净涨；改EndDay+归位400" },
             new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixUnifiedDayStart", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "10-04共存：XIAOWO现金流纯hash，双Postfix安全" },
-            new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixStoryNewsDayStart", Host = typeof(StoryNewsSystem), Priority = DEFAULT_PRIORITY, System = "StoryNews", YieldMod = null, Note = "剧情mod P0：新闻事件确定性注入（QueueFuturEvent 次日上报纸+价格联动，negociationDatas value 正=涨）" },
-            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineEleanor", Prefix = null, Postfix = "PostfixCheckStoryLineEleanor", Host = typeof(StoryPlotSystem), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：Eleanor 线 N1-N4 三路选项端到端（AddChoice+Mod*Reputation+60天结算报告）" },
-            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineOfficerLun", Prefix = null, Postfix = "PostfixCheckStoryLineOfficerLun", Host = typeof(StoryPlotSystem), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：OfficerLun 治安部线 N1-N4 三路选项端到端" },
-            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineGeorgio", Prefix = null, Postfix = "PostfixCheckStoryLineGeorgio", Host = typeof(StoryPlotSystem), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：Georgio 下层区线 N1/N3/N4 三路选项端到端" },
-            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineNellis", Prefix = null, Postfix = "PostfixCheckStoryLineNellis", Host = typeof(StoryPlotSystem), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod：Nellis（技术派）A2抉择节点（原生stub dump.cs:39438，Postfix 照跑）——作证线→蛙娘成人判定钩子" },
-            new PatchEntry { Target = typeof(PlayerStore), Method = "ExecuteGameOver", Prefix = "PrefixExecuteGameOver", Postfix = null, Host = typeof(StoryPlotSystem), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod 真结局：拦截 wages_* 新键短路原生（避免未匹配14键走rent默认文案），自调 GameOverUIManager.DisplayUI(mod文案,true) 档不结束" },
+            // 10-16 闪退修复8：剧情 6 条已移至数组末尾（Host 轻量化=StoryPlotHooks）——
+            //   原插入 79-84 位置使后续条目（GameItemElement #165）解析链加深崩栈；移末尾+轻 Host 后前段顺序对齐 1.3.6。
             new PatchEntry { Target = typeof(PlayerStore), Method = "SaveGame", Prefix = null, Postfix = "PostfixSaveGame", Host = typeof(Patches), Priority = DEFAULT_PRIORITY, System = "Core", YieldMod = null, Note = "统一驱动：只写内存禁 Flush，WageSaveStore 收尾落盘" },
             new PatchEntry { Target = typeof(NewsUIManager), Method = "PopulateUI", Prefix = null, Postfix = "PostfixNewsPopulateUI", Host = typeof(DestinyDice), Priority = DEFAULT_PRIORITY, System = "DestinyDice", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(NewsUIManager), Method = "PopulateUI", Prefix = null, Postfix = "PostfixNewsPopulateUI", Host = typeof(ModCannibalism), Priority = DEFAULT_PRIORITY, System = "ModCannibalism", YieldMod = null, Note = "" },
@@ -176,13 +172,15 @@ namespace WagePerks
             new PatchEntry { Target = typeof(MachineryHelper), Method = "CreateMachineryTooltip", Prefix = null, Postfix = "PostfixCreateMachineryTooltip", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             // 10-07 鲁滨逊完全归 WS WS-3（删 P1 机器 2）：ModuleHelper.ApplyPerformanceWaterRecyclerEffect + MachineMoistureFarm.GetOutputVolume Postfix RobinCrusoePerk（原 :179-180）已删——WS SurvivalMachineMods.cs 承接（GetOutputVolume DryAir 分支裁剪——双装由 WP DryAirPerk 独立挂点叠加）
             // 10-07 鲁滨逊完全归 WS WS-3（删 P1 净化 1）：WaterHelper.RemoveContaminantFromContainer Postfix RobinCrusoePerk（原 :188）已删——WS SurvivalMachineMods.cs 承接
-            new PatchEntry { Target = typeof(MachineTurboBoosterAdv), Method = "UpdateSprite", Prefix = null, Postfix = "PostfixUpdateSprite", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
+            // 10-16 闪退修复2：MachineTurboBoosterAdv.UpdateSprite 目标签名含 GameSlotInventory → Il2CppInterop 1.5.1 解析即 cctor 栈溢出（全库唯一含此类型的补丁，3 次启动固定崩此条）。
+            // 挂点整体删除：PostfixUpdateSprite 只写死变量 _pendingN（无任何消费点，TurboBoostN.cs grep 实锤），涡轮 N 主路径=PrefixTarget/PostfixTarget(_turboN) 不受影响。
             new PatchEntry { Target = typeof(MachineMoistureFarm), Method = "Fill", Prefix = "PrefixFill", Postfix = null, Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(MachinePurifier), Method = "PurifyContainer", Prefix = null, Postfix = "PostfixPurifyContainer", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(WineHelper), Method = "OnAgeWine", Prefix = null, Postfix = "PostfixOnAgeWine", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(MachineProgressHelper), Method = "ContinueProgressTypeMachine", Prefix = null, Postfix = "PostfixContinueProgress", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(MachineHelper), Method = "OnMachineActioned", Prefix = null, Postfix = "PostfixOnMachineActioned", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "10-02 熔炉补产：补(N-1)*4个scrap" },
-            new PatchEntry { Target = typeof(MachineTurboBoosterAdv), Method = "CreateMachineTooltip", Prefix = null, Postfix = "PostfixCreateTooltip", Host = typeof(TurboBoostN), Priority = DEFAULT_PRIORITY, System = "TurboBoostN", YieldMod = null, Note = "" },
+            // 10-16 闪退修复3：MachineTurboBoosterAdv.CreateMachineTooltip 也崩（同类第2条）——该类含泛型方法签名 ValueTuple<PixelWindow,GameSlotInventory>，Il2CppInterop 1.5.1 解析该类即 cctor 栈溢出（连续两类方法 UpdateSprite/CreateMachineTooltip 均固定崩）→ 该类全部 Harmony 挂点移除。
+            //   功能降级：互食加持 tooltip 行暂停显示（核心互食加速=PrefixTarget/PostfixTarget _turboN 主路径不受影响）；后续找 UI 事件链替代挂点或升级 interop 后恢复。
             // 10-07 鲁滨逊完全归 WS WS-3（删 P1 净化 1）：WaterHelper.RemoveContaminantFromContainer Postfix RobinCrusoePerk（原 :188）已删——WS SurvivalMachineMods.cs 承接
             new PatchEntry { Target = typeof(GameItem), Method = "MayTarget", Prefix = "PrefixMayTarget", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(GameItem), Method = "CanTarget", Prefix = "PrefixCanTarget", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
@@ -217,11 +215,13 @@ namespace WagePerks
             new PatchEntry { Target = typeof(ContactElement), Method = "OnInit", Prefix = null, Postfix = "PostfixOnContactInit", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(PhoneUIManager), Method = "AutoCall", Prefix = "PrefixAutoCall", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(PhoneUIManager), Method = "HandleCall", Prefix = "PrefixHandleCall", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(StoreClientListWanted), Method = "CreateWanted6", Prefix = null, Postfix = "PostfixCreateWanted6", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
+            // 10-16 闪退修复4：StoreClientListWanted.CreateWanted6 在 interop 1.5.1/1.5.3 下挂载均稳定崩（目标/补丁签名均非泛型，机制=Il2CppInterop 类型解析栈溢出临界）→ 删挂点。
+            //   功能降级：wanted6(李北文) 创建时改名取消，到店改名+电话解锁+上货由 WantedSupplierOnArrived 兜底（RobinCrusoePerk.PhoneVendor.cs:121 实锤），核心链路不受影响。
             new PatchEntry { Target = typeof(DirectoryMaster), Method = "Item", Prefix = "PrefixDirectoryMasterItem", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(WantedElement), Method = "OnArrested", Prefix = null, Postfix = "PostfixWantedElementOnArrested", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(StoreUIManager), Method = "OnGenericArrived", Prefix = "PrefixStoreUIManagerOnGenericArrived", Postfix = null, Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
-            new PatchEntry { Target = typeof(AugHelper), Method = "CleanupKill", Prefix = null, Postfix = "PostfixAugHelperCleanupKill", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
+            // 10-16 闪退修复5：AugHelper.CleanupKill 挂载崩（32MB 栈仍崩=单条 cctor 解析毒，类含 List<String[]> 泛型方法）→ 删挂点。
+            //   功能降级：追杀清理后 wanted6/7 电话簿移除标记暂停（MarkWantedPhoneRemoved 无等价入口）；核心到店链 WantedSupplierOnArrived 不受影响。
             new PatchEntry { Target = typeof(AdvCalendarUIManager), Method = "OnCalendarButtonClicked", Prefix = null, Postfix = "PostfixOnCalendarButtonClicked", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(StoreCalendar), Method = "Update", Prefix = null, Postfix = "PostfixStoreCalendarUpdate", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
             new PatchEntry { Target = typeof(StartOfDayUIManager), Method = "InitPanel", Prefix = null, Postfix = "PostfixStartOfDayInitPanel", Host = typeof(RobinCrusoePerk), Priority = DEFAULT_PRIORITY, System = "Survival", YieldMod = null, Note = "" },
@@ -280,6 +280,15 @@ namespace WagePerks
             new PatchEntry { Target = typeof(PhoneUIManager), Method = "StartPhoneDialog", Prefix = "PrefixStartPhoneDialog", Postfix = null, Host = typeof(B2WildPanel), Priority = DEFAULT_PRIORITY, System = "WageBroker", YieldMod = null, Note = "B2-R：1005拨通→打开原生查看服务面板", ParameterTypes = new System.Type[] { typeof(long) } }, // 10-14 修复：StartPhoneDialog(long) 带参，无参匹配静默失败
             new PatchEntry { Target = typeof(WildUIManager), Method = "Update", Prefix = null, Postfix = "PostfixUpdate", Host = typeof(B2WildPanel), Priority = DEFAULT_PRIORITY, System = "WageBroker", YieldMod = null, Note = "B2-R2-H3-FIX6：恩惠行蛙哥化（每帧替换王尔德→蛙哥，仅_wageMode期间；王尔德零开销）——拆包实锤恩惠行=Update每帧GetLocalizedUI SetText" },
             new PatchEntry { Target = typeof(CustomUIManager), Method = "ShowTooltip", Prefix = "PrefixShowTooltip", Postfix = "PostfixShowTooltip", Host = typeof(B2WildPanel), Priority = DEFAULT_PRIORITY, System = "WageBroker", YieldMod = null, Note = "B2-R2-H3-FIX13：tooltip蛙哥化（FIX6b实锤唯一入口ShowTooltip(实例,text参数)→Prefix ref替换含'王尔德'文本=蛙哥文案）+取证日志", ParameterTypes = new System.Type[] { typeof(string), typeof(CustomUITooltipTrigger) } },
+
+            // ============ 剧情mod 6 条（闪退修复8：轻量 Host=StoryPlotHooks + 置于数组末尾） ============
+            // 位置理由：前段 201 条顺序与 1.3.6（204 条）对齐→解析深度不超前版本；末尾最后挂载→即使崩也在全部核心功能完成后。
+            new PatchEntry { Target = typeof(StoreEventManager), Method = "OnDayStart", Prefix = null, Postfix = "PostfixStoryNewsDayStart", Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryNews", YieldMod = null, Note = "剧情mod P0：新闻事件确定性注入（QueueFuturEvent 次日上报纸+价格联动，negociationDatas value 正=涨）" },
+            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineEleanor", Prefix = null, Postfix = "PostfixCheckStoryLineEleanor", Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：Eleanor 线 N1-N4 三路选项端到端（AddChoice+Mod*Reputation+60天结算报告）" },
+            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineOfficerLun", Prefix = null, Postfix = "PostfixCheckStoryLineOfficerLun", Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：OfficerLun 治安部线 N1-N4 三路选项端到端" },
+            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineGeorgio", Prefix = null, Postfix = "PostfixCheckStoryLineGeorgio", Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod P2：Georgio 下层区线 N1/N3/N4 三路选项端到端" },
+            new PatchEntry { Target = typeof(StoreClientManager), Method = "CheckStoryLineNellis", Prefix = null, Postfix = "PostfixCheckStoryLineNellis", Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod：Nellis（技术派）A2抉择节点（原生stub dump.cs:39438，Postfix 照跑）——作证线→蛙娘成人判定钩子" },
+            new PatchEntry { Target = typeof(PlayerStore), Method = "ExecuteGameOver", Prefix = "PrefixExecuteGameOver", Postfix = null, Host = typeof(StoryPlotHooks), Priority = DEFAULT_PRIORITY, System = "StoryPlot", YieldMod = null, Note = "剧情mod 真结局：拦截 wages_* 新键短路原生（避免未匹配14键走rent默认文案），自调 GameOverUIManager.DisplayUI(mod文案,true) 档不结束" },
         };
 
         public static void ApplyAll()
@@ -296,13 +305,16 @@ namespace WagePerks
             }
             catch { }
 
+            // 10-16 闪退修复7（git 证据+实测闭环）：WagePerks_v1.3.6.dll（204条，主线程单批）用户实测【能进】；
+            //   当前源码 208 条（新线程分批+32MB栈）实测崩 #165 GameItemElement.ApplyAnimationFrame（两轮独立运行同点复现，
+            //   4MB stackalloc 探针过=maxStackSize 生效仍崩）→ 分批/新线程/大栈方案证伪；
+            //   还原 1.3.6 挂载方式=【主线程顺序单批】（interop 已回滚 1.5.1 同步 1.3.6 环境，SHA256 已验证）。
             int ok = 0, fail = 0, yield = 0;
             foreach (var e in REGISTRY)
             {
                 try
                 {
                     // 10-11 所有权表 Step 2：YieldMod="Survival" 专用白名单让路（WS 承接同目标=双挂，非一刀切）
-                    // 注：不走 ModCompat.ShouldYield（其 IsLoaded(YieldMod) 探测 "Survival" 程序集=不存在）
                     if (e.YieldMod == "Survival" && NewStartTypeUI.IsWageSurvivalPresent())
                     {
                         Core.LogMsg($"[统一注册] 让路(WS承接): [{e.System}] {e.Target.Name}.{e.Method}");
@@ -313,7 +325,6 @@ namespace WagePerks
                         Core.LogMsg($"[统一注册] 让路: [{e.System}] {e.Target.Name}.{e.Method} ← {mod}");
                         yield++; continue;
                     }
-                    // 10-16 闪退护栏：栈溢出(Il2CppInterop泛型cctor)不可捕获、进不了catch——挂载前先落盘，崩溃前最后一行=元凶条目（诊断20261016 §3）
                     Core.LogMsg($"[统一注册] >>> [{e.System}] {e.Target.Name}.{e.Method}");
                     if (e.UseByName)
                     {
@@ -334,6 +345,44 @@ namespace WagePerks
             Core.LogMsg($"[统一注册] Patch 挂载: 成功 {ok} / 失败 {fail} / 让路 {yield}（共 {REGISTRY.Length}）");
             foreach (var group in REGISTRY.GroupBy(e => e.Target.Name + "." + e.Method).Where(g => g.Count() >= 2))
                 Core.LogMsg($"[统一注册] 多挂 {group.Key} ×{group.Count()}: {string.Join(",", group.Select(e => e.System))}");
+        }
+
+        private static void ApplyBatch(PatchEntry[] batch, int[] c)
+        {
+            foreach (var e in batch)
+            {
+                try
+                {
+                    // 10-11 所有权表 Step 2：YieldMod="Survival" 专用白名单让路（WS 承接同目标=双挂，非一刀切）
+                    // 注：不走 ModCompat.ShouldYield（其 IsLoaded(YieldMod) 探测 "Survival" 程序集=不存在）
+                    if (e.YieldMod == "Survival" && NewStartTypeUI.IsWageSurvivalPresent())
+                    {
+                        Core.LogMsg($"[统一注册] 让路(WS承接): [{e.System}] {e.Target.Name}.{e.Method}");
+                        c[2]++; continue;
+                    }
+                    if (e.YieldMod != null && ModCompat.ShouldYield(e.Target, e.Method, out var mod))
+                    {
+                        Core.LogMsg($"[统一注册] 让路: [{e.System}] {e.Target.Name}.{e.Method} ← {mod}");
+                        c[2]++; continue;
+                    }
+                    // 10-16 闪退护栏：栈溢出(Il2CppInterop泛型cctor)不可捕获、进不了catch——挂载前先落盘，崩溃前最后一行=元凶条目（诊断20261016 §3）
+                    Core.LogMsg($"[统一注册] >>> [{e.System}] {e.Target.Name}.{e.Method}");
+                    if (e.UseByName)
+                    {
+                        if (ManualPatcher.TryPatchByName(e.Target, e.Method, e.Prefix, e.Postfix, patchHost: e.Host)) c[0]++; else c[1]++;
+                    }
+                    else
+                    {
+                        if (ManualPatcher.TryPatch(e.Target, e.Method, e.Prefix, e.Postfix,
+                                                   parameterTypes: e.ParameterTypes, patchHost: e.Host, priority: e.Priority)) c[0]++; else c[1]++;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Core.LogMsg($"[统一注册] 异常: [{e.System}] {e.Target.Name}.{e.Method}: {ex.Message}");
+                    c[1]++;
+                }
+            }
         }
     }
 }
