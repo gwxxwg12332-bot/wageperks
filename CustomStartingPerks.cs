@@ -11,10 +11,11 @@ internal static class CustomStartingPerks
     // ⚠️ 顺序契约：本数组顺序 == 特性选择界面的显示顺序（EnsurePickerElements 按序遍历生成元素）。
     // 不要"顺手排序"，会打乱玩家看到的界面顺序（硬约束#3）。
     // 本数组同时是白名单：不在其中的子类 = 不可选 + IsActive 恒 false。
-    // 有意排除的子类请打 [NonSelectablePerk]（见 WageGirlPerk）。
+    // 有意排除的子类请打 [NonSelectablePerk]。WageGirlPerk 已独立（10-15 移除 NonSelectable），10-16 补入本数组。
     internal static readonly CustomStartingPerk[] All = new CustomStartingPerk[]
     {
         new WagePowerPerk(),
+        new WageGirlPerk(),
         new DrJacksonFriendPerk(),
         new WaterMerchantPerk(),
         new AlcoholMerchantPerk(),
