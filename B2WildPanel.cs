@@ -942,6 +942,7 @@ internal static class B2WildPanel
         _favorTmp = null;
         _containerGeoRecorded = false;
         _geoContainer = null;
+        _geoAnchorPersisted = false; // FIX20：读档重建后重新记录新容器基准锚点
         // FIX11「恢复清单不 Clear」仅在同一面板实例内有意义；实例重建后旧 Transform 全失效，必须清空
         _emptyContainerOrig.Clear();
         _b2Containers.Clear();
@@ -1090,11 +1091,22 @@ internal static class B2WildPanel
             if (ui == null || ui.panel == null) return;
             var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
             if (all == null || all.Length == 0) return;
-            var tpl = all[0];
-            if (tpl == null || tpl.gameObject == null) return;
-            Transform parent = tpl.gameObject.transform.parent;
-            if (parent == null) return;
-            RectTransform tplRect = tpl.gameObject.GetComponent<RectTransform>();
+            // FIX38（2026-10-17 FIX37 实测残留）：all[0] 可能是原版卡（GetComponentsInChildren 层级顺序）→ 误扩展原版容器
+            //   （日志实锤 Panel1 (1)/(2) anchored=192 残留=被 FIX8 误动）。只扩展明确的 b2 卡父容器（id 以 PREFIX 开头）。
+            Transform parent = null;
+            NetworkElement b2el = null;
+            foreach (var el0 in all)
+            {
+                if (el0 == null || el0.gameObject == null || el0.transform == null || el0.transform.parent == null) continue;
+                if (el0.id != null && el0.id.StartsWith(PREFIX))
+                {
+                    parent = el0.transform.parent;
+                    b2el = el0;
+                    break;
+                }
+            }
+            if (parent == null) { Core.LogMsg("[B2R] FIX38 未找到 b2 卡父容器（面板结构不符预期，跳过容器扩展）"); return; }
+            RectTransform tplRect = b2el != null ? b2el.gameObject.GetComponent<RectTransform>() : null;
             float cellW = tplRect != null && tplRect.rect.width > 1 ? tplRect.rect.width : 120f;
             float cellH = tplRect != null && tplRect.rect.height > 1 ? tplRect.rect.height : 120f;
             const float spacing = 30f; // FIX12：卡片间距 14→30（容器扩高逻辑自动跟随 needH 增长）
@@ -1124,14 +1136,16 @@ internal static class B2WildPanel
                     _containerGeoOrig = sd;
                     _containerGeoAnchor = pRect2.anchoredPosition;
                 }
+                // FIX37（2026-10-17 Q5 拆包实锤终局）：原版零几何写（WildUIManager 全文件 anchoredPosition/sizeDelta 0 命中）——
+                //   漂移链=FIX20 读当前值当基准（可能已漂移）→FIX11 还原到漂移位置。根治：扩展 anchored 永远写固定常量
+                //   (1000, 367-Δ/2)（王尔德实测 x=1000/y=367 系=原版 prefab 静态值），绝不读回当前值当基准。
                 pRect2.sizeDelta = new Vector2(sd.x, needH);
                 // FIX10：pivot=(0.5,0.5) 时 sizeDelta 扩高会让容器中心不动→顶部上顶 Δ/2，超出面板上框架
                 //   （玩家实测：'不要超过上边的框架，往下延展'）→ 补偿：anchoredPosition 下移 Δ/2，
                 //   顶部保持原位不动、仅向下延展
                 float delta = needH - oldH;
-                Vector2 ap = pRect2.anchoredPosition;
-                pRect2.anchoredPosition = new Vector2(ap.x, ap.y - delta * 0.5f);
-                Core.LogMsg($"[B2R] FIX8 容器高度扩展: {oldH:F0} → {needH:F0}（rows={rows} cellH={cellH:F0} spacing={spacing:F0}）下移补偿={delta * 0.5f:F0}");
+                pRect2.anchoredPosition = new Vector2(1000f, 367f - delta * 0.5f);
+                Core.LogMsg($"[B2R] FIX8 容器高度扩展: {oldH:F0} → {needH:F0}（rows={rows} cellH={cellH:F0} spacing={spacing:F0}）下移补偿={delta * 0.5f:F0} 固定基准=(1000,367)");
             }
             if (_wageMode) parent.SetAsLastSibling(); // 蛙哥模式容器渲染置顶（防装饰/横条覆盖）
             // Mask/ScrollRect 诊断（父链）——若扩展后仍不可见，据此定位裁切源
@@ -1363,10 +1377,296 @@ internal static class B2WildPanel
                 ui.title.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network"); // 右侧详情槽（打开瞬间）
             EnsureContainerGeometry(ui); // FIX19：每次蛙哥打开应用容器几何+置顶（防二次打开"被挡住"）
             ApplyWageHeader(ui); // 顶部页面标题（prefab 静态 TMP，运行时遍历替换——拆包 B2-R2-H3 C1）
+            // FIX21 诊断（2026-10-17 实测空壳排查）：0x150 字典 b2 条目数 + 面板 b2 元素 active/图标状态
+            try
+            {
+                int dictB2 = 0;
+                try
+                {
+                    var ps = PlayerStore.Instance;
+                    if (ps != null && ps.networkUpgrade != null)
+                        foreach (var kv in ps.networkUpgrade) { if (kv.Key != null && kv.Key.StartsWith("b2_")) dictB2++; }
+                }
+                catch { }
+                int elB2 = 0, elActiveB2 = 0; string firstState = "无";
+                foreach (var el in all)
+                {
+                    if (el == null || el.gameObject == null || el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                    elB2++;
+                    if (el.gameObject.activeSelf) elActiveB2++;
+                    if (elB2 == 1)
+                    {
+                        bool iconOk = false;
+                        try { iconOk = el.icon != null && el.icon.gameObject != null && el.icon.gameObject.activeSelf; } catch { }
+                        firstState = $"id={el.id} active={el.gameObject.activeSelf} iconActive={iconOk}";
+                    }
+                }
+                Core.LogMsg($"[B2R] FIX21 卡片诊断: 0x150b2条目={dictB2}/{Entries.Length} 面板b2元素={elB2} active={elActiveB2} 首卡[{firstState}]");
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX21 卡片诊断异常: " + ex.Message); }
+            // FIX25 诊断（2026-10-17 实测第二轮）：FIX22/23/24 后容器 anchored=192 正常、FIX24 复核无漂移，
+            //   但蛙哥卡片仍画面不可见 → 运行时定位首张 b2 卡的容器/卡 worldPosition + activeInHierarchy + Canvas 层级
+            try
+            {
+                NetworkElement firstB2 = null;
+                foreach (var el in all)
+                {
+                    if (el == null || el.gameObject == null || el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                    firstB2 = el; break;
+                }
+                if (firstB2 != null && firstB2.gameObject != null)
+                {
+                    var parent = firstB2.gameObject.transform.parent;
+                    var pRect = parent != null ? parent.GetComponent<RectTransform>() : null;
+                    var neRect = firstB2.GetComponent<RectTransform>();
+                    if (pRect != null && neRect != null)
+                    {
+                        var cv = firstB2.gameObject.GetComponentInParent<Canvas>();
+                        Core.LogMsg($"[B2R] FIX25 定位: 容器 anchored=({pRect.anchoredPosition.x:F0},{pRect.anchoredPosition.y:F0}) worldPos=({pRect.position.x:F1},{pRect.position.y:F1}) size=({pRect.sizeDelta.x:F0},{pRect.sizeDelta.y:F0}) | 首卡[{firstB2.id}] local=({neRect.localPosition.x:F0},{neRect.localPosition.y:F0}) worldPos=({neRect.position.x:F1},{neRect.position.y:F1}) activeInHierarchy={firstB2.gameObject.activeInHierarchy} canvasSorting={(cv != null ? cv.sortingOrder : -999)}");
+                    }
+                    else
+                    {
+                        Core.LogMsg($"[B2R] FIX25 定位: 首卡 [{firstB2.id}] parent/pRect 缺失（parent={firstB2.gameObject.transform.parent?.name ?? "null"}）");
+                    }
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX25 定位异常: " + ex.Message); }
+            // FIX26 诊断（2026-10-17 实测第二轮追查）：FIX25 显示首卡 worldPos=(712,864) local=(-560,165)（网格设 -10，+175 疑点）
+            //   → 补 Canvas 类型/缩放 + 卡片锚点 + 原版卡片对照，并登记 0.5s 延迟复核（每帧 UpdateElement 可能移动卡片）
+            try
+            {
+                var firstB2 = (NetworkElement)null;
+                foreach (var el in all)
+                {
+                    if (el == null || el.gameObject == null || el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                    firstB2 = el; break;
+                }
+                if (firstB2 != null && firstB2.gameObject != null)
+                {
+                    var cv = firstB2.gameObject.GetComponentInParent<Canvas>();
+                    var cvRt = cv != null ? cv.GetComponent<RectTransform>() : null;
+                    Core.LogMsg($"[B2R] FIX26 Canvas: renderMode={(cv != null ? cv.renderMode : -1)} scaleFactor={(cv != null ? cv.scaleFactor : 0f):F2} rectScale=({(cvRt != null ? cvRt.localScale.x : 0f):F3},{(cvRt != null ? cvRt.localScale.y : 0f):F3}) sorting={(cv != null ? cv.sortingOrder : -999)} Screen=({UnityEngine.Screen.width}x{UnityEngine.Screen.height})");
+                    var neRt2 = firstB2.GetComponent<RectTransform>();
+                    if (neRt2 != null)
+                        Core.LogMsg($"[B2R] FIX26 首卡 anchor=({neRt2.anchorMin.x:F2},{neRt2.anchorMin.y:F2})-({neRt2.anchorMax.x:F2},{neRt2.anchorMax.y:F2}) pivot=({neRt2.pivot.x:F2},{neRt2.pivot.y:F2}) localScale=({neRt2.localScale.x:F2},{neRt2.localScale.y:F2})");
+                    // 登记延迟复核（FIX26b 在 PostfixUpdate 执行）
+                    _cardCheckRect = neRt2;
+                    _cardCheckTime = Time.time + 0.5f;
+                }
+                // 原版对照：第一张非 b2 卡（蛙哥模式被隐藏但 GetComponentsInChildren(true) 可取）
+                foreach (var el in all)
+                {
+                    if (el == null || el.gameObject == null || el.id == null || el.id.StartsWith(PREFIX)) continue;
+                    var or = el.GetComponent<RectTransform>();
+                    if (or != null)
+                    {
+                        Core.LogMsg($"[B2R] FIX26 原版对照卡[{el.id}] local=({or.localPosition.x:F0},{or.localPosition.y:F0}) worldPos=({or.position.x:F1},{or.position.y:F1}) active={el.gameObject.activeSelf}");
+                        break;
+                    }
+                    break;
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX26 对照异常: " + ex.Message); }
+            // FIX28 诊断（2026-10-17 实测第三轮）：FIX27 实锤蛙哥卡 worldPos=(712,864) 屏幕内（1920x1080）却不可见
+            //   → 渲染遮挡/层级嫌疑 → 打印容器 sibling（SetAsLastSibling 置顶是否生效）+ 兄弟元素拓扑 + 面板子 Canvas
+            try
+            {
+                var firstB2 = (NetworkElement)null;
+                foreach (var el in all)
+                {
+                    if (el == null || el.gameObject == null || el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                    firstB2 = el; break;
+                }
+                if (firstB2 != null && firstB2.gameObject != null)
+                {
+                    var parent = firstB2.gameObject.transform.parent;
+                    if (parent != null)
+                    {
+                        Core.LogMsg($"[B2R] FIX28 容器 sibling={parent.GetSiblingIndex()} name={parent.name}");
+                        if (parent.parent != null)
+                        {
+                            var sibs = new System.Collections.Generic.List<string>();
+                            int cnt = parent.parent.childCount;
+                            for (int i = 0; i < cnt; i++)
+                            {
+                                var c = parent.parent.GetChild(i);
+                                if (c == null) continue;
+                                sibs.Add($"{c.name}[{i}]{(c == parent ? "←容器" : "")}");
+                            }
+                            Core.LogMsg($"[B2R] FIX28 父[{parent.parent.name}] 兄弟顺序: {string.Join(" ", sibs)}");
+                            // FIX31：蛙哥模式隐藏挡路兄弟容器（Panel1 系列空容器渲染在容器上方盖住 b2 卡——
+                            //   FIX9 只隐藏"含 NetworkElement 的容器"，漏掉无子元素的空容器；蛙哥只用 Panel1 (3) 放卡，其余 Panel1 系列隐藏防遮挡）
+                            if (_wageMode)
+                            {
+                                int h2 = 0;
+                                for (int i = 0; i < parent.parent.childCount; i++)
+                                {
+                                    var c = parent.parent.GetChild(i);
+                                    if (c == null || c == parent) continue;
+                                    string cn = c.name;
+                                    if (cn != null && cn.StartsWith("Panel1") && c.gameObject != null && c.gameObject.activeSelf)
+                                    {
+                                        if (!_hiddenPanelObjs.Contains(c.gameObject)) _hiddenPanelObjs.Add(c.gameObject);
+                                        c.gameObject.SetActive(false);
+                                        h2++;
+                                    }
+                                }
+                                if (h2 > 0) Core.LogMsg($"[B2R] FIX31 隐藏挡路 Panel1 兄弟容器: {h2} 个（{string.Join(" ", sibs.FindAll(s => s.Contains("Panel1") && !s.Contains("←")))}）");
+                            }
+                        }
+                        // FIX29：登记容器几何时间追踪（PostfixUpdate 每 0.1s 采样，定位扩展后被还原的时间点）
+                        _geoTraceRect = parent.GetComponent<RectTransform>();
+                        _geoTraceStart = Time.time;
+                        _geoTraceBucket = -1;
+                        // FIX30：蛙哥容器守护（PostfixUpdate 每帧检查，被原版逻辑还原立即重新扩展+置顶——首次打开不还原、再次打开必还原的差异由原版淡入状态决定）
+                        if (_wageMode)
+                        {
+                            _wageGeoGuardRect = parent.GetComponent<RectTransform>();
+                            _wageGeoGuardStart = Time.time;
+                            // needH：若登记时容器已异常（<300 即被还原），兜底用业务目标 530；否则用当前扩展高度
+                            _wageGeoGuardNeedH = (_wageGeoGuardRect != null && _wageGeoGuardRect.sizeDelta.y > 300f) ? _wageGeoGuardRect.sizeDelta.y : 530f;
+                            _wageGeoGuardRestoreCount = 0;
+                        }
+                    }
+                }
+                var subCv = ui.panel.gameObject.GetComponentsInChildren<Canvas>(true);
+                foreach (var sc in subCv)
+                {
+                    if (sc == null || sc.gameObject == null) continue;
+                    Core.LogMsg($"[B2R] FIX28 子Canvas[{sc.gameObject.name}] sorting={sc.sortingOrder} active={sc.gameObject.activeSelf}");
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX28 遮挡诊断异常: " + ex.Message); }
         }
         else
         {
-            RestoreContainerGeometry(); // FIX19：王尔德打开还原容器几何（双保险幂等；防蛙哥扩展态污染原版布局）
+            // FIX22（2026-10-17 P0 实测）：王尔德打开强制回正容器几何（锚点拉回固定常量）。
+            //   FIX37（Q5 实锤终局）：原版零几何写（WildUIManager 全文件 0 命中）——容器 prefab 静态，王尔德各分类 y 不同
+            //   （367/-231/-388=各分类布局），**不可**把 all0[0].parent 一律拉 367（all0[0] 每次可能是不同分类容器=误伤）。
+            //   只清 FIX8 扩展态残留（y≈192=367-Δ/2 特征值）→ 367；其余容器保持 prefab 静态。
+            _wageGeoGuardStart = -1f; _wageGeoGuardRect = null; // FIX32：蛙哥→王尔德切换立即终止守护（防与还原打架）
+            RestoreContainerGeometry(); // FIX11 幂等还原（固定常量 (1000,367)/180）
+            RestoreHiddenPanelObjs(); // FIX31：恢复蛙哥模式隐藏的挡路兄弟容器（王尔德需要各分类容器显示原版卡）
+            try
+            {
+                var all0 = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+                if (all0 != null && all0.Length > 0 && all0[0] != null && all0[0].gameObject != null)
+                {
+                    var parent = all0[0].gameObject.transform.parent;
+                    var pRect = parent != null ? parent.GetComponent<RectTransform>() : null;
+                    if (pRect != null)
+                    {
+                        Vector2 cur = pRect.anchoredPosition;
+                        bool changed = false;
+                        // 扩展态特征值 y≈192（FIX8 下移补偿 367-175）→ 拉回 367/180；其他 y 值=prefab 静态不动
+                        if (Math.Abs(cur.y - 192f) < 8f)
+                        {
+                            pRect.anchoredPosition = new Vector2(cur.x, 367f);
+                            changed = true;
+                        }
+                        if (Math.Abs(pRect.sizeDelta.y - 530f) < 10f)
+                        {
+                            pRect.sizeDelta = new Vector2(pRect.sizeDelta.x, 180f);
+                            changed = true;
+                        }
+                        if (changed) Core.LogMsg($"[B2R] FIX22 王尔德容器清扩展残留: 锚点 {cur.x:F0},{cur.y:F0} → (x,367) size→180（FIX37 固定常量）");
+                        // FIX33：登记王尔德容器守护（PostfixUpdate 每帧检查，原版漂移立即拉回 367/180）
+                        _wildGeoGuardRect = pRect;
+                        _wildGeoGuardStart = Time.time;
+                        _wildGeoGuardRestoreCount = 0;
+                        // FIX35（2026-10-17 FIX34 实锤）：王尔德打开时 b2 容器残留蛙哥扩展态 192/530 未还原
+                        //   FIX11/FIX22 还原 all0[0].parent（王尔德模式=原版首卡容器）≠ b2 容器 → 530 高空容器盖住分类=整体错位
+                        //   显式遍历 b2 卡父容器强制还原 367/180（不依赖 FIX11 recorded 状态）
+                        try
+                        {
+                            foreach (var el in ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true))
+                            {
+                                if (el == null || el.gameObject == null || el.transform == null || el.transform.parent == null) continue;
+                                if (el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                                var brt = el.transform.parent.GetComponent<RectTransform>();
+                                if (brt != null)
+                                {
+                                    // FIX37（Q5 实锤终局）：写固定常量——王尔德 prefab 静态 (1000,367)/1250×180
+                                    //   （日志实测王尔德打开各容器 x=1000 系正常；530/192 全是 mod 残留污染）
+                                    bool bchanged = false;
+                                    if (Math.Abs(brt.sizeDelta.y - 180f) > 0.5f || Math.Abs(brt.sizeDelta.x - 1250f) > 0.5f) { brt.sizeDelta = new Vector2(1250f, 180f); bchanged = true; }
+                                    if (Math.Abs(brt.anchoredPosition.y - 367f) > 0.5f || Math.Abs(brt.anchoredPosition.x - 1000f) > 0.5f) { brt.anchoredPosition = new Vector2(1000f, 367f); bchanged = true; }
+                                    if (bchanged) Core.LogMsg($"[B2R] FIX35 王尔德还原b2容器[{brt.name}] → size=({brt.sizeDelta.x:F0},{brt.sizeDelta.y:F0}) anchored=({brt.anchoredPosition.x:F0},{brt.anchoredPosition.y:F0})（FIX37 固定常量）");
+                                }
+                                break; // 只需第一个 b2 卡的父容器
+                            }
+                        }
+                        catch (Exception ex) { Core.LogMsg("[B2R] FIX35 还原b2容器异常: " + ex.Message); }
+                    }
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX22 王尔德容器回正异常: " + ex.Message); }
+            // FIX39 诊断（2026-10-17 FIX38 实测残留）：王尔德"恩惠区空/线人区多卡"——打印每张显示中原版卡↔容器映射，
+            //   一次实测确定恩惠/线人卡在哪个容器、容器 anchored 是否错位
+            try
+            {
+                if (ui != null && ui.panel != null && ui.panel.gameObject != null)
+                {
+                    var nels = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+                    foreach (var nel in nels)
+                    {
+                        if (nel == null || nel.gameObject == null || !nel.gameObject.activeInHierarchy) continue;
+                        if (nel.id == null || nel.id.StartsWith(PREFIX)) continue; // 只打显示中原版卡
+                        var nrt = nel.gameObject.GetComponent<RectTransform>();
+                        var prt = nel.transform.parent != null ? nel.transform.parent.GetComponent<RectTransform>() : null;
+                        if (nrt != null && prt != null)
+                            Core.LogMsg($"[B2R] FIX39 王尔德原版卡[{nel.id}] 父={prt.name} 卡local=({nrt.localPosition.x:F0},{nrt.localPosition.y:F0}) 容器anchored=({prt.anchoredPosition.x:F0},{prt.anchoredPosition.y:F0}) sibling={prt.GetSiblingIndex()}");
+                    }
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX39 卡映射诊断异常: " + ex.Message); }
+            // FIX27 诊断（2026-10-17 实测第二轮）：王尔德对照——打印 Screen 尺寸 + 原版首卡/容器 worldPos，
+            //   与蛙哥模式 FIX25/26 数据对比，判定蛙哥卡不可见是"位置出屏"还是"遮挡/渲染"
+            try
+            {
+                Core.LogMsg($"[B2R] FIX27 王尔德对照: Screen=({UnityEngine.Screen.width}x{UnityEngine.Screen.height})");
+                var all0 = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+                if (all0 != null && all0.Length > 0 && all0[0] != null && all0[0].gameObject != null)
+                {
+                    var or = all0[0].GetComponent<RectTransform>();
+                    var pr = all0[0].gameObject.transform.parent != null ? all0[0].gameObject.transform.parent.GetComponent<RectTransform>() : null;
+                    if (or != null) Core.LogMsg($"[B2R] FIX27 王尔德原版首卡[{all0[0].id}] local=({or.localPosition.x:F0},{or.localPosition.y:F0}) worldPos=({or.position.x:F1},{or.position.y:F1}) active={all0[0].gameObject.activeSelf}");
+                    if (pr != null) Core.LogMsg($"[B2R] FIX27 王尔德容器 anchored=({pr.anchoredPosition.x:F0},{pr.anchoredPosition.y:F0}) worldPos=({pr.position.x:F1},{pr.position.y:F1}) size=({pr.sizeDelta.x:F0},{pr.sizeDelta.y:F0})");
+                }
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX27 王尔德对照异常: " + ex.Message); }
+            // FIX34 诊断（2026-10-17 实测）：王尔德污染="卡片/板块整体错位下移"（截图 fc1b103a 推荐卡 y=180/供货商 630 vs 正常 45/585）
+            //   容器 Panel1(3) anchored=367 正常（FIX27 已证）→ 下移源在面板根 or 各板块容器 → 打印定位
+            try
+            {
+                if (ui.panel != null && ui.panel.gameObject != null)
+                {
+                    var rootRt = ui.panel.gameObject.GetComponent<RectTransform>();
+                    if (rootRt != null)
+                    {
+                        var rp = rootRt.parent;
+                        Core.LogMsg($"[B2R] FIX34 面板根 local=({rootRt.localPosition.x:F0},{rootRt.localPosition.y:F0}) anchored=({rootRt.anchoredPosition.x:F0},{rootRt.anchoredPosition.y:F0}) parent={(rp != null ? rp.name : "无")} pivot=({rootRt.pivot.x:F1},{rootRt.pivot.y:F1})");
+                        var allRts = ui.panel.gameObject.GetComponentsInChildren<RectTransform>(true);
+                        foreach (var pr in allRts)
+                        {
+                            if (pr == null || pr.gameObject == null) continue;
+                            string pn = pr.name;
+                            if (pn != null && pn.StartsWith("Panel1"))
+                            {
+                                var ppr = pr.parent != null ? pr.parent.GetComponent<RectTransform>() : null;
+                                Core.LogMsg($"[B2R] FIX34 容器[{pn}] anchored=({pr.anchoredPosition.x:F0},{pr.anchoredPosition.y:F0}) local=({pr.localPosition.x:F0},{pr.localPosition.y:F0}) size=({pr.sizeDelta.x:F0},{pr.sizeDelta.y:F0}) sibling={pr.GetSiblingIndex()} 父local=({(ppr != null ? ppr.localPosition.x : -1):F0},{(ppr != null ? ppr.localPosition.y : -1):F0})");
+                                // FIX36：记录各分类容器基准锚点（仅王尔德首次记录——"越开越少"=各分类容器每次被原版漂移出屏，FIX33 只守护推荐容器）
+                                if (!_panelAnchorRecorded)
+                                {
+                                    _panelAnchorPersist[pn] = pr.anchoredPosition;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (_panelAnchorPersist.Count > 0) _panelAnchorRecorded = true; // FIX36：已记录（下次只守护不覆盖）
+            }
+            catch (Exception ex) { Core.LogMsg("[B2R] FIX34 面板根诊断异常: " + ex.Message); }
         }
         Core.LogMsg("[B2R] 面板模式: " + (_wageMode ? "蛙哥（22条）" : "王尔德（原样）"));
     }
@@ -1438,6 +1738,20 @@ internal static class B2WildPanel
     // FIX11：容器级隐藏默认关闭（FIX9 隐藏 6 容器→布局剧变疑似触发"进蛙哥服务自动关闭"+王尔德面板被污染）。
     //   玩家要的"只保留一个放置位置"下一轮改用安全方式（定位分类标签横条 Image，不碰容器）。置 true 需先实测稳定。
     private const bool _b2HideContainers = false;
+    // FIX31：恢复蛙哥模式隐藏的挡路兄弟容器（王尔德打开/面板关闭时调用——王尔德需要各分类容器显示原版卡）
+    private static void RestoreHiddenPanelObjs()
+    {
+        try
+        {
+            foreach (var go in _hiddenPanelObjs)
+            {
+                if (go != null) go.SetActive(true);
+            }
+            _hiddenPanelObjs.Clear();
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] FIX31 恢复容器异常: " + ex.Message); }
+    }
+
     private static void HideEmptyB2Containers(WildUIManager ui, bool wageMode)
     {
         try
@@ -1568,9 +1882,12 @@ internal static class B2WildPanel
 
     public static void PostfixCloseUI()
     {
+        _wageGeoGuardStart = -1f; _wageGeoGuardRect = null; // FIX32：立即终止蛙哥容器守护（防与还原打架，容器残留 530/192 污染王尔德）
+        _wildGeoGuardStart = -1f; _wildGeoGuardRect = null; // FIX33：立即终止王尔德容器守护
         _wageMode = false; // 关闭面板复位分流标记（防下次王尔德路径被污染）
         RestoreContainerGeometry(); // FIX11：还原 FIX8/FIX10 容器几何（扩高+下移）——王尔德/关闭时必还原，否则污染原版布局
         RestoreHiddenContainers();  // FIX11：恢复 FIX9 隐藏的容器（清单常驻不 Clear，王尔德打开时幂等恢复）
+        RestoreHiddenPanelObjs();   // FIX31：恢复蛙哥模式隐藏的挡路兄弟容器（防下次王尔德缺容器）
     }
 
     // ================= FIX11：容器几何/显隐状态还原（根治"干扰原版"） =================
@@ -1580,15 +1897,58 @@ internal static class B2WildPanel
     private static UnityEngine.Vector2 _containerGeoOrig = UnityEngine.Vector2.zero;  // 原始 sizeDelta
     private static UnityEngine.Vector2 _containerGeoAnchor = UnityEngine.Vector2.zero; // 原始 anchoredPosition
     private static UnityEngine.RectTransform _geoContainer = null;
+    private static bool _geoAnchorPersisted = false; // FIX20：容器基准锚点已持久记录（跨开关循环，读档重建时重置）
+    private static UnityEngine.Vector2 _geoAnchorPersist = UnityEngine.Vector2.zero; // FIX20：首次容器基准锚点（防 CloseUI 动画漂移累积）
+    private static UnityEngine.RectTransform _restoreCheckRect = null; // FIX24：还原后复核对象
+    private static float _restoreCheckTime = -1f; // FIX24：复核时间点（Time.time + 0.5s）
+    private static UnityEngine.RectTransform _cardCheckRect = null; // FIX26b：卡片延迟复核对象
+    private static float _cardCheckTime = -1f; // FIX26b：卡片复核时间点
+    private static UnityEngine.RectTransform _geoTraceRect = null; // FIX29：容器几何时间追踪对象
+    private static float _geoTraceStart = -1f; // FIX29：追踪起点
+    private static int _geoTraceBucket = -1; // FIX29：上次采样桶
+    private static UnityEngine.RectTransform _wageGeoGuardRect = null; // FIX30：蛙哥容器守护对象
+    private static float _wageGeoGuardStart = -1f; // FIX30：守护起点
+    private static float _wageGeoGuardNeedH = 0f; // FIX30：守护目标高度
+    private static float _wageGeoGuardBaseAnchor = 367f; // FIX30：守护基准锚点
+    private static int _wageGeoGuardRestoreCount = 0; // FIX30：守护期间还原次数
+    private static readonly System.Collections.Generic.List<UnityEngine.GameObject> _hiddenPanelObjs = new System.Collections.Generic.List<UnityEngine.GameObject>(); // FIX31：蛙哥模式隐藏的挡路兄弟容器
+    private static UnityEngine.RectTransform _wildGeoGuardRect = null; // FIX33：王尔德容器守护对象
+    private static float _wildGeoGuardStart = -1f; // FIX33：守护起点
+    private static int _wildGeoGuardRestoreCount = 0; // FIX33：守护期间拉回次数
+    // FIX40（2026-10-17 FIX39 日志实锤）：王尔德各分类容器 prefab 静态布局表（原版真值）
+    //   Panel1 (3)=367 推荐 | Panel1 (1)=217 恩惠 | Panel1 (2)=67 线人
+    //   Panel1=-83 供货商 | Panel1 (4)=-231 服务 | Panel1 (5)=-388 枪械匠
+    //   注意：FIX36 旧逻辑把残留 192 一律拉 367 是错的（只有推荐容器基准 367；恩惠容器 217 被拉到 367=恩惠区消失）
+    private static bool TryGetPanelPrefabY(string name, out float y)
+    {
+        switch (name)
+        {
+            case "Panel1 (3)": y = 367f; return true;  // 推荐
+            case "Panel1 (1)": y = 217f; return true;  // 恩惠
+            case "Panel1 (2)": y = 67f; return true;   // 线人
+            case "Panel1": y = -83f; return true;      // 供货商
+            case "Panel1 (4)": y = -231f; return true; // 服务
+            case "Panel1 (5)": y = -388f; return true; // 枪械匠
+            default: y = float.NaN; return false;
+        }
+    }
+    private static readonly System.Collections.Generic.Dictionary<string, UnityEngine.Vector2> _panelAnchorPersist = new System.Collections.Generic.Dictionary<string, UnityEngine.Vector2>(); // FIX36：各 Panel1 分类容器基准锚点（王尔德首次打开记录）
+    private static bool _panelAnchorRecorded = false; // FIX36：基准锚点已记录
+    private static int _panelGuardRestoreCount = 0; // FIX36：全容器守护拉回次数
     private static void RestoreContainerGeometry()
     {
         try
         {
             if (_geoContainer != null && _geoContainer.gameObject != null && _containerGeoRecorded)
             {
-                _geoContainer.sizeDelta = _containerGeoOrig;
-                _geoContainer.anchoredPosition = _containerGeoAnchor;
-                Core.LogMsg("[B2R] FIX11 容器几何还原: sizeDelta=" + _containerGeoOrig + " anchored=" + _containerGeoAnchor);
+                // FIX37（Q5 实锤终局）：还原永远写固定常量（王尔德 prefab 静态 1250×180、anchored=(1000,367)），
+                //   绝不读 _containerGeoOrig/_geoAnchorPersist（可能已漂移的记录值——漂移链根因）。
+                _geoContainer.sizeDelta = new UnityEngine.Vector2(1250f, 180f);
+                _geoContainer.anchoredPosition = new UnityEngine.Vector2(1000f, 367f);
+                Core.LogMsg("[B2R] FIX11 容器几何还原: sizeDelta=(1250,180) anchored=(1000,367)（FIX37 固定常量，不读漂移记录值）");
+                // FIX24：登记还原后复核（0.5s 后 PostfixUpdate 检查是否被父级 Layout 重排/动画移走并强制拉回基准）
+                _restoreCheckRect = _geoContainer;
+                _restoreCheckTime = Time.time + 0.5f;
             }
             _containerGeoRecorded = false;
             _geoContainer = null;
@@ -1620,6 +1980,128 @@ internal static class B2WildPanel
     {
         try
         {
+            // FIX24：容器还原后延迟复核（0.5s）——若被父级 Layout 重排/动画移走，强制拉回持久基准，断漂移循环
+            //   触发链：FIX11 还原 530→180 高度变化 → 父级 Layout 重排把容器移到非基准位置（下次打开时已是漂移值）
+            if (_restoreCheckTime > 0f && Time.time >= _restoreCheckTime)
+            {
+                _restoreCheckTime = -1f;
+                var rr = _restoreCheckRect;
+                _restoreCheckRect = null;
+                if (rr != null && rr.gameObject != null)
+                {
+                    Vector2 curAnchor = rr.anchoredPosition;
+                    // FIX37（Q5 实锤终局）：复核基准=固定常量 (1000,367)/180（原版 prefab 静态值），不读 _geoAnchorPersist（可能漂移）
+                    if (Math.Abs(curAnchor.y - 367f) > 0.5f || Math.Abs(curAnchor.x - 1000f) > 0.5f || Math.Abs(rr.sizeDelta.y - 180f) > 0.5f)
+                    {
+                        rr.anchoredPosition = new Vector2(1000f, 367f);
+                        rr.sizeDelta = new Vector2(1250f, 180f);
+                        Core.LogMsg($"[B2R] FIX24 还原后复核: 容器被移动 ({curAnchor.x:F0},{curAnchor.y:F0}) → 强制回固定常量 (1000,367)/180");
+                    }
+                    else
+                    {
+                        Core.LogMsg($"[B2R] FIX24 还原后复核: 容器稳定 anchored=({curAnchor.x:F0},{curAnchor.y:F0}) 无漂移");
+                    }
+                }
+            }
+            // FIX29：容器几何时间追踪（每 0.1s 采样至 1s，定位"扩展后被还原"发生的时间点——判断 mod 同步 or 原版延迟逻辑）
+            if (_geoTraceStart > 0f)
+            {
+                float t = Time.time - _geoTraceStart;
+                int bucket = (int)(t * 10f);
+                if (bucket != _geoTraceBucket)
+                {
+                    _geoTraceBucket = bucket;
+                    if (_geoTraceRect != null && _geoTraceRect.gameObject != null)
+                        Core.LogMsg($"[B2R] FIX29 追踪 t={t:F1}s: sizeDelta=({_geoTraceRect.sizeDelta.x:F0},{_geoTraceRect.sizeDelta.y:F0}) anchored=({_geoTraceRect.anchoredPosition.x:F0},{_geoTraceRect.anchoredPosition.y:F0})");
+                }
+                if (bucket > 10) { _geoTraceStart = -1f; _geoTraceRect = null; }
+            }
+            // FIX30/FIX32：蛙哥容器守护（蛙哥模式期间持续，被原版逻辑还原高度/撤销下移补偿立即重新扩展+置顶）
+            //   FIX32：①同时守护 anchored（原版会撤销下移补偿 192→367，卡片贴屏幕底 1039）②守护持续到蛙哥模式结束
+            //   （原 2s 窗口在关闭后还活着 → 与 FIX11 还原打架 → 关闭后容器残留 530/192 → 王尔德被污染）
+            if (_wageGeoGuardStart > 0f && _wageGeoGuardRect != null && _wageGeoGuardRect.gameObject != null)
+            {
+                if (_wageMode)
+                {
+                    float wantAnchor = _wageGeoGuardBaseAnchor - 175f;
+                    if (_wageGeoGuardRect.sizeDelta.y < _wageGeoGuardNeedH - 1f
+                        || Math.Abs(_wageGeoGuardRect.anchoredPosition.y - wantAnchor) > 1f)
+                    {
+                        _wageGeoGuardRestoreCount++;
+                        _wageGeoGuardRect.sizeDelta = new Vector2(_wageGeoGuardRect.sizeDelta.x, _wageGeoGuardNeedH);
+                        _wageGeoGuardRect.anchoredPosition = new Vector2(_wageGeoGuardRect.anchoredPosition.x, wantAnchor);
+                        _wageGeoGuardRect.SetAsLastSibling();
+                        Core.LogMsg($"[B2R] FIX32 容器被改动→强制拉回 #{_wageGeoGuardRestoreCount} size=({_wageGeoGuardRect.sizeDelta.x:F0},{_wageGeoGuardRect.sizeDelta.y:F0}) anchored=({_wageGeoGuardRect.anchoredPosition.x:F0},{_wageGeoGuardRect.anchoredPosition.y:F0})");
+                    }
+                }
+                else
+                {
+                    // 蛙哥模式结束（切王尔德/关闭）→ 终止守护，交还原逻辑接管
+                    Core.LogMsg($"[B2R] FIX32 守护终止（模式切换）期间共拉回 {_wageGeoGuardRestoreCount} 次");
+                    _wageGeoGuardStart = -1f;
+                    _wageGeoGuardRect = null;
+                }
+            }
+            // FIX33：王尔德容器守护（王尔德模式期间持续，原版逻辑会持续漂移容器→面板内容下移错位=污染）
+            //   FIX22 只在打开瞬间拉回一次，之后原版再漂移无人管 → 截图实锤推荐卡 y=45→180、供货商 585→630 整体下移
+            if (_wildGeoGuardStart > 0f && _wildGeoGuardRect != null && _wildGeoGuardRect.gameObject != null)
+            {
+                if (!_wageMode)
+                {
+                    // FIX37（Q5 实锤终局）：守护基准=固定常量 (1000,367)/180（王尔德 prefab 静态值），不读当前值
+                    if (Math.Abs(_wildGeoGuardRect.anchoredPosition.y - 367f) > 1f
+                        || Math.Abs(_wildGeoGuardRect.anchoredPosition.x - 1000f) > 1f
+                        || Math.Abs(_wildGeoGuardRect.sizeDelta.y - 180f) > 1f
+                        || Math.Abs(_wildGeoGuardRect.sizeDelta.x - 1250f) > 1f)
+                    {
+                        _wildGeoGuardRestoreCount++;
+                        _wildGeoGuardRect.anchoredPosition = new Vector2(1000f, 367f);
+                        _wildGeoGuardRect.sizeDelta = new Vector2(1250f, 180f);
+                        Core.LogMsg($"[B2R] FIX33 王尔德容器漂移→拉回 #{_wildGeoGuardRestoreCount} anchored=({_wildGeoGuardRect.anchoredPosition.x:F0},{_wildGeoGuardRect.anchoredPosition.y:F0}) size=({_wildGeoGuardRect.sizeDelta.x:F0},{_wildGeoGuardRect.sizeDelta.y:F0})");
+                    }
+                }
+                else
+                {
+                    _wildGeoGuardStart = -1f;
+                    _wildGeoGuardRect = null;
+                }
+            }
+            // FIX36：全分类容器高度守护（王尔德模式每帧，清残留扩展态——Q5 实锤原版零几何写，各分类 y=prefab 静态不动，
+            //   FIX40：改用 prefab 布局表还原（FIX39 日志实锤真值：推荐367/恩惠217/线人67/供货商-83/服务-231/枪械匠-388），
+            //   不再一律拉 367——旧逻辑把恩惠容器 217 误拉到 367=恩惠区消失）
+            if (!_wageMode && __instance != null && __instance.panel != null && __instance.panel.gameObject != null)
+            {
+                try
+                {
+                    var allRts = __instance.panel.gameObject.GetComponentsInChildren<RectTransform>(true);
+                    foreach (var pr in allRts)
+                    {
+                        if (pr == null || pr.gameObject == null) continue;
+                        string pn = pr.name;
+                        if (pn == null || !pn.StartsWith("Panel1")) continue;
+                        float wantY;
+                        if (!TryGetPanelPrefabY(pn, out wantY)) continue; // 不在表内（如 Panel1 名称变体）不动
+                        bool bchanged = false;
+                        if (Math.Abs(pr.sizeDelta.y - 180f) > 1f) { pr.sizeDelta = new Vector2(pr.sizeDelta.x, 180f); bchanged = true; }
+                        if (Math.Abs(pr.anchoredPosition.y - wantY) > 1f) { pr.anchoredPosition = new Vector2(pr.anchoredPosition.x, wantY); bchanged = true; }
+                        if (bchanged)
+                        {
+                            _panelGuardRestoreCount++;
+                            Core.LogMsg($"[B2R] FIX36 分类容器[{pn}]→prefab基准 y={wantY:F0} #{_panelGuardRestoreCount} anchored=({pr.anchoredPosition.x:F0},{pr.anchoredPosition.y:F0}) size=({pr.sizeDelta.x:F0},{pr.sizeDelta.y:F0})");
+                        }
+                    }
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] FIX36 全容器守护异常: " + ex.Message); }
+            }
+            // FIX26b：卡片延迟复核（0.5s）——确认卡片是否被每帧 UpdateElement/布局逻辑移动位置
+            if (_cardCheckTime > 0f && Time.time >= _cardCheckTime)
+            {
+                _cardCheckTime = -1f;
+                var cr = _cardCheckRect;
+                _cardCheckRect = null;
+                if (cr != null && cr.gameObject != null)
+                    Core.LogMsg($"[B2R] FIX26b 卡片延迟复核: worldPos=({cr.position.x:F1},{cr.position.y:F1}) local=({cr.localPosition.x:F0},{cr.localPosition.y:F0}) activeInHierarchy={cr.gameObject.activeInHierarchy}");
+            }
             // FIX16：服务发放延迟重试（帧轮询，柜台未就绪时补上桌）——不依赖 _wageMode（王尔德路径也补）
             OnUpdateServiceItemRefill();
             if (!_wageMode) return; // 王尔德路径零开销
