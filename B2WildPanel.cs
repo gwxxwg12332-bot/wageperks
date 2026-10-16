@@ -974,7 +974,16 @@ internal static class B2WildPanel
         catch (Exception ex) { Core.LogMsg("[B2R] 电话注册异常: " + ex.Message); }
     }
 
-    // 幂等注册（ContainsKey 防重）：新档走 InitPhoneClientDict Postfix；旧档走 OnStoreGameLoaded 兜底
+    // 10-16 闪退修复：原挂 StorePhoneClient.InitPhoneClientDict（返回泛型 Dictionary）触发 Il2CppInterop 栈溢出；
+    //   拆包实锤 InitPhoneClientDict 全库仅 1 调用=StartNewGame（PlayerStore.txt:2080）→ 改挂 StartNewGame(非泛型) 同点注册。
+    //   读档不重建 PhoneClientDict（ES3 随档恢复）→ 旧档仍走 EnsurePhoneRegistered() 无参兜底（OnStoreGameLoaded，Patches.Lifecycle.cs:541）。
+    public static void PostfixStartNewGame_EnsurePhone()
+    {
+        try { EnsurePhoneRegistered(); }
+        catch (Exception ex) { Core.LogMsg("[B2R] StartNewGame 电话注册异常: " + ex.Message); }
+    }
+
+    // 幂等注册（ContainsKey 防重）：新档走 StartNewGame Postfix；旧档走 OnStoreGameLoaded 兜底
     // 拆包实锤（DB-PHONE-01 C2）：InitPhoneClientDict 全库仅 1 调用=StartNewGame（PlayerStore.txt:2080），
     //   读档不重建 PhoneClientDict（整对象 ES3 随档恢复）→ 旧档缺蛙哥 1005，必须读档后补注册
     internal static void EnsurePhoneRegistered(Il2CppSystem.Collections.Generic.Dictionary<long, StorePhoneClient> dict)
