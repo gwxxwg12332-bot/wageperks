@@ -9,7 +9,7 @@ namespace WagePerks;
 
 // ============================================================
 // 负面特性：声名狼藉（极限开局）
-// 四势力声望 -99 + 第二天补偿金 2000（10-15 玩家拍板 5000→2000）
+// 五势力声望 -99 + 每日补偿金 200×30（10-17 策划裁决：一次性 2000 → 每日 200，最多 30 天共 6000；消除即停）
 // ============================================================
 internal sealed class InfamousPerk : CustomStartingPerk
 {
@@ -18,8 +18,8 @@ internal sealed class InfamousPerk : CustomStartingPerk
     internal override string Id => PerkId;
     internal override string DisplayName => LangHelper.T("声名狼藉-各个势力", "Infamous - Factions");
     internal override string Description => LangHelper.T(
-        "你在空间站臭名昭著——五势力声望 -99，做一点坏事就被通缉。第二天会收到 2000 信用点补偿金。高风险高回报，活着回来再说。",
-        "You are infamous across the station - all five factions at -99 rep. One wrong move and you are wanted. You get 2000 credits on day 2. High risk, high reward.");
+        "你在空间站臭名昭著——五势力声望 -99，做一点坏事就被通缉。每天会收到 200 信用点补偿金（最多 30 天，消除声名狼藉后停止）。高风险高回报，活着回来再说。",
+        "You are infamous across the station - all five factions at -99 rep. One wrong move and you are wanted. You get 200 credits every day (up to 30 days, stops when Infamous is removed). High risk, high reward.");
     internal override int Cost => -10;
     internal override int Type => 1; // 负面红色
 
@@ -66,23 +66,25 @@ internal sealed class InfamousPerk : CustomStartingPerk
         }
         catch (Exception ex) { Core.LogMsg("[声名狼藉] PostfixStartNewGame 异常: " + ex.Message); }
     }
-    // 第二天 OnDayStart 送 2000（阶段2 收敛：散落 Postfix 已删，由 PostfixUnifiedDayStart 统一驱动；10-15 玩家拍板 5000→2000）
+    // 每日补偿金：每天 +200，累计最多 30 次（总额 6000），声名狼藉被消除即停（IsActive 检查天然覆盖）
+    // 10-17 策划裁决：一次性 2000 → 每日 200×30；用累计键 daily_paid_count 防重回第一天/读档重复领（不能用 day 判断）
+    // B3 时序（cheatsheet 5676）：dayCounter 0=开局当天、1=第2天开始 → day>=1 = 从第2天开始收补偿金
     internal override void OnDayStart()
     {
         try
         {
             bool active = IsActive();
             int day = StoreStation.GetDayCounter();
-            int got = WageSaveStore.GetInt(PerkId, "got_money", 0);
-            Core.LogMsg("[声名狼藉] OnDayStart: active=" + active + " day=" + day + " got=" + got);
             if (!active) return;
-            if (day != 2) return;  // 第二天送2000（09-27 A14 回退：恢复 1.3.0 原样）
-            if (got > 0) return;
-            WageSaveStore.SetInt(PerkId, "got_money", 1);
+            if (day < 1) return;
+            int cnt = WageSaveStore.GetInt(PerkId, "daily_paid_count", 0);
+            Core.LogMsg("[声名狼藉] OnDayStart: day=" + day + " cnt=" + cnt);
+            if (cnt >= 30) return;
+            WageSaveStore.SetInt(PerkId, "daily_paid_count", cnt + 1);
             var ps = Il2Cpp.PlayerStore.Instance;
-            if (ps != null) { ps.playerCash += 2000; }
-            NotifyHelper.NightLogRaw("声名狼藉：你收到了 2000 补偿金");
-            Core.LogMsg("[声名狼藉] 第2天送2000 OK");
+            if (ps != null) { ps.playerCash += 200; }
+            NotifyHelper.NightLogRaw("声名狼藉：你收到了 200 信用点补偿（" + (cnt + 1) + "/30）");
+            Core.LogMsg("[声名狼藉] 每日补偿 OK cnt=" + (cnt + 1));
         }
         catch (System.Exception ex) { Core.LogMsg("[声名狼藉] OnDayStart 异常: " + ex.Message); }
     }

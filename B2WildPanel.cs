@@ -914,10 +914,56 @@ internal static class B2WildPanel
         catch (Exception ex) { Core.LogMsg("[B2R] OpenUI 延迟分流异常: " + ex.Message); }
     }
 
+    private static int CountB2Elements(WildUIManager ui)
+    {
+        try
+        {
+            if (ui == null || ui.panel == null) return 0;
+            var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+            if (all == null || all.Length == 0) return 0;
+            int n = 0;
+            foreach (var el in all)
+                if (el != null && el.id != null && el.id.StartsWith(PREFIX)) n++;
+            return n;
+        }
+        catch { return 0; }
+    }
+
+    // FIX18（2026-10-17 P0）：面板重建自愈——读档/回主菜单会卸载 store 场景，WildUI 面板 prefab 重建，
+    //   克隆的 b2 元素随旧面板销毁，但 _cloned 静态标记仍 true → EnsureElements 短路 → 蛙哥模式 b2=0 空壳
+    //   + 顶部标题/分组标签缓存指向已销毁对象（Latest.log 实锤：03:17:57 读档后 03:18:10 分流 total=68→35 b2=33→0）。
+    //   每次打开先校验子树 b2 计数，不完整即判定面板重建 → 清残留 + 重置全部缓存引用 → 重新克隆。
+    private static void ResetPanelCaches()
+    {
+        _cloned = false;
+        _headerTmp = null;
+        _headerSearched = false;
+        _groupLabels = null;
+        _favorTmp = null;
+        _containerGeoRecorded = false;
+        _geoContainer = null;
+        // FIX11「恢复清单不 Clear」仅在同一面板实例内有意义；实例重建后旧 Transform 全失效，必须清空
+        _emptyContainerOrig.Clear();
+        _b2Containers.Clear();
+    }
+
     private static void EnsureElements(WildUIManager ui)
     {
-        if (_cloned) return;
         if (ui == null || ui.panel == null) return;
+        if (_cloned)
+        {
+            int b2 = CountB2Elements(ui);
+            if (b2 >= Entries.Length) return; // 克隆完整（面板未重建）
+            Core.LogMsg($"[B2R] 面板重建检测: 子树 b2={b2}/{Entries.Length} → 重置克隆状态并重新克隆");
+            // 清残留 b2 元素（防部分残留重复克隆；DestroyImmediate 在协程中安全）
+            var stale = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+            foreach (var el in stale)
+            {
+                if (el == null || el.id == null || !el.id.StartsWith(PREFIX)) continue;
+                try { UnityEngine.Object.DestroyImmediate(el.gameObject); } catch { }
+            }
+            ResetPanelCaches();
+        }
         var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
         if (all == null || all.Length == 0) { Core.LogMsg("[B2R] 未找到任何 NetworkElement（子树无模板，跳过克隆）"); return; }
         var tpl = all[0];
@@ -1027,13 +1073,42 @@ internal static class B2WildPanel
         }
         _cloned = true;
         Core.LogMsg("[B2R] 已克隆 " + Entries.Length + " 个元素到面板子树（模板=子树首个 NetworkElement，4 列网格布局）");
-        // ================= FIX8：容器高度扩展 + 层级置顶（根治"第二行起不可见"） =================
-        // FIX7 诊断实锤（23:19:33）：容器 Panel1(3) rect=1250x180 pivot=(0.5,0.5)；网格 row=1 y=-124、row=5 y=-580
-        //   → 22 张 4列×6行 需要 ≈684 高，容器仅 180 → 第二行起超出容器被裁切不可见（第一行 y=-10 在界内=截图所见）
-        //   修法：①容器高度扩展到网格所需（rows*cellH+(rows-1)*spacing+上下边距）②蛙哥模式容器 SetAsLastSibling 置顶
-        //   （同 Canvas 无子 Canvas，遮挡只可能=裁切或 sibling 顺序；置顶防装饰/横条覆盖）③Mask/ScrollRect 诊断兜底
+        // FIX19（2026-10-17 P0 补齐）：容器几何抽独立方法——每次蛙哥打开都幂等应用。
+        //   原实现内联在克隆尾部，二次打开 _cloned 短路 → 扩展/置顶不再执行 → 「被挡住」复现
+        //   （Latest.log 实锤：03:15:53 FIX11 还原 180 后，03:15:57 蛙哥打开无 FIX8 扩展日志）。
+        EnsureContainerGeometry(ui);
+    }
+
+    // FIX19：容器高度扩展 + 层级置顶（原 FIX8 逻辑抽独立方法，根治"第二行起不可见"/"被挡住"）。
+    //   幂等：needH > 当前高才扩展（已扩展不重复）；置顶每次执行（蛙哥模式防装饰/横条覆盖）。
+    //   调用点：EnsureElements 克隆后（首次布局）+ ApplyWageMode 蛙哥分支（每次打开自愈，
+    //     覆盖「先开王尔德正常 → 再开蛙哥被挡」顺序相关回归）。
+    private static void EnsureContainerGeometry(WildUIManager ui)
+    {
         try
         {
+            if (ui == null || ui.panel == null) return;
+            var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
+            if (all == null || all.Length == 0) return;
+            var tpl = all[0];
+            if (tpl == null || tpl.gameObject == null) return;
+            Transform parent = tpl.gameObject.transform.parent;
+            if (parent == null) return;
+            RectTransform tplRect = tpl.gameObject.GetComponent<RectTransform>();
+            float cellW = tplRect != null && tplRect.rect.width > 1 ? tplRect.rect.width : 120f;
+            float cellH = tplRect != null && tplRect.rect.height > 1 ? tplRect.rect.height : 120f;
+            const float spacing = 30f; // FIX12：卡片间距 14→30（容器扩高逻辑自动跟随 needH 增长）
+            int cols = 4; // FIX14：列数=面板可视宽自适应（最少 4 列兜底），与克隆网格同算法
+            try
+            {
+                var pRect0 = parent.GetComponent<RectTransform>();
+                if (pRect0 != null && pRect0.rect.width > 1)
+                {
+                    int fit = (int)((pRect0.rect.width - 20f) / (cellW + spacing));
+                    if (fit > cols) cols = fit;
+                }
+            }
+            catch { }
             int rows = (Entries.Length + cols - 1) / cols;
             float needH = rows * cellH + (rows - 1) * spacing + 40f;
             var pRect2 = parent.GetComponent<RectTransform>();
@@ -1286,7 +1361,12 @@ internal static class B2WildPanel
         {
             if (ui.title != null)
                 ui.title.text = LangHelper.T("蛙哥人脉网络", "Wage Brother Network"); // 右侧详情槽（打开瞬间）
+            EnsureContainerGeometry(ui); // FIX19：每次蛙哥打开应用容器几何+置顶（防二次打开"被挡住"）
             ApplyWageHeader(ui); // 顶部页面标题（prefab 静态 TMP，运行时遍历替换——拆包 B2-R2-H3 C1）
+        }
+        else
+        {
+            RestoreContainerGeometry(); // FIX19：王尔德打开还原容器几何（双保险幂等；防蛙哥扩展态污染原版布局）
         }
         Core.LogMsg("[B2R] 面板模式: " + (_wageMode ? "蛙哥（22条）" : "王尔德（原样）"));
     }
@@ -1326,7 +1406,10 @@ internal static class B2WildPanel
             bool first = true;
             foreach (var s in _groupLabels)
             {
-                if (s == null || s.Tmp == null || s.Tmp.gameObject == null) continue; // 引用失效（面板重建）→ 本轮跳过，下次重建
+                if (s == null || s.Tmp == null) continue;
+                bool alive;
+                try { alive = s.Tmp.gameObject != null; } catch { alive = false; }
+                if (!alive) { _groupLabels = null; return; } // FIX18：面板重建 → 清缓存，下次 OpenUI 重搜定位分组标签
                 if (wageMode)
                 {
                     if (first)
@@ -1421,9 +1504,19 @@ internal static class B2WildPanel
             if (_headerSearched && _headerTmp == null) return; // 已搜过没找到，不再搜
             if (_headerTmp != null)
             {
-                _headerTmp.text = BuildAffectionBanner();
-                _headerTmp.color = BannerColor();
-                return;
+                // FIX18：面板重建后缓存引用指向已销毁 TMP（托管包装非 null 但 native 已释放）→
+                //   gameObject 判空（PostfixUpdate 的 _favorTmp 同款判空在该 interop 环境实测有效：
+                //   读档后恩惠行仍被正确替换=已重搜）→ 失效则重置缓存，落到下方重搜分支
+                bool alive;
+                try { alive = _headerTmp.gameObject != null; } catch { alive = false; }
+                if (alive)
+                {
+                    _headerTmp.text = BuildAffectionBanner();
+                    _headerTmp.color = BannerColor();
+                    return;
+                }
+                _headerTmp = null;
+                _headerSearched = false;
             }
             if (ui.panel == null) return;
             var comps = ui.panel.gameObject.GetComponentsInChildren<Component>(true); // Patches.World.cs:143 同款
