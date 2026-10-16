@@ -144,6 +144,18 @@ public static class BuildConfig
 	public static string WageBrotherOrderTargetTags => GetString("WageBrotherOrderTargetTags", "");
 	public static int WageBrotherOrderCd => GetInt("WageBrotherOrderCd", 3);
 	public static int WageBrotherOrderPrice => GetInt("WageBrotherOrderPrice", 800);
+	// ===== 剧情mod 五线（10-16，落地指南纪律⑤：机制参数全提键；节点声望增量为设计定稿值随台词同批校对） =====
+	public static int StoryDayN1 => GetInt("StoryDayN1", 15);
+	public static int StoryDayN2 => GetInt("StoryDayN2", 22);
+	public static int StoryDayN3 => GetInt("StoryDayN3", 29);
+	public static int StoryDayN4 => GetInt("StoryDayN4", 36);
+	public static int StoryDayNellis => GetInt("StoryDayNellis", 20);  // Nellis（技术派）A2 抉择触发天数（第 2-4 周窗口）
+	public static int StoryDayFrogM3 => GetInt("StoryDayFrogM3", 30);  // 蛙哥纵轴 M3 归来/永诀触发天数（第 30 天后，需 ≥2 线走完 N3）
+	public static int StorySettleDay60 => GetInt("StorySettleDay60", 60);
+	public static int StorySettleDay90 => GetInt("StorySettleDay90", 90);
+	public static int StoryFavorAwaken => GetInt("StoryFavorAwaken", 5);   // Eleanor 觉醒线好感阈值（唯一来源=N1-A +5，默认5=走N1-A即觉醒）
+	public static int StoryRepVictory => GetInt("StoryRepVictory", 60);     // 结局判定胜利阈值（OfficerLun 正义/腐化、Rev、BM）
+	public static int StoryRepCollapse => GetInt("StoryRepCollapse", 40);   // 治安部垮台阈值（<此值）
 	public static long WageGirlBudgetCap => 2147483646L;
 	// 六维
 	public static int WageGirlStatInit => GetInt("WageGirlStatInit", 60);
@@ -524,6 +536,17 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMin", 3, "博士廉价模组数量下限");
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMax", 5, "博士廉价模组数量上限");
 			melonPreferences_Category.CreateEntry("ProtectorSupplyCount", 3, "博士保护器补货数量");
+			melonPreferences_Category.CreateEntry("StoryDayN1", 15, "剧情mod：节点N1触发天数");
+			melonPreferences_Category.CreateEntry("StoryDayN2", 22, "剧情mod：节点N2触发天数");
+			melonPreferences_Category.CreateEntry("StoryDayN3", 29, "剧情mod：节点N3触发天数");
+			melonPreferences_Category.CreateEntry("StoryDayN4", 36, "剧情mod：节点N4触发天数");
+			melonPreferences_Category.CreateEntry("StoryDayNellis", 20, "剧情mod：Nellis（技术派）A2抉择触发天数");
+			melonPreferences_Category.CreateEntry("StoryDayFrogM3", 30, "剧情mod：蛙哥纵轴M3归来/永诀触发天数（需≥2线走完N3）");
+			melonPreferences_Category.CreateEntry("StorySettleDay60", 60, "剧情mod：第60天五线结算");
+			melonPreferences_Category.CreateEntry("StorySettleDay90", 90, "剧情mod：第90天隐藏结算（蛙娘路径）");
+			melonPreferences_Category.CreateEntry("StoryFavorAwaken", 5, "剧情mod：Eleanor觉醒线好感阈值（默认5=走N1-A即觉醒）");
+			melonPreferences_Category.CreateEntry("StoryRepVictory", 60, "剧情mod：结局胜利声望阈值");
+			melonPreferences_Category.CreateEntry("StoryRepCollapse", 40, "剧情mod：治安部垮台阈值（低于此值）");
 			// 09-23 容器表改属性，InitPrefs 不再一次性赋值
 			_hardMode = null;
 		}
