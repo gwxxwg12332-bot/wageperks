@@ -268,6 +268,13 @@ internal static class B2WildPanel
             case "gu_machine": return LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge");
             case "ai_generator": return LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator");
             case "protector": return LangHelper.T("蛙哥保护器核心", "Wage's Protector Core");
+            case "protector_chance": return LangHelper.T("蛙哥保护器·随机出现率", "Protector Spawn Chance");
+            case "permit1": return LangHelper.T("蛙哥的许可（一级）", "Wage's Permit (Tier 1)");
+            case "permit2": return LangHelper.T("蛙哥的许可（二级）", "Wage's Permit (Tier 2)");
+            case "permit3": return LangHelper.T("蛙哥的许可（三级）", "Wage's Permit (Tier 3)");
+            case "charger1": return LangHelper.T("蛙哥充电器（一级）", "Wage's Charger (Tier 1)");
+            case "charger2": return LangHelper.T("蛙哥充电器（二级）", "Wage's Charger (Tier 2)");
+            case "charger3": return LangHelper.T("蛙哥充电器（三级）", "Wage's Charger (Tier 3)");
         }
         return e.Id;
     }
@@ -341,16 +348,39 @@ internal static class B2WildPanel
         {
             GameItem it = DirectoryMaster.Item(itemId, true);
             if (it == null) { Notify(LangHelper.T("物品生成失败", "Item create failed")); return; }
-            // 10-15 用户拍板：服务解锁物 → 柜台优先（电话 1005 购买后直接出现在柜台），桌面兜底
-            try { MerchantHelper.AddItemToCounter(itemId, 0, false); Core.LogMsg("[B2R] 服务发放 → 柜台: " + itemId); return; } catch { }
-            var em = EmporiumEntry.Instance;
-            if (em != null && em.invElement != null)
-            {
-                var slot = em.invElement.TryFindOneValidInventorySlot(it, false);
-                if (slot != null) { try { slot.TryAcceptOnce(); Core.LogMsg("[B2R] 服务发放 → 桌面(柜台兜底): " + itemId); return; } catch { } }
-            }
+            // FIX16（10-16 玩家"蛙哥服务买东西没有立即上桌"+补充"购买后直接出现在桌面参考原生王尔德酒商服务"）：
+            //   交付方式=AddDirectSellingItemToTable 上桌（酒商卖酒同款，MerchantHelper.AddItemToCounter 内部）；
+            //   isOwend=true=玩家已拥有（服务=花钱解锁物品，直接拿走，参考蛙哥服务卡 WageBrother.cs:327 同款 isOwend=true）——
+            //   原实现 isOwend=false=客户待售品 → 玩家买了服务还要再买物品=体验错误。
+            //   购买瞬间柜台可能未就绪 → 静默失败（WageBrother.cs:191 同坑实锤）→ 入延迟重试队列（帧轮询补上桌）
+            try { MerchantHelper.AddItemToCounter(itemId, 0, true); Core.LogMsg("[B2R] 服务发放 → 柜台(isOwend=true): " + itemId); return; } catch { }
+            _pendingServiceItems.Enqueue(itemId);
+            Core.LogMsg("[B2R] 服务发放柜台未就绪 → 入延迟重试队列: " + itemId);
         }
         catch (Exception ex) { Core.LogMsg("[B2R] GrantServiceItem 异常: " + ex.Message); }
+    }
+
+    // FIX16：服务发放延迟重试队列（柜台未就绪时先入队，帧轮询柜台就绪后补上桌——防"买了没上桌"）
+    private static readonly System.Collections.Generic.Queue<string> _pendingServiceItems = new System.Collections.Generic.Queue<string>();
+    internal static void OnUpdateServiceItemRefill()
+    {
+        try
+        {
+            if (_pendingServiceItems.Count == 0) return;
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null) return; // 柜台未就绪 → 下帧重试
+            while (_pendingServiceItems.Count > 0)
+            {
+                string id = _pendingServiceItems.Dequeue();
+                try
+                {
+                    MerchantHelper.AddItemToCounter(id, 0, true); // 同款 isOwend=true（玩家拥有直接拿走）
+                    Core.LogMsg("[B2R] 服务发放（延迟重试成功）→ 柜台: " + id);
+                }
+                catch (Exception ex) { Core.LogMsg("[B2R] 服务发放延迟重试失败 " + id + ": " + ex.Message); }
+            }
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] OnUpdateServiceItemRefill 异常: " + ex.Message); }
     }
 
     private static void OnUnlockService(WildEntry e)
@@ -559,6 +589,16 @@ internal static class B2WildPanel
             var e = FindEntry(__instance.id);
             if (e == null) return true;
             if (e.IsCannibal) { __result = true; return false; } // 吞噬季永远可点（购买/切换模式）
+            // FIX15（10-16 玩家"有些服务钱够了买了才告知条件不足"）：服务条目的解锁条件（蛙哥Lv2+好感）必须
+            //   在购买前拦截——原 OnUnlockService 检查在原生扣钱之后（原生购买先支付再触发 UnlockAction）→
+            //   条件不足时钱已扣。PrefixIsReady=购买按钮可点判定（购买前），此处直接按 ServiceUnlockable 给结果。
+            if (e.IsService)
+            {
+                if (!ServiceUnlockable()) { __result = false; return false; } // 条件不足→按钮灰（提示看描述）
+                // 一次性服务：已解锁（SetLevel>=1）→ 不可再买（IsUnlocked 锁）；可重复（保护器/概率）→ 可点
+                __result = e.ServiceId == "protector" || e.ServiceId == "protector_chance" || B2ServiceStore.GetLevel(e.Id) < 1;
+                return false;
+            }
             var perk = FindPerk(e.PerkId);
             if (perk == null) { __result = true; return false; }
             if (perk.Cost < 0)
@@ -864,9 +904,21 @@ internal static class B2WildPanel
             Core.LogMsg($"[B2R] 层级: 模板路径={GetTransformPath(tpl.gameObject.transform)} canvasSorting={(canvas != null ? canvas.sortingOrder : -999)} panel下Canvas数={ui.panel.gameObject.GetComponentsInChildren<Canvas>(true).Length}");
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 容器诊断异常: " + ex.Message); }
-        const int cols = 4;
         // FIX12：卡片间距 14→30（玩家"服务卡不要挤在一起"）——容器扩高逻辑会自动跟随 needH 增长
         const float spacing = 30f;
+        // FIX14（10-16 玩家"图标横向排满面板之后再往下排列"）：列数=面板可视宽自适应（原固定 4 列→面板 1250 只放 4 列浪费）
+        //   1250 宽 / (cell 120+spacing 30) ≈ 8 列 → 图标铺满横向再换行；最少 4 列（窄面板兜底）
+        int cols = 4;
+        try
+        {
+            var pRect0 = parent.GetComponent<RectTransform>();
+            if (pRect0 != null && pRect0.rect.width > 1)
+            {
+                int fit = (int)((pRect0.rect.width - 20f) / (cellW + spacing));
+                if (fit > cols) cols = fit;
+            }
+        }
+        catch { }
         int idx = 0;
         foreach (var e in Entries)
         {
@@ -910,11 +962,17 @@ internal static class B2WildPanel
                 }
                 catch (Exception ex) { Core.LogMsg("[B2R] ICON 尺寸诊断异常 " + e.Id + ": " + ex.Message); }
                 // FIX6c + 10-15 蛙娘拆分：perk 卡按 PerkId 映射图标（索引无关）；吞噬季/服务条目走 Icon(idx) 兜底
+                // FIX14（10-16 玩家"很多图标没有生产"）：服务条目（PerkId=null）原走 Icon(idx) 超出 22 数组→null→空白；
+                //   改按 ServiceId 映射（B2Icons.ServiceIcon）；PerkIcon 未命中也兜底 Icon(idx)，防空白
                 try
                 {
                     if (el.icon != null)
                     {
-                        var sp = e.PerkId != null ? B2Icons.PerkIcon(e.PerkId) : B2Icons.Icon(idx);
+                        Sprite sp = null;
+                        if (e.PerkId != null) sp = B2Icons.PerkIcon(e.PerkId);
+                        else if (e.ServiceId != null) sp = B2Icons.ServiceIcon(e.ServiceId);
+                        else sp = B2Icons.Icon(idx);
+                        if (sp == null && e.PerkId != null) sp = B2Icons.Icon(idx); // perk 映射缺失兜底（不空白）
                         if (sp != null) el.icon.sprite = sp;
                     }
                 }
@@ -1372,6 +1430,8 @@ internal static class B2WildPanel
     {
         try
         {
+            // FIX16：服务发放延迟重试（帧轮询，柜台未就绪时补上桌）——不依赖 _wageMode（王尔德路径也补）
+            OnUpdateServiceItemRefill();
             if (!_wageMode) return; // 王尔德路径零开销
             if (__instance == null || __instance.panel == null) return;
             if (_favorTmp == null || _favorTmp.gameObject == null)

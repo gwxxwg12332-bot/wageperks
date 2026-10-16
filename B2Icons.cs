@@ -5738,6 +5738,32 @@ namespace WagePerks
             if (_perkIconCache.TryGetValue(perkId, out var sp)) return sp;
             return null;
         }
+
+        // 10-16 玩家反馈"很多图标没有生产"：服务条目（PerkId=null）走 Icon(idx) 超出 22 数组 return null → 图标空白。
+        //   修复=服务条目按 ServiceId 映射图标（复用语义相近的现成像素画，不新增素材）；未匹配服务用 Cannibal 兜底。
+        private static Dictionary<string, Sprite> _serviceIconCache = null;
+        public static Sprite ServiceIcon(string serviceId)
+        {
+            if (string.IsNullOrEmpty(serviceId)) return null;
+            if (_serviceIconCache == null)
+            {
+                _serviceIconCache = new Dictionary<string, Sprite>();
+                Sprite Make(Color[] px) => CreatePixelSprite(px, 32, 32, 100f);
+                _serviceIconCache["wanderer_day1"] = Make(Wanderer);       // 重回第一天=流浪者
+                _serviceIconCache["gu_machine"] = Make(Cannibal);          // 养蛊机=炼蛊
+                _serviceIconCache["ai_generator"] = Make(DestinyDice);     // AI生成器=抽卡
+                _serviceIconCache["protector"] = Make(WagePower);          // 保护器=蛙哥
+                _serviceIconCache["protector_chance"] = Make(WagePower);
+                _serviceIconCache["permit1"] = Make(HonestDealer);         // 许可=通行
+                _serviceIconCache["permit2"] = Make(HonestDealer);
+                _serviceIconCache["permit3"] = Make(HonestDealer);
+                _serviceIconCache["charger1"] = Make(LuckScout);           // 充电器=能量
+                _serviceIconCache["charger2"] = Make(LuckScout);
+                _serviceIconCache["charger3"] = Make(LuckScout);
+            }
+            if (_serviceIconCache.TryGetValue(serviceId, out var sp)) return sp;
+            return CreatePixelSprite(Cannibal, 32, 32, 100f); // 未匹配服务兜底（不空白）
+        }
         public static Sprite CreatePixelSprite(Color[] pixels, int w, int h, float ppu)
         {
             if (pixels == null || pixels.Length != w * h) return null;
