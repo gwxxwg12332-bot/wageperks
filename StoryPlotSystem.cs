@@ -273,6 +273,7 @@ namespace WagePerks
                 // 90 天隐藏结局也走真结局画面（新纪元/中立守望/剧情收束）
                 string hTitle = GetHiddenEndingTitle();
                 TriggerTrueEnding("hidden_" + (hTitle.Contains("新纪元") ? "new_era" : hTitle.Contains("中立") ? "neutral_watch" : "closing"), hTitle, hidden);
+                StoryNewsSystem.InjectSettlementEvent("90", hTitle, hidden); // 审阅 P1⑥：结算上报纸
             }
 
             if (day >= BuildConfig.StorySettleDay60 && !WageSaveStore.GetBool(NS_EL, KEY_SETTLED, false))
@@ -289,6 +290,7 @@ namespace WagePerks
                 // 真结局对接：判定主导结局→存文案→ExecuteGameOver("wages_*")（Prefix 拦截显示，档不结束）
                 string endingId = DecideEnding60(out string title, out string desc);
                 if (!string.IsNullOrEmpty(endingId)) TriggerTrueEnding(endingId, title, desc);
+                StoryNewsSystem.InjectSettlementEvent("60", title, desc); // 审阅 P1⑥：结算上报纸
             }
 
             return day >= BuildConfig.StorySettleDay60;
@@ -578,7 +580,7 @@ namespace WagePerks
             {
                 new ChoiceDef(LangHelper.T("按行情收下（上层+15，好感+5）", "Buy at market (UL+15, +5 favor)"),
                     () => ApplyRep("UL", 15), () => WageSaveStore.SetInt(NS_EL, KEY_FAVOR, WageSaveStore.GetInt(NS_EL, KEY_FAVOR, 0) + 5),
-                    LangHelper.T("这批医疗用品是上城货，成色没得挑。你按行情收，我记你个人情。人情在废土不值钱，但总比没有强。", "These are quality upper-level goods. You paid fairly, I owe you one. Favor means little out here, but it beats nothing.")),
+                    LangHelper.T("上城货，成色没得挑。你按行情收，我记你个人情。人情这地方不值钱，总比没有强。", "Upper-level goods, nothing wrong with them. You paid fairly, I owe you one. Favor means little out here, but it beats nothing.")),
                 new ChoiceDef(LangHelper.T("压价（上层-10）", "Haggle down (UL-10)"),
                     () => ApplyRep("UL", -10), null,
                     LangHelper.T("行，你压吧。这年头什么货不是二手的。我认。", "Fine, squeeze me. Everything's secondhand these days. I accept.")),
@@ -621,7 +623,7 @@ namespace WagePerks
         {
             int favor = WageSaveStore.GetInt(NS_EL, KEY_FAVOR, 0);
             WageSaveStore.SetInt(NS_EL, KEY_LAST_SPAWN, day);
-            var client = CreateStoryClient();
+            var client = CreateStoryClient("Eleanor");
             if (client == null) return;
             string line = favor >= BuildConfig.StoryFavorAwaken
                 ? LangHelper.T("到头来还是你赢了。你说得对，自由是心态。我花了大半辈子才明白，钱买不来这个。", "In the end you were right. Freedom is a state of mind. Took me half a lifetime to learn money can't buy it.")
@@ -886,7 +888,7 @@ namespace WagePerks
         private static void SpawnNode(string speaker, string ns, string doneKey, int day, string intro, ChoiceDef[] choices, string flavor = null)
         {
             WageSaveStore.SetInt(ns, KEY_LAST_SPAWN, day);
-            var client = CreateStoryClient();
+            var client = CreateStoryClient(speaker);
             if (client == null) return;
 
             // 常驻台词（台词稿 §2.1/§3.1 定稿）：有 flavor 时作为开场第一句，intro 顺延为第二句，选项挂第二句
@@ -965,18 +967,33 @@ namespace WagePerks
             catch (Exception ex) { Core.LogMsg("[StoryPlot] 声望结算异常 " + faction + ": " + ex.Message); }
         }
 
-        private static StoreClient CreateStoryClient()
+        private static StoreClient CreateStoryClient(string speaker)
         {
             try
             {
                 StoreClient c = StoreClientList.CreateFlexiBuyer();
                 if (c == null) { Core.LogMsg("[StoryPlot] 创建剧情客户失败"); return null; }
                 try { c.isSecurity = false; } catch { }
-                try { c.spriteName = SpriteDict.GetRandomLowerLevelSpriteName(); } catch { }
+                try { c.spriteName = SpriteBySpeaker(speaker); } catch { } // 审阅 P1⑥：阵营立绘映射（不再全用下层随机）
                 try { c.eventSourceId = "story_plot"; } catch { }
                 return c;
             }
             catch (Exception ex) { Core.LogMsg("[StoryPlot] 创建客户异常: " + ex.Message); return null; }
+        }
+
+        // 阵营立绘映射（SpriteDict 实锤接口 dump.cs:48761-48821）：上层→Upper、治安部→Sec、革命军→Rev、黑市→BM、下层→Lower
+        private static string SpriteBySpeaker(string speaker)
+        {
+            if (string.IsNullOrEmpty(speaker)) return SpriteDict.GetRandomLowerLevelSpriteName();
+            if (speaker.Contains("Eleanor")) return SpriteDict.GetRandomUpperFemaleSpriteName();
+            if (speaker.Contains("Officer Lun")) return SpriteDict.GetRandomSecMaleSpriteName();
+            if (speaker.Contains("Serpico")) return SpriteDict.GetRandomSecSpriteName();
+            if (speaker.Contains("蛙哥")) return SpriteDict.GetRandomShadySpriteName();
+            if (speaker.Contains("Georgio")) return SpriteDict.GetRandomLowerMaleSpriteName();
+            if (speaker.Contains("Nellis")) return SpriteDict.GetRandomScavSpriteName();
+            if (speaker.Contains("军需官")) return SpriteDict.GetRandomRevMaleSpriteName();
+            if (speaker.Contains("Cartel")) return SpriteDict.GetRandomBMMaleSpriteName();
+            return SpriteDict.GetRandomLowerLevelSpriteName();
         }
 
         private static void SetDialogue(StoreClient client, string speaker, string text)

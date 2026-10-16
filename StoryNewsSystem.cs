@@ -93,6 +93,29 @@ namespace WagePerks
             }
         }
 
+        // ============ 结算上报纸（审阅 20261016 P1⑥：结算结果不再只走夜报，复用 QueueFuturEvent 通道次日上报纸） ============
+        public static void InjectSettlementEvent(string id, string title, string desc)
+        {
+            try
+            {
+                var evtMgr = (Il2Cpp.StoreStation.instance != null) ? Il2Cpp.StoreStation.instance.storeEventManager : null;
+                if (evtMgr == null) return;
+                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(title)) return;
+                var evt = new Il2Cpp.StoreEvent();
+                evt.identifier = "story_settle_" + id;
+                evt.newsName = title;
+                evt.newsDescription = desc;
+                evt.displayName = title;
+                evt.duration = 2;
+                evt.eventType = Il2Cpp.StoreEvent.EventType.NORMALE;
+                evt.eventArea = Il2Cpp.StoreEvent.EventArea.ALL; // 枚举 UPPER=0/LOWER=1/ALL=2（dump.cs:39805-39807，无 NONE）
+                try { if (evtMgr.IsEventActive(evt.identifier)) return; } catch { }
+                evtMgr.QueueFuturEvent(evt, 1, true); // 次日上报纸
+                Core.LogMsg("[StoryNews] 结算新闻已注入: " + evt.identifier);
+            }
+            catch (Exception ex) { Core.LogMsg("[StoryNews] 结算注入异常: " + ex.Message); }
+        }
+
         // ============ OnDayStart Postfix（PatchRegistryTable 注册） ============
         public static void PostfixStoryNewsDayStart()
         {

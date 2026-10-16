@@ -600,9 +600,12 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
                         var g = DirectoryMaster.Item(id, true);
                         if (g == null) { pool.RemoveAt(idx); tries++; continue; }
                         if (g.IsTag("STANDARD_MACHINE_TAG") || g.IsTag("CONTAINER_TAG")) { pool.RemoveAt(idx); tries++; continue; }
-                        // 09-20 优化：礼物价值随好感提升（好感 0→500、100→700；#10 负好感→更廉价）
-                        int minVal = 500 + (int)(GetAffectionExact() / 100.0 * 200);
-                        if (g.unitValue < minVal) { pool.RemoveAt(idx); tries++; continue; } // 好物价值 ≥minVal
+                        // 10-16 审阅对齐：礼物价值按好感三档（设计稿 V2 §2.1：[50,99]→20~60、[100,200]→100~300；<50→20 以下）
+                        double giftAff = GetAffectionExact();
+                        int minVal = 1, maxVal = 20;
+                        if (giftAff >= 50 && giftAff < 100) { minVal = 20; maxVal = 60; }
+                        else if (giftAff >= 100) { minVal = 100; maxVal = 300; }
+                        if (g.unitValue < minVal || g.unitValue > maxVal) { pool.RemoveAt(idx); tries++; continue; } // 档位区间筛选
                         it = g; break;
                     }
                     catch { pool.RemoveAt(idx); tries++; }
