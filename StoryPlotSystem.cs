@@ -25,6 +25,8 @@ namespace WagePerks
     // ============================================================
     internal static class StoryPlotSystem
     {
+        private const string NS_OPEN = "story_opening";  // 开局钩子（网文七环压缩版：门外人踩招牌→蛙哥电话托付→首次释放）
+        private const string KEY_OPEN = "opening_done";
         private const string NS_EL = "story_eleanor";
         private const string NS_LUN = "story_officerlun";
         private const string NS_GEO = "story_georgio";
@@ -92,6 +94,8 @@ namespace WagePerks
         // Nellis=原生 stub 死入口（StoreClientManager.txt:20935 仅定义 0 调用）→ 调度并入三个已验证入口
         public static void PostfixCheckStoryLineEleanor()
         {
+            try { MaybeAdvanceOpening(); }
+            catch (Exception ex) { Core.LogMsg("[StoryPlot] 开局调度异常: " + ex.Message); }
             try { MaybeAdvanceEleanorLine(); }
             catch (Exception ex) { Core.LogMsg("[StoryPlot] Eleanor 调度异常: " + ex.Message); }
             try { MaybeAdvanceNellisLine(); }
@@ -131,6 +135,37 @@ namespace WagePerks
         {
             try { if (PlayerStore.Instance != null) return StoreStation.GetDayCounter(); } catch { }
             return -1;
+        }
+
+        // ============ 开局钩子（网文框架 v2 七环压缩版：环①门外有人→环②答不上来→环③电话托付→环⑦首次释放）
+        // 卷帘门视角：门外站着冲着蛙哥来的人（flavor 第一句），电话托付（intro 第二句），选项=首次释放（先压抑再选择）
+        private static void MaybeAdvanceOpening()
+        {
+            int day = GetDay();
+            if (day < 0) return;
+            if (WageSaveStore.GetBool(NS_OPEN, KEY_OPEN, false)) return; // 只触发一次（第 1 个营业日）
+            if (WageSaveStore.GetInt(NS_OPEN, KEY_LAST_SPAWN, -1) == day) return;
+            if (day >= 1) SpawnOpening(day);
+        }
+
+        private static void SpawnOpening(int day)
+        {
+            SpawnNode("寻仇者", NS_OPEN, KEY_OPEN, day,
+                LangHelper.T("电话响了。那头是蛙哥的声音：摊子交给你了。别砸了招牌。", "The phone rings. It's Frog Bro: the shop's yours. Don't wreck the sign."),
+                new ChoiceDef[]
+                {
+                    new ChoiceDef(LangHelper.T("照实说：摊子现在是我在管", "Tell it straight: I run it now"),
+                        null, null,
+                        LangHelper.T("……看摊的。行，那以后有事找你。", "...The keeper. Fine. I'll come to you when something comes up.")),
+                    new ChoiceDef(LangHelper.T("亮出蛙哥的家当：东西一样没少（下层+10，治安部-5）", "Show Frog Bro's goods: nothing missing (+10 LL, -5 Sec)"),
+                        () => { ApplyRep("LL", 10); ApplyRep("Sec", -5); }, null,
+                        LangHelper.T("啧。传说是真的。蛙哥把家当都给你了。", "Tsk. The legend's real. Frog Bro handed it all to you.")),
+                    new ChoiceDef(LangHelper.T("不接话，等他走", "Say nothing, wait him out"),
+                        null, null,
+                        LangHelper.T("……行。那我改天再来。", "...Fine. I'll come back another day.")),
+                },
+                LangHelper.T("蛙哥的摊子？呵。换了个看摊的。蛙哥人呢？", "Frog Bro's shop? Ha. Different keeper now. Where's Frog Bro?"));
+            StoryNewsSystem.InjectOpeningNews(); // 环⑥：报纸头条「传奇当铺易主」（群众议论，次日上报纸）
         }
 
         private static void MaybeAdvanceEleanorLine()
@@ -223,7 +258,7 @@ namespace WagePerks
         }
 
         private static void SpawnFrogM3(int day) => SpawnNode("蛙哥", NS_FROG, KEY_FROG_DONE, day,
-            LangHelper.T("听说你把我的摊子看住了。干得不错。现在，把东西还我，或者接着干。你自己选。", "Heard you kept my shop together. Not bad. Now, hand it back, or keep running it. Your call."),
+            LangHelper.T("摊子看住了，人脉也攒住了。干得还行。往后招牌你扛，还是还我？", "You kept the shop together, held the network too. Not bad. So: you carry the sign now, or give it back?"),
             new ChoiceDef[]
             {
                 new ChoiceDef(LangHelper.T("继承（传承）", "Inherit"),
@@ -235,7 +270,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("断绝（毁掉遗产）", "Sever"),
                     null, () => WageSaveStore.SetString(NS_FROG, KEY_FROG_M3, "sever"),
                     LangHelper.T("……行。你亲手的东西，你自己了断。别回头。", "...Fine. What's yours, you end yourself. Don't look back.")),
-            }, LangHelper.T("东西我留给你了。别问我是谁。该知道的时候，你会知道。", "What I left is yours. Don't ask who I am. When it's time, you'll know."));
+            }, LangHelper.T("我每七天来一趟，就看看你砸没砸招牌。还行，没砸。", "I come by every seven days to see if you wrecked the sign. You didn't. Good."));
 
         // 军需官（革命军）+ Cartel（黑市）：无原生 CheckStoryLine，挂 Eleanor Postfix 调度（endlessMode 门一致）
         private static void MaybeAdvanceRevCartelLines(int day)
@@ -587,7 +622,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("举报治安部（治安部+15，上层-20）", "Report her to Security (+15 Sec, -20 UL)"),
                     () => { ApplyRep("Sec", 15); ApplyRep("UL", -20); }, null,
                     LangHelper.T("你举报我？治安部把我从上城一路请下来的，不差你这一趟。", "You'd report me? Security dragged me down from the upper level myself. One more trip won't scare me.")),
-            });
+            }, LangHelper.T("蛙哥的摊子，还开着？我以为早关门了。", "Frog Bro's shop, still open? I thought it shut down long ago."));
 
         private static void SpawnEleanorN2(int day) => SpawnNode("Eleanor", NS_EL, KEY_N2, day,
             LangHelper.T("城里的地契，一夜之间没人要了。你说我该留还是该卖？", "Deeds to the city, worthless overnight. Stay or sell, what do you say?"),
@@ -647,7 +682,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("拒绝（治安部-10）", "Refuse (-10 Sec)"),
                     () => ApplyRep("Sec", -10), null,
                     LangHelper.T("你最好想清楚。不配合的，我这儿都记着。", "Think carefully. The uncooperative, I remember them all.")),
-            }, LangHelper.T("我管抓人，不管判案。上头指谁，我抓谁。你配合点，大家都省事。", "I make the arrests, not the rulings. Whoever the top points at, I grab. Play along, we all get home easy."));
+            }, LangHelper.T("蛙哥的店。换人了？手续办了吗。……我管抓人，不管判案。你配合点，大家都省事。", "Frog Bro's shop. New keeper? Papers filed? ...I make the arrests, not the rulings. Play along, we all get home easy."));
 
         private static void SpawnOfficerLunN2(int day) => SpawnNode("Officer Lun", NS_LUN, KEY_N2, day,
             LangHelper.T("听说你店里收东西不问来路？", "Heard your shop takes goods without asking where they came from?"),
@@ -708,7 +743,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("善意提醒并教鉴别（下层+15）", "Warn kindly and teach grading (+15 LL)"),
                     () => ApplyRep("LL", 15), null,
                     LangHelper.T("你，教乔治奥？乔治奥捡垃圾的时候，你还没出生呢。", "You, teach Georgio? Georgio was picking scraps before you were born.")),
-            }, LangHelper.T("蛙哥？乔治奥认识。那小子不是什么好人。可他说到做到。这年头，说到做到就算好人了。", "Frog Bro? Georgio knows him. Not a good man. But he kept his word. These days, that's what counts as good."));
+            }, LangHelper.T("哟，蛙哥的摊子换人看摊了？乔治奥认识蛙哥，可不认识你。", "Yo, Frog Bro's stall has a new keeper? Georgio knows Frog Bro. Doesn't know you."));
 
         private static void SpawnGeorgioN2(int day) => SpawnNode("Georgio", NS_GEO, KEY_N2, day,
             LangHelper.T("老板，底下闹饥荒了。乔治奥想先赊点粮，月底连本带利还你。", "Boss, folks below are starving. Georgio wants grain on credit. Month-end, interest included."),
@@ -769,7 +804,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("告发（治安部+15，革命军-20）", "Turn them in (+15 Sec, -20 Rev)"),
                     () => { ApplyRep("Sec", 15); ApplyRep("Rev", -20); }, null,
                     LangHelper.T("你够狠。走夜路小心点。", "You're cold. Mind yourself on dark roads.")),
-            });
+            }, LangHelper.T("听说你是蛙哥的人？革命军不跟陌生人打交道。", "Heard you're Frog Bro's man? The revolution doesn't deal with strangers."));
 
         private static void SpawnRevN2(int day) => SpawnNode("军需官", NS_REV, KEY_N2, day,
             LangHelper.T("有个兄弟受了伤，搁你仓库躺两天。你点头，我记恩。", "A brother's hurt. Let him rest in your warehouse two days. Nod and I owe you."),
@@ -830,7 +865,7 @@ namespace WagePerks
                 new ChoiceDef(LangHelper.T("收赃后举报（治安部+15，黑市-20）", "Take then report (+15 Sec, -20 BM)"),
                     () => { ApplyRep("Sec", 15); ApplyRep("BM", -20); }, null,
                     LangHelper.T("你玩我？这笔账记上了。", "You played me? This one's on the books.")),
-            });
+            }, LangHelper.T("蛙哥的店。渠道还在你手上吗？", "Frog Bro's shop. Channels still in your hands?"));
 
         private static void SpawnCartelN2(int day) => SpawnNode("Cartel Handler", NS_CARTEL, KEY_N2, day,
             LangHelper.T("风头紧，仓库里的东西得化掉。你帮我烧。", "Heat's on. The warehouse stash has to disappear. Help me burn it."),

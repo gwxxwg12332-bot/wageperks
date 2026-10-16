@@ -28,7 +28,17 @@ public static partial class WageGirlSystem
             it.SetName(LangHelper.T("蛙娘", "Wage Girl"));
             it.identifier = ENTITY_ID; // 公开 setter（照骰子先例）——identifier 随档
             it.identifierName = "TYPE-STRING_" + ENTITY_ID; // 公开 setter
-            it.shortDescription = LangHelper.T("蛙娘——蛙哥留下的仿生女仆。她会自己吃喝、干活，心情不好还会偷拿你的钱和货。但只要你好好照顾她，她会越来越信任你——从刚来时偷你50块，到后来只偷你个小零食；从站在角落不理你，到粘在你身边帮你抬价、叫客、销赃。双击打开她的状态面板。", "Wage Girl — an android maid left by Wage. She eats, works, and steals when moody. But take care of her, and she'll trust you more — from stealing 50 credits on day one to just a snack later; from hiding in the corner to standing by your side, boosting prices, calling customers, and fencing goods. Double-click to open her status panel."); // 10-15 修正：首偷 50（WageGirlStealFirstAmount=50），描述原写 100 与实现不符
+            it.shortDescription = LangHelper.T(
+                "蛙娘——蛙哥留下的仿生女仆。\n" +
+                "她会饿、会渴、会累、会闹脾气；饿、渴或心情差时会顺走货架上的食物、饮品和日用品，每 5 天还会偷一次钱（好感越高偷得越少，好感满 100 后不再偷）。心情大好时，她会把之前偷的都还回来。\n" +
+                "好好照顾她，她就越来越向着你：在场时帮你抬价、销赃，好感够了还会替你打烊后整理货架、捡漏、代售柜台货，甚至代交客户的收购单。\n" +
+                "连续几天没吃好没睡好，她会离家出走 14 天。\n" +
+                "双击打开她的状态面板。",
+                "Wage Girl — an android maid left behind by Wage.\n" +
+                "She gets hungry, thirsty, tired, and moody; when she's starving, parched, or in a foul mood she'll quietly take food, drinks, and daily goods off your shelves — and every 5 days she steals some credits (the higher her affection, the less she takes; once affection hits 100 she stops entirely). In a great mood, she'll even return everything she stole.\n" +
+                "Care for her and she turns to your side: she haggles and fences for you while in the store, and once she trusts you she'll tidy the shelves, salvage finds, auto-sell counter goods, and even fill customer orders after closing.\n" +
+                "Neglect her for several days running and she'll run away for 14 days.\n" +
+                "Double-click to open her status panel."); // 10-16 文案重设计 v2 drop-in：删"叫客"（未实现），偷窃机制按实测校正（每5天偷钱/好感满100不偷/心情好归还）
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
             return it;

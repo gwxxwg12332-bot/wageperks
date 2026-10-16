@@ -93,8 +93,16 @@ internal static class WageBrother
             GameItem card = ItemDirectory.CreateEmptyItem(null); // 无参构造不存在，照养蛊机CreateGuMachine:79
             card.identifier = CARD_ID;
             card.SetName(LangHelper.T("蛙哥的名片", "Wage Brother's Card"));
-            // 10-15 名片改电话簿用途：取消消perk费用详表（服务已走电话 1005 面板）；号码写进描述 + 文档tag
-            card.shortDescription = LangHelper.T("蛙哥的名片。拨打 1005 即可联系蛙哥——他的全部服务已存入电话簿，随时叫货。", "Wage Brother's business card. Dial 1005 to reach him - all his services are saved to your phonebook, call anytime.");
+            // 10-16 名片文案重设计 v2 drop-in：蛙哥=活着的传奇/考官（非失踪谜题），服务清单+遗产+周期到店
+            card.shortDescription = LangHelper.T(
+                "蛙哥的名片。\n" +
+                "空间站传说里的\"传奇当铺主\"——他把一整间当铺留给了你：妙妙箱、炼蛊的机器、不稳定的 AI、保护器，还有蛙娘。\n" +
+                "他平时靠电话联络，每 7 天亲自到店一趟，带着高得离谱的预算，既收货，也带货。他能替你\"去邪气\"，也能拨动\"吞噬季\"的开关，甚至让你回到第一天。\n" +
+                "拨 1005 联系他——全部服务已存入电话簿，随时叫货。",
+                "Wage Brother's business card.\n" +
+                "The \"legendary pawnshop owner\" of station legend — he left you an entire shop: the Wonder Box, the forging machine, an unstable AI, a protector core, and Wage Girl.\n" +
+                "He reaches you by phone, and every 7 days he visits in person, carrying an absurdly large budget, buying and selling alike. He can \"purify\" you, flip the switch on the Cannibalism Season, and even send you back to Day 1.\n" +
+                "Dial 1005 to reach him — all his services are saved to your phonebook, call anytime.");
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
@@ -303,7 +311,15 @@ internal static class WageBrother
             }
             if (card != null)
             {
-                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName(LangHelper.T("蛙哥的名片", "Wage Brother's Card")); card.shortDescription = LangHelper.T("蛙哥的名片。拨打 1005 即可联系蛙哥——他的全部服务已存入电话簿，随时叫货。", "Wage Brother's business card. Dial 1005 to reach him - all his services are saved to your phonebook, call anytime."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                try { LoadCardSprite(); Core.LogMsg("[蛙哥] 图标加载完成, _cardSprite=" + (_cardSprite != null)); card.SetName(LangHelper.T("蛙哥的名片", "Wage Brother's Card")); card.shortDescription = LangHelper.T(
+                    "蛙哥的名片。\n" +
+                    "空间站传说里的\"传奇当铺主\"——他把一整间当铺留给了你：妙妙箱、炼蛊的机器、不稳定的 AI、保护器，还有蛙娘。\n" +
+                    "他平时靠电话联络，每 7 天亲自到店一趟，带着高得离谱的预算，既收货，也带货。他能替你\"去邪气\"，也能拨动\"吞噬季\"的开关，甚至让你回到第一天。\n" +
+                    "拨 1005 联系他——全部服务已存入电话簿，随时叫货。",
+                    "Wage Brother's business card.\n" +
+                    "The \"legendary pawnshop owner\" of station legend — he left you an entire shop: the Wonder Box, the forging machine, an unstable AI, a protector core, and Wage Girl.\n" +
+                    "He reaches you by phone, and every 7 days he visits in person, carrying an absurdly large budget, buying and selling alike. He can \"purify\" you, flip the switch on the Cannibalism Season, and even send you back to Day 1.\n" +
+                    "Dial 1005 to reach him — all his services are saved to your phonebook, call anytime."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
                     try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
                 } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }

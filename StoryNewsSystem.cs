@@ -94,6 +94,28 @@ namespace WagePerks
         }
 
         // ============ 结算上报纸（审阅 20261016 P1⑥：结算结果不再只走夜报，复用 QueueFuturEvent 通道次日上报纸） ============
+        // 开局报纸「传奇当铺易主」（网文框架 v2 环⑥群众议论，SpawnOpening 触发时注入）
+        public static void InjectOpeningNews()
+        {
+            try
+            {
+                var evtMgr = (Il2Cpp.StoreStation.instance != null) ? Il2Cpp.StoreStation.instance.storeEventManager : null;
+                if (evtMgr == null) return;
+                var evt = new Il2Cpp.StoreEvent();
+                evt.identifier = "story_opening_news";
+                evt.newsName = "传奇当铺易主";
+                evt.newsDescription = "蛙哥的当铺换了掌柜。新掌柜当众接下招牌，老主顾们议论纷纷：这看摊的，接得住吗？";
+                evt.displayName = "传奇当铺易主";
+                evt.duration = 2;
+                evt.eventType = Il2Cpp.StoreEvent.EventType.NORMALE;
+                evt.eventArea = Il2Cpp.StoreEvent.EventArea.ALL; // 枚举 UPPER=0/LOWER=1/ALL=2（dump.cs:39805-39807，无 NONE）
+                try { if (evtMgr.IsEventActive(evt.identifier)) return; } catch { }
+                evtMgr.QueueFuturEvent(evt, 1, true); // 次日上报纸
+                Core.LogMsg("[StoryNews] 开局新闻已注入: story_opening_news");
+            }
+            catch (Exception ex) { Core.LogMsg("[StoryNews] 开局注入异常: " + ex.Message); }
+        }
+
         public static void InjectSettlementEvent(string id, string title, string desc)
         {
             try
