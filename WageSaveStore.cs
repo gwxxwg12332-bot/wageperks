@@ -40,6 +40,15 @@ public static class WageSaveStore
     public static bool HasKey(string ns, string key)
         => WageAPI.WageSaveStore.HasKey(ns, key);
 
+    public static System.Collections.Generic.List<string> EnumerateKeys(string ns)
+        => WageAPI.WageSaveStore.EnumerateKeys(ns);
+
+    public static void RemoveKey(string fullKey)
+        => WageAPI.WageSaveStore.RemoveKey(fullKey);
+
+    public static System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> Snapshot()
+        => WageAPI.WageSaveStore.Snapshot();
+
     public static void ResetForNewRun()
         => WageAPI.WageSaveStore.ResetForNewRun();
 

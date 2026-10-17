@@ -399,43 +399,68 @@ public static partial class WageGirlSystem
                     ReportLine(LangHelper.T("蛙娘打烊后在后屋捡到一件东西（" + sname + "，价值约 " + sval + "）！", "Wage Girl found something in the backroom (" + sname + ", ~" + sval + ")!"));
                 }
             }
-            // 节点4 代售（10-16 M1 P2-4b）：亲密节点 [50,99] 打烊后自动卖 1 件柜台货（每日 1 次键 K_SALE_DAY）
-            // 拆包事实：PlayerStore.SellItem(GameItem) 硬前置=必须有客户在场（无客户静默失败）→ 不自走 SellItem；
-            // 自实现=定价(unitValue，规格"售价=定价100%无议价叠加")→ModCash→柜台移除（样板=治安部没收链 DarkGridInspectorPerk.cs:94-133）
+            // 节点4 代售（10-16 M1 P2-4b）：亲密节点 [50,99] 打烊后自动卖柜台货（每日 1 次键 K_SALE_DAY）
+            // 10-17 蛙娘代售规则引擎接入（设计稿 v2 已批准）：硬锁段保留（Resolve 内部等价），其余换为 Resolve 裁决；
+            //   PickOrder 排序 + DailyQuota 额度（循环卖 N 件）；soldItem==null 时补日报原因（消除静默失败）
             if (GetAffNode(GetAffectionExact()) == 4 && GetStat(K_SALE_DAY) != day)
             {
-                GameItem soldItem = null; int soldPrice = 0; GameInventory showcaseInv = null;
+                List<GameItem> sellCandidates = new List<GameItem>();
+                List<string> noSellReasons = new List<string>(); // 未售原因收集（补日报）
+                int soldCount = 0; GameInventory showcaseInv = null;
                 try
                 {
+                    WageGirlSellRules.BeginEvaluate(); // 一次性读规则进内存（避免逐件 EnumerateKeys）
                     var emS = Il2Cpp.EmporiumEntry.Instance;
                     if (emS != null) showcaseInv = emS.showcaseElement as GameInventory;
                     if (showcaseInv != null && showcaseInv.childItems != null)
                     {
-                        for (int i = 0; i < showcaseInv.childItems.Count && soldItem == null; i++)
+                        for (int i = 0; i < showcaseInv.childItems.Count; i++)
                         {
                             GameItem c = showcaseInv.childItems[i];
                             if (c == null) continue;
                             try
                             {
-                                if (Il2Cpp.ContrabandHelper.GetContrabandLevel(c) > 0) continue; // 违禁品不代售
-                                if (c.IsTag("ORDER_TICKET_TAG")) continue; // 点货签不代售
-                                if (c.IsTag("wage_bro_card") || c.IsTag("destiny_dice_tag")) continue; // mod 特殊物不代售
-                                int uv = 0; try { uv = (int)c.unitValue; } catch { }
-                                if (uv <= 0) continue;
-                                soldItem = c; soldPrice = uv;
+                                SellDecision dec = WageGirlSellRules.Resolve(c, out string why);
+                                if (dec == SellDecision.Sell) { sellCandidates.Add(c); }
+                                else if (!string.IsNullOrEmpty(why) && !noSellReasons.Contains(why)) noSellReasons.Add(why);
                             }
                             catch { }
                         }
                     }
                 }
                 catch (Exception exs) { Core.LogMsg("[蛙娘] 代售扫描异常: " + exs.Message); }
-                if (soldItem != null)
+                // PickOrder：0=列表序(现状) / 1=最便宜 / 2=最贵 / 3=随机
+                int pickOrder = WageGirlSellRules.PickOrder;
+                if (pickOrder == 1) sellCandidates.Sort((a, b) => SafeUnitValue(a).CompareTo(SafeUnitValue(b)));
+                else if (pickOrder == 2) sellCandidates.Sort((a, b) => SafeUnitValue(b).CompareTo(SafeUnitValue(a)));
+                else if (pickOrder == 3) Shuffle(sellCandidates);
+                // DailyQuota：循环卖 N 件（现状=1）
+                int quota = WageGirlSellRules.DailyQuota;
+                foreach (var soldItem in sellCandidates)
                 {
-                    string snm = ""; try { snm = soldItem.name ?? soldItem.identifier ?? ""; } catch { }
-                    ModCashN(soldPrice);
-                    try { if (showcaseInv != null) showcaseInv.Expel(soldItem); } catch (Exception exx) { Core.LogMsg("[蛙娘] 代售移除异常: " + exx.Message); }
+                    if (soldCount >= quota) break;
+                    try
+                    {
+                        int soldPrice = SafeUnitValue(soldItem);
+                        string snm = ""; try { snm = soldItem.name ?? soldItem.identifier ?? ""; } catch { }
+                        ModCashN(soldPrice);
+                        try { if (showcaseInv != null) showcaseInv.Expel(soldItem); } catch (Exception exx) { Core.LogMsg("[蛙娘] 代售移除异常: " + exx.Message); }
+                        soldCount++;
+                        ReportLine(LangHelper.T("蛙娘帮你把柜台上的「" + snm + "」卖了出去（进账 " + soldPrice + "）", "Wage Girl sold \"" + snm + "\" from the counter (+" + soldPrice + ")"));
+                    }
+                    catch { }
+                }
+                if (soldCount > 0)
+                {
                     SetStat(K_SALE_DAY, day);
-                    ReportLine(LangHelper.T("蛙娘帮你把柜台上的「" + snm + "」卖了出去（进账 " + soldPrice + "）", "Wage Girl sold \"" + snm + "\" from the counter (+" + soldPrice + ")"));
+                }
+                else
+                {
+                    // 补日报：消除静默失败（原 :432 仅 soldItem!=null 才 ReportLine）
+                    // ⚠️ 行为变更（审阅 E 记录）：未卖出也写 K_SALE_DAY——语义="今天已尝试过就不再尝试"，每日仅结算一次，与原实现仅卖出才设键不同
+                    string whyText = noSellReasons.Count > 0 ? string.Join("、", noSellReasons) : "柜台没有可卖的东西";
+                    ReportLine(LangHelper.T("蛙娘今天没能卖出柜台货（" + whyText + "）", "Wage Girl couldn't sell anything today (" + whyText + ")"));
+                    SetStat(K_SALE_DAY, day);
                 }
             }
             // 节点5 代收（10-16 M1 P2-4b）：信赖节点 [100,200] 打烊后自动履约 1 件客户收购单（每日 1 次键 K_FULFILL_DAY）
@@ -674,6 +699,22 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 交换异常: " + ex.Message); }
+    }
+
+    // ===== 10-17 蛙娘代售引擎辅助（PickOrder 排序/额度循环用） =====
+    private static int SafeUnitValue(GameItem it)
+    {
+        try { return (int)it.unitValue; } catch { return 0; }
+    }
+
+    private static void Shuffle(List<GameItem> list)
+    {
+        if (list == null || list.Count <= 1) return;
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Core.Rng.Next(i + 1);
+            var t = list[i]; list[i] = list[j]; list[j] = t;
+        }
     }
 
     // ===== 10-16 M1 节点4：捡漏（抽全物品池价值 20~100 的 1 件，直接拾回；复用 GiveGift 抽池模式）=====

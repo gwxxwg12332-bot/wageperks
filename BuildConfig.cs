@@ -144,6 +144,14 @@ public static class BuildConfig
 	public static string WageBrotherOrderTargetTags => GetString("WageBrotherOrderTargetTags", "");
 	public static int WageBrotherOrderCd => GetInt("WageBrotherOrderCd", 3);
 	public static int WageBrotherOrderPrice => GetInt("WageBrotherOrderPrice", 800);
+	// ===== 蛙娘代售规则（10-17 设计稿 v2 + P0.5 审阅修正）：文本兜底（高级配置，可直接手改 MelonPreferences.cfg） =====
+	// 格式：分号分隔；每条 "P:<规则>"（免售）或 "A:<规则>"（可售），如 "P:tag:MODULE_TAG;A:val:0-50"
+	public static string WageGirlSellRulesText => GetString("WageGirlSellRulesText", "");
+	// P0.5（审阅 A 必补）：四开关读 cfg（跨档=玩家策略偏好；名单才走 WageSaveStore 不跨档）
+	public static int WageGirlSellMode => GetInt("WageGirlSellMode", 0);              // 0=黑名单(默认) 1=白名单
+	public static int WageGirlSellPickOrder => GetInt("WageGirlSellPickOrder", 0);    // 0=列表序 1=最便宜 2=最贵 3=随机
+	public static int WageGirlSellDailyQuota => GetInt("WageGirlSellDailyQuota", 1);  // 每日代售件数
+	public static bool WageGirlSellAutoSellOn => GetBool("WageGirlSellAutoSellOn", true); // 代售总开关
 	// ===== 剧情mod 五线（10-16，落地指南纪律⑤：机制参数全提键；节点声望增量为设计定稿值随台词同批校对） =====
 	public static int StoryDayN1 => GetInt("StoryDayN1", 15);
 	public static int StoryDayN2 => GetInt("StoryDayN2", 22);
@@ -453,6 +461,11 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageBrotherOrderTargetTags", "", "点货签品类标签（逗号分隔，蛙哥到店携带对应点货签）");
 			melonPreferences_Category.CreateEntry("WageBrotherOrderCd", 3, "点货签冷却(天)");
 			melonPreferences_Category.CreateEntry("WageBrotherOrderPrice", 800, "点货签售价");
+			melonPreferences_Category.CreateEntry("WageGirlSellRulesText", "", "蛙娘代售规则文本（高级：分号分隔；P:=免售 A:=可售，如 P:tag:MODULE_TAG;A:val:0-50）");
+			melonPreferences_Category.CreateEntry("WageGirlSellMode", 0, "蛙娘代售模式（0=黑名单·默认 1=白名单）");
+			melonPreferences_Category.CreateEntry("WageGirlSellPickOrder", 0, "蛙娘代售挑选顺序（0=列表序 1=最便宜 2=最贵 3=随机）");
+			melonPreferences_Category.CreateEntry("WageGirlSellDailyQuota", 1, "蛙娘每日代售件数");
+			melonPreferences_Category.CreateEntry("WageGirlSellAutoSellOn", true, "蛙娘代售总开关（关=不代售）");
 			melonPreferences_Category.CreateEntry("NeuralChanceHard", 50, "硬爽博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralChanceNormal", 3, "普通博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralRollChance", 2, "普通拾荒独立roll受限模组(%)");
