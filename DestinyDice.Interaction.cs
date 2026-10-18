@@ -525,7 +525,7 @@ namespace WagePerks
 
                 try { it.SetSprite(DICE_ATLAS, DICE_SPRITE_KEY); } catch { }
 
-                Core.LogMsg("[克隆核对] MinimalDice: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证
+                try { Core.LogMsg("[克隆核对] MinimalDice: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证
                 return it;
 
             }

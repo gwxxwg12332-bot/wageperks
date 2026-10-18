@@ -8,11 +8,14 @@ namespace WagePerks;
 public static partial class GuMachineSystem
 {
     // 10-18 总控方案③第一批：本文件空 catch 分类留痕（count_empty_catch.py 热点 #1，75/81）——
-    //   全部为安全防御模式：读字段/tag（失败=默认值）、m.Destroy()（失败=物品保留，下次再销毁，不丢数据）、
-    //   UI Notify/AddNightLog（失败=不影响主链）、写 tag（il2cpp 内存操作失败极罕见，失败=该属性未生效）。
-    //   唯一需关注：TryAcceptAllMid 入舱失败被吞=产出丢失——:116 注释为已知权衡（先清原料腾格已修，空间真不足时宁可丢产出不卡机）。
-    //   结论：本文件无需逐处修复，维持防御式空 catch（逐帧路径吞错成本=0，且外层 TryGuMachineTick/TryAiGeneratorTick/TryBeastEat 均有
-    //   兜底 catch 打日志，非完全静默）。
+    //   四档分诊（总控 10-18 修正本注释旧口径）：本文件**不能整体划入安全防御**，B 类个例已留痕——
+    //   B（失败改状态/默认值进业务，已补 LogErrorOnce 一次性日志）：gu_destroy_mods 销毁原料（残留→下轮重复炼制/复制）、
+    //     gu_place_scrap/gu_place_result 入舱放置（失败→产出/报废模组凭空消失）、gu_tag_result/gu_contraband 产出身份写、
+    //     gu_turbo_destroy/gu_protector_destroy/gu_beast_destroy 互食/消耗销毁（残留→重复计数/消耗）。
+    //   A（捕获必要+下游有兜底，维持空体留白）：读字段/tag（失败=默认值）、UI Notify/AddNightLog（失败=不影响主链）、
+    //     DirectoryMaster.Item 后 if null 兜底。
+    //   C（纯本地不可能抛）：本文件无（Il2Cpp 属性读取会抛=反例 Tick:225/275，不可机械删）。
+    //   外层 TryGuMachineTick/TryAiGeneratorTick/TryBeastEat 均有兜底 catch 打日志（非完全静默）。
     private static void TryGuMachineTick(GameItem gu, int day)
     {
         try
@@ -88,7 +91,7 @@ public static partial class GuMachineSystem
                 // 09-19 P2 失败语义：合成失败 = 原料销毁 + 产报废模组（不留悬垂原料）；充能归零重来
                 foreach (var m in mods)
                 {
-                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
+                    try { m.Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_destroy_mods", "[养蛊] 销毁原料异常(残留→下轮重复炼制): " + ex.Message); } // 销毁语义：直接Destroy（安全），不再Expel虚调用
                 }
                 GameItem scrap = null;
                 try { scrap = DirectoryMaster.Item("system_module_ruined"); } catch { }
@@ -98,7 +101,7 @@ public static partial class GuMachineSystem
                     try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_EFFICIENCY_INT", 0); } catch { }
                     try { RobinCrusoePerk.SetTagIntValue(scrap, "BONUS_PERCENTAGE_QUALITY_INT", 0); } catch { }
                     // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）——TryAcceptAllMid 目标=养蛊机机器舱网格，非玩家后库
-                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, scrap, -1); } catch { }
+                    try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, scrap, -1); } catch (Exception ex) { Core.LogErrorOnce("gu_place_scrap", "[养蛊] 废模组入舱失败(报废模组凭空消失): " + ex.Message); }
                 }
                 string fline = LangHelper.T("养蛊机炼蛊失败：投入模组报废", "Swarm Forge forging failed: input modules scrapped");
                 try { StoreUIManager.Instance.Notify(fline); } catch { }
@@ -115,8 +118,8 @@ public static partial class GuMachineSystem
             if (newPerf > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_PERFORMANCE_INT", newPerf);
             if (newEff > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_EFFICIENCY_INT", newEff);
             if (newQual > 0) RobinCrusoePerk.AddTagInt(result, "BONUS_PERCENTAGE_QUALITY_INT", newQual);
-            try { result.EnableTag("MODULE_TAG"); } catch { } // 09-19 保险：确保产出可被下一轮收集（InitContrabandItem 清 tag 未实锤，显式补打幂等）
-            try { Il2Cpp.ContrabandHelper.InitContrabandItem(result, 3); } catch { } // 09-16 高级违禁品(level 3)
+            try { result.EnableTag("MODULE_TAG"); } catch (Exception ex) { Core.LogErrorOnce("gu_tag_result", "[养蛊] 产出MODULE_TAG失败(下轮不可收集): " + ex.Message); } // 09-19 保险：确保产出可被下一轮收集（InitContrabandItem 清 tag 未实锤，显式补打幂等）
+            try { Il2Cpp.ContrabandHelper.InitContrabandItem(result, 3); } catch (Exception ex) { Core.LogErrorOnce("gu_contraband", "[养蛊] InitContrabandItem失败(产出违禁身份缺失): " + ex.Message); } // 09-16 高级违禁品(level 3)
             try { result.shortDescription = (result.shortDescription ?? "") + LangHelper.T("（违禁原因：炼蛊融合产物，蕴含被禁的模组融合技术）", " (Contraband: forged fusion product with outlawed module-merging tech)"); } catch { }
             // 09-19 修复：先清空原料腾格子、再入产出——原"先入产出后清空"导致产出(2×2 需 4 格)被原料占格
             // → TryAcceptAllMid(-1) 找不到空间静默失败（catch 吞掉）→ 产出丢失（用户反馈"炼蛊成功的模组消失"）
@@ -126,7 +129,7 @@ public static partial class GuMachineSystem
             }
             // 09-15 用户拍板：生产成果放入机器舱（玩家打开机器取出；TryAcceptAllMid 接受 GameGridInventory）
             // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
-            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
+            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch (Exception ex) { Core.LogErrorOnce("gu_place_result", "[养蛊] 产出入舱失败(产出消失): " + ex.Message); }
             // 充能归零
             RobinCrusoePerk.AddTagInt(gu, GU_CHARGE_TAG, -3);
             // 通知（弹窗 + 晨报 + 日历 Tab）
@@ -167,7 +170,7 @@ public static partial class GuMachineSystem
             try {
                 var advs = new System.Collections.Generic.List<GameItem>();
                 if (grid.childItems != null) foreach (var m in grid.childItems) { if (m == null) continue; string mid = ""; try { mid = m.identifier ?? ""; } catch { }; if (mid.StartsWith("turbo_booster_adv")) advs.Add(m); }
-                for (int j = advs.Count - 1; j >= 1; j--) { try { advs[j].Destroy(); } catch { } }
+                for (int j = advs.Count - 1; j >= 1; j--) { try { advs[j].Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_turbo_destroy", "[AI制造] 涡轮互食销毁异常(残留→重复计数): " + ex.Message); } }
                 if (advs.Count > 0) {
                     try { advs[0].EnableTag("TURBO_READY_TAG"); try { MachineTurboBoosterAdv.UpdateSprite(advs[0], null); } catch { } RobinCrusoePerk.SetTagIntValue(advs[0], "CURRENT_CHARGE_TAG", 15 + (advs.Count - 1) * 15); int oldN = RobinCrusoePerk.GetTagIntSafe(advs[0], "wage_turbo_n"); if (oldN <= 0) oldN = 1; RobinCrusoePerk.SetTagIntValue(advs[0], "wage_turbo_n", oldN + (advs.Count - 1)); } catch { }
                     Core.LogMsg("[AI制造] 涡轮互食 adv数=" + advs.Count);
@@ -192,7 +195,7 @@ public static partial class GuMachineSystem
             if (safe)
             {
                 // 阉割版：消耗 1 个保护器（直接Destroy）
-                try { protector.Destroy(); } catch { }
+                try { protector.Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_protector_destroy", "[AI制造] 保护器销毁异常(残留→下轮重复消耗): " + ex.Message); }
             }
             // 抽卡：成功率=蛙娘心情节点（>=80→80%, <40→20%, 中间50%）；阉割版100%
             bool success = true;
@@ -241,13 +244,13 @@ public static partial class GuMachineSystem
                 // → TryAcceptAllMid(-1) 静默失败（catch 吞掉）→ 产出丢失（"炼蛊成功的模组消失"同根因）
                 foreach (var m in mods)
                 {
-                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
+                    try { m.Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_destroy_mods", "[养蛊] 销毁原料异常(残留→下轮重复炼制): " + ex.Message); } // 销毁语义：直接Destroy（安全），不再Expel虚调用
                 }
                 if (result != null)
                 {
                     // 实物放入生成器舱
                     // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
-            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
+            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch (Exception ex) { Core.LogErrorOnce("gu_place_result", "[养蛊] 产出入舱失败(产出消失): " + ex.Message); }
                 }
                 string modeName = safe ? LangHelper.T("阉割版", "Stable") : LangHelper.T("不稳定版", "Unstable");
                 string line = LangHelper.T(
@@ -288,12 +291,12 @@ public static partial class GuMachineSystem
                 }
                 foreach (var m in mods)
                 {
-                    try { m.Destroy(); } catch { } // 销毁语义：直接Destroy（安全），不再Expel虚调用
+                    try { m.Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_destroy_mods", "[养蛊] 销毁原料异常(残留→下轮重复炼制): " + ex.Message); } // 销毁语义：直接Destroy（安全），不再Expel虚调用
                 }
                 if (result != null)
                 {
                     // 【机器舱目标不走 WageItemGrant 统一入口】（2026-10-06 试点标注，防后人误换）
-            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch { }
+            try { Il2Cpp.GraphUtils.TryAcceptAllMid(grid, result, -1); } catch (Exception ex) { Core.LogErrorOnce("gu_place_result", "[养蛊] 产出入舱失败(产出消失): " + ex.Message); }
                 }
                 string line = LangHelper.T(
                     "AI 生成器不稳定波动：产出打折模组 · 倍率×" + failMult.ToString("0.00") + " 性能+" + newP + " 效率+" + newE + " 质量+" + newQ,
@@ -361,7 +364,7 @@ public static partial class GuMachineSystem
                 try { survivor.SetName("鼠王"); } catch { }
                 try { StoreUIManager.Instance.Notify("老鼠吞噬了同类，进化成了鼠王！"); } catch { }
             }
-            try { eaten.Destroy(); } catch { } // 销毁语义：直接Destroy
+            try { eaten.Destroy(); } catch (Exception ex) { Core.LogErrorOnce("gu_beast_destroy", "[练兽] 被吃者销毁异常(残留→下轮重复互食): " + ex.Message); } // 销毁语义：直接Destroy
             if (king == null) // 鼠王豁免每日计数
             {
                 WageSaveStore.SetInt("GuBeast", "eat_day", day);

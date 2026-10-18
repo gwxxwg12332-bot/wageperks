@@ -103,7 +103,7 @@ public static partial class GuMachineSystem
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
             // 09-19 P1：充能差分基准日——创建时记当天（博士上货即创建；读档随 tag 保留）
             try { RobinCrusoePerk.SetTagIntValue(it, GU_LAST_DAY_TAG, DeterministicSchedule.CurrentDay); } catch { }
-            Core.LogMsg("[克隆核对] GuMachine: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证（identifierName 无 get 只写，不读）
+            try { Core.LogMsg("[克隆核对] GuMachine: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证（identifierName 无 get 只写，不读）
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建养蛊机失败: " + ex.Message); return null; }
@@ -138,7 +138,7 @@ public static partial class GuMachineSystem
             it.unitValue = BuildConfig.AiGenPrice; it.unitBaseValue = BuildConfig.AiGenPrice; // 拆包实锤 09-15：原生属性
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
             try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); } catch { }
-            Core.LogMsg("[克隆核对] AiGenerator: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证
+            try { Core.LogMsg("[克隆核对] AiGenerator: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建生成器失败: " + ex.Message); return null; }
@@ -158,7 +158,7 @@ public static partial class GuMachineSystem
             it.unitValue = BuildConfig.ProtectorPrice; it.unitBaseValue = BuildConfig.ProtectorPrice; // 拆包实锤 09-15：原生属性
             // 10-02 修：保护器shape=2x2（原来默认1x1）
             try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); } catch { }
-            Core.LogMsg("[克隆核对] Protector: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证
+            try { Core.LogMsg("[克隆核对] Protector: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建保护器失败: " + ex.Message); return null; }
@@ -189,7 +189,7 @@ public static partial class GuMachineSystem
             it.unitValue = 0; it.unitBaseValue = 0; // 价值由合成时吞噬原料之和定
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
             try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); } catch { }
-            Core.LogMsg("[克隆核对] AiModule: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证
+            try { Core.LogMsg("[克隆核对] AiModule: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建AI模组失败: " + ex.Message); return null; }

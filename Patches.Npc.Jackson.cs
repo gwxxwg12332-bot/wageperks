@@ -70,9 +70,7 @@ internal static partial class Patches
 				}
 			}
 		}
-		catch
-		{
-		}
+		catch (System.Exception ex) { Core.LogErrorOnce("jp_has_queued", "[博士] HasJacksonQueued异常(默认false→可能重复排期): " + ex.Message); }
 		return false;
 	}
 	private static void EnsureJacksonIntroduced()

@@ -182,4 +182,12 @@ public class Core : MelonMod
 	{
 		try { Log?.Error(msg); } catch { }
 	}
+
+	// 10-18 总控空catch批改：一次性红色错误日志——同 key 只报一次（tick 路径防刷屏；打包版可见）
+	//   空 catch 分类 B（写/销毁/放置/迁移失败被静默）统一用此留痕；key 用语义名如 "gu_destroy_scrap"
+	private static readonly System.Collections.Generic.HashSet<string> _loggedErrorsOnce = new System.Collections.Generic.HashSet<string>();
+	public static void LogErrorOnce(string key, string msg)
+	{
+		try { if (_loggedErrorsOnce.Add(key)) Log?.Error(msg); } catch { }
+	}
 }

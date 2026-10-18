@@ -79,7 +79,7 @@ internal static class WageBrokerItems
         // 价格
         it.unitValue = price;
         it.unitBaseValue = price;
-        Core.LogMsg("[克隆核对] BrokerItem: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证（identifierName 无 get 只写，不读）
+        try { Core.LogMsg("[克隆核对] BrokerItem: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); } catch { } // 10-18 总控方案①取证（identifierName 无 get 只写，不读）
 
         // shape 2x2（照养蛊机——大物品）
         try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); } catch { }

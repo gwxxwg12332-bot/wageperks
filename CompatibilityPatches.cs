@@ -93,7 +93,7 @@ internal static class CompatibilityPatches
                 Core.LogMsg("[兼容] 预算上限兜底: " + __instance.clientBudget + " → 10000000 (客户=" + __instance.identifier + ")");
                 __instance.clientBudget = 10_000_000;
             }
-        } catch { }
+        } catch (System.Exception ex) { Core.LogErrorOnce("cp_budget_correct_body", "[兼容] 蛙哥预算校正异常(负预算不修正→不买东西): " + ex.Message); }
     }
 
     // FIX15b 层2：Patch StoreClient.ModBudget(int)——成交扣款/讲价加减路径（拆包实锤：纯加减无 clamp，全 ISIL 仅 3 调用点：
@@ -105,7 +105,7 @@ internal static class CompatibilityPatches
         {
             if (__instance == null || __instance.identifier != "wage_brother") return;
             CorrectWageBudget(__instance);
-        } catch { }
+        } catch (System.Exception ex) { Core.LogErrorOnce("cp_budget_correct_entry", "[兼容] 预算校正入口异常: " + ex.Message); }
     }
 
     // FIX15b 层3：Patch StoreClient.HasBudgetLeftToBuy(GameItem)——交易判据（拆包实锤：判据=GetNegociatedValue(gameItem,0)<=clientBudget；
@@ -117,7 +117,7 @@ internal static class CompatibilityPatches
         {
             if (__instance == null || __instance.identifier != "wage_brother") return;
             CorrectWageBudget(__instance);
-        } catch { }
+        } catch (System.Exception ex) { Core.LogErrorOnce("cp_budget_correct_judge", "[兼容] 预算判据前校正异常: " + ex.Message); }
     }
 
     public static void PrefixApplyBudgetModifier(StoreClient __instance)
@@ -126,7 +126,7 @@ internal static class CompatibilityPatches
         {
             if (__instance == null) return;
             _origBudget[__instance] = __instance.clientBudget;
-        } catch { }
+        } catch (System.Exception ex) { Core.LogErrorOnce("cp_budget_orig", "[兼容] 预算快照异常: " + ex.Message); }
     }
 
     // StoreClient.ApplyBudgetModifier Postfix（检查并恢复）
@@ -146,6 +146,6 @@ internal static class CompatibilityPatches
             }
             // 10-02 补：基础预算本身≤0的客户，加下限0
             if (__instance.clientBudget < 0) __instance.clientBudget = 0;
-        } catch { }
+        } catch (System.Exception ex) { Core.LogErrorOnce("cp_budget_restore", "[兼容] 预算恢复异常(负预算残留→交易判据带偏): " + ex.Message); }
     }
 }

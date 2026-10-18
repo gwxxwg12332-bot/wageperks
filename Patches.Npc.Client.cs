@@ -225,8 +225,9 @@ internal static partial class Patches
 				return true;
 			}
 		}
-		catch
+		catch (System.Exception ex)
 		{
+			Core.LogErrorOnce("np_security_officer", "[NPC] 安全官判定异常(默认false→搜查豁免失效): " + ex.Message);
 		}
 		return false;
 	}

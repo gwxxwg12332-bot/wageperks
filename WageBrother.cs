@@ -83,9 +83,9 @@ internal static class WageBrother
             t.SetName(LangHelper.T("点货签", "Order Ticket"));
             t.shortDescription = LangHelper.T("点单凭证：蛙哥到店时把绑定的品类临时加入他的收购清单（本次到店生效，3 天冷却）。", "Order ticket: adds the bound category to Wage Brother's buying list for this visit (3-day cooldown).");
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 1); t.SetShape(gsb.Build());
-            try { t.EnableTag(ORDER_TICKET_TAG, true); } catch { }
-            try { t.EnableTag("paper", true); } catch { } // 文档属性（销赃不带）
-            Core.LogMsg("[克隆核对] OrderTicket: id=" + (t.identifier ?? "NULL") + " val=" + t.unitValue); // 10-18 总控方案①取证
+            try { t.EnableTag(ORDER_TICKET_TAG, true); } catch (Exception ex) { Core.LogErrorOnce("wb_ticket_tag", "[蛙哥] 点货签tag失败(柜台识别失效): " + ex.Message); }
+            try { t.EnableTag("paper", true); } catch (Exception ex) { Core.LogErrorOnce("wb_ticket_paper", "[蛙哥] 点货签paper失败: " + ex.Message); } // 文档属性（销赃不带）
+            try { Core.LogMsg("[克隆核对] OrderTicket: id=" + (t.identifier ?? "NULL") + " val=" + t.unitValue); } catch { } // 10-18 总控方案①取证
             return t;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] CreateOrderTicket异常: " + ex.Message); return null; }
@@ -112,9 +112,9 @@ internal static class WageBrother
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build());
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
-            try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
-            try { card.EnableTag("wage_bro_card", true); } catch { }
-            Core.LogMsg("[克隆核对] BroCard: id=" + (card.identifier ?? "NULL") + " val=" + card.unitValue); // 10-18 总控方案①取证
+            try { card.EnableTag("paper", true); } catch (Exception ex) { Core.LogErrorOnce("wb_card_paper", "[蛙哥] 名片paper失败: " + ex.Message); } // 文档属性标签（销赃时不带走）
+            try { card.EnableTag("wage_bro_card", true); } catch (Exception ex) { Core.LogErrorOnce("wb_card_tag", "[蛙哥] 名片wage_bro_card失败(清卡识别失效): " + ex.Message); }
+            try { Core.LogMsg("[克隆核对] BroCard: id=" + (card.identifier ?? "NULL") + " val=" + card.unitValue); } catch { } // 10-18 总控方案①取证
             return card;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] CreateCard异常: " + ex.Message); return null; }
@@ -481,10 +481,10 @@ internal static class WageBrother
                 if (!IsSafeBuyTag(t)) { Core.LogMsg("[蛙哥] 5.2 拦截非法点货签品类: " + t); continue; }
                 var tk = DirectoryMaster.Item(ORDER_TICKET_ID, true);
                 if (tk == null) continue;
-                try { tk.EnableTag(ORDER_TAG_PREFIX + t, true); } catch { }
-                try { tk.SetName(LangHelper.T("点货签：" + t, "Order Ticket: " + t)); } catch { }
-                try { tk.unitValue = BuildConfig.WageBrotherOrderPrice; tk.unitBaseValue = BuildConfig.WageBrotherOrderPrice; } catch { }
-                try { tk.DisableTag("not_purchased", true); tk.DisableTag("TAG_NOT_PURCHASED", true); tk.EnableTag("IS_OWNED_TAG", true); } catch { }
+                try { tk.EnableTag(ORDER_TAG_PREFIX + t, true); } catch (Exception ex) { Core.LogErrorOnce("wb_order_tag", "[蛙哥] 点货签品类tag失败: " + ex.Message); }
+                try { tk.SetName(LangHelper.T("点货签：" + t, "Order Ticket: " + t)); } catch (Exception ex) { Core.LogErrorOnce("wb_order_name", "[蛙哥] 点货签改名失败: " + ex.Message); }
+                try { tk.unitValue = BuildConfig.WageBrotherOrderPrice; tk.unitBaseValue = BuildConfig.WageBrotherOrderPrice; } catch (Exception ex) { Core.LogErrorOnce("wb_order_price", "[蛙哥] 点货签定价失败: " + ex.Message); }
+                try { tk.DisableTag("not_purchased", true); tk.DisableTag("TAG_NOT_PURCHASED", true); tk.EnableTag("IS_OWNED_TAG", true); } catch (Exception ex) { Core.LogErrorOnce("wb_order_owned", "[蛙哥] 点货签归属tag失败: " + ex.Message); }
                 try { PlayerStore.Instance.AddDirectSellingItemToTable(tk, true, false, false, 0); } catch (Exception ex) { Core.LogMsg("[蛙哥] 5.2 点货签上柜台异常: " + ex.Message); }
                 Core.LogMsg("[蛙哥] 5.2 点货签上柜台: " + t);
             }
@@ -819,7 +819,7 @@ internal static class WageBrother
             }
             Core.LogMsg("[蛙哥] 走了，服务卡已清");
         }
-        catch { }
+        catch (Exception ex) { Core.LogErrorOnce("wb_cleanup", "[蛙哥] 清卡异常(残留→下轮重复判定): " + ex.Message); }
     }
 
     // 定价：Cost → 费用
@@ -1246,7 +1246,7 @@ internal static class WageBrother
                         string id = ""; try { id = item.identifier ?? ""; } catch { }
                         if (id != m.Item1) continue;
                         if (!IsOwnedByPlayer(item)) continue;
-                        try { item.Destroy(); need--; } catch { }
+                        try { item.Destroy(); need--; } catch (Exception ex) { Core.LogErrorOnce("wb_craft_mat_destroy", "[蛙哥] 合成材料销毁异常(残留→数量错乱): " + ex.Message); }
                     }
                 }
             }

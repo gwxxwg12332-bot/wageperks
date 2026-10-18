@@ -207,9 +207,13 @@ partial class ContainerUpgradeV2
                                 }
                                 else
                                 {
-                                    _sawMismatchThisSession.Add(misKey);
-                                    try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
-                                    Core.LogMsg("[容器v2] 尺寸不符(误伤防护首次): loc=" + loc + " idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
+                                    // 10-18 总控 B4：同会话"首次"日志抑制——Add 返回 true=本会话首见才写旁键+打日志；
+                                    //   同会话后续不符（_saw 已含）静默（行为幂等，防测试协议误读"多行首次"）
+                                    if (_sawMismatchThisSession.Add(misKey))
+                                    {
+                                        try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
+                                        Core.LogMsg("[容器v2] 尺寸不符(误伤防护首次): loc=" + loc + " idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
+                                    }
                                 }
                             }
                             return -1;
