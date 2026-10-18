@@ -126,7 +126,7 @@ internal static partial class SurvivalFood
                 {
                     if (p == "lostItem") { int n = LostSmallItem(1); if (n > 0) desc += LangHelper.T("损失货物 ", "Lost goods "); } // 10-19 P1-2：条件展示（n>0 才 append；LostSmallItem 本批恒 0=不误报「无货可失」，实做立 P4）
                     else if (p == "lostWaterItem") { bool lost = LostWaterItem(); if (lost) desc += LangHelper.T("水器损坏 ", "Water container damaged "); } // 10-19 P1-2：条件展示（效果非空才显示；本批恒 false 不误报，实做立 P4）
-                    else if (p == "income-30" || p == "income-20" || p == "income-10") { int pct = Math.Abs(int.Parse(p.Substring(6))); int amt = ApplyIncomePunish(pct); desc += LangHelper.T("收入-" + pct + "%（-" + amt + "） ", "Income -" + pct + "% (-" + amt + ") "); }
+                    else if (p == "income-30" || p == "income-20" || p == "income-10") { int pct = Math.Abs(int.Parse(p.Substring(6))); int amt = ApplyIncomePunish(pct); if (amt > 0) desc += LangHelper.T("收入-" + pct + "%（-" + amt + "） ", "Income -" + pct + "% (-" + amt + ") "); } // 10-19 O-02 修复：amt>0 才 append——营业额 0 时 ApplyIncomePunish 返回 0，防「收入-20%（-0）」假文案（派活单§九 P1-2 第4条）
                     else if (p == "health-15") { SetHealth(Math.Max(0, GetHealth() - 15)); desc += LangHelper.T("健康-15 ", "Health -15 "); }
                     else if (p == "sat+30") { SetSatiety(Math.Min(100, GetSatiety() + 30)); desc += LangHelper.T("饱食+30 ", "Satiety +30 "); }
                     else if (p == "mood-15") { SetMood(Math.Max(0, GetMood() - 15)); desc += LangHelper.T("心情-15 ", "Mood -15 "); }
