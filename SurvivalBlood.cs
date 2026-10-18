@@ -29,6 +29,9 @@ internal static partial class SurvivalFood
                 return false;
             }
             AddBlood(-500);
+            // 10-18 审阅《机制说明_卖血健康代价》§6.3 方案A 落地（用户拍板采纳）：
+            //   抽血按次扣健康 15（新增"抽血专属代价"）——健康由纯展示值变为体力条（配合日结衰减×2 后果）
+            SetHealth(Math.Max(0, GetHealth() - 15));
             // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）；昏迷当天立即禁出门/禁采血（IsForcedRest 即时生效）
             if (IsBloodWeak())
             {
@@ -57,8 +60,10 @@ internal static partial class SurvivalFood
             }
             catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Blood] 异常: " + ex.Message); }
             if (!bag) Core.LogMsg("[卖血] blood_bag 不存在或发放失败");
-            try { Il2Cpp.HealthData.ReceiveMinorWound(); } catch { }
-            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000)"), "green"); } catch { }
+            // 10-18 审阅方案A 落地：抽血路径不再调 ReceiveMinorWound()——原 :60 会伤口+2（3袋=6>5=重伤禁门）+
+            //   PostfixReceiveMinorWound 回扣 -200 血 + 30% 免伤随机（Prefix 跳原方法但 Postfix 照扣，代价不确定）。
+            //   去掉后：抽血代价=血量-500+健康-15+血袋（确定化）；伤口/重伤禁门节奏还给捡垃圾（ScavHelper 仍调受伤）。
+            try { StoreUIManager.Instance.Notify(LangHelper.T("抽血 500cc → 血袋（价值 200，血量 " + GetBlood() + "/6000，健康 -15）", "Drew 500cc -> blood bag (worth 200, blood " + GetBlood() + "/6000, health -15)"), "green"); } catch { }
             RefreshStatusPanel();
             return true;
         }
@@ -68,29 +73,46 @@ internal static partial class SurvivalFood
 
     // ===== 卖血系统（09-17 用户拍板：面板卖血按钮 500cc→血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
     internal const int BLOOD_MAX = 6000;
-    private static int _memBlood = -1; // 09-20 修：血量内存缓存（打烊才落盘，防读档刷血）
-    internal static int GetBlood() {
-        try {
-            if (_memBlood >= 0) return _memBlood;
-            int saved = SaveStore.GetInt("blood", BLOOD_MAX);
-            // 10-10 四问题批#1：读档空窗期返回默认值但不物化进缓存（对齐主 mod RobinCrusoePerk.Blood.cs:93）
-            // 原 :77 `if (true) return saved;` 是"注释抄了、逻辑改残"——永不物化缓存（每次读档+性能损耗）；补 LoadComplete 门控
-            if (!WageAPI.WageSaveStore.LoadComplete) return saved;
-            _memBlood = saved;
-            return saved;
-        } catch { return BLOOD_MAX; }
+    private static int _memBlood = -1; // 10-18 审阅 R2 定案：仅调试可见，不参与读取（恒 -1）
+    internal static int GetBlood()
+    {
+        try
+        {
+            int v = SaveStore.GetInt("blood", BLOOD_MAX);
+            // 键缺失时物化一次默认值（须在读档完成后，否则 SetInt 会被 WageAPI/WageSaveStore.cs:126 门控丢弃）
+            if (!SaveStore.HasKey("blood") && WageAPI.WageSaveStore.LoadComplete) SaveStore.SetInt("blood", v);
+            return Math.Max(0, Math.Min(BLOOD_MAX, v));
+        }
+        catch { return BLOOD_MAX; }
     }
-    internal static void SetBlood(int v) { try { _memBlood = Math.Max(0, Math.Min(BLOOD_MAX, v)); } catch { } }
+    internal static void SetBlood(int v)
+    {
+        try
+        {
+            int c = Math.Max(0, Math.Min(BLOOD_MAX, v));
+            _memBlood = c;                    // 仅调试
+            SaveStore.SetInt("blood", c);     // ★ 实时落字典（与 WP 同源=唯一权威）
+        }
+        catch { }
+    }
     internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 读档清缓存
     internal static int AddBlood(int delta)
     {
         try
         {
             // 10-10 四问题批#1：读档空窗期不物化默认值（对齐主 mod RobinCrusoePerk.Blood.cs:103）——防打烊写回 6000 覆盖真实血量
-            if (!WageAPI.WageSaveStore.LoadComplete) return BLOOD_MAX;
-            int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
+            // 10-18 审阅 R2 §4 改动4：原 return BLOOD_MAX 是"假满血"（调用方拿 6000 当真实值→IsBloodWeak 判定错）；
+            //   改回 GetBlood()（直读字典，读档窗口期读到的就是当前持久化值）
+            if (!WageAPI.WageSaveStore.LoadComplete) return GetBlood();
+            int from = GetBlood(); // 审阅 07:29 §4.3：血量审计——一次运行定位 8 条写入路径各自来源
+            int b = Math.Max(0, Math.Min(BLOOD_MAX, from + delta));
             SetBlood(b);
             if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } }
+            // 10-18 审阅复核 §3.3（07:09）：AddBlood 自身必须刷新——原 DrinkSip/EatBite 在 AddBlood **之前**调
+            //   RefreshStatusPanel（SurvivalConsume.cs:45/46 → :286/:297），面板永远慢一步（卖血5500→喝水→显示仍5500）。
+            //   统一在此刷，吃喝回血/受伤扣血/日结恢复全覆盖（对齐 BoostMood 写法）。
+            try { RefreshStatusPanel(); } catch { }
+            if (delta != 0) Core.LogMsg("[卖血审计] AddBlood(" + delta + ") " + from + " → " + b);
             return b;
         }
         catch { return BLOOD_MAX; }
@@ -117,10 +139,15 @@ internal static partial class SurvivalFood
                 {
                     bool good = Core.Rng.Next(2) == 0;
                     int delta = (int)(BLOOD_MAX * 0.2f); // 1200
+                    Core.LogMsg("[卖血审计] 恢复期结束: rest→0, 随机=" + (good ? "+" : "-") + delta); // 审阅 07:29 §4.3：来源标记
                     AddBlood(good ? delta : -delta);
                     // 09-24 修：恢复期结束强制回血到安全线 3000——防止"结束随机扣血→仍<3000→下方 else-if 再设 rest=3"的
                     // 虚弱永续循环（卖血超过阈值后永远昏迷/禁出门/禁采血=游戏卡死）。虚弱期结束=身体恢复，必须给出安全出口。
-                    if (GetBlood() < 3000) { AddBlood(3000 - GetBlood()); }
+                    if (GetBlood() < 3000)
+                    {
+                        Core.LogMsg("[卖血审计] 恢复期兜底: 强制补到 3000（原 " + GetBlood() + "）"); // 审阅 07:29 §4.3：来源标记
+                        AddBlood(3000 - GetBlood());
+                    }
                     try { StoreUIManager.Instance.Notify(LangHelper.T("身体恢复期结束：血量 " + GetBlood() + "/6000", "Recovery over: blood " + GetBlood() + "/6000"), GetBlood() >= 3000 ? "green" : "red"); } catch { }
                 }
                 else
@@ -164,12 +191,15 @@ internal static partial class SurvivalFood
     {
         try { if (!IsActive()) return; AddBlood(-500); RefreshStatusPanel(); } catch { }
     }
-    // 保存点快照：SaveGame 时存 6 维生存状态 + Flush落盘
+    // 保存点快照：SaveGame 时存 6 维生存状态 + 血量 + Flush落盘
     public static void PostfixSaveGame()
     {
         try
         {
-            if (_memBlood >= 0) SaveStore.SetInt("blood", _memBlood);
+            // 10-18 审阅 R2 §4 改动3：删 `if (_memBlood >= 0) SetInt("blood", _memBlood)`——SetBlood 已实时写字典，
+            //   这里再写只把旧缓存覆盖回去（双权威源）。改动6(选A)：快照补 saved_blood（原只 6 维，卖血后不存档
+            //   退出重进血量不回滚=与 6 维不对称；Restore 用 AddBlood 回滚，复用归零死亡判定）。
+            SaveStore.SetInt("saved_blood", GetBlood());
             SaveStore.SetInt("saved_sat", GetSatiety());
             SaveStore.SetInt("saved_th", GetThirstPct());
             SaveStore.SetInt("saved_hp", GetHealth());

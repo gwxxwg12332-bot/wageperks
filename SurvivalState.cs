@@ -42,11 +42,16 @@ internal static partial class SurvivalFood
             RollNodeFx();
 
             // 每天衰减：饱食-20 / 口渴-25（乘耐旱系数）
-            int sat = Math.Max(0, GetSatiety() - 20 - FxNum("satD"));
+            // 10-18 审阅方案A 落地（修正版）：健康 <30 时饱食/口渴衰减 ×2——这才是"健康=体力条"：
+            //   抽血-15 健康 → 健康<30 → 饿/渴更快 → 吃喝消耗↑ → 卖血收益被生活成本吃掉（真实取舍）。
+            //   （健康自身衰减不乘：健康归零无后果——审阅 §3.3 实锤；方案稿原代码把 decayMul 乘在 hD 上是照抄示意，
+            //    效果与"体力条"意图不符，已修正为乘饱食/口渴。）
+            int decayMul = GetHealth() < 30 ? 2 : 1;
+            int sat = Math.Max(0, GetSatiety() - 20 * decayMul - FxNum("satD"));
             int thBase = (int)(25 * GetThirstEffMult());
-            int th = Math.Max(0, GetThirstPct() - thBase - FxNum("thD"));
+            int th = Math.Max(0, GetThirstPct() - thBase * decayMul - FxNum("thD"));
             SetSatiety(sat); SetThirstPct(th);
-            Core.LogMsg("[WageSurvival] 日结衰减: sat " + (sat + 20 + (int)FxNum("satD")) + "→" + sat + " / th " + (th + thBase + (int)FxNum("thD")) + "→" + th);
+            Core.LogMsg("[WageSurvival] 日结衰减: sat " + (sat + 20 * decayMul + (int)FxNum("satD")) + "→" + sat + " / th " + (th + thBase * decayMul + (int)FxNum("thD")) + "→" + th);
 
             // 健康：+10自然恢复 + 节点恢复修正 - 节点衰减（乘糙人抗造系数）
             int h = Math.Min(100, Math.Max(0, GetHealth() + 10 + FxNum("hR") - (int)(FxNum("hD") * GetWearEffMult())));
@@ -119,17 +124,20 @@ internal static partial class SurvivalFood
             }
 
             // 救场系统：连续饱食<=0达5天 → 好心客户送食1-2份
-            int starvingDays = SaveStore.GetInt("starvingDays", 0);
+            // 10-18 审阅 R2 §10.2：键名分裂修复——本侧原用 "starvingDays"，WP 侧用 "starveDays"（State.cs:21 读/:40 清/Patches.cs:145 写/Startup.cs:43 写0），
+            //   两侧读互不相干的计数器=同一"饿几天"两侧答案不同；且 WP ALL_KEYS 只清 starveDays、starvingDays 从未被清=新档继承旧档计数。
+            //   统一以 starveDays 为准（WP 4 处引用），旧名 starvingDays 由 WP ALL_KEYS 补入一次迁移清理。
+            int starvingDays = SaveStore.GetInt("starveDays", 0);
             if (sat <= 0) starvingDays++;
             else starvingDays = 0;
-            SaveStore.SetInt("starvingDays", starvingDays);
+            SaveStore.SetInt("starveDays", starvingDays);
             if (starvingDays >= 5)
             {
                 Core.LogMsg("[WageSurvival] 救场：好心客户送食");
                 TryGiveRandomFood(UnityEngine.Random.value < 0.5f ? 2 : 1);
                 SetSatiety(30); // 饱食+30
                 starvingDays = 0;
-                SaveStore.SetInt("starvingDays", 0);
+                SaveStore.SetInt("starveDays", 0);
             }
 
             // 患病判定：节点池sick+20 → 每日患病概率

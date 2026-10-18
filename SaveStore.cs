@@ -58,6 +58,13 @@ internal static class SaveStore
         if (!HasKey("clean")) SetInt("clean", 100);
         if (!HasKey("sleep")) SetInt("sleep", 100);
         if (!HasKey("social")) SetInt("social", 50);
+        // 10-18 审阅 R2（《审阅_血量虚值与显示不一致》§4 改动1）：blood 从未初始化 → GetInt 兜底 6000 与"满血"不可区分
+        //   （WP 直读字典=虚值满血、WS 缓存=真值=双权威源）。**不加 HasKey**：HasKey 会回退旧层 PlayerPrefs
+        //   （WageAPI/WageSaveStore.cs:222-231），旧档 default_run 残留会让判断 true 跳过写入→改动静默失效。
+        //   10-18 审阅对照修正（M20/M21）：无条件写会在"读档完成后再调 InitDefaults"时覆盖真实血量（其余 7 键有 HasKey 守卫、
+        //   blood 无守卫=唯一覆盖风险点）。对齐 SurvivalBlood.cs:83 模式加 LoadComplete 门控：读档未完成=真实值未就绪，跳过写，
+        //   由 GetBlood 物化兜底（:83 !HasKey && LoadComplete）；读档完成=补缺省语义不变。仍不加 HasKey（防旧层回退坑）。
+        if (WageAPI.WageSaveStore.LoadComplete) SetInt("blood", SurvivalFood.BLOOD_MAX); // =6000（同程序集 internal const，见 SurvivalBlood.cs:75）
     }
 
     // 新档：只清自己的命名空间 + 设默认（不碰其他 mod 数据；WagePerks 的 ResetForNewRun 清全量，顺序竞态由读默认兜底）

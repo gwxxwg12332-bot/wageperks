@@ -26,24 +26,64 @@ internal static partial class SurvivalFood
 
     // ===== 生存状态面板（Z键打开）=====
     // 10-06 鲁滨逊档（双装）：Z 键面板=WP 常驻面板（WS 让路）——WS 吃喝后的刷新转发 WP，避免"吃一口面板不动"
-    private static System.Reflection.MethodInfo _wpRefreshPanel;
+    // 10-18 审阅 §3.4 定案（拆包侧对照放行）：反射转发删除——改用 CustomUIManager.GetElement + SetText/SetProgress
+    //   直写（跨 mod 契约：rc_status 的 elementId，见对照_拆包侧_审阅夜报滚动与WS刷新_20261018.md §十）。
+    //   收益：不依赖 WP internal 类型/方法名（改名不静默失效）、绕过 _autoPopup 门控、只改文本/填充值（不重建面板）。
+    private static void RefreshWpPanelInPlace()
+    {
+        try
+        {
+            var mgr = Il2Cpp.CustomUIManager.Instance;
+            if (mgr == null) return;
+            if (!mgr.IsOpen("rc_status")) { LogOnce("notopen", "rc_status 未打开，跳过直写"); return; } // 10-18 审阅 §3.4：成功/未开各打一次，区分三种情况
+            int sat = GetSatiety(), th = GetThirstPct(), h = GetHealth(), bl = GetBlood();
+            LogOnce("ok", "直写 OK: blood=" + bl + " sat=" + sat + " th=" + th);
+            SetEl(mgr, "sat_l", LangHelper.T("饱食 ", "Satiety ") + (int)(sat * 22f) + "/2200 kcal");
+            SetBar(mgr, "sat", sat / 100f);
+            SetEl(mgr, "th_l", LangHelper.T("口渴 ", "Thirst ") + (int)(th * 20f) + "/2000 ml");
+            SetBar(mgr, "th", th / 100f);
+            SetEl(mgr, "h_l", LangHelper.T("健康 ", "Health ") + h + "/100");
+            SetBar(mgr, "h", h / 100f);
+            SetEl(mgr, "blood_l", LangHelper.T("血量 ", "Blood ") + bl + "/6000");
+            SetBar(mgr, "blood", bl / (float)BLOOD_MAX);
+            SetEl(mgr, "clean_l", LangHelper.T("清洁 ", "Cleanliness ") + GetClean() + "/100");
+            SetBar(mgr, "clean", GetClean() / 100f);
+            SetEl(mgr, "sleep_l", LangHelper.T("睡眠 ", "Sleep ") + GetSleep() + "/100");
+            SetBar(mgr, "sleep", GetSleep() / 100f);
+            SetEl(mgr, "social_l", LangHelper.T("社交 ", "Social ") + GetSocial() + "/100");
+            SetBar(mgr, "social", GetSocial() / 100f);
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 面板直写异常: " + ex.Message); }
+    }
+
+    private static void SetEl(Il2Cpp.CustomUIManager m, string id, string text)
+    {
+        try { var e = m.GetElement("rc_status", id); if (e != null) e.SetText(text); }
+        catch (System.Exception ex) { LogOnce("SetEl:" + id, ex.Message); }
+    }
+    private static void SetBar(Il2Cpp.CustomUIManager m, string id, float v)
+    {
+        try { var e = m.GetElement("rc_status", id); if (e != null) e.SetProgress(UnityEngine.Mathf.Clamp01(v)); }
+        catch (System.Exception ex) { LogOnce("SetBar:" + id, ex.Message); }
+    }
+    private static readonly System.Collections.Generic.HashSet<string> _logged = new();
+    private static void LogOnce(string k, string msg)
+    {
+        // 审阅 07:29 §5：前缀去掉"失败"——成功日志曾显示"面板直写失败 ok: 直写 OK:..."（文案错位）
+        if (_logged.Add(k)) Core.LogMsg("[WageSurvival] 面板直写: " + k + " | " + msg);
+    }
+
     internal static void RefreshStatusPanel(bool force = false)
     {
         try
         {
             if (Core._yieldMode && SurvivalTrade.IsRobinsonRun())
             {
-                if (_wpRefreshPanel == null)
-                {
-                    var t = System.Type.GetType("WagePerks.RobinCrusoePerk, WagePerks");
-                    if (t == null) return;
-                    _wpRefreshPanel = t.GetMethod("RefreshStatusPanel", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-                }
-                if (_wpRefreshPanel != null) _wpRefreshPanel.Invoke(null, new object[] { force });
+                RefreshWpPanelInPlace();
                 return; // 鲁滨逊档 WS 面板不创建（让路）
             }
         }
-        catch { /* 转发失败静默——不影响吃喝主链 */ }
+        catch { /* 直写失败静默——不影响吃喝主链 */ }
         try
         {
             var mgr = Il2Cpp.CustomUIManager.Instance;

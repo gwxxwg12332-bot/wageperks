@@ -24,6 +24,9 @@ internal static partial class SurvivalFood
         _budgetBonusCache = -999;
         _bargainBonusCache = -999;
         Patches.ClearNodeBuffItems(); // 面板 feature 防重集合一并清：新状态周期内所有物品重新刷新显示文本
+        // 10-16 双装桥接：WS 写状态键只刷 WS 缓存，WP 交易算价/生存面板仍读 WP 静态缓存——
+        // 不桥接则残留旧节点值（玩家实测：节点+10% 但总售价-10%，购买价值不对）
+        try { WageAPI.WageTrade.InvalidateSurvivalCaches(); } catch { }
     }
 
     // 效果数值查询（v5.8-8 修正：Lock 效果按当前节点实时聚合，不依赖打烊锁定——面板显示与实际生效永远一致）

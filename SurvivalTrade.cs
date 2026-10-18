@@ -181,6 +181,14 @@ internal static class SurvivalTrade
         {
             // 10-10 四问题批#2：删 10-08 二分诊断日志（Debug 门控"用完必删"；拼字符串+访单例=崩溃/性能放大面）
             if (IsRobinsonRun() && SurvivalFood.GetMood() >= 80) { percent += 15; }
+            // 10-17 卖价值吃售价加成（玩家实测"预估价值变了但卖价值还是原价"）：
+            //   参考 GetDealMakerBonus 并入模式（__result += GetBargainBonusPct()）——客户出价百分比并入生存售价加成
+            //   （GetSellBonusPct=粮仓5+昂扬+节点sell+精打细算5+心情±10，缓存修复桥已同步 WS/WP 两侧；成交=base×(1+percent/100) 独立链，不触 WP GetCurrentValue 防 double）
+            if (IsRobinsonRun())
+            {
+                int sellB = SurvivalFood.GetSellBonusPct();
+                if (sellB != 0) percent += sellB;
+            }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageSurvival] 出价上移异常: " + ex.Message); }
     }

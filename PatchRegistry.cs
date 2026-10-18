@@ -378,19 +378,20 @@ internal static class PatchRegistry
 
         // ===== 10-07 鲁滨逊完全归 WS WS-3：P1 四域搬迁 22 条注册（拾荒5/机器7/模块3/经济链7；方法体=SurvivalScavenge/SurvivalMachineMods/SurvivalEconomy 新文件） =====
         // 适配标注：GetRandomScavengedItem priority=-1000（后置跑——对齐 WP PatchRegistryTable:172）；CreateMachineryTooltip 不迁（养蛊机/瓶印机特性域，WP 保留 :178）
-        void RegisterP1(System.Type target, string method, string hostMethod, bool prefix = false, bool postfix = true, int priority = 0)
+        void RegisterP1(System.Type target, string method, string hostMethod, bool prefix = false, bool postfix = true, int priority = 0, string finalizer = null)
         {
             try
             {
                 var orig = AccessTools.Method(target, method);
                 var hm = AccessTools.Method(typeof(SurvivalFood), hostMethod);
+                var hmFinalizer = finalizer == null ? null : new HarmonyMethod(AccessTools.Method(typeof(SurvivalFood), finalizer));
                 if (prefix && postfix)
-                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority }, postfix: new HarmonyMethod(hm) { priority = priority });
+                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority }, postfix: new HarmonyMethod(hm) { priority = priority }, finalizer: hmFinalizer);
                 else if (prefix)
-                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority });
+                    harmony.Patch(orig, prefix: new HarmonyMethod(hm) { priority = priority }, finalizer: hmFinalizer);
                 else
-                    harmony.Patch(orig, postfix: new HarmonyMethod(hm) { priority = priority });
-                Core.LogMsg("[WageSurvival] Patch OK: " + target.Name + "." + method + " (" + hostMethod + ")");
+                    harmony.Patch(orig, postfix: new HarmonyMethod(hm) { priority = priority }, finalizer: hmFinalizer);
+                Core.LogMsg("[WageSurvival] Patch OK: " + target.Name + "." + method + " (" + hostMethod + ")" + (finalizer != null ? " + Finalizer " + finalizer : ""));
             }
             catch (System.Exception ex) { Core.LogMsg("[WageSurvival] Patch FAIL: " + target.Name + "." + method + " " + ex.Message); }
         }
@@ -398,7 +399,7 @@ internal static class PatchRegistry
         RegisterP1(typeof(ScavHelper), "CanScavenge", "PostfixCanScavenge");
         RegisterP1(typeof(ScavHelper), "GetMaxScavAttempts", "PostfixGetMaxScavAttempts");
         RegisterP1(typeof(ScavHelper), "GetScavTimeLeft", "PostfixGetScavTimeLeft");
-        RegisterP1(typeof(ScavHelper), "GetRandomScavengedItem", "PostfixGetRandomScavengedItem", priority: -1000);
+        RegisterP1(typeof(ScavHelper), "GetRandomScavengedItem", "PostfixGetRandomScavengedItem", priority: -1000, finalizer: "FinalizerGetRandomScavengedItem"); // 10-17 接线：拾荒异常兜底（对齐 WP PatchRegistryTable:65）
         RegisterP1(typeof(ScavHelper), "ScavengeDumpingGrounds", "PostfixScavengeDumpingGrounds");
         // 机器/模块 7+3（含 GetMachinePowerUsage——拆包机器域同打包；CreateMachineryTooltip 不迁）
         RegisterP1(typeof(MachineryHelper), "GetCurrentPerformanceBonus", "PostfixGetCurrentPerformanceBonus");
