@@ -151,7 +151,41 @@ partial class ContainerUpgradeV2
                         //   洗白进 uid 键并自我延续（同会话兜底反复命中错误值）。且反写的"跨会话转同会话兜底"
                         //   价值低：跨会话恢复后 RestoreWageBoxToStage 已打回 wb_stage tag（:214），同会话挪动
                         //   不丢 tag，无需 uid 兜底。uid 兜底读（:121）保留（用户拍板补读——重进当天场景有效）。
-                        if (s > 0) return s;
+                        if (s > 0)
+                        {
+                            // 10-18 P0 根治：位置键命中后加**尺寸匹配**身份校验——
+                            //   升级动作把网格改成 WAGE_BOX_W/H[stage]（SetFullRect），故"当前网格==该段位尺寸"
+                            //   才是本箱（读档后 tag/identifier/uniqueId 全丢，尺寸是唯一随档可验证的身份特征）；
+                            //   位置被普通容器占用/键残留时尺寸不符 → 不误伤。
+                            // 10-18 总控改进（清键不可逆防护）：**连续两次不符才清键**——
+                            //   首次不符只记旁键（wage_stage_mismatch_{loc}_{idx}）+ 跳过不恢复（防误伤）；
+                            //   二次读档仍不符（旁键已存在）→ 确认真残留 → 清位置键+旁键（自愈）。
+                            if (box != null)
+                            {
+                                var g0 = GetContainerGrid(box);
+                                int cw = 0, ch = 0; GetShapeWH(g0, ref cw, ref ch);
+                                int ts = s > MAX_STAGE ? MAX_STAGE : s;
+                                if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts]) return s;
+                                string misKey = "wage_stage_mismatch_" + loc + "_" + idx;
+                                int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
+                                if (mis > 0)
+                                {
+                                    try
+                                    {
+                                        WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, -1);
+                                        WageSaveStore.SetInt("SurvivalGlobal", misKey, -1);
+                                    }
+                                    catch { }
+                                    Core.LogMsg("[容器v2] 尺寸不符×2(误伤防护确认): loc=" + loc + " idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 清键自愈");
+                                }
+                                else
+                                {
+                                    try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
+                                    Core.LogMsg("[容器v2] 尺寸不符(误伤防护首次): loc=" + loc + " idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
+                                }
+                            }
+                            return -1;
+                        }
                     }
                 }
             }
@@ -178,7 +212,9 @@ partial class ContainerUpgradeV2
         return -1;
     }
     // 按索引从 PlayerPrefs 读段位（-1=无记录）
-    public static int GetHiddenStageByIndex(int idx)
+    // 10-18 P0 根治：加 box 参数做尺寸匹配身份校验（同 GetStagePersist）——hidden 位置曾有升级箱→移走→普通容器占位时
+    //   尺寸不符 → 不误伤 + 清残留键（wage_stage_idx_{idx}）自愈。
+    public static int GetHiddenStageByIndex(int idx, GameItem box)
     {
         if (idx < 0) return -1;
         // 10-07 阶段D D-3：ns 随迁 SurvivalGlobal + 旧档兜底迁移
@@ -187,6 +223,32 @@ partial class ContainerUpgradeV2
         {
             s = WageSaveStore.GetInt("RobinCrusoe", "wage_stage_idx_" + idx, -1);
             if (s > 0) WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, s);
+        }
+        if (s > 0 && box != null)
+        {
+            var g0 = GetContainerGrid(box);
+            int cw = 0, ch = 0; GetShapeWH(g0, ref cw, ref ch);
+            int ts = s > MAX_STAGE ? MAX_STAGE : s;
+            if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts]) return s;
+            // 10-18 总控改进：连续两次不符才清键（首次记旁键跳过，防不可逆删除）
+            string misKey = "wage_stage_mismatch_idx_" + idx;
+            int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
+            if (mis > 0)
+            {
+                try
+                {
+                    WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, -1);
+                    WageSaveStore.SetInt("SurvivalGlobal", misKey, -1);
+                }
+                catch { }
+                Core.LogMsg("[容器v2] hidden尺寸不符×2(误伤防护确认): idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 清键自愈");
+            }
+            else
+            {
+                try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
+                Core.LogMsg("[容器v2] hidden尺寸不符(误伤防护首次): idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
+            }
+            return -1;
         }
         return s;
     }

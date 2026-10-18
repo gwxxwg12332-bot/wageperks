@@ -102,7 +102,7 @@ internal static partial class RobinCrusoePerk
                         }
                         // 09-14 位置方案：hiddenElement（海报后边）物品按索引 PlayerPrefs 强恢复（tag 全丢无法识别）
                         int _hidx = ContainerUpgradeV2.FindBoxInHidden(item);
-                        int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
+                        int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx, item);
                         if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(item, _hstage); _rcRestoredContainers.Add(item.Pointer); restored++; continue; }
                         // 10-06 妙妙箱"重启回退 9 格"根治：持久化段位读取提前到 IsWageBox 判定之前——
                         //   读档后场景物品 tag 全丢 → IsWageBox false → 旧链整个跳过（恢复不执行，箱子回退初始）。
@@ -147,7 +147,7 @@ internal static partial class RobinCrusoePerk
             try
             {
                 int _hidx = ContainerUpgradeV2.FindBoxInHidden(__instance);
-                int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx);
+                int _hstage = ContainerUpgradeV2.GetHiddenStageByIndex(_hidx, __instance);
                 if (_hstage > 0) { ContainerUpgradeV2.RestoreWageBoxToStage(__instance, _hstage); _rcRestoredContainers.Add(__instance.Pointer); return; }
             }
             catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }

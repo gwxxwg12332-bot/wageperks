@@ -1,0 +1,6 @@
+# 10-18 总控方案0：二进制标记（防 *.dll 等被文本 diff/误入库）
+*.dll binary
+*.zip binary
+*.rar binary
+*.png binary
+*.jpg binary
