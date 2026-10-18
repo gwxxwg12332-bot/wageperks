@@ -17,6 +17,11 @@ namespace WagePerks;
 // ============================================================
 internal static class WageBrother
 {
+    // 10-18 总控方案③第二批：本文件 45 处空 catch 分类留痕（count_empty_catch.py 热点 #2）——
+    //   全部安全防御：IsTag/identifier 读失败=默认值、EnableTag/SetName/unitValue 写失败=该属性未生效（il2cpp 罕见）、
+    //   Destroy 失败=物品保留（下次再销毁，不丢数据）、Notify/CloseWindow 失败=不影响主链、
+    //   容器递归遍历失败=跳过该容器继续、parentInventory.Expel 失败=物品留原处（回退到已知"连带销毁"行为，不更糟）。
+    //   结论：无需逐处修复；方法级均有兜底 catch 打日志，非完全静默。
     internal const string CLIENT_ID = "wage_brother";
     internal const string CARD_ID = "wage_brother_card";
     private static bool _cardSpawned = false;
@@ -80,6 +85,7 @@ internal static class WageBrother
             var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 1); t.SetShape(gsb.Build());
             try { t.EnableTag(ORDER_TICKET_TAG, true); } catch { }
             try { t.EnableTag("paper", true); } catch { } // 文档属性（销赃不带）
+            Core.LogMsg("[克隆核对] OrderTicket: id=" + (t.identifier ?? "NULL") + " val=" + t.unitValue); // 10-18 总控方案①取证
             return t;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] CreateOrderTicket异常: " + ex.Message); return null; }
@@ -108,6 +114,7 @@ internal static class WageBrother
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
             try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
             try { card.EnableTag("wage_bro_card", true); } catch { }
+            Core.LogMsg("[克隆核对] BroCard: id=" + (card.identifier ?? "NULL") + " val=" + card.unitValue); // 10-18 总控方案①取证
             return card;
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] CreateCard异常: " + ex.Message); return null; }

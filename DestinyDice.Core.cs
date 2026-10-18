@@ -207,6 +207,7 @@ namespace WagePerks
 
 
 
+                Core.LogMsg("[克隆核对] DestinyDice: id=" + (item.identifier ?? "NULL") + " val=" + item.unitValue); // 10-18 总控方案①取证
                 return item;
 
             }

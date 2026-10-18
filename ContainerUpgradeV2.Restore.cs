@@ -9,6 +9,9 @@ partial class ContainerUpgradeV2
 
 {
     // ===== Restore =====
+    // 10-18 总控 P0 加固修订：本会话已见过的尺寸不符（防同帧双调用当场凑"两次"——
+    //   RobinCrusoePerk.ContainerUpgrade.Restore.cs:110/:115 同帧两次 GetStagePersist，若无本判据旁键当场升级=一次即清）
+    private static readonly System.Collections.Generic.HashSet<string> _sawMismatchThisSession = new System.Collections.Generic.HashSet<string>();
 
     // 蛙哥箱子读档恢复：按 wb_stage 重设网格；老档（无 wb_stage 且 shape>3×3）→ 满级迁移
     public static void RestoreWageBoxShape(GameItem box)
@@ -119,7 +122,22 @@ partial class ContainerUpgradeV2
             if (box != null)
             {
                 int uidStage = WageSaveStore.GetInt("SurvivalGlobal", "wage_stage_u" + box.uniqueId, -1);
-                if (uidStage > 0) { Core.LogMsg("[容器v2] uniqueId 兜底命中 " + box.uniqueId + " stage=" + uidStage); return uidStage; }
+                if (uidStage > 0)
+                {
+                    // 10-18 总控同域新风险修复：uid 兜底原无校验——uniqueId=内存计数器跨会话重号无法排除
+                    //   （PlayerStore.cs:442 currentUniqueId 运行时计数器 / SaveItemNode.cs:15 带 uniqueId 字段），
+                    //   重号+位置占用=从 uid 通道强恢复误伤（不经 IsWageBox/尺寸闸门）。加尺寸校验同位置键：
+                    //   不符=降级未命中（回退位置键，不恢复不写盘）。
+                    var g0 = GetContainerGrid(box);
+                    int cw = 0, ch = 0; GetShapeWH(g0, ref cw, ref ch);
+                    int ts = uidStage > MAX_STAGE ? MAX_STAGE : uidStage;
+                    if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts])
+                    {
+                        Core.LogMsg("[容器v2] uniqueId 兜底命中 " + box.uniqueId + " stage=" + uidStage);
+                        return uidStage;
+                    }
+                    Core.LogMsg("[容器v2] uniqueId 兜底尺寸不符(降级未命中): uid=" + box.uniqueId + " stage=" + uidStage + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts]);
+                }
             }
             var e = EmporiumEntry.Instance;
             if (e == null || box == null) return -1;
@@ -165,11 +183,20 @@ partial class ContainerUpgradeV2
                                 var g0 = GetContainerGrid(box);
                                 int cw = 0, ch = 0; GetShapeWH(g0, ref cw, ref ch);
                                 int ts = s > MAX_STAGE ? MAX_STAGE : s;
-                                if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts]) return s;
                                 string misKey = "wage_stage_mismatch_" + loc + "_" + idx;
-                                int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
-                                if (mis > 0)
+                                // 10-18 总控修订：成功匹配即清旁键（防"二次确认"退化跨事件累积——
+                                //   旧实现不清旁键：误伤留 mis=1 后位置恢复正常，下次误伤第一次即清=一次即删）
+                                if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts])
                                 {
+                                    try { if (WageSaveStore.GetInt("SurvivalGlobal", misKey, 0) != 0) WageSaveStore.SetInt("SurvivalGlobal", misKey, 0); } catch { }
+                                    return s;
+                                }
+                                int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
+                                // 10-18 总控修订：升级判据=跨会话确认——旁键(上次会话见过)+本会话首次见才清键；
+                                //   同帧双调用（RobinCrusoe:110/:115）第二调用 _saw 已含 → 不升级（不当场凑数）
+                                if (mis > 0 && !_sawMismatchThisSession.Contains(misKey))
+                                {
+                                    _sawMismatchThisSession.Add(misKey);
                                     try
                                     {
                                         WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, -1);
@@ -180,6 +207,7 @@ partial class ContainerUpgradeV2
                                 }
                                 else
                                 {
+                                    _sawMismatchThisSession.Add(misKey);
                                     try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
                                     Core.LogMsg("[容器v2] 尺寸不符(误伤防护首次): loc=" + loc + " idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
                                 }
@@ -229,12 +257,18 @@ partial class ContainerUpgradeV2
             var g0 = GetContainerGrid(box);
             int cw = 0, ch = 0; GetShapeWH(g0, ref cw, ref ch);
             int ts = s > MAX_STAGE ? MAX_STAGE : s;
-            if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts]) return s;
-            // 10-18 总控改进：连续两次不符才清键（首次记旁键跳过，防不可逆删除）
+            // 10-18 总控修订：成功匹配即清旁键（同 GetStagePersist）
             string misKey = "wage_stage_mismatch_idx_" + idx;
-            int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
-            if (mis > 0)
+            if (cw == WAGE_BOX_W[ts] && ch == WAGE_BOX_H[ts])
             {
+                try { if (WageSaveStore.GetInt("SurvivalGlobal", misKey, 0) != 0) WageSaveStore.SetInt("SurvivalGlobal", misKey, 0); } catch { }
+                return s;
+            }
+            int mis = WageSaveStore.GetInt("SurvivalGlobal", misKey, 0);
+            // 10-18 总控修订：升级判据=跨会话确认（会话级 _saw 防同帧凑数）
+            if (mis > 0 && !_sawMismatchThisSession.Contains(misKey))
+            {
+                _sawMismatchThisSession.Add(misKey);
                 try
                 {
                     WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, -1);
@@ -245,6 +279,7 @@ partial class ContainerUpgradeV2
             }
             else
             {
+                _sawMismatchThisSession.Add(misKey);
                 try { WageSaveStore.SetInt("SurvivalGlobal", misKey, 1); } catch { }
                 Core.LogMsg("[容器v2] hidden尺寸不符(误伤防护首次): idx=" + idx + " stage=" + s + " 实际=" + cw + "x" + ch + " 期望=" + WAGE_BOX_W[ts] + "x" + WAGE_BOX_H[ts] + " → 跳过不恢复(待二次确认)");
             }

@@ -41,6 +41,7 @@ public static partial class WageGirlSystem
                 "Double-click to open her status panel."); // 10-16 文案重设计 v2 drop-in：删"叫客"（未实现），偷窃机制按实测校正（每5天偷钱/好感满100不偷/心情好归还）
             it.longDescription = it.shortDescription;
             it.unitValue = 0; it.unitBaseValue = 0; // 09-19 价值归零：客户不买
+            Core.LogMsg("[克隆核对] WageGirlEntity: id=" + (it.identifier ?? "NULL") + " val=" + it.unitValue); // 10-18 总控方案①取证（identifierName 无 get 只写，不读）
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 创建失败: " + ex.Message); return null; }

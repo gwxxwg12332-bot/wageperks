@@ -7,6 +7,12 @@ namespace WagePerks;
 
 public static partial class GuMachineSystem
 {
+    // 10-18 总控方案③第一批：本文件空 catch 分类留痕（count_empty_catch.py 热点 #1，75/81）——
+    //   全部为安全防御模式：读字段/tag（失败=默认值）、m.Destroy()（失败=物品保留，下次再销毁，不丢数据）、
+    //   UI Notify/AddNightLog（失败=不影响主链）、写 tag（il2cpp 内存操作失败极罕见，失败=该属性未生效）。
+    //   唯一需关注：TryAcceptAllMid 入舱失败被吞=产出丢失——:116 注释为已知权衡（先清原料腾格已修，空间真不足时宁可丢产出不卡机）。
+    //   结论：本文件无需逐处修复，维持防御式空 catch（逐帧路径吞错成本=0，且外层 TryGuMachineTick/TryAiGeneratorTick/TryBeastEat 均有
+    //   兜底 catch 打日志，非完全静默）。
     private static void TryGuMachineTick(GameItem gu, int day)
     {
         try

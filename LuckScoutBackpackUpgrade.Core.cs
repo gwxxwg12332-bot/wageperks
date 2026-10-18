@@ -186,6 +186,7 @@ partial class LuckScoutBackpackUpgrade
 
 
 
+            Core.LogMsg("[克隆核对] VoidBead: id=" + (item.identifier ?? "NULL") + " val=" + item.unitValue); // 10-18 总控方案①取证
             return item;
 
         }

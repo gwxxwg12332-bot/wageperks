@@ -138,6 +138,7 @@ public static partial class CustomStorageContainer
                     Core.LogMsg($"[自定义储物箱] 验证内部库存失败: {ex.Message}");
                 }
 
+                Core.LogMsg("[克隆核对] CustomStorage: id=" + (container != null ? (container.identifier ?? "NULL") : "NULL") + " val=" + (container != null ? container.unitValue : -1)); // 10-18 总控方案①取证
                 return container;
             }
             catch (Exception ex)
