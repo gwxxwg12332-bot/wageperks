@@ -852,7 +852,18 @@ internal static class B2WildPanel
             }
             var perk = FindPerk(e.PerkId);
             if (perk == null) return;
-            if (perk.Cost < 0) { __result = B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId); return; }
+            if (perk.Cost < 0)
+            {
+                bool gone = B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId);
+                // 10-19 审阅落地（假消除）：仅"完全消除"以上锁须以列表为准——标志位说消了但列表还在
+                //   （老档假消除/迁移前）→ 不上锁，让玩家可重试；净化=特性仍在列表属正常，不做列表校验
+                if (gone && B2ServiceStore.IsEliminated(e.PerkId))
+                {
+                    try { gone = !StartingPerk.IsPerkActive(e.PerkId); } catch { }
+                }
+                __result = gone;
+                return;
+            }
             __result = B2ServiceStore.GetLevel(e.PerkId) >= 3;
         }
         catch (Exception ex) { Core.LogMsg("[B2R] IsUnlocked 异常: " + ex.Message); }
@@ -889,6 +900,8 @@ internal static class B2WildPanel
             {
                 if (e.PerkId == ThiefMagnetPerk.PerkId && ThiefMagnetSystem.StolenCount() > 0)
                     __result = false; // 招贼体质：被偷未赎回 → 锁（提示走消业障）
+                else if (WageBrother.NonRemovablePerks.Contains(e.PerkId))
+                    __result = false; // 10-19 审阅落地：精神错乱等系统特性面板链不给消（对齐名片链 WageBrother.cs:837）
                 else
                     __result = !B2ServiceStore.IsEliminated(e.PerkId) && !B2ServiceStore.IsPurified(e.PerkId);
                 return false;
@@ -969,9 +982,28 @@ internal static class B2WildPanel
                 }
                 // 10-15 净化购买：可净化特性弹选择窗（消除=全移除 / 净化=保留加成只删 debuff）
                 if (B2ServiceStore.IsPurifiable(e.PerkId)) { ShowPurifyWindow(e, perk); return; }
+                // 10-19 审阅落地（假消除根修）：消除必须两步——①删原版列表 StartingPerk.RemovePerk（角色面板读的这份）
+                //   ②写标志位 owned_<id>=-1（Core.PerkActive 统一入口）。原实现只做②→提示已消但角色面板仍在、钱照扣。
+                try { StartingPerk.RemovePerk(e.PerkId); }
+                catch (Exception ex) { Core.LogMsg("[B2R] RemovePerk 异常 " + e.PerkId + ": " + ex.Message); }
                 B2ServiceStore.Eliminate(e.PerkId);
-                Notify(LangHelper.T("已消除负面特性：" + perk.DisplayName, "Negative perk removed: " + perk.DisplayName));
-                Core.LogMsg("[B2R] 已消除 " + e.PerkId);
+                // 10-19 审阅落地：提示改"后置校验驱动"——真删了才报成功；没删（RemovePerk 半失败/列表异常）→ 回滚标志位+退款，不固化终态
+                bool reallyGone = false;
+                try { reallyGone = !StartingPerk.IsPerkActive(e.PerkId); } catch { }
+                if (reallyGone)
+                {
+                    Notify(LangHelper.T("已消除负面特性：" + perk.DisplayName, "Negative perk removed: " + perk.DisplayName));
+                    Core.LogMsg("[B2R] 已消除 " + e.PerkId + "（列表已删+标志位已写）");
+                }
+                else
+                {
+                    // 回滚：标志位撤销 + 退还原生已扣的钱（原生支付在 UnlockAction 之前完成）
+                    B2ServiceStore.SetLevel(e.PerkId, 0);
+                    int refund = WageBrother.PriceForCost(perk.Cost);
+                    try { var ps = PlayerStore.Instance; if (ps != null) ps.playerCash += refund; } catch { }
+                    Notify(LangHelper.T("消除失败，已退还 " + refund + " 信用点", "Removal failed, refunded " + refund + " cr"));
+                    Core.LogError("[B2R] 消除失败未生效: " + e.PerkId + "，已退款 " + refund);
+                }
                 RefreshDetail(e.Id);
                 return;
             }
@@ -1454,6 +1486,27 @@ internal static class B2WildPanel
             EnsurePhoneRegistered(ps.PhoneClientDict);
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 读档电话兜底异常: " + ex.Message); }
+    }
+
+    // 10-19 审阅落地（假消除·第四层）：老档一次性迁移——标志位 owned_<id>=-1 但原版列表仍在 → 补删。
+    // 幂等：列表已删的会被 IsPerkActive 过滤；重复读档不重复删。只修 Cost<0 且 IsEliminated 且列表仍在 三条件同时成立。
+    internal static void RepairFakeEliminations()
+    {
+        try
+        {
+            var ps = PlayerStore.Instance;
+            if (ps == null || ps.startingPerks == null) return;
+            int fixedCount = 0;
+            foreach (var perk in CustomStartingPerks.All)
+            {
+                if (perk.Cost >= 0) continue;
+                if (!B2ServiceStore.IsEliminated(perk.Id)) continue; // 只修"标记已消"的
+                if (!StartingPerk.IsPerkActive(perk.Id)) continue;    // 列表已无 → 本来就对
+                try { StartingPerk.RemovePerk(perk.Id); fixedCount++; } catch { }
+            }
+            if (fixedCount > 0) Core.LogMsg("[B2R] 假消除修复：补删 " + fixedCount + " 个负面特性（老档）");
+        }
+        catch (Exception ex) { Core.LogMsg("[B2R] RepairFakeEliminations 异常: " + ex.Message); }
     }
 
     // 拨号拦截：1005 走原版对话链（dialogFuncId="WageBrother" → DialogFuncs）；仅当对话工厂注册失败时回退直开面板

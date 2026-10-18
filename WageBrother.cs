@@ -832,7 +832,8 @@ internal static class WageBrother
     }
 
     // 10-18 设计稿 §3.5-1：消业障「不可删」名单——mod 系统特性（删了拆断系统链路：精神错乱删后 MadnessRoller.IsLocked 仍 true）
-    private static readonly System.Collections.Generic.HashSet<string> NonRemovablePerks = new System.Collections.Generic.HashSet<string>
+    // 10-19 审阅落地：private→internal（B2 面板链 PrefixIsReady 同名单校验，两处口径统一）
+    internal static readonly System.Collections.Generic.HashSet<string> NonRemovablePerks = new System.Collections.Generic.HashSet<string>
     {
         "精神错乱", "蛙娘", "蛙哥牛逼", "捡漏直觉", "命运之骰", "流浪者"
     };

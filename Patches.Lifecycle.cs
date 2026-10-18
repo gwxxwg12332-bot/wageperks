@@ -537,6 +537,9 @@ internal static partial class Patches
 		// 10-14 B2-R：读档兜底——ES3 反序列化 0x150 可能重建字典，缺 b2_ 条目则补注入+UnlockActions（幂等）
 		try { B2WildPanel.EnsureInjected(); }
 		catch (System.Exception ex3) { Core.LogMsg("[B2R] 读档兜底注入异常: " + ex3.Message); }
+		// 10-19 审阅落地（假消除·第四层）：老档"标志位-1+列表仍在"补删迁移（幂等，只修三条件同时成立）
+		try { B2WildPanel.RepairFakeEliminations(); }
+		catch (System.Exception ex5) { Core.LogMsg("[B2R] 假消除修复异常: " + ex5.Message); }
 		// 10-14 B2-R-H1：读档兜底——PhoneClientDict 整对象随档恢复（InitPhoneClientDict 仅 StartNewGame 调），旧档缺蛙哥 1005 → 补注册（幂等）
 		try { B2WildPanel.EnsurePhoneRegistered(); }
 		catch (System.Exception ex4) { Core.LogMsg("[B2R] 读档电话兜底异常: " + ex4.Message); }
