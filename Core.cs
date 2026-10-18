@@ -1,7 +1,7 @@
 using Il2Cpp;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(WageBlackGold.Core), "黑金典藏箱", "1.0.0", "井底之蛙", null)]
+[assembly: MelonInfo(typeof(WageBlackGold.Core), "黑金典藏箱", "1.0.1", "井底之蛙", null)]
 [assembly: MelonGame("Questing Goose Studio", "Probably Stolen")]
 
 namespace WageBlackGold;
@@ -19,7 +19,7 @@ public class Core : MelonMod
     public override void OnInitializeMelon()
     {
         Log = base.LoggerInstance;
-        Log.Msg("黑金典藏箱 v1.0.0 已加载（独立赞助 mod：全物品收纳 / 免搜查 / 16 组样式切换 / 博士夜晚上架 2000）");
+        Log.Msg("黑金典藏箱 v1.0.1 已加载（独立赞助 mod：全物品收纳 / 免搜查 / 16 组样式切换 / 博士夜晚上架 2000）");
         Log.Msg("QQ群：1109707341");
     }
 
