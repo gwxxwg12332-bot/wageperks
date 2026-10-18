@@ -93,10 +93,32 @@ internal static partial class SurvivalFood
     internal static bool IsMedicine(GameItem item) => FoodIdentifyHelper.IsMedicine(item);
     internal static bool IsDailyNeed(GameItem item) => FoodIdentifyHelper.IsDailyNeed(item);
 
-    // ===== Nodes系统辅助方法（简化版）=====
-    internal static int ApplyIncomePunish(int pct) => 0;
+    // ===== Nodes系统辅助方法 =====
+    // 10-19 四仓断路修复 P1-2：ApplyIncomePunish 实做（原空壳 =>0 造成「收入-20%（-0）」假文案）。
+    //   对齐 JP RobinCrusoePerk.Survival.Economy.cs:14-32：读 "revenue" 键（RecordRevenue 当日累计）→ 按 % 扣 playerCash → 清零。
+    internal static int ApplyIncomePunish(int pct)
+    {
+        try
+        {
+            int revenue = SaveStore.GetInt("revenue", 0);
+            if (revenue <= 0 || pct <= 0) return 0;
+            int amt = (int)(revenue * pct / 100.0);
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps != null && amt > 0)
+            {
+                ps.playerCash = Math.Max(0, ps.playerCash - amt);
+                SaveStore.SetInt("revenue", 0);
+                return amt;
+            }
+        }
+        catch (System.Exception ex) { Core.LogMsg("[WageSurvival] ApplyIncomePunish 异常: " + ex.Message); }
+        return 0;
+    }
+    // 10-19 P1-2 条件展示（实做立 P4）：依赖 CollectAllItems/IsToolOrKeyOrContainer/FindContainingInventory（WS 全仓 0 命中，约 90 行）。
+    //   本批恒 0=不损失物品；调用点已按 n>0 条件 append（无货可失不再误报）。
     internal static int LostSmallItem(int n) => 0;
-    internal static void LostWaterItem() { }
+    // 10-19 P1-2 条件展示（实做立 P4）：依赖同上（约 50 行）。改返回 bool=调用点「效果非空才显示」判据。
+    internal static bool LostWaterItem() { return false; }
 
     // ===== FxEval辅助方法（简化版）=====
     internal const int ELEV_MAX = 5;
@@ -105,7 +127,17 @@ internal static partial class SurvivalFood
 
     // ===== Blood辅助方法（简化版）=====
     internal static bool _autoPopup = false;
-    internal static void ExecuteGameOverBy(string reason) { }
+    // 10-19 四仓断路修复 P1-1：ExecuteGameOverBy 实做（原空壳——死亡判定移植后必须有真结局出口）。
+    //   对齐 JP RobinCrusoePerk.Death.cs:76-84；结局文案由 SurvivalEconomy.cs:121 PrefixExecuteGameOver(string) 承接（已注册 :419）。
+    internal static void ExecuteGameOverBy(string reason)
+    {
+        try
+        {
+            var ps = Il2Cpp.PlayerStore.Instance;
+            if (ps != null) { ps.ExecuteGameOver(reason); }
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] ExecuteGameOverBy 异常: " + ex.Message); }
+    }
 
     // ===== 昏迷跳天（方案A：帧钩子异步逐轮日切）=====
     internal static int _pendingSkipDays = 0; // 待跳天数

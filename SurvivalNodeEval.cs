@@ -124,8 +124,8 @@ internal static partial class SurvivalFood
             {
                 foreach (string p in d.BurstPunish)
                 {
-                    if (p == "lostItem") { int n = LostSmallItem(1); desc += n > 0 ? LangHelper.T("损失货物 ", "Lost goods ") : LangHelper.T("（无货可失）", "(nothing to lose)"); }
-                    else if (p == "lostWaterItem") { LostWaterItem(); desc += LangHelper.T("水器损坏 ", "Water container damaged "); }
+                    if (p == "lostItem") { int n = LostSmallItem(1); if (n > 0) desc += LangHelper.T("损失货物 ", "Lost goods "); } // 10-19 P1-2：条件展示（n>0 才 append；LostSmallItem 本批恒 0=不误报「无货可失」，实做立 P4）
+                    else if (p == "lostWaterItem") { bool lost = LostWaterItem(); if (lost) desc += LangHelper.T("水器损坏 ", "Water container damaged "); } // 10-19 P1-2：条件展示（效果非空才显示；本批恒 false 不误报，实做立 P4）
                     else if (p == "income-30" || p == "income-20" || p == "income-10") { int pct = Math.Abs(int.Parse(p.Substring(6))); int amt = ApplyIncomePunish(pct); desc += LangHelper.T("收入-" + pct + "%（-" + amt + "） ", "Income -" + pct + "% (-" + amt + ") "); }
                     else if (p == "health-15") { SetHealth(Math.Max(0, GetHealth() - 15)); desc += LangHelper.T("健康-15 ", "Health -15 "); }
                     else if (p == "sat+30") { SetSatiety(Math.Min(100, GetSatiety() + 30)); desc += LangHelper.T("饱食+30 ", "Satiety +30 "); }

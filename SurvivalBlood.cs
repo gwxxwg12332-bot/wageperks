@@ -33,6 +33,7 @@ internal static partial class SurvivalFood
             //   抽血按次扣健康 15（新增"抽血专属代价"）——健康由纯展示值变为体力条（配合日结衰减×2 后果）
             SetHealth(Math.Max(0, GetHealth() - 15));
             // 09-20 用户拍板：抽血过多当场昏迷 3 天（血量 <3000 立即触发；血袋照常产出——抽血成功的代价）；昏迷当天立即禁出门/禁采血（IsForcedRest 即时生效）
+            // 10-19 注释（四仓断路 P1-1）：失血不致死——失血后果=昏迷，由本链承接（IsBloodWeak→blood_rest=3→ForceComaSkip→帧钩子 TickSkipDays 跳3天→SaveStore.cs:81 新档清理，L1 已核）
             if (IsBloodWeak())
             {
                 SaveStore.SetInt("blood_rest", 3);
@@ -107,7 +108,9 @@ internal static partial class SurvivalFood
             int from = GetBlood(); // 审阅 07:29 §4.3：血量审计——一次运行定位 8 条写入路径各自来源
             int b = Math.Max(0, Math.Min(BLOOD_MAX, from + delta));
             SetBlood(b);
-            if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } }
+            // 10-19 四仓断路 P1-1：失血不致死（原空壳调用已删——ExecuteGameOverBy("blood_loss") 本为空壳且 blood_loss 不在
+            //   PrefixExecuteGameOver 三结局文案内；真实失血后果=昏迷跳天（:35-44 IsBloodWeak → ForceComaSkip → TickSkipDays），
+            //   失血线是完整活链，无需"替代"。删除空壳调用防止假死亡路径。）
             // 10-18 审阅复核 §3.3（07:09）：AddBlood 自身必须刷新——原 DrinkSip/EatBite 在 AddBlood **之前**调
             //   RefreshStatusPanel（SurvivalConsume.cs:45/46 → :286/:297），面板永远慢一步（卖血5500→喝水→显示仍5500）。
             //   统一在此刷，吃喝回血/受伤扣血/日结恢复全覆盖（对齐 BoostMood 写法）。

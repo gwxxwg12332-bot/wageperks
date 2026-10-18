@@ -20,6 +20,10 @@ internal static partial class SurvivalFood
     internal static int GetClean() => SaveStore.GetInt("clean", 100);
     internal static int GetSleep() => SaveStore.GetInt("sleep", 100);
     internal static int GetSocial() => SaveStore.GetInt("social", 50);
+    // 10-19 P1-1 三线死亡计数 getter（对齐 JP RobinCrusoePerk.Survival.State.cs:21-23；键与 JP 同域 "SurvivalGlobal"，老档计数可继承）
+    internal static int GetStarveDays() => SaveStore.GetInt("starveDays", 0);       // 濒饿持续（饱食<20或口渴<20）
+    internal static int GetCritDays() => SaveStore.GetInt("critDays", 0);           // 病危持续（健康<20）
+    internal static int GetThirstDeathDays() => SaveStore.GetInt("thirstDeath", 0); // 渴死持续（口渴<20）
 
     // 10-13 Step2（P0）：六维写入统一失效交易缓存——加成缓存(售价/预算/议价)与六维联动，Set* 即刷新（SetCompBuffDays 同型先例；调用点全为业务事件非帧循环）
     internal static void SetSatiety(int v) { if (WpOwnsSat) WageAPI.WageSaveStore.SetInt(WpNs, "sat", v); else SaveStore.SetInt("sat", v); InvalidateTradeCaches(); }
@@ -123,22 +127,26 @@ internal static partial class SurvivalFood
                 TryGiveRandomFood(1);
             }
 
-            // 救场系统：连续饱食<=0达5天 → 好心客户送食1-2份
-            // 10-18 审阅 R2 §10.2：键名分裂修复——本侧原用 "starvingDays"，WP 侧用 "starveDays"（State.cs:21 读/:40 清/Patches.cs:145 写/Startup.cs:43 写0），
-            //   两侧读互不相干的计数器=同一"饿几天"两侧答案不同；且 WP ALL_KEYS 只清 starveDays、starvingDays 从未被清=新档继承旧档计数。
-            //   统一以 starveDays 为准（WP 4 处引用），旧名 starvingDays 由 WP ALL_KEYS 补入一次迁移清理。
-            int starvingDays = SaveStore.GetInt("starveDays", 0);
-            if (sat <= 0) starvingDays++;
-            else starvingDays = 0;
-            SaveStore.SetInt("starveDays", starvingDays);
-            if (starvingDays >= 5)
-            {
-                Core.LogMsg("[WageSurvival] 救场：好心客户送食");
-                TryGiveRandomFood(UnityEngine.Random.value < 0.5f ? 2 : 1);
-                SetSatiety(30); // 饱食+30
-                starvingDays = 0;
-                SaveStore.SetInt("starveDays", 0);
-            }
+            // ===== 三线生存判定（10-19 四仓断路 P1-1 移植 JP RobinCrusoePerk.Survival.Patches.cs:140-157 死亡四线）=====
+            //   阈值直接复用 SurvivalNodeDefs.cs:116 NODE_CRIT=20（与 JP NodeDefs.cs:138 同值，禁止新定义/字面量）
+            //   注意：原 :126-141 救场区（starvingDays 计数+5天送食+归零）已整体替换——原实现送食后归零=永远到不了死亡
+            //   新语义：濒饿5天送食不归零、第6天起仍持续才饿死（JP :150/:155）；渴死4天/病死4天独立判定（饿优先）
+            bool starving = sat < NODE_CRIT || th < NODE_CRIT;
+            int sd5 = starving ? GetStarveDays() + 1 : 0;
+            int td5 = th < NODE_CRIT ? GetThirstDeathDays() + 1 : 0;
+            int cd5 = h < NODE_CRIT ? GetCritDays() + 1 : 0;
+            SaveStore.SetInt("starveDays", sd5);
+            SaveStore.SetInt("thirstDeath", td5);
+            SaveStore.SetInt("critDays", cd5);
+            // ===== 救场安全网（濒饿5天送食 / 濒渴第3天送水 / 病危第3天送药；困难模式无救助）=====
+            if (sd5 == 5) RescueFeed();
+            else if (td5 >= 3 && sd5 < 5) RescueWater();
+            else if (cd5 == 3 && sd5 < 5 && td5 < 3) RescueMedicine();
+            // ===== 三种生存死亡（救场当天豁免、送食后仍恶化才死）=====
+            if (sd5 > 5) { ExecuteGameOverBy("starvation"); return; }
+            if (td5 >= 4 && sd5 < 5) { ExecuteGameOverBy("thirst"); return; }
+            if (cd5 > 3 && sd5 < 5 && td5 < 4) { ExecuteGameOverBy("disease"); return; }
+            Core.LogMsg($"[WageSurvival] 三线计数: 饿{sd5} 渴{td5} 病{cd5}");
 
             // 患病判定：节点池sick+20 → 每日患病概率
             int sickChance = GetSickChanceAdd();
@@ -147,7 +155,7 @@ internal static partial class SurvivalFood
                 TryInfect(sickChance / 100.0);
             }
 
-            Core.LogMsg($"[WageSurvival] 每日结算: sat={sat} th={th} h={h} clean={clean} sleep={sleep} social={social} mood={mood} | 昂扬={ec} 粮仓={gd}/7 挨饿={starvingDays}天");
+            Core.LogMsg($"[WageSurvival] 每日结算: sat={sat} th={th} h={h} clean={clean} sleep={sleep} social={social} mood={mood} | 昂扬={ec} 粮仓={gd}/7 濒饿={GetStarveDays()}天");
 
             // 10-07 阶段D D-1：账本夜报（承接 WP :156 尾部夜报——先补后删）
             AppendLedgerReport();
@@ -164,6 +172,69 @@ internal static partial class SurvivalFood
         {
             Core.LogMsg("[WageSurvival] PostfixOnDayStart 异常: " + ex.Message);
         }
+    }
+
+    // ===== 救场安全网（10-19 P1-1 移植 JP RobinCrusoePerk.Death.cs:87-135；保留两个原被静默丢失的语义）=====
+    //   ① 困难模式无救助（robinson_hard==1 三处 return）；② 按更缺的送（giveWater 判定，避免濒饿送食物、濒渴送错）
+    private static void RescueFeed()
+    {
+        try
+        {
+            if (SaveStore.GetInt("robinson_hard", 0) == 1) return; // 困难模式：无救助（濒饿直接 GameOver）
+            int n = UnityEngine.Random.Range(1, 3); // 1-2 份
+            bool giveWater = GetThirstPct() < GetSatiety(); // 按更缺的送（JP Death.cs:94 语义）
+            for (int i = 0; i < n; i++) GiveRescueItem(giveWater ? "bottled_water" : "processed_meat", 1);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了 " + n + " 份" + (giveWater ? "水" : "食物") + "，先撑住", "A kind customer sent " + n + " " + (giveWater ? "waters" : "food") + " — hang in there"), "green"); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] RescueFeed 异常: " + ex.Message); }
+    }
+    // 濒渴第3天送水（渴死第4天判定前救场缓刑；带水瓶送普通水，对齐 JP 09-20 拍板语义）
+    private static void RescueWater()
+    {
+        try
+        {
+            if (SaveStore.GetInt("robinson_hard", 0) == 1) return; // 困难模式：无救助
+            EmporiumEntry em2 = EmporiumEntry.Instance;
+            if (em2 == null || em2.backInvinvElement == null) return;
+            for (int wi = 0; wi < 2; wi++)
+            {
+                GameItem witem = DirectoryMaster.Item("bottled_water", true); // 普通瓶
+                if (witem == null) witem = Il2Cpp.WaterPremadeHelper.AccurateHighQualityWater("bottled_water"); // 兜底：至少带水普通瓶
+                else { try { Il2Cpp.WaterHelper.AddWater(witem, 2, -1, false, 0, 1, true); } catch { } } // 普通质量水 grade=2
+                try { witem.DisableTag("stolen", true); } catch { }
+                try { Il2Cpp.GeneralHelper.SetItemOwned(witem, true); } catch { }
+                WageAPI.WageItemGrant.GrantToInventory(witem, em2.backInvinvElement);
+            }
+            try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了 2 份水，先撑住", "A kind customer sent 2 waters — hang in there"), "green"); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] RescueWater 异常: " + ex.Message); }
+    }
+    private static void RescueMedicine()
+    {
+        try
+        {
+            if (SaveStore.GetInt("robinson_hard", 0) == 1) return; // 困难模式：无救助
+            GiveRescueItem("bandage_item", 1);
+            try { StoreUIManager.Instance.Notify(LangHelper.T("好心客户送来了药品，快用上", "A kind customer sent medicine — use it now"), "green"); } catch { }
+        }
+        catch (Exception ex) { Core.LogMsg("[WageSurvival] RescueMedicine 异常: " + ex.Message); }
+    }
+    // 救场发物（显式目标防重叠，WageItemGrant 契约内置）
+    private static void GiveRescueItem(string id, int count)
+    {
+        try
+        {
+            EmporiumEntry em = EmporiumEntry.Instance;
+            if (em == null || em.backInvinvElement == null) return;
+            for (int i = 0; i < count; i++)
+            {
+                GameItem item = DirectoryMaster.Item(id, true);
+                if (item == null) continue;
+                try { Il2Cpp.GeneralHelper.SetItemOwned(item, true); } catch { }
+                WageAPI.WageItemGrant.GrantToInventory(item, em.backInvinvElement);
+            }
+        }
+        catch { }
     }
 
     // 食物变质：每2天质量+1（0=新鲜/1=变质/2=腐烂）

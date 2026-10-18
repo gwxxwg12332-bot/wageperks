@@ -17,6 +17,9 @@ public class ModInfo
 /// 发现机制（2026-10-03 新建）：Register/HasCapability/TryGetMod/依赖校验/同 ID 多版本告警。
 /// 延迟绑定：运行期查 ModRegistry 取能力，不依赖 MelonLoader 加载顺序（架构决策 ⑥）。
 /// </summary>
+// 10-19 P3 冻结（派活单§八）：ModRegistry 为「未接线基建」——4 副本同构、全仓 0 调用（报告§五）
+//   决议=冻结不启用：运行时走内嵌副本 + 各 mod 直接引用（不依赖发现机制）；不动逻辑，防回滚需要
+//   如需启用：先统一 4 副本差异（行号已漂移），再在 Core 注册处接线
 public static class ModRegistry
 {
     private static readonly Dictionary<string, ModInfo> _mods = new Dictionary<string, ModInfo>(StringComparer.OrdinalIgnoreCase);

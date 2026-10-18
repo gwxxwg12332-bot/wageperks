@@ -134,8 +134,10 @@ internal static partial class SurvivalFood
         if (fx.StartsWith("socR")) return LangHelper.T("社交恢复" + fx.Substring(4) + "%", "Social recovery " + fx.Substring(4) + "%");
         if (fx.StartsWith("wound")) return LangHelper.T("受伤" + fx.Substring(5) + "%", "Injury " + fx.Substring(5) + "%");
         if (fx.StartsWith("sick")) return LangHelper.T("患病" + fx.Substring(4) + "%", "Illness " + fx.Substring(4) + "%");
-        if (fx == "lostItem") return LangHelper.T("损失货物", "Lost goods");
-        if (fx == "lostWaterItem") return LangHelper.T("水器损坏", "Water container damaged");
+        // 10-19 P1-2：lostItem/lostWaterItem 本批未实做（恒 0/false）→ 节点名与结算一致不显示文案（防「损失货物」名实不符）；
+        //   LostSmallItem/LostWaterItem 实做（P4）后改回 "损失货物"/"水器损坏"
+        if (fx == "lostItem") return "";         // 实做后改回 LangHelper.T("损失货物", "Lost goods")
+        if (fx == "lostWaterItem") return "";    // 实做后改回 LangHelper.T("水器损坏", "Water container damaged")
         if (fx.StartsWith("statusClient")) return LangHelper.T("状态客户-" + fx.Substring(13) + "%", "Customers from status -" + fx.Substring(13) + "%");
         if (fx.StartsWith("drop")) return LangHelper.T("掉落率" + fx.Substring(4) + "%", "Drop rate " + fx.Substring(4) + "%");
         return fx;
