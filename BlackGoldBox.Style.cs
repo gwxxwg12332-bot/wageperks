@@ -14,6 +14,9 @@ public static class BlackGoldBoxStyle
     // 加错库存（玩家看不到博士卖黑金箱）。对齐鲁滨逊先例（RobinCrusoePerk.AddDoctorNightGoods→MerchantHelper.AddItemToCounter→
     // PlayerStore.AddDirectSellingItemToTable 柜台链，Patches.Npc.Client.cs:279）改走上架柜台链。
     private static long _lastStockMs = 0; // 10-08 帧级防重：双挂点（ShowAfterhourInv+PlaceInventorInventory）同帧双双通过 HasBoxOnCounter（AddDirectSellingItemToTable 后 items 未立即更新）→ 2 秒内只上架一次
+    // 10-18 总控B：误应用防护会话级判据（对齐 JP ContainerUpgradeV2.Restore.cs）——同会话重复见只记一次、永不当场升级；
+    //   旁键(style_mismatch_{loc}_{idx})只存"跨会话见过一次"布尔，"两次读档"语义才真正成立
+    private static readonly System.Collections.Generic.HashSet<string> _sawMismatchThisSession = new System.Collections.Generic.HashSet<string>();
     private static bool AddToDoctorCounter()
     {
         try
@@ -190,6 +193,14 @@ public static class BlackGoldBoxStyle
 
     public static int ReadPersistStyle(GameItem box)
     {
+        string locOut; int idxOut;
+        return ReadPersistStyleEx(box, out locOut, out idxOut);
+    }
+
+    // 10-18 总控B：Ex 变体额外输出命中的 loc/idx（旁键 key 需要）——原 ReadPersistStyle 只返回 styleIdx
+    public static int ReadPersistStyleEx(GameItem box, out string locOut, out int idxOut)
+    {
+        locOut = null; idxOut = -1;
         try
         {
             var e = EmporiumEntry.Instance;
@@ -211,13 +222,27 @@ public static class BlackGoldBoxStyle
                     if (loc != null)
                     {
                         int s = WageAPI.WageSaveStore.GetInt("BlackGold", "style_" + loc + "_" + idx, -1);
-                        if (s >= 0) return s;
+                        if (s >= 0) { locOut = loc; idxOut = idx; return s; }
                     }
                 }
             }
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] ReadPersistStyle: " + ex.Message); }
         return -1;
+    }
+
+    // 10-18 总控B：取内部库存网格尺寸（contentWindow.childElement→GameGridInventory→inventoryShape）
+    private static void GetGridWH(GameItem box, ref int w, ref int h)
+    {
+        try
+        {
+            var cw = box.contentWindow;
+            if (cw == null || cw.childElement == null) return;
+            var grid = cw.childElement.TryCast<GameGridInventory>();
+            if (grid == null) return;
+            try { if (grid.inventoryShape != null) { w = grid.inventoryShape.width; h = grid.inventoryShape.height; } } catch { }
+        }
+        catch { }
     }
 
     private static int FindIndexInInv(GameInventory inv, GameItem box)
@@ -266,13 +291,45 @@ public static class BlackGoldBoxStyle
                 Core.LogMsg("[黑金读档] identifier=" + idv + " uniqueId=" + uid + " styleIdx=" + probeIdx);
             }
             catch { }
-            // 持久化 key 命中=黑金箱（读档后场景物品 identifier/tag 全丢——不依赖它们，按 loc+idx 反查）
-            // 非黑金箱无 style_ 持久化 → ReadPersistStyle=-1 → return（天然过滤）
-            int styleIdx = ReadPersistStyle(__instance);
-            if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length) return;
-            SelfHeal20x20(__instance); // 10-13 Step4③：妙妙箱恢复链误改黑金内部网格 → 读档自愈恒 20×20（占地 shape 禁动）
-            ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
-            Core.LogMsg("[黑金典藏箱] 读档恢复样式 → " + BlackGoldBox.StyleKeys[styleIdx]);
+            // 10-18 总控B：读档恢复**身份门**（对齐 JP P0 修复模式 ContainerUpgradeV2.Restore.cs）——
+            //   style_ 键命中后不再直接恢复：身份校验=内部网格尺寸==黑金出厂 20×20（读档后 identifier/uniqueId/tag 全丢，
+            //   尺寸是唯一随档可验证特征；探针实测 identifier=NULL/uniqueId=0 恒成立，identifier 判据证伪）。
+            //   ⚠️与 JP 差异（取舍已拍板）：JP 段位尺寸是升级动作写的固定值；WBG 的 20×20 是出厂值，真箱被 JP 链改坏后≠20×20——
+            //   本门会跳过其恢复（降级：样式不恢复+不自愈，可玩家手动切一次样式恢复写新键）；换取"普通容器占位不被
+            //   SelfHeal/ApplyStyle 污染"（确定性必现 > 历史坏档低频；总控 B 取舍，A 移动钩子入 backlog）。
+            string locOut = null; int idxOut = -1;
+            int styleIdx = ReadPersistStyleEx(__instance, out locOut, out idxOut);
+            if (styleIdx < 0 || styleIdx >= BlackGoldBox.StyleKeys.Length || locOut == null || idxOut < 0) return;
+            int cw = 0, ch = 0; GetGridWH(__instance, ref cw, ref ch);
+            string misKey = "style_mismatch_" + locOut + "_" + idxOut;
+            string styleKey = "style_" + locOut + "_" + idxOut;
+            if (cw == 20 && ch == 20)
+            {
+                // 尺寸匹配=黑金出厂形态 → 正常恢复 + 清旁键（对齐 JP 改进：成功即清旁键，防"二次确认"退化跨事件累积）
+                try { if (WageAPI.WageSaveStore.GetInt("BlackGold", misKey, 0) != 0) WageAPI.WageSaveStore.SetInt("BlackGold", misKey, 0); } catch { }
+                SelfHeal20x20(__instance); // 已 20×20 早退，保留兜底
+                ApplyStyle(__instance, BlackGoldBox.StyleKeys[styleIdx]);
+                Core.LogMsg("[黑金典藏箱] 读档恢复样式 → " + BlackGoldBox.StyleKeys[styleIdx]);
+                return;
+            }
+            // 尺寸不符：不恢复（不换皮不自愈）+ 记旁键；**两次不符才清键**（对齐 JP 不可逆删除防护）
+            int mis = 0; try { mis = WageAPI.WageSaveStore.GetInt("BlackGold", misKey, 0); } catch { }
+            if (mis > 0 && !_sawMismatchThisSession.Contains(misKey))
+            {
+                _sawMismatchThisSession.Add(misKey);
+                try
+                {
+                    WageAPI.WageSaveStore.SetInt("BlackGold", styleKey, -1);
+                    WageAPI.WageSaveStore.SetInt("BlackGold", misKey, -1);
+                }
+                catch { }
+                Core.LogMsg("[黑金典藏箱] 样式键×2不符(误应用防护确认): loc=" + locOut + " idx=" + idxOut + " 实际=" + cw + "x" + ch + " 期望=20x20 → 清键自愈");
+            }
+            else if (_sawMismatchThisSession.Add(misKey))
+            {
+                try { WageAPI.WageSaveStore.SetInt("BlackGold", misKey, 1); } catch { }
+                Core.LogMsg("[黑金典藏箱] 样式键不符(误应用防护首次): loc=" + locOut + " idx=" + idxOut + " 实际=" + cw + "x" + ch + " 期望=20x20 → 跳过不恢复(待二次确认)");
+            }
         }
         catch (Exception ex) { Core.LogMsg("[黑金典藏箱] PostfixSetContentWindow: " + ex.Message); }
     }
