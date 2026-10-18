@@ -530,7 +530,7 @@ public static class WageSaveStore
     // 旧层(PerkStatePersistence)缓存 runID 可能来自上一档；兼容读取前强制刷新
     private static void EnsureLegacyFresh()
     {
-        try { _legacyRunId = null; } catch { }
+        _legacyRunId = null;
     }
 
     private static string LegacyGetRunId()
