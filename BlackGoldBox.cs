@@ -167,7 +167,7 @@ public static class BlackGoldBox
             }
             catch { }
 
-            Core.LogMsg("[克隆核对] BlackGold: id=" + (container.identifier ?? "NULL") + " val=" + container.unitValue); // 10-18 总控方案①取证（统一格式，与 JP 侧 grep 对齐）
+            try { Core.LogMsg("[克隆核对] BlackGold: id=" + (container.identifier ?? "NULL") + " val=" + container.unitValue); } catch { } // 10-18 总控方案①取证（统一格式，与 JP 侧 grep 对齐）
             return container;
         }
         catch (Exception ex)
