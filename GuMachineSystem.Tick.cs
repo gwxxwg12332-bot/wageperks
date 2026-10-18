@@ -142,7 +142,7 @@ public static partial class GuMachineSystem
         {
             if (EmporiumEntry.Instance != null)
             {
-                var all = EmporiumEntry.Instance.GetAllItems();
+                var all = WageBrother.CollectAllItems(); // 10-18 审阅 P2：原 GetAllItems 只扫顶层——AI生成器放容器内不 tick，改用全店递归
                 if (all != null) foreach (var it in all) { if (it != null && it.identifier == AI_GENERATOR_ID) result.Add(it); }
             }
         }

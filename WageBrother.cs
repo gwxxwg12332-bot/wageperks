@@ -77,7 +77,7 @@ internal static class WageBrother
             t.identifier = ORDER_TICKET_ID;
             t.SetName(LangHelper.T("点货签", "Order Ticket"));
             t.shortDescription = LangHelper.T("点单凭证：蛙哥到店时把绑定的品类临时加入他的收购清单（本次到店生效，3 天冷却）。", "Order ticket: adds the bound category to Wage Brother's buying list for this visit (3-day cooldown).");
-            var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 1); t.SetShape(gsb.Build()); t.modifiedShape = gsb.Build();
+            var gsb = new GridShapeBuilder(); gsb.SetDataFill(1, 1); t.SetShape(gsb.Build());
             try { t.EnableTag(ORDER_TICKET_TAG, true); } catch { }
             try { t.EnableTag("paper", true); } catch { } // 文档属性（销赃不带）
             return t;
@@ -103,7 +103,7 @@ internal static class WageBrother
                 "The \"legendary pawnshop owner\" of station legend — he left you an entire shop: the Wonder Box, the forging machine, an unstable AI, a protector core, and Wage Girl.\n" +
                 "He reaches you by phone, and every 7 days he visits in person, carrying an absurdly large budget, buying and selling alike. He can \"purify\" you, flip the switch on the Cannibalism Season, and even send you back to Day 1.\n" +
                 "Dial 1005 to reach him — all his services are saved to your phonebook, call anytime.");
-            var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build();
+            var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build());
             card.SetSprite("custom_atlas", CARD_SPRITE_KEY);
             card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
             try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
@@ -274,7 +274,7 @@ internal static class WageBrother
             }
             try { if (client != null) { client.SetBudget(1109707341, 10000000); client.clientIntent = StoreClient.ClientIntent.SELLNBUY; } } catch { } Core.LogMsg("[蛙哥] intent已设=" + (client != null ? client.clientIntent.ToString() : "null(上货模式)"));
             // 10-05 蛙哥收购扩展（拆包实锤：clientBuyingIdList id精确 + clientBuyingTagList tag精确 + SELLNBUY 买路径）
-            // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③建议500-1000，单品全覆盖+可收2-3件）
+            // 苦力boy反馈"水卖谁啊"：蛙哥收购 水/电池/模组/日用品；预算 100→1000（拆包③给出区间 500-1000，取上限 1000：单品全覆盖且可收 2-3 件）
             try
             {
                 if (client.clientBuyingIdList == null) client.clientBuyingIdList = new Il2CppSystem.Collections.Generic.List<string>();
@@ -321,7 +321,7 @@ internal static class WageBrother
                     "Wage Brother's business card.\n" +
                     "The \"legendary pawnshop owner\" of station legend — he left you an entire shop: the Wonder Box, the forging machine, an unstable AI, a protector core, and Wage Girl.\n" +
                     "He reaches you by phone, and every 7 days he visits in person, carrying an absurdly large budget, buying and selling alike. He can \"purify\" you, flip the switch on the Cannibalism Season, and even send you back to Day 1.\n" +
-                    "Dial 1005 to reach him — all his services are saved to your phonebook, call anytime."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.modifiedShape = gsb.Build(); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
+                    "Dial 1005 to reach him — all his services are saved to your phonebook, call anytime."); var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 1); card.SetShape(gsb.Build()); card.SetSprite("custom_atlas", CARD_SPRITE_KEY); card.unitValue = 0; card.unitBaseValue = 0; // 名片不能卖
                     try { card.EnableTag("paper", true); } catch { } // 文档属性标签（销赃时不带走）
                 } catch (System.Exception exload) { Core.LogMsg("[蛙哥] LoadCardSprite异常: " + exload.Message); }
                 try { card.EnableTag("wage_bro_card", true); } catch { } try { var d = client.mainDialogue; if (d != null) { d.SetText("蛙哥", LangHelper.T("我来收点晦气。花信用点消一项负面特性，钱货两清。", "I collect trouble. Pay credits to remove a negative perk.")); d.endAction = null; if (d.nextDialogue != null) { d.nextDialogue.endAction = null; d.nextDialogue = null; } } } catch (System.Exception exd) { Core.LogMsg("[蛙哥] 清对话链异常: " + exd.Message); } Core.LogMsg("[蛙哥] 准备加卡: card=" + card.identifier); try { card.DisableTag("not_purchased", true); card.DisableTag("TAG_NOT_PURCHASED", true); card.EnableTag("IS_OWNED_TAG", true); PlayerStore.Instance.AddDirectSellingItemToTable(card, true, false, false, 0); card.DisableTag("not_purchased", true); card.EnableTag("IS_OWNED_TAG", true); Core.LogMsg("[蛙哥] 加卡调用返回,无异常"); } catch (System.Exception excard) { Core.LogMsg("[蛙哥] 服务卡上柜台异常: " + excard.Message); }
@@ -824,6 +824,12 @@ internal static class WageBrother
         return 500; // -2/-3
     }
 
+    // 10-18 设计稿 §3.5-1：消业障「不可删」名单——mod 系统特性（删了拆断系统链路：精神错乱删后 MadnessRoller.IsLocked 仍 true）
+    private static readonly System.Collections.Generic.HashSet<string> NonRemovablePerks = new System.Collections.Generic.HashSet<string>
+    {
+        "精神错乱", "蛙娘", "蛙哥牛逼", "捡漏直觉", "命运之骰", "流浪者"
+    };
+
     // 弹消perk界面
     internal static void ShowRemovePerkWindow()
     {
@@ -836,7 +842,7 @@ internal static class WageBrother
             if (w == null) return;
             // 10-07 #8（玩家反馈"赎回面板没有统计到所有物品"）：明细行数上限 8 → 16 + 面板加高（480→560）——8 行截断=超过 8 种物品只显示前 8 + 总数
             w.SetSize(360, 560).SetPosition(Vector2.zero);            w.BeginColumn(4f);
-            w.AddLabel(LangHelper.T("蛙哥：花钱消个负面特性。钱货两清。", "Wage Brother: pay to remove a negative perk. No refunds."), "wb_hint");
+            w.AddLabel(LangHelper.T("蛙哥：花钱消个负面特性。钱货两清。（只消特性，不追回已发生的声望/戒断/物品）", "Wage Brother: pay to remove a negative perk. No refunds. (Perk removed only; reputation/addiction already applied stays)"), "wb_hint");
             var ps = PlayerStore.Instance;
             w.AddLabel(LangHelper.T("当前现金：" + ps.playerCash, "Cash: " + ps.playerCash), "wb_cash");
             // 10-06 修复单#3：赎回区提前到 perk 列表之前（原位置在列表尾被挤出可视区——玩家反馈"服务卡没看到赎回"）
@@ -863,12 +869,15 @@ internal static class WageBrother
             catch (Exception exs) { Core.LogMsg("[蛙哥] 赎回区异常: " + exs.Message); }
             // 列已选 Cost<0 负面perk
             int listed = 0;
+            // 10-18 §3.3：去重（②原版段也遍历 startingPerks——mod 特性若同在其中，先列后跳过）
+            var seen = new System.Collections.Generic.HashSet<string>();
             foreach (var perk in CustomStartingPerks.All)
             {
                 try
                 {
                     if (perk.Cost >= 0) continue;
                     if (!StartingPerk.IsPerkActive(perk.Id)) continue;
+                    seen.Add(perk.Id);
                     // 10-06 修复单#2：招贼体质消除费用固定 5000（特性 Cost=-8 本应 2000 档——特判）
                     int price = perk.Id == ThiefMagnetPerk.PerkId ? 5000 : PriceForCost(perk.Cost);
                     string nm = perk.DisplayName;
@@ -910,6 +919,36 @@ internal static class WageBrother
                 }
                 catch { }
             }
+            // 10-18 设计稿 §3.2/3.3：② 原版负面特性——CustomStartingPerks.All 只枚举 mod 特性，
+            //   原版（关节炎/成瘾/文盲/罪犯…）一个都不在 = 「关节炎删不掉」的直接原因（枚举源缺口）。
+            //   遍历 PlayerStore.startingPerks 中 type==NEGATIVE 条目；NonRemovable + maxSlot>0 跳过。
+            try
+            {
+                var plist = PlayerStore.Instance != null ? PlayerStore.Instance.startingPerks : null;
+                if (plist != null)
+                {
+                    for (int i = 0; i < plist.Count; i++)
+                    {
+                        var p = plist[i];
+                        if (p == null || string.IsNullOrEmpty(p.id)) continue;
+                        if (seen.Contains(p.id)) continue;       // mod 特性已在 ① 列出
+                        if ((int)p.type != 1) continue;          // 只收 NEGATIVE
+                        if (p.maxSlot > 0) continue;             // 加槽特性不给删（槽账脱节）
+                        if (NonRemovablePerks.Contains(p.id)) continue; // 系统特性不给删
+                        seen.Add(p.id);
+                        int price = p.id == "degenerative_osteoarthritis" ? 5000 : PriceForCost((int)p.cost);
+                        string nm = "";
+                        try { nm = p.GetLocalizedDisplayName(); } catch { nm = p.id; }
+                        string pid = p.id;
+                        int pr = price;
+                        var act = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { DoRemovePerk(pid, pr); } catch (Exception ex) { Core.LogMsg("[蛙哥] 消原版perk异常: " + ex.Message); } }));
+                        string btnText = LangHelper.T(nm + " · " + pr + "信用点", nm + " · " + pr + " cr");
+                        w.AddButton(btnText, act, "wb_perk_" + listed);
+                        listed++;
+                    }
+                }
+            }
+            catch (Exception exp) { Core.LogMsg("[蛙哥] 原版perk列表异常: " + exp.Message); }
             if (listed == 0) w.AddLabel(LangHelper.T("没有可消除的负面特性", "No removable negative perks"), "wb_empty");
             // 10-04 合成升级入口（蛙哥服务合成：许可/充电器 2、3 级）
             var craftAct = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { ShowCraftWindow(); } catch (Exception ex) { Core.LogMsg("[蛙哥] 合成窗口异常: " + ex.Message); } }));
@@ -1296,15 +1335,29 @@ internal static class WageBrother
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[蛙哥] 指南定位异常: " + ex.Message); }
+            // §4（2026-10-18，Q2 实锤后）：指南改滚动容器（BeginScroll 440=窗口高500-60 底部区，为关闭按钮留 60；End 与 Begin 配对）
+            w.BeginScroll(440f);
             w.BeginColumn(4f);
             w.AddLabel(LangHelper.T("【1】蛙哥是谁？", "[1] Who is Wage Brother?"), "wb_g1");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("他定期到店拜访，柜台出现服务卡（消业障/声望恢复/合成升级）。第一次见面送名片：电话拨打 1005 打开「蛙哥人脉网络」——蛙哥服务面板所在地。", "He visits periodically; a service card appears at the counter (remove burden / rep restore / craft). First meeting gives a business card: dial 1005 to open the Wage Brother Network - his service panel."), "wb_g1d");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("【2】服务面板（电话簿 1005）", "[2] Service Panel (Phone 1005)"), "wb_g2");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("解锁条件：蛙哥牛逼 Lv2 + 蛙娘好感≥40（面板顶部横幅看好感）。服务：流浪者（重回第一天、刷新物品）；养蛊机/AI生成器（解锁后电话购买）；保护器（随机出现，可花钱加概率）；许可/充电器 1→3 级直购（三级充电器几万级）。", "Unlock: Wage Brother Power Lv2 + Wage Girl affection >= 40 (banner shows affection). Services: Wanderer (reset to day 1, refresh items); Gu Machine / AI Generator (buy by phone after unlock); Protector (random spawn, pay to raise chance); Permit/Charger T1->T3 direct buy (T3 charger costs tens of thousands)."), "wb_g2d");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("【3】消业障", "[3] Remove Burden"), "wb_g3");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("消除负面特性（B2 面板负面卡或到店服务卡）：按 Cost 计价 -20→8000、-15→5000、-7→2000、其余 500；招贼体质固定 5000；声名狼藉 5 势力逐个恢复，全部转正才消除。", "Remove a negative perk (B2 panel negative card or counter card): by Cost -20->8000, -15->5000, -7->2000, others 500; Thief Magnet fixed 5000; Infamous restores all 5 factions, clears only when all are positive."), "wb_g3d");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("【4】合成升级", "[4] Craft Upgrade"), "wb_g4");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
             w.AddLabel(LangHelper.T("把低一级的货交给他补差价升级：许可 20000/20000 信用点；充电器 20000/25000 + 涡轮/能量阵列/充能器（二级各 1、三级 2/5/5）。", "Give him the lower tier and pay the difference: Permit 20000/20000 cr; Charger 20000/25000 cr + turbo/power array/recharger (T2: 1 each, T3: 2/5/5)."), "wb_g4d");
+            PanelZoomHelper.SizeGuideLabel(w, 380f); // §4：滚动条目撑开高度
+            PanelZoomHelper.FinishGuideScroll(w, 4f); // 10-18：content 高按子项实高定死 + 补 CFS（否则滚不动）
+            w.End(); // 退出 column（§4）
+            w.End(); // 退出 scroll（§4）
+            // §蛙哥布局（第五轮 20261018）：关闭按钮必须在滚动区外，否则随内容滚走被 RectMask2D 裁掉
             w.AddButton(LangHelper.T("关闭", "Close"), DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { CustomUIManager.Instance.CloseWindow("wb_guide"); } catch { } })), "wb_guide_close");
         }
         catch (Exception ex) { Core.LogMsg("[蛙哥] 指南异常: " + ex.Message); }

@@ -145,7 +145,8 @@ internal static class AddictOfficerEvent
             }
 
             // 2. 走私者暗格容器内部（smuggler_bay 前缀 / ITEM_HIDDEN_TAG+CONTAINER_TAG 双标签）
-            foreach (GameItem shopItem in EmporiumEntry.Instance.GetAllItems())
+            // 10-18 审阅 P2：原 GetAllItems 只扫顶层——暗格藏进容器巡查漏掉；改用全店递归（CollectAllItems 含容器内部物品，IsSmugglerBay 命中任意层暗格）
+            foreach (GameItem shopItem in WageBrother.CollectAllItems())
             {
                 if (shopItem == null || !IsSmugglerBay(shopItem)) continue;
                 GameInventory inner = GetInnerInventory(shopItem);
@@ -190,7 +191,7 @@ internal static class AddictOfficerEvent
     {
         try
         {
-            foreach (GameItem it in EmporiumEntry.Instance.GetAllItems())
+            foreach (GameItem it in WageBrother.CollectAllItems()) // 10-18 审阅 P2：毒品藏容器也应触发判定（原只扫顶层）
             {
                 if (it == null) continue;
                 try { if (ChemicalFeedbackHelper.IsNarcotic(it)) return true; } catch { }

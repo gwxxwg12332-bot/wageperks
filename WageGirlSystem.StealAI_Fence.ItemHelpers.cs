@@ -285,7 +285,7 @@ public static partial class WageGirlSystem
                 if (it == null) { tries++; continue; }
                 try { var l = new Il2CppSystem.Collections.Generic.List<GameItem>(); l.Add(it); inv.UncheckedAcceptAll(l); spent += it.unitValue; filled++; probeAcceptCalls++; } catch { tries++; }
             }
-            // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环可能因违禁分流不符（5% 分支尤甚）、
+            // 09-23 修复「物资箱有 1% 概率没有物资」之二：主循环因违禁分流不符（5% 分支尤甚）、
             // 创建失败或 UncheckedAccept 抛错而一件都没塞进去 → 空箱。
             // 兜底：忽略违禁偏好，从全池硬性塞入至少 1 件——保证物资箱永不为空。
             if (filled == 0)

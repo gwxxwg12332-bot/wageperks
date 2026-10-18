@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using Il2Cpp;
+using Il2CppTMPro;
 
 namespace WagePerks;
 
@@ -125,5 +127,83 @@ internal static class PanelZoomHelper
             PlayerPrefs.SetFloat(Key(windowId), s);
         }
         catch { /* 单窗口异常不影响其他窗口 */ }
+    }
+
+    // §4（审阅 20261018）：指南滚动条目高度——BeginScroll 不建 ContentSizeFitter（Q2 实锤），
+    //   BeginColumn 只建 VLG → 条目必须撑开 content 高度（XIAOWO 同款）。
+    //   高度取 TMP preferredHeight（文本固有高），比固定高度更稳（长/短文本不裁切、不留大空隙）。
+    // 10-18 二次修复（用户实测截图：12 条文本全部叠在一起、不能滚）：
+    //   只设 LayoutElement.preferredHeight 不够——列容器 VLG 若 childControlHeight=false，
+    //   VLG 按子项 rect 实际高度参与布局，preferredHeight 被忽略 → 每条仍是固定行高（约39px），
+    //   多行正文溢出压住下一条，且 12×39≈468 < 视口470 → content 不超过视口，永远滚不动。
+    //   修法：① 先按目标宽度算 TMP 固有高（GetPreferredValues 带显式宽度，避免用过期宽度）；
+    //         ② 同时写 LayoutElement.preferredHeight 与 rect 实际 sizeDelta.y（两种 VLG 模式都覆盖）。
+    internal static void SizeGuideLabel(Il2Cpp.CustomUIBuilder b, float width)
+    {
+        try
+        {
+            var last = b.Last;
+            if (last == null || last.text == null) return;
+            var tmp = last.text as TMP_Text;
+            if (tmp == null) return;
+            float h = 24f;
+            try
+            {
+                string txt = tmp.text ?? "";
+                var vals = tmp.GetPreferredValues(txt, width, 0f); // 按目标宽度算换行后固有高
+                if (vals.y > 0f) h = vals.y;
+            }
+            catch
+            {
+                try { h = tmp.preferredHeight; } catch { }
+            }
+            if (h < 24f) h = 24f;
+            last.SetPreferredSize(width, h + 6f); // LayoutElement（childControlHeight=true 时生效）
+            try
+            {
+                var go = last.root;
+                if (go != null)
+                {
+                    var rt = go.GetComponent<RectTransform>();
+                    if (rt != null) rt.sizeDelta = new Vector2(width, h + 6f); // rect 实高（childControlHeight=false 时生效）
+                }
+            }
+            catch { }
+        }
+        catch { }
+    }
+
+    // 10-18：指南末尾收口——把滚动 content 高度按「子项实高之和 + 间距」定死，并补 ContentSizeFitter。
+    //   BeginScroll 原生不建 CFS，content 高度不随子项增长 → 内容再多也滚不动（用户实测「没有实现滚动」）。
+    internal static void FinishGuideScroll(Il2Cpp.CustomUIBuilder b, float spacing = 4f)
+    {
+        try
+        {
+            var last = b.Last;
+            if (last == null || last.root == null) return;
+            var sr = last.root.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            if (sr == null || sr.content == null) return;
+            var content = sr.content;
+            int n = content.childCount;
+            float total = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                var ch = content.GetChild(i);
+                if (ch == null) continue;
+                var crt = ch.GetComponent<RectTransform>();
+                if (crt == null) continue;
+                total += crt.sizeDelta.y;
+            }
+            if (n > 1) total += spacing * (n - 1);
+            if (total < 1f) return;
+            content.sizeDelta = new Vector2(content.sizeDelta.x, total);
+            if (content.GetComponent<UnityEngine.UI.ContentSizeFitter>() == null)
+            {
+                var cfs = content.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                cfs.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            }
+            Core.LogMsg("[指南] 滚动收口: 子项 " + n + " 个, content 高=" + total);
+        }
+        catch (Exception ex) { Core.LogMsg("[指南] FinishGuideScroll 异常: " + ex.Message); }
     }
 }

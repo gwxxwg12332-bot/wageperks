@@ -149,9 +149,34 @@ public static class BuildConfig
 	public static string WageGirlSellRulesText => GetString("WageGirlSellRulesText", "");
 	// P0.5（审阅 A 必补）：四开关读 cfg（跨档=玩家策略偏好；名单才走 WageSaveStore 不跨档）
 	public static int WageGirlSellMode => GetInt("WageGirlSellMode", 0);              // 0=黑名单(默认) 1=白名单
-	public static int WageGirlSellPickOrder => GetInt("WageGirlSellPickOrder", 0);    // 0=列表序 1=最便宜 2=最贵 3=随机
-	public static int WageGirlSellDailyQuota => GetInt("WageGirlSellDailyQuota", 1);  // 每日代售件数
-	public static bool WageGirlSellAutoSellOn => GetBool("WageGirlSellAutoSellOn", true); // 代售总开关
+	// WageGirlSellPickOrder 已删除（P3-18 审阅 20261018：寄卖改为手动挑选，属性无任何引用，属死属性；cfg 条目 :469 保留仅兼容旧配置显示）
+	public static int WageGirlSellDailyQuota => GetInt("WageGirlSellDailyQuota", 10);  // 每日寄卖件数（10-18 设计稿§6验收"计数递增"：手动寄卖连拖多件；旧默认1=第2件拒收"别的物品也不能卖"）
+	// 10-18 蛙娘门路（设计稿《假货原价与违禁品免罪》§8.3 cfg 键）
+	public static bool WageGirlConnEnabled => GetBool("WageGirlConnEnabled", true);          // 门路总开关
+	public static int WageGirlConnLv1Daily => GetInt("WageGirlConnLv1Daily", 1);             // Lv1 每日额度
+	public static int WageGirlConnLv2Daily => GetInt("WageGirlConnLv2Daily", 2);             // Lv2 每日额度
+	public static int WageGirlConnLv3Daily => GetInt("WageGirlConnLv3Daily", 3);             // Lv3 每日额度
+	public static int WageGirlConnLv1RunTotal => GetInt("WageGirlConnLv1RunTotal", 20);      // Lv1 每局总量
+	public static int WageGirlConnLv2RunTotal => GetInt("WageGirlConnLv2RunTotal", 50);      // Lv2 每局总量
+	public static int WageGirlConnLv3RunTotal => GetInt("WageGirlConnLv3RunTotal", 100);     // Lv3 每局总量
+	public static int WageGirlConnLv1ValueCap => GetInt("WageGirlConnLv1ValueCap", 600);     // Lv1 单件原价上限
+	public static int WageGirlConnLv2ValueCap => GetInt("WageGirlConnLv2ValueCap", 1200);    // Lv2 单件原价上限
+	public static int WageGirlConnLv3ValueCap => GetInt("WageGirlConnLv3ValueCap", 2500);    // Lv3 单件原价上限
+	public static int WageGirlConnLv1FeePct => GetInt("WageGirlConnLv1FeePct", 20);          // Lv1 门路费
+	public static int WageGirlConnLv2FeePct => GetInt("WageGirlConnLv2FeePct", 15);          // Lv2 门路费
+	public static int WageGirlConnLv3FeePct => GetInt("WageGirlConnLv3FeePct", 10);          // Lv3 门路费
+	public static int WageGirlConnLv1LeakPct => GetInt("WageGirlConnLv1LeakPct", 6);         // Lv1 走漏概率
+	public static int WageGirlConnLv2LeakPct => GetInt("WageGirlConnLv2LeakPct", 3);         // Lv2 走漏概率
+	public static int WageGirlConnLv3LeakPct => GetInt("WageGirlConnLv3LeakPct", 0);         // Lv3 走漏概率
+	public static int WageGirlConnGainCapLv1 => GetInt("WageGirlConnGainCapLv1", 8000);      // Lv1 每局累计增益硬顶
+	public static int WageGirlConnGainCapLv2 => GetInt("WageGirlConnGainCapLv2", 30000);     // Lv2 每局累计增益硬顶
+	public static int WageGirlConnGainCapLv3 => GetInt("WageGirlConnGainCapLv3", 80000);     // Lv3 每局累计增益硬顶
+	public static int WageGirlConnCrimeCapLv3 => GetInt("WageGirlConnCrimeCapLv3", 30000);   // Lv3 直售豁免犯罪值硬顶
+	public static int WageGirlConnAffCostMonthlyCap => GetInt("WageGirlConnAffCostMonthlyCap", 5); // 每月好感扣点上限
+	public static bool WageGirlSellAutoSellOn => GetBool("WageGirlSellAutoSellOn", true); // 寄卖总开关
+	public static int ConsignStaleDays => GetInt("ConsignStaleDays", 3);                 // 寄卖流拍周期(天)
+	public static int WageGirlConsignStolenReturnPct => GetInt("WageGirlConsignStolenReturnPct", 5);  // 寄卖赃物退货概率(%)
+	public static int WageGirlConsignFakeComplaintPct => GetInt("WageGirlConsignFakeComplaintPct", 10); // 寄卖假货投诉概率(%)
 	// ===== 剧情mod 五线（10-16，落地指南纪律⑤：机制参数全提键；节点声望增量为设计定稿值随台词同批校对） =====
 	public static int StoryDayN1 => GetInt("StoryDayN1", 15);
 	public static int StoryDayN2 => GetInt("StoryDayN2", 22);
@@ -407,7 +432,7 @@ melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
-	melonPreferences_Category.CreateEntry("MadnessExcludedPerks", default_value: "", "精神错乱排除特性ID(逗号分隔,如:声名狼藉,好运连连)");
+	melonPreferences_Category.CreateEntry("MadnessExcludedPerks", default_value: "", "精神错乱排除特性ID(逗号分隔)。mod特性写中文id(如:声名狼藉)；原版特性写英文id(如:degenerative_osteoarthritis)");
 	melonPreferences_Category.CreateEntry("StartMaxBottlePrinter", default_value: false, "开局自带满级水瓶打印机(水商之友/鲁滨逊,6000ml+纯水)");
 melonPreferences_Category.CreateEntry("PerkGrowthTotalDays", default_value: 0, "特性成长：全局累计天数（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthApplied", default_value: 0, "特性成长：已应用到第几个50天（自动）");
@@ -463,9 +488,33 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageBrotherOrderPrice", 800, "点货签售价");
 			melonPreferences_Category.CreateEntry("WageGirlSellRulesText", "", "蛙娘代售规则文本（高级：分号分隔；P:=免售 A:=可售，如 P:tag:MODULE_TAG;A:val:0-50）");
 			melonPreferences_Category.CreateEntry("WageGirlSellMode", 0, "蛙娘代售模式（0=黑名单·默认 1=白名单）");
-			melonPreferences_Category.CreateEntry("WageGirlSellPickOrder", 0, "蛙娘代售挑选顺序（0=列表序 1=最便宜 2=最贵 3=随机）");
-			melonPreferences_Category.CreateEntry("WageGirlSellDailyQuota", 1, "蛙娘每日代售件数");
-			melonPreferences_Category.CreateEntry("WageGirlSellAutoSellOn", true, "蛙娘代售总开关（关=不代售）");
+			melonPreferences_Category.CreateEntry("WageGirlSellPickOrder", 0, "已废弃：寄卖改为手动挑选，本项不再生效");
+			melonPreferences_Category.CreateEntry("WageGirlSellDailyQuota", 10, "蛙娘每日寄卖件数上限（10-18：手动寄卖连拖，默认10）");
+			melonPreferences_Category.CreateEntry("WageGirlConnEnabled", true, "蛙娘门路总开关（10-18：假货原价/违禁品免罪，关=降级纯寄卖）");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv1Daily", 1, "门路Lv1每日额度(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv2Daily", 2, "门路Lv2每日额度(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv3Daily", 3, "门路Lv3每日额度(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv1RunTotal", 20, "门路Lv1每局总量(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv2RunTotal", 50, "门路Lv2每局总量(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv3RunTotal", 100, "门路Lv3每局总量(件)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv1ValueCap", 600, "门路Lv1单件原价上限");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv2ValueCap", 1200, "门路Lv2单件原价上限");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv3ValueCap", 2500, "门路Lv3单件原价上限");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv1FeePct", 20, "门路Lv1抽成(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv2FeePct", 15, "门路Lv2抽成(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv3FeePct", 10, "门路Lv3抽成(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv1LeakPct", 6, "门路Lv1走漏风声概率(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv2LeakPct", 3, "门路Lv2走漏风声概率(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnLv3LeakPct", 0, "门路Lv3走漏风声概率(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConnGainCapLv1", 8000, "门路Lv1每局累计增益硬顶");
+			melonPreferences_Category.CreateEntry("WageGirlConnGainCapLv2", 30000, "门路Lv2每局累计增益硬顶");
+			melonPreferences_Category.CreateEntry("WageGirlConnGainCapLv3", 80000, "门路Lv3每局累计增益硬顶");
+			melonPreferences_Category.CreateEntry("WageGirlConnCrimeCapLv3", 30000, "门路Lv3直售豁免犯罪值硬顶");
+			melonPreferences_Category.CreateEntry("WageGirlConnAffCostMonthlyCap", 5, "门路每月好感扣点上限");
+			melonPreferences_Category.CreateEntry("WageGirlSellAutoSellOn", true, "蛙娘寄卖总开关（关=寄卖按钮灰、拖入拒收）");
+			melonPreferences_Category.CreateEntry("ConsignStaleDays", 3, "寄卖流拍周期(天)：挂满 N 个结算周期未成交按 8 折强制成交");
+			melonPreferences_Category.CreateEntry("WageGirlConsignStolenReturnPct", 5, "寄卖赃物退货概率(%)");
+			melonPreferences_Category.CreateEntry("WageGirlConsignFakeComplaintPct", 10, "寄卖假货投诉概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralChanceHard", 50, "硬爽博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralChanceNormal", 3, "普通博士夜受限模组概率(%)");
 			melonPreferences_Category.CreateEntry("NeuralRollChance", 2, "普通拾荒独立roll受限模组(%)");

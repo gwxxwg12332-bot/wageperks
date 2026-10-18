@@ -39,7 +39,8 @@ partial class ContainerUpgradeV2
             if ((item.identifier ?? "").ToLowerInvariant() == "wage_blackgold_box") return false; // 10-08 黑金排除
             if (item.IsTag("WBG_BOX_TAG")) return false; // 10-13 黑金独立随档身份（identifier 丢场景兜底）
             if (item.IsTag("CUSTOM_STORAGE_TAG")) return true;
-            if (item.IsTag("WAGE_BOX_TAG")) return true; // 09-14 场景读档：CSTAG 丢但升级 tag 随档 → 专属标记识别
+            // 10-18 审阅 P3 落地：删除 WAGE_BOX_TAG 死分支——全四仓零 EnableTag 写入点（仅本行读取）=恒 false；
+            //   且 Restore.cs:149 实锤"场景物品读档后 tag 全丢"→ 补写也无效（读档后仍丢）。CSTAG/wage_box_type 已覆盖识别。
             if (item.IsTag("wage_box_type")) return true; // 09-14 带值 tag（用原生 IsTag——HasTag=GetTagReadonly!=null 对不存在 tag 恒 True，骰子/所有物品误判成蛙哥箱）
             return (item.identifier ?? "").ToLowerInvariant() == "custom_storage_box";
         }

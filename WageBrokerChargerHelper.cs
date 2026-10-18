@@ -17,14 +17,13 @@ internal static class WageBrokerChargerHelper
     {
         try
         {
-            var em = EmporiumEntry.Instance;
-            if (em == null) return 0;
-
+            // 10-18 审阅定案（第五轮外）：原 GetAllItems 只扫当铺顶层——充电器放容器/嵌套容器内扫不到 → level=0 → PostfixEndDayCharger :83 return，一个电池都不充。
+            //   孪生文件 WageBrokerPermitHelper.cs:17-18（10-05 已修同根因：许可放容器失效）。改用 CollectAllItems（顶层+容器内部递归，深度8防环）。
             int maxLevel = 0;
-            foreach (var item in em.GetAllItems())
+            foreach (var item in WageBrother.CollectAllItems())
             {
                 if (item == null) continue;
-                string id = item.identifier;
+                string id = ""; try { id = item.identifier ?? ""; } catch { } // 审阅补丁原文同款：identifier 反射读，包 try-catch 防异常中断扫描
                 if (id == CHARGER_3_ID) return 3; // 三级直接最高，不用再找
                 if (id == CHARGER_2_ID && maxLevel < 2) maxLevel = 2;
                 if (id == CHARGER_1_ID && maxLevel < 1) maxLevel = 1;

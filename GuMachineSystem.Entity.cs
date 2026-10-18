@@ -92,7 +92,7 @@ public static partial class GuMachineSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
-            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2,2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); } catch { }
+            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2,2); it.SetShape(gsb.Build()); } catch { }
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge"));
             SetField(it, "_identifier_k__BackingField", GU_MACHINE_ID);
@@ -127,7 +127,7 @@ public static partial class GuMachineSystem
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[GuMachineSystem.Entity] 异常: " + ex.Message); }
-            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2,2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); } catch { }
+            it.EnableTag("STANDARD_MACHINE_TAG"); try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2,2); it.SetShape(gsb.Build()); } catch { }
             it.SetGameItemType("MACHINE");
             it.SetName(LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator"));
             SetField(it, "_identifier_k__BackingField", AI_GENERATOR_ID);
@@ -136,7 +136,7 @@ public static partial class GuMachineSystem
             it.longDescription = LangHelper.T("蛙哥不稳定AI生成器\n打烊自动抽卡（每天1次，需舱内≥2模组）\n装保护器：100%成功，属性×1.2倍，消耗1个\n不装=不稳定版：成功率=蛙娘心情\n（≥80→80%，<40→20%，中间50%）\n产出倍率随机0.05~0.8（多数亏，运气好也只到0.8）\n舱内≥2个高级涡轮增压器自动互食（留1个，次数叠加）\n违禁：私自合成自主AI模组\n触犯空间站AI管制令。", "Wage's Unstable AI Generator\nauto-draw at close (1/day, needs >=2 modules)\nWith protector = Stable: 100% success, stats x1.2, consumes 1\nWithout = Unstable: success = Wage Girl mood\n(>=80->80%, <40->20%, else 50%)\noutput mult random 0.05~0.8 (usually a loss, lucky cap 0.8)\n>=2 turbo boosters in bay auto-devour (keep 1, counts stack)\nContraband: unsanctioned AI synthesis\nviolates station AI directives.");
             it.unitValue = BuildConfig.AiGenPrice; it.unitBaseValue = BuildConfig.AiGenPrice; // 拆包实锤 09-15：原生属性
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
-            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); it.modifiedShape = gsb2.Build(); } catch { }
+            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建生成器失败: " + ex.Message); return null; }
@@ -155,7 +155,7 @@ public static partial class GuMachineSystem
             it.longDescription = LangHelper.T("蛙哥保护器核心——蛙哥（Wage）研制的稳定器：放入蛙哥不稳定AI生成器舱即稳定版（100%成功，属性×1.2倍），每次抽卡消耗1个；蛙哥服务面板可解锁购买", "Wage's Protector Core - a stabilizer made by Wage: place in Wage's Unstable AI Generator bay for stable mode (100% success, stats x1.2), 1 consumed per draw; unlockable at Wage's B2 service panel"); // 10-15 价格去数字化：服务价 3000 是配置项，描述写死 1500 会漂移
             it.unitValue = BuildConfig.ProtectorPrice; it.unitBaseValue = BuildConfig.ProtectorPrice; // 拆包实锤 09-15：原生属性
             // 10-02 修：保护器shape=2x2（原来默认1x1）
-            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); } catch { }
+            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建保护器失败: " + ex.Message); return null; }
@@ -179,13 +179,13 @@ public static partial class GuMachineSystem
             if (!it.IsTag("MODULE_TAG")) { try { it.EnableTag("MODULE_TAG"); } catch { } } // 兜底（InitModuleItem 失败也不失模组身份）
             ApplyIcon(it, AI_MODULE_ICON, "system_module_overclock"); // 09-15 修复：之前误用 AI_ICON（生成器图标）——AI 模组必须用专属 ai_module 图标
             // 09-16 用户拍板：AI 模组 shape 2×2（mod 自建机器舱 8×8 可容纳；不借原生 1×1 shape）
-            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); Core.LogMsg("[AI模组] shape=2x2已设"); } catch (Exception exsh) { Core.LogMsg("[AI模组] SetShape失败: " + exsh.Message); }
+            try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); Core.LogMsg("[AI模组] shape=2x2已设"); } catch (Exception exsh) { Core.LogMsg("[AI模组] SetShape失败: " + exsh.Message); }
             it.SetName(LangHelper.T("不稳定AI模组", "Unstable AI Module"));
             it.shortDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（保护器版×1.2倍；不稳定版倍率随机0.05~0.8），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (Stable x1.2; Unstable random mult 0.05~0.8), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
             it.longDescription = LangHelper.T("由 AI 生成器抽卡产出：属性 = 投入模组之和（保护器版×1.2倍；不稳定版倍率随机0.05~0.8），可装机器或出售。违禁原因：未经许可的自主AI模组。", "Produced by AI generator draws: stats = sum of input modules (Stable x1.2; Unstable random mult 0.05~0.8), installable in machines or sellable. Contraband: unsanctioned autonomous AI module.");
             it.unitValue = 0; it.unitBaseValue = 0; // 价值由合成时吞噬原料之和定
             try { Il2Cpp.ContrabandHelper.InitContrabandItem(it, 3); } catch { } // 09-16 高级违禁品(level 3)
-            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); it.modifiedShape = gsb2.Build(); } catch { }
+            try { var gsb2 = new GridShapeBuilder(); gsb2.SetDataFill(2,2); it.SetShape(gsb2.Build()); } catch { }
             return it;
         }
         catch (Exception ex) { Core.LogMsg("[养蛊机] 创建AI模组失败: " + ex.Message); return null; }

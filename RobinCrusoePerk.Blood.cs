@@ -84,23 +84,22 @@ internal static partial class RobinCrusoePerk
 
     // ===== 卖血系统（09-17 用户拍板：面板卖血按钮 500cc→血袋+轻伤；受伤扣血；虚弱<3000；睡觉/喝水/进食回血）=====
     internal const int BLOOD_MAX = 6000;
-    private static int _memBlood = -1; // 09-20 修：血量内存缓存（打烊才落盘，防读档刷血）
+    // 10-18 修复（玩家"卖血血值不涨"）：原 _memBlood 缓存层挡住 WS 写入——WS 喝水/进食/睡觉回血直写 WageSaveStore 字典（同键
+    // SurvivalGlobal.blood），WP 面板读缓存=旧值不涨，且打烊把旧缓存写回覆盖 WS 增量。改直读/直写字典=与 WS 同一权威来源。
+    // （WageSaveStore 为实时内存字典，打烊才落盘——无 PlayerPrefs 性能/刷血风险）
+    private static int _memBlood = -1; // 兼容保留（恒 -1 不短路）
     internal static int GetBlood() {
         try {
-            if (_memBlood >= 0) return _memBlood;
-            int saved = WageSaveStore.GetInt(PERK_ID, "blood", BLOOD_MAX);
-            // 09-26 修：读档空窗期返回默认值但不物化进缓存（防默认值6000污染存档）
-            if (!WageSaveStore.LoadComplete) return saved;
-            _memBlood = saved;
-            return saved;
+            return WageSaveStore.GetInt(PERK_ID, "blood", BLOOD_MAX);
         } catch { return BLOOD_MAX; }
     }
-    internal static void SetBlood(int v) { try { _memBlood = Math.Max(0, Math.Min(BLOOD_MAX, v)); } catch { } }
-    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 读档清缓存
+    internal static void SetBlood(int v) { try { WageSaveStore.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
+    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 兼容保留（读档清缓存已无用，无害）
     internal static int AddBlood(int delta)
     {
-        // 09-26 修：读档空窗期不要物化默认值（否则 SetBlood 会把默认值6000写进缓存，打烊写回存档覆盖真实值）
-        if (!WageSaveStore.LoadComplete) return BLOOD_MAX;
+        // 09-26 修：读档空窗期不要物化默认值（否则会把默认值6000写进字典，覆盖真实值）
+        // 10-18 审阅 R2 §4 改动4：原 return BLOOD_MAX 是"假满血"（调用方拿 6000 当真实值）；改回 GetBlood() 直读字典
+        if (!WageSaveStore.LoadComplete) return GetBlood();
         int b = Math.Max(0, Math.Min(BLOOD_MAX, GetBlood() + delta));
         SetBlood(b);
         if (GetBlood() <= 0) { try { ExecuteGameOverBy("blood_loss"); } catch { } } // 09-20 拍板：失血归零立即死亡（日常/跳天通用）

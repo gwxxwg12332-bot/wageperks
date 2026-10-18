@@ -11,6 +11,9 @@ namespace WagePerks;
 /// </summary>
 internal static class MerchantHelper
 {
+    // 10-18 §5 E：失败原因分档（B2WildPanel GrantServiceItem 重试可达依赖此分档判定"永久失败丢弃/瞬时失败重试"）
+    internal enum AddFailReason { None, NoInstance, NoDirectory, CreateFailed, AddThrew }
+
     /// <summary>
     /// 通用：创建物品→清除所有坏标签→添加到柜台→再清除标签
     /// </summary>
@@ -20,15 +23,20 @@ internal static class MerchantHelper
     /// <param name="ignorePerk">是否跳过原版声望/违禁检查（AddDirectSellingItemToTable 第4参——10-06 拆包：forcedHeat=0 走 LLDISTRUSTED 链、≠0 走 BM_DISTRUSTED 链，命中 faction+IsContraband → DestroyIfUnplaced 销毁）</param>
     /// <returns>添加到柜台的物品，失败返回null</returns>
     internal static GameItem AddItemToCounter(string itemId, int heat = 0, bool isOwend = false, bool ignorePerk = false)
+        => AddItemToCounterEx(itemId, out _, heat, isOwend, ignorePerk);
+
+    /// <summary>10-18 §5 E：带失败原因分档的版本（瞬时失败=NoInstance 可重试；永久失败=NoDirectory/CreateFailed/AddThrew 应终止）。</summary>
+    internal static GameItem AddItemToCounterEx(string itemId, out AddFailReason reason, int heat = 0, bool isOwend = false, bool ignorePerk = false)
     {
+        reason = AddFailReason.None;
         try
         {
             PlayerStore instance = PlayerStore.Instance;
-            if (instance == null) { Core.LogMsg("[MerchantHelper] PlayerStore.Instance为null"); return null; }
-            if (!DirectoryMaster.Has<GameItem>(itemId)) {  return null; }
+            if (instance == null) { reason = AddFailReason.NoInstance; Core.LogMsg("[MerchantHelper] PlayerStore.Instance为null"); return null; }
+            if (!DirectoryMaster.Has<GameItem>(itemId)) { reason = AddFailReason.NoDirectory; Core.LogMsg("[MerchantHelper] 目录无 " + itemId); return null; }
 
             GameItem item = WageAPI.WageItemFactory.Create(itemId); // 10-06 收敛：WageItemFactory 权威创建（A 类纯创建）
-            if (item == null) { Core.LogMsg("[MerchantHelper] 创建物品失败: " + itemId); return null; }
+            if (item == null) { reason = AddFailReason.CreateFailed; Core.LogMsg("[MerchantHelper] 创建物品失败: " + itemId); return null; }
 
             // 1. 创建后清除所有坏标签
             ClearAllBadTags(item);
@@ -36,19 +44,20 @@ internal static class MerchantHelper
             // 2. 直接用工厂产物（不再CloneLinked：Obsolete且克隆品丢失兑换回调委托；DirectoryMaster.Item已返回新实例）
             GameItem sellItem = item;
 
-            // 3. 克隆后再清除标签（克隆可能继承标签）
+            // 3. 清除克隆产物的继承标签
             ClearAllBadTags(sellItem);
 
             // 4. 添加到柜台
             instance.AddDirectSellingItemToTable(sellItem, isOwend, false, ignorePerk, heat);
 
-            // 5. 添加后再清除标签（AddDirectSellingItemToTable内部可能重新加标签）
+            // 5. 添加后再清除标签（兜底，覆盖上桌流程写入的标签）
             ClearAllBadTags(sellItem);
 
             return sellItem;
         }
         catch (Exception ex)
         {
+            reason = AddFailReason.AddThrew;
             Core.LogMsg("[MerchantHelper] AddItemToCounter异常(" + itemId + "): " + ex.Message);
             return null;
         }

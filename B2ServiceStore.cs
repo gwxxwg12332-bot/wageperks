@@ -34,6 +34,14 @@ internal static class B2ServiceStore
     internal static void SetLevel(string perkId, int lv)
         => WageSaveStore.SetInt(NS, "owned_" + perkId, lv);
 
+    // ---- 10-18 §5 D：到货标记（区分"已解锁"与"已到货"，防已扣费未到货的存档无恢复入口） ----
+    // 键：delivered_<id> = 1（发放成功写入；老档无键=0=未到货 → 按钮显示「补发到柜台」）
+    internal static bool IsDelivered(string entryId)
+        => WageSaveStore.GetInt(NS, "delivered_" + entryId, 0) == 1;
+
+    internal static void SetDelivered(string entryId)
+        => WageSaveStore.SetInt(NS, "delivered_" + entryId, 1);
+
     internal static void Eliminate(string perkId)
         => WageSaveStore.SetInt(NS, "owned_" + perkId, -1);
 

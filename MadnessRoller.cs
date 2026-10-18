@@ -26,11 +26,13 @@ internal static class MadnessRoller
     };
 
     // 内置排除列表（不和这些特性抽）——10-04 改为动态：内置 + cfg(MadnessExcludedPerks) 追加，用户可调不想选到的特性
+    // 10-18 设计稿定案：加 degenerative_osteoarthritis——唯一「断供级」负面特性（拾荒上限归零且无治疗，档直接废掉）
     private static readonly SysDict.HashSet<string> BuiltInExcluded = new SysDict.HashSet<string>
     {
         "xiaowo_trade_owner_deal",
         "xiaowo_trade_precision_bay_expansion",
-        "精神错乱"
+        "精神错乱",
+        "degenerative_osteoarthritis" // 10-18：退行性关节炎（原版英文id；cfg 里写英文才命中，见 BuildConfig 文案）
     };
 
     private static SysDict.HashSet<string> _excluded;

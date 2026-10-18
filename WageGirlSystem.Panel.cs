@@ -12,6 +12,9 @@ public static partial class WageGirlSystem
     {
         try
         {
+            // 10-18 主菜单 guard（对齐 Core.cs:135 模式）：PlayerStore 未就绪（主菜单/加载中）不弹窗——
+            //   玩家截图实锤：回主菜单后蛙娘面板+鲁滨逊面板叠在主菜单 = 跨档残留外观
+            try { if (Il2Cpp.PlayerStore.Instance == null) { Core.LogMsg("[蛙娘] ShowPanel 主菜单 guard: PlayerStore 未就绪，跳过"); return; } } catch { return; }
             Core.LogMsg("[蛙娘] ShowPanel 开始");
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) { Core.LogMsg("[蛙娘] ShowPanel 段1: CustomUIManager.Instance 为 null"); return; }
@@ -38,7 +41,7 @@ public static partial class WageGirlSystem
             // 09-20 优化：顶部好感度显示；10-07 #10 两位小数 + /200 + 5 节点文本
             b.AddLabel(LangHelper.T("好感度：" + GetAffectionExact().ToString("0.00") + "/200（" + GetAffLevelText() + "）", "Affection: " + GetAffectionExact().ToString("0.00") + "/200 (" + GetAffLevelText() + ")"), "wg_aff");
             b.AddLabel(LangHelper.T("💰 小金库：" + GetStat(K_SAVINGS) + " 块", "💰 Savings: " + GetStat(K_SAVINGS) + " credits"), "wg_savings");
-            // 10-16 P4a M4：小金库唯一性消耗解锁进度（一次性解锁，效果本体=换装素材/渠道定义待拍板）
+            // 10-16 P4a M4：小金库唯一性消耗解锁进度（一次性解锁，效果本体=换装素材/渠道定义，未实装）
             string outfitSt = GetStat(K_UNLOCK_OUTFIT) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockOutfit;
             string channelSt = GetStat(K_UNLOCK_CHANNEL) == 1 ? "✓" : GetStat(K_SAVINGS) + "/" + BuildConfig.WageGirlSavingsUnlockChannel;
             b.AddLabel(LangHelper.T("解锁：换装 " + outfitSt + " · 收购渠道 " + channelSt, "Unlocks: Outfit " + outfitSt + " · Channel " + channelSt), "wg_unlocks");
@@ -103,14 +106,72 @@ public static partial class WageGirlSystem
                 bool isOutNow = leaveNow > 0 && CurrentDay() < leaveNow;
                 if (!isOutNow)
                 {
-                    var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ProvisionMode = !WageGirlSystem.ProvisionMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } }));
+                    var provBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ProvisionMode = !WageGirlSystem.ProvisionMode; if (WageGirlSystem.ProvisionMode) WageGirlSystem.ConsignMode = false; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 给口粮异常: " + ex.Message); } })); // P2-16：模式互斥双向（开口粮清寄卖）
                     b.AddButton(WageGirlSystem.ProvisionMode ? LangHelper.T("🍖 拖拽模式：把食物拖到蛙娘身上（当前" + GetStat(K_PROVISION) + "份）", "🍖 Drag food onto Wage Girl (" + GetStat(K_PROVISION) + " stored)") : LangHelper.T("🍖 给予口粮（当前" + GetStat(K_PROVISION) + "份）", "🍖 Give provisions (" + GetStat(K_PROVISION) + " stored)"), provBtn, "wg_provision_btn");
                     // 10-16 M10：以物易物按钮（每日 1 次；投入价值 1~500 非违禁品；好感系数 0.8/1.0/1.2 + 喜好 +0.2）
                     bool exchUsed = GetStat(K_EXCHANGE_DAY) == CurrentDay();
-                    var exchBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ExchangeMode = !WageGirlSystem.ExchangeMode; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 交换异常: " + ex.Message); } }));
+                    var exchBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() => { try { WageGirlSystem.ExchangeMode = !WageGirlSystem.ExchangeMode; if (WageGirlSystem.ExchangeMode) WageGirlSystem.ConsignMode = false; ShowPanel(); } catch (Exception ex) { Core.LogMsg("[蛙娘] 交换异常: " + ex.Message); } })); // P2-16：模式互斥双向（开交换清寄卖）
                     b.AddButton(WageGirlSystem.ExchangeMode
                         ? LangHelper.T("🤝 交换模式：拖 1 件物品给她（" + (exchUsed ? "今日已用" : "今日可用") + "，价值 1~500，违禁品不收）", "🤝 Barter mode: drag 1 item to her (" + (exchUsed ? "used today" : "available today") + ", value 1~500, no contraband)")
                         : LangHelper.T("🤝 以物易物（每日 1 次，" + (exchUsed ? "今日已用" : "换好物") + "）", "🤝 Barter (" + (exchUsed ? "used today" : "trade for goods") + ", daily 1)"), exchBtn, "wg_exchange_btn");
+                    // 2026-10-18 §2：寄卖按钮（好感≥50 节点4 才可用；互斥 Provision/Exchange；寄卖总开关关=灰）
+                    try
+                    {
+                        int consignCount = 0; long consignTotal = 0;
+                        WageGirlConsign.GetSummary(out consignCount, out consignTotal);
+                        bool consignAffOk = GetAffNode(GetAffectionExact()) >= 4; // P1-4（审阅 20261018）：>=4 即好感≥50（含节点5 满好感）
+                        bool consignOn = WageGirlSystem.ConsignMode;
+                        string consignBtnText;
+                        if (consignOn)
+                            consignBtnText = LangHelper.T("📦 寄卖中：拖物品给蛙娘（点此关闭）", "📦 Consigning: drag items to her (click to close)");
+                        else if (!consignAffOk)
+                            consignBtnText = LangHelper.T("🔒 寄卖（需好感 ≥50，当前 " + GetAffectionExact().ToString("0.00") + "）", "🔒 Consign (need aff ≥50, now " + GetAffectionExact().ToString("0.00") + ")");
+                        else if (!WageGirlSellRules.AutoSellOn)
+                            consignBtnText = LangHelper.T("🔒 寄卖（总开关已关）", "🔒 Consign (master switch off)");
+                        else
+                            consignBtnText = LangHelper.T("📦 寄卖（待售 " + consignCount + " 件 / 估值 " + consignTotal + "）", "📦 Consign (" + consignCount + " items / est. " + consignTotal + ")");
+                        var consignBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                        {
+                            try
+                            {
+                                if (!consignAffOk) { ShowPanel(); return; } // 锁定态点击不进入模式
+                                WageGirlSystem.ConsignMode = !WageGirlSystem.ConsignMode;
+                                if (WageGirlSystem.ConsignMode) { WageGirlSystem.ProvisionMode = false; WageGirlSystem.ExchangeMode = false; } // 互斥（2.2 第 2 条）
+                                ShowPanel();
+                            }
+                            catch (Exception ex) { Core.LogMsg("[蛙娘] 寄卖切换异常: " + ex.Message); }
+                        }));
+                        b.AddButton(consignBtnText, consignBtn, "wg_consign_btn");
+                        // 10-18 蛙娘门路（§8.1-8）：面板显示"今日门路 N/M · 本档剩余 K 件"（与寄卖计数同区；无门路=不显示）
+                        try
+                        {
+                            string connStatus = WageGirlConn.StatusText();
+                            if (!string.IsNullOrEmpty(connStatus))
+                            {
+                                int connLv = WageGirlConn.Level();
+                                string connLine = LangHelper.T("🕶 门路 Lv" + connLv + "：" + connStatus, "🕶 Connections Lv" + connLv + ": " + connStatus);
+                                b.AddLabel(connLine, "wg_conn_status");
+                            }
+                        }
+                        catch (Exception exc) { Core.LogMsg("[蛙娘] 门路状态显示异常: " + exc.Message); }
+                        // 清空寄卖篮（§2 交互：撤回，按记录重建物品并 GrantToPlayerBackInv 退回背包）
+                        var clearBtn = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>((System.Action)(() =>
+                        {
+                            try
+                            {
+                                WageGirlSystem.ConsignMode = false; // 清空时退出寄卖模式，防拖拽目标指向已删记录
+                                int n = WageGirlConsign.ClearAll();
+                                ReportLine(LangHelper.T("寄卖篮已清空（退回背包 " + n + " 件）", "Consignment cleared (" + n + " items returned)"));
+                                ShowPanel();
+                            }
+                            catch (Exception ex) { Core.LogMsg("[蛙娘] 清空寄卖篮异常: " + ex.Message); }
+                        }));
+                        b.AddButton(LangHelper.T("🗑 清空寄卖篮（" + consignCount + " 件" + (WageGirlConsign.FlaggedCount() > 0 ? "，" + WageGirlConsign.FlaggedCount() + " 件带标志不可清" : "") + "）", "🗑 Clear consignments (" + consignCount + " items" + (WageGirlConsign.FlaggedCount() > 0 ? ", " + WageGirlConsign.FlaggedCount() + " flagged kept" : "") + ")"), clearBtn, "wg_consign_clear_btn");
+                        // P1-6 文案（第五轮 20261018 建议）：带标志货无法撤回只能等结算——补一句防误判丢件
+                        if (WageGirlConsign.FlaggedCount() > 0)
+                            b.AddLabel(LangHelper.T("（赃物/假货无法撤回：明天结算卖掉自动落账，或遭遇退货/投诉）", "(Stolen/Fake items can't be withdrawn: they sell at tomorrow's settlement, or hit a return/complaint)"), "wg_consign_flag_note");
+                    }
+                    catch (Exception ex) { Core.LogMsg("[蛙娘] 寄卖按钮异常: " + ex.Message); }
                 }
                 if (!isOutNow && GetAffectionExact() >= 20) // 10-07 #10：double 比较（冷淡/敌意=负值不显示旅行按钮）
                 {
@@ -196,25 +257,42 @@ public static partial class WageGirlSystem
             if (b == null) return;
             b.SetSize(420, 560).SetPosition(Vector2.zero);
             try { var w = mgr.GetWindow("wg_guide"); if (w != null) { var rt = w.Rect; rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 1); rt.anchoredPosition = new Vector2(-16, -200); } } catch { }
+            // §4（2026-10-18，Q2 实锤后）：指南改滚动容器（BeginScroll 470=窗口高560-60 底部区；End 与 Begin 配对）
+            b.BeginScroll(470f);
             b.BeginColumn(4f);
             // 第1章
             b.AddLabel(LangHelper.T("【1】蛙娘是谁？", "[1] Who is Wage Girl?"), "wg_g1");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("她是你的仿生女仆伙伴。你喂她、照顾她，她帮你干活；你不管她，她就偷钱、离家出走。核心循环：喂好吃的→六维涨→好感涨→她更卖力帮你→生意更好。", "She is your android maid. Feed and care for her, she works for you; neglect her and she steals and leaves. Loop: feed well -> stats rise -> affection rises -> she works harder -> better business."), "wg_g1d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             // 第2章
             b.AddLabel(LangHelper.T("【2】六维是什么？", "[2] The 6 Stats"), "wg_g2");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("饱食/口渴/健康/心情/清洁/睡眠。满了不闹，低于30出问题（饿了偷吃东西、渴了偷喝饮料、心情差偷东西）。每日衰减：前5项各-2，睡眠自然恢复。", "Satiety/Thirst/Health/Mood/Clean/Sleep. Full=happy, below 30=causes trouble (steals food/drinks/stuff). Daily decay: first 5 -2 each, sleep recovers naturally."), "wg_g2d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             // 第3章（10-07 D4：加洗澡/水质新变动）
             b.AddLabel(LangHelper.T("【3】怎么喂她？", "[3] How to Feed"), "wg_g3");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("直接拖东西给她。食物→饱食+健康，吃一口剩一半；饮料→口渴（看水质），瓶子留着；日用品→清洁+心情；违禁品→洗白或销赃。口渴满后再喝=洗澡：好水加清洁（品质越好加越多），最脏的减健康，浑浊/脏水额外减心情，品质最好的水额外加心情+睡眠。脏水掉健康，换花样喂防腻。", "Drag items to her. Food -> satiety+health, eats one bite leaves half; Drink -> thirst (by water quality), bottle kept; Daily goods -> clean+mood; Contraband -> launder or fence. Drinking when thirst is full = bath: good water raises cleanliness (better quality = more), dirtiest hurts health, cloudy/dirty water also cuts mood, best water gives bonus mood+sleep. Dirty water hurts health, vary diet to avoid boredom."), "wg_g3d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             // 第4章（10-07 D4：喂食按价值给好感）
             b.AddLabel(LangHelper.T("【4】怎么涨好感？", "[4] Raising Affection"), "wg_g4");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("喂食按物品价值给好感（价值越低加越少，整体难度已上调）；照顾清洁+2~5，给零花钱前3次+1~3。偷拿按好感分档：<30偷≤50，30-70偷≤100，≥70偷≤200（很少偷）；好感≥100（信赖）不再偷钱/偷拿。偷钱：每5天一次（首偷50，好感越高越少）。", "Feeding gives affection by item value (lower value = less, difficulty raised); clean her +2~5, allowance first 3 times +1~3. Snatching by affection: <30 steals <=50, 30-70 <=100, >=70 <=200 (rarely); at >=100 (Trust) she stops stealing money/items. Money theft: every 5 days (first 50, less at higher affection)."), "wg_g4d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             // 第5章（10-07 D4：销赃回报上桌卖+箱子定价+钥匙卡）
             b.AddLabel(LangHelper.T("【5】她会做什么？", "[5] What She Does"), "wg_g5");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("销赃：拖违禁品给她，2天回来带箱子（按好感定价：100好感300/箱，越低越贵；好感高才带对应钥匙卡）——货都上桌卖，需购买不直接送。偷东西：心情差/好感低会偷。偷钱：每5天一次。跑路：连续5天六维低，离家14天。", "Fence: feed contraband, she returns in 2 days with crates (priced by affection: 300/crate at 100 affection, pricier when lower; keycard only at high affection) - goods go on the counter for sale, not free. Steals: bad mood/low affection. Steals money: every 5 days. Leaves: 5 days low stats, gone 14 days."), "wg_g5d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             // 第6章
             b.AddLabel(LangHelper.T("【6】小金库", "[6] Savings"), "wg_g6");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
             b.AddLabel(LangHelper.T("销赃克扣的跑腿费存小金库。给零花钱100/300/500三档，前3次加好感。跑腿费 10% 起随好感降（基准10%，随机浮动-10~30%）。", "Fencing commission goes to savings. Allowance 100/300/500, first 3 times gain affection. Commission starts at 10%, drops as affection rises (base 10%, random -10~30%)."), "wg_g6d");
+            PanelZoomHelper.SizeGuideLabel(b, 380f); // §4：滚动条目撑开高度
+            PanelZoomHelper.FinishGuideScroll(b, 4f); // 10-18：content 高按子项实高定死 + 补 CFS（否则滚不动）
+            b.End(); // 退出 column（§4）
+            b.End(); // 退出 scroll（§4）
         }
         catch (Exception ex) { Core.LogMsg("[蛙娘] 指南异常: " + ex.Message); }
     }

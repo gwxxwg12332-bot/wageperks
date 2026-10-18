@@ -37,7 +37,7 @@ internal static partial class RobinCrusoePerk
     private static readonly string[] ALL_KEYS = new string[]
     {
         "robinson_hard","sat","thirst","health","blood","mood","granary","elevStreak","elevCount",
-        "starveDays","thirstDeath","critDays","clean","sleep","social","nodeKey","nodeFxIdx","deals",
+        "starveDays","starvingDays","thirstDeath","critDays","clean","sleep","social","nodeKey","nodeFxIdx","deals", // "starvingDays"=10-18 R2 §10.2 旧名一次迁移清理（WS 曾用，新档不得继承旧档计数）
         "revenue","blood_rest","hbuffDay",
         "cb_eatEff","cb_thirstEff50","cb_thirstEff10","cb_wearEff","cb_drugEff","cb_antiTheft","cb_moodDamp",
         "cb_forage20","cb_sell5","cb_mood2","cb_mood3","cb_sleepR10","cb_contraEff"

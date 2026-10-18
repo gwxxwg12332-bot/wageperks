@@ -1435,8 +1435,8 @@ internal static class TestRunner
             string foundIds = "";
             try
             {
-                // 用 EmporiumEntry.GetAllItems() 枚举后背包所有物品（反编译确认的方法，最可靠）
-                var items = emporium.GetAllItems();
+                // 10-18 口径统一：GetAllItems 只扫当铺顶层（不递归容器）——诊断工具改用 CollectAllItems（全店递归）
+                var items = WageBrother.CollectAllItems();
                 if (items != null)
                 {
                     foreach (var it in items)

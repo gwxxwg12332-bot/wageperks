@@ -111,6 +111,16 @@ partial class ContainerUpgradeV2
     {
         try
         {
+            // 10-18 拍板补读（M22：写入点 :232 注释明示"双写/兜底"=半成品补读，不删）：
+            //   先查 uniqueId 兜底键 wage_stage_u{uniqueId}（SurvivalGlobal ns 与写入一致）。
+            //   uniqueId=内存计数器不随档（ThiefMagnetSystem.cs:34 / Restore.cs:149 实锤）——
+            //   同会话稳定：容器挪动后位置键失效时兜底命中（身份锚定，全局递增不误伤）；
+            //   跨会话 uniqueId 重分配 → 未命中 → 回退位置键（兼容旧档/跨会话，行为不变）。
+            if (box != null)
+            {
+                int uidStage = WageSaveStore.GetInt("SurvivalGlobal", "wage_stage_u" + box.uniqueId, -1);
+                if (uidStage > 0) { Core.LogMsg("[容器v2] uniqueId 兜底命中 " + box.uniqueId + " stage=" + uidStage); return uidStage; }
+            }
             var e = EmporiumEntry.Instance;
             if (e == null || box == null) return -1;
             GameInventory[] invs = new GameInventory[] {
@@ -136,6 +146,11 @@ partial class ContainerUpgradeV2
                             s = WageSaveStore.GetInt("RobinCrusoe", "wage_stage_" + loc + "_" + idx, -1);
                             if (s > 0) WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_" + loc + "_" + idx, s);
                         }
+                        // 10-18 审阅 P0-② 落地：**移除位置键命中→反写 uid 键**（原 10-18 增强）——
+                        //   审阅实证：若位置键值来自误伤（普通容器占了曾升级箱的 loc+idx），反写会把误伤段位
+                        //   洗白进 uid 键并自我延续（同会话兜底反复命中错误值）。且反写的"跨会话转同会话兜底"
+                        //   价值低：跨会话恢复后 RestoreWageBoxToStage 已打回 wb_stage tag（:214），同会话挪动
+                        //   不丢 tag，无需 uid 兜底。uid 兜底读（:121）保留（用户拍板补读——重进当天场景有效）。
                         if (s > 0) return s;
                     }
                 }

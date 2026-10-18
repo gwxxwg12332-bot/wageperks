@@ -40,6 +40,15 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
+            // 10-18 设计稿 §1.5 D1 定案探针（定案后可删）：玩家实测「鲁滨逊档命中原版关节炎衰减」——
+            //   若 IsActive=false 或 startType≠14，WS 拾荒覆写整段让路 = 老档 startType 恢复失败
+            try
+            {
+                Core.LogMsg("[WS拾荒] IsActive=" + IsActive()
+                    + " startType=" + (PlayerStore.Instance != null ? (int)PlayerStore.Instance.startType : -999)
+                    + " attempts=" + GetScavAttempts() + " vanillaCap=" + __result);
+            }
+            catch (Exception exd) { Core.LogMsg("[WS拾荒] 探针异常: " + exd.Message); }
             if (!IsActive()) return;
             if (IsBloodWeak() || IsForcedRest()) { __result = 0; return; } // 09-20 M5
             __result = GetScavCap(); // 上限

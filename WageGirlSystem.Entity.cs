@@ -141,8 +141,8 @@ public static partial class WageGirlSystem
             var em = EmporiumEntry.Instance;
             if (em == null) return null;
             // 10-05 修复：旧实现硬编码4容器（漏 backInvCounter/hiddenElement + 不递归容器内部）→ 蛙娘放暗格/箱内找不到。
-            // 改用原版 GetAllItems()（全店递归含容器内部，暗格巡查同用）
-            foreach (var it in em.GetAllItems())
+            // 10-18 审阅 P1 修正注释：GetAllItems 只扫当铺顶层（不递归容器内部）——改用 CollectAllItems（顶层+容器递归，深度8防环）
+            foreach (var it in WageBrother.CollectAllItems())
             {
                 if (it != null && it.identifier == ENTITY_ID) return it;
             }

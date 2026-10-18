@@ -152,7 +152,6 @@ partial class LuckScoutBackpackUpgrade
                 var gsb = new GridShapeBuilder();
                 gsb.SetDataFill(2, 2);
                 item.SetShape(gsb.Build());
-                item.modifiedShape = gsb.Build();
             }
             catch (Exception exsh) { Core.LogMsg("[虚空珠] 占地SetShape异常: " + exsh.Message); }
             // 开局容器未就绪时 SetShape 会被初始化覆盖（用户反馈新档显示 3/4）→ 入队，下帧容器就绪后强制应用

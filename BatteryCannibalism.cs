@@ -403,7 +403,7 @@ internal static class BatteryCannibalism
 		var list = new System.Collections.Generic.List<GameItem>();
 		try
 		{
-			var all = EmporiumEntry.Instance.GetAllItems();
+			var all = WageBrother.CollectAllItems(); // 10-18 审阅 P1：原 GetAllItems 只扫当铺顶层——电池放容器内扫不到 → 自充电失效（与蛙哥充电器 P0 同根因，本批统一修）
 			foreach (var item in all)
 			{
 				if (item == null) continue;

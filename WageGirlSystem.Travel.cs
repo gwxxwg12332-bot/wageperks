@@ -150,7 +150,7 @@ public static partial class WageGirlSystem
         try
         {
             var em = EmporiumEntry.Instance; if (em == null) return false;
-            var all = em.GetAllItems();
+            var all = WageBrother.CollectAllItems(); // 10-18 审阅 P2：食物藏容器也应被消耗（原 GetAllItems 只扫顶层）
             foreach (var it in all)
             {
                 if (it == null) continue;

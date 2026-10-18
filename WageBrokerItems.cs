@@ -81,7 +81,7 @@ internal static class WageBrokerItems
         it.unitBaseValue = price;
 
         // shape 2x2（照养蛊机——大物品）
-        try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); it.modifiedShape = gsb.Build(); } catch { }
+        try { var gsb = new GridShapeBuilder(); gsb.SetDataFill(2, 2); it.SetShape(gsb.Build()); } catch { }
 
         // sprite
         try { it.SetSprite("custom_atlas", spriteKey); } catch { }

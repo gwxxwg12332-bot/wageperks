@@ -89,7 +89,7 @@ public static partial class WageGirlSystem
             if (WageSaveStore.GetInt("WageGirl", "gift50_sent", 0) != 0) return;
             WageSaveStore.SetInt("WageGirl", "gift50_sent", 1);
             // 10-05 恢复发放（10-03 止血禁用；用户反馈"50好感不送东西"）。
-            // 止血原因=TryAcceptOnce MonoMod 补丁链疑似崩点——GiveRewardItem 已改 UncheckedAcceptAll 主通道规避。
+            // 止血措施=GiveRewardItem 改走 UncheckedAcceptAll 主通道，不经 TryAcceptOnce 的 MonoMod 补丁链。
             GiveRewardItem(GuMachineSystem.AI_GENERATOR_ID, 1);
             GiveRewardItem("system_capped_neural_core", 2); // 原生神经模组（capped版）
             // 10-07 测试反馈 B（玩家期望"无保护器"）：原 v1.3.1 注释"三件套=生成器+神经模组×2+保护器×1"——按 525BFCC1 拍板去掉保护器
@@ -190,7 +190,7 @@ public static partial class WageGirlSystem
                 var em = Il2Cpp.EmporiumEntry.Instance;
                 if (em != null)
                 {
-                    var all = em.GetAllItems();
+                    var all = WageBrother.CollectAllItems(); // 10-18 审阅 P1：原 GetAllItems 只扫当铺顶层——洗白货藏容器日切漏扫，防作弊链缺口
                     foreach (var it in all)
                     {
                         try
@@ -298,7 +298,7 @@ public static partial class WageGirlSystem
             if (leaveDay > 0 && day < leaveDay) return;
             // 10-16 M5：每日随机喜好（0=酒 1=食物 2=日用品 各 1/3；likeDay 随档=读档不重滚）
             if (GetStat(K_LIKE_DAY) != day) { SetStat(K_LIKE_DAY, day); SetStat(K_LIKE, Core.Rng.Next(3)); }
-            // 10-16 P4a M4：小金库唯一性消耗解锁标记（一次性，余额降不回退；效果本体=换装素材/渠道定义待拍板）
+            // 10-16 P4a M4：小金库唯一性消耗解锁标记（一次性，余额降不回退；效果本体=换装素材/渠道定义，未实装）
             int savNow = GetStat(K_SAVINGS);
             if (savNow >= BuildConfig.WageGirlSavingsUnlockOutfit && GetStat(K_UNLOCK_OUTFIT) == 0) SetStat(K_UNLOCK_OUTFIT, 1);
             if (savNow >= BuildConfig.WageGirlSavingsUnlockChannel && GetStat(K_UNLOCK_CHANNEL) == 0) SetStat(K_UNLOCK_CHANNEL, 1);
@@ -399,69 +399,13 @@ public static partial class WageGirlSystem
                     ReportLine(LangHelper.T("蛙娘打烊后在后屋捡到一件东西（" + sname + "，价值约 " + sval + "）！", "Wage Girl found something in the backroom (" + sname + ", ~" + sval + ")!"));
                 }
             }
-            // 节点4 代售（10-16 M1 P2-4b）：亲密节点 [50,99] 打烊后自动卖柜台货（每日 1 次键 K_SALE_DAY）
-            // 10-17 蛙娘代售规则引擎接入（设计稿 v2 已批准）：硬锁段保留（Resolve 内部等价），其余换为 Resolve 裁决；
-            //   PickOrder 排序 + DailyQuota 额度（循环卖 N 件）；soldItem==null 时补日报原因（消除静默失败）
-            if (GetAffNode(GetAffectionExact()) == 4 && GetStat(K_SALE_DAY) != day)
+            // 节点4 寄卖结算（2026-10-18 五项需求 §2 定案：自动代售→寄卖按钮，本段删除代售，改为结算寄卖记录）
+            // 语义：K_SALE_DAY = 寄卖结算日（当日已结算则跳过；仅外出顺延，不受好感门槛——货已交出，好感变化不影响结算）
+            // 顺延：外出中（GetStat(K_LEAVE) > today）不结算，保留记录
+            if (GetStat(K_SALE_DAY) != day)
             {
-                List<GameItem> sellCandidates = new List<GameItem>();
-                List<string> noSellReasons = new List<string>(); // 未售原因收集（补日报）
-                int soldCount = 0; GameInventory showcaseInv = null;
-                try
-                {
-                    WageGirlSellRules.BeginEvaluate(); // 一次性读规则进内存（避免逐件 EnumerateKeys）
-                    var emS = Il2Cpp.EmporiumEntry.Instance;
-                    if (emS != null) showcaseInv = emS.showcaseElement as GameInventory;
-                    if (showcaseInv != null && showcaseInv.childItems != null)
-                    {
-                        for (int i = 0; i < showcaseInv.childItems.Count; i++)
-                        {
-                            GameItem c = showcaseInv.childItems[i];
-                            if (c == null) continue;
-                            try
-                            {
-                                SellDecision dec = WageGirlSellRules.Resolve(c, out string why);
-                                if (dec == SellDecision.Sell) { sellCandidates.Add(c); }
-                                else if (!string.IsNullOrEmpty(why) && !noSellReasons.Contains(why)) noSellReasons.Add(why);
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                catch (Exception exs) { Core.LogMsg("[蛙娘] 代售扫描异常: " + exs.Message); }
-                // PickOrder：0=列表序(现状) / 1=最便宜 / 2=最贵 / 3=随机
-                int pickOrder = WageGirlSellRules.PickOrder;
-                if (pickOrder == 1) sellCandidates.Sort((a, b) => SafeUnitValue(a).CompareTo(SafeUnitValue(b)));
-                else if (pickOrder == 2) sellCandidates.Sort((a, b) => SafeUnitValue(b).CompareTo(SafeUnitValue(a)));
-                else if (pickOrder == 3) Shuffle(sellCandidates);
-                // DailyQuota：循环卖 N 件（现状=1）
-                int quota = WageGirlSellRules.DailyQuota;
-                foreach (var soldItem in sellCandidates)
-                {
-                    if (soldCount >= quota) break;
-                    try
-                    {
-                        int soldPrice = SafeUnitValue(soldItem);
-                        string snm = ""; try { snm = soldItem.name ?? soldItem.identifier ?? ""; } catch { }
-                        ModCashN(soldPrice);
-                        try { if (showcaseInv != null) showcaseInv.Expel(soldItem); } catch (Exception exx) { Core.LogMsg("[蛙娘] 代售移除异常: " + exx.Message); }
-                        soldCount++;
-                        ReportLine(LangHelper.T("蛙娘帮你把柜台上的「" + snm + "」卖了出去（进账 " + soldPrice + "）", "Wage Girl sold \"" + snm + "\" from the counter (+" + soldPrice + ")"));
-                    }
-                    catch { }
-                }
-                if (soldCount > 0)
-                {
-                    SetStat(K_SALE_DAY, day);
-                }
-                else
-                {
-                    // 补日报：消除静默失败（原 :432 仅 soldItem!=null 才 ReportLine）
-                    // ⚠️ 行为变更（审阅 E 记录）：未卖出也写 K_SALE_DAY——语义="今天已尝试过就不再尝试"，每日仅结算一次，与原实现仅卖出才设键不同
-                    string whyText = noSellReasons.Count > 0 ? string.Join("、", noSellReasons) : "柜台没有可卖的东西";
-                    ReportLine(LangHelper.T("蛙娘今天没能卖出柜台货（" + whyText + "）", "Wage Girl couldn't sell anything today (" + whyText + ")"));
-                    SetStat(K_SALE_DAY, day);
-                }
+                WageGirlConsign.SettleDay(day); // P3-18：isOut 死参数已删（外层 :298 已对外出提前 return）
+                SetStat(K_SALE_DAY, day);
             }
             // 节点5 代收（10-16 M1 P2-4b）：信赖节点 [100,200] 打烊后自动履约 1 件客户收购单（每日 1 次键 K_FULFILL_DAY）
             // 拆包事实：StoreRequest.FillRequest() 可程序化直调（无客户在场/无营业约束）；完成后自动出队（天然防重）；DispenseReward=声望+钱双落点
@@ -699,22 +643,6 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
             }
         }
         catch (System.Exception ex) { Core.LogMsg("[WageGirlSystem.NeedsAffection] 交换异常: " + ex.Message); }
-    }
-
-    // ===== 10-17 蛙娘代售引擎辅助（PickOrder 排序/额度循环用） =====
-    private static int SafeUnitValue(GameItem it)
-    {
-        try { return (int)it.unitValue; } catch { return 0; }
-    }
-
-    private static void Shuffle(List<GameItem> list)
-    {
-        if (list == null || list.Count <= 1) return;
-        for (int i = list.Count - 1; i > 0; i--)
-        {
-            int j = Core.Rng.Next(i + 1);
-            var t = list[i]; list[i] = list[j]; list[j] = t;
-        }
     }
 
     // ===== 10-16 M1 节点4：捡漏（抽全物品池价值 20~100 的 1 件，直接拾回；复用 GiveGift 抽池模式）=====

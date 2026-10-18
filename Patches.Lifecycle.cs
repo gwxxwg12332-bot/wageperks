@@ -546,7 +546,7 @@ internal static partial class Patches
 			var em = Il2Cpp.EmporiumEntry.Instance;
 			if (em != null)
 			{
-				var all = em.GetAllItems();
+					var all = WageBrother.CollectAllItems(); // 10-18 审阅 P1：原 GetAllItems 只扫当铺顶层——洗白货藏容器读档漏扫，防作弊链缺口
 				foreach (var it in all)
 				{
 					try

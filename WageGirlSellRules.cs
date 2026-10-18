@@ -27,7 +27,6 @@ internal static class WageGirlSellRules
 
     // ===================== 配置（P0.5 审阅 A：四开关读 cfg 跨档=玩家策略偏好；名单走 WageSaveStore 不跨档） =====================
     internal static int Mode { get { try { return BuildConfig.WageGirlSellMode; } catch { return 0; } } }
-    internal static int PickOrder { get { try { return BuildConfig.WageGirlSellPickOrder; } catch { return 0; } } }
     internal static int DailyQuota { get { try { return Math.Max(1, BuildConfig.WageGirlSellDailyQuota); } catch { return 1; } } }
     internal static bool AutoSellOn { get { try { return BuildConfig.WageGirlSellAutoSellOn; } catch { return true; } } }
 
@@ -157,7 +156,7 @@ internal static class WageGirlSellRules
     }
 
     // 武器/工具类别判定（id 关键词匹配，照 WageGirlSystem.StealAI_Fence.ItemHelpers.IsWeaponOrTool 先例）
-    // ⚠️ 审阅 F 记录：cat:weapon 为启发式近似判定（id 关键词可能漏/误），设计稿表格已标注"近似"
+    // ⚠️ cat:weapon 为 id 关键词硬编码判定（关键词表见 :165-172），漏判与误判均存在，非权威类别判定
     private static bool IsWeaponOrTool(GameItem item)
     {
         try
@@ -194,7 +193,7 @@ internal static class WageGirlSellRules
                 WageAPI.WageTag.SetInt(item, TAG_NO_SELL, 1);
                 if (!UseTagAsMarker && !string.IsNullOrEmpty(id))
                 {
-                    RemoveRule(false, "id:" + id); // 互斥：清掉可能存在的必售名单
+                    RemoveRule(false, "id:" + id); // 互斥：清掉同 id 的必售名单（无该键时 RemoveRule 为空操作，见 :250-269）
                     AddRule(true, "id:" + id);
                 }
                 return true;
@@ -222,7 +221,7 @@ internal static class WageGirlSellRules
                 WageAPI.WageTag.SetInt(item, TAG_FORCE_SELL, 1);
                 if (!UseTagAsMarker && !string.IsNullOrEmpty(id))
                 {
-                    RemoveRule(true, "id:" + id); // 互斥：清掉可能存在的免售名单
+                    RemoveRule(true, "id:" + id); // 互斥：清掉同 id 的免售名单（无该键时 RemoveRule 为空操作，见 :250-269）
                     AddRule(false, "id:" + id);
                 }
                 return true;

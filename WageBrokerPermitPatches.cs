@@ -80,6 +80,7 @@ internal static class WageBrokerPermitPatches
         try
         {
             int level = WageBrokerChargerHelper.GetMaxChargerLevel();
+            Core.LogMsg("[#充电器诊断] GetMaxChargerLevel=" + level + " 扫描项数=" + WageBrother.CollectAllItems().Count); // 审阅 §5.3：定案「物品栏不充」用（扫描项数/命中 id 直接可观测；定案后可删）
             if (level <= 0) return;
 
             var em = EmporiumEntry.Instance;

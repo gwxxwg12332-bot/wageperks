@@ -83,10 +83,20 @@ public static partial class WageGirlSystem
     }
     private static bool CanFeed(GameItem item)
     {
-        try { return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item) || IsContraband(item); } catch { return false; }
+        try
+        {
+            // 10-18 修复「普通物品拖不到蛙娘身上/拒绝交互」：PrefixMayTarget 的 hover 可拖判定用 CanFeed，
+            //   原实现只认食物/饮料/日常/违禁品 → 寄卖/交换/口粮模式下普通物品 hover 不亮、拖不动。
+            //   模式开启时对玩家拥有的物品放行（具体收不收/定价由 TryFeed 内部按模式裁决）。
+            if (ConsignMode || ExchangeMode || ProvisionMode)
+                return IsPlayerOwnedForCare(item);
+            return RobinCrusoePerk.IsFood(item) || RobinCrusoePerk.IsDrink(item) || RobinCrusoePerk.IsDailyNeed(item) || IsContraband(item);
+        }
+        catch { return false; }
     }
     internal static bool ProvisionMode = false; // 按钮切换：拖食物到蛙娘身上 = 存口粮
     internal static bool ExchangeMode = false; // 10-16 M10：按钮切换：拖物品给蛙娘 = 以物易物（每日 1 次）
+    internal static bool ConsignMode = false;  // 2026-10-18 §2：按钮切换：拖物品给蛙娘 = 寄卖（吞噬瞬间写记录，次日结算）
     private static bool TryFeed(GameItem item, GameItem girl)
     {
         try
@@ -140,6 +150,134 @@ public static partial class WageGirlSystem
                 GiveExchangeGift(giftVal);
                 ReportLine(LangHelper.T("蛙娘收下交换物（价值 " + exchVal + "，好感系数 ×" + exchMult.ToString("0.0") + "），回礼价值约 " + giftVal, "Wage Girl traded (value " + exchVal + ", affection x" + exchMult.ToString("0.0") + "), return gift ~" + giftVal));
                 ShowPanel();
+                return true;
+            }
+            // 2026-10-18 §2/§3：寄卖模式（面板按钮切换；好感≥50；每日上限 DailyQuota；吞噬瞬间写 Consign.<seq>）
+            // 裁决表（§3.2 九行 + 审阅 20261018 补 P2-17 食物行）在 QueueDestroy 之前逐项判定：命中拒收/定价后吞噬
+            if (ConsignMode)
+            {
+                // P0-1（审阅 20261018）：规则名单一次性读入——旧自动代售段删后 BeginEvaluate 无调用点，名单层 _rulesLoaded=false 恒失效
+                //   （Mode=1 白名单 → 全部 NotAllowed 锁死；Mode=0 黑名单 → 免售名单无效）
+                try { WageGirlSellRules.BeginEvaluate(); } catch { }
+                // 总开关（2.2 配置平移：关=拖入拒收；模式不可用 → 退模式，P0-2 审阅）
+                if (!WageGirlSellRules.AutoSellOn)
+                {
+                    ConsignMode = false;
+                    ReportLine(LangHelper.T("蛙娘：寄卖总开关是关着的", "Wage Girl: consignment is turned off"));
+                    return true;
+                }
+                // 门槛（2.2 第 4 条）：好感 ≥50（节点4+；P1-4 审阅：原 ==4 在好感≥100 节点5 时误锁）
+                if (GetAffNode(GetAffectionExact()) < 4)
+                {
+                    ConsignMode = false;
+                    ReportLine(LangHelper.T("蛙娘：感情还不够深，还不放心让我帮你卖东西", "Wage Girl: not close enough to trust me with consignment"));
+                    return true;
+                }
+                // 每日上限（2.2 第 5 条；额度满 → 退模式，P0-2 审阅）
+                int todayFeed = CurrentDay();
+                if (WageGirlConsign.CountFedToday(todayFeed) >= WageGirlSellRules.DailyQuota)
+                {
+                    ConsignMode = false;
+                    ReportLine(LangHelper.T("蛙娘：今天的寄卖额度用完了，明天再来", "Wage Girl: daily consignment quota reached, come back tomorrow"));
+                    return true;
+                }
+                // ===== §3.2 裁决表（命中拒收保持模式——玩家可连续拖，P0-2 审阅） =====
+                // 1) 店货守卫【10-18 拆包定案后删除】：not_purchased/TAG_NOT_PURCHASED 双查是误伤源+死代码——
+                //    ① TAG_NOT_PURCHASED 原版 0 注册幽灵 tag（恒 false）；② 柜台货（isOwend=false）在拖拽入口
+                //    PrefixTarget:69 已被 IsPlayerOwnedForCare 拦截，根本进不了 TryFeed→白嫖通道不存在；
+                //    ③ 残留 not_purchased 的物品（mod 13 处发放都在 DisableTag 清它=确实有物品带）会被误拒=「很多物品不能收取」。
+                //    寄卖只收能拖进来的（=玩家拥有的）物品；防白嫖由 :69 兜底。
+                // 2) 10-18 用户拍板：违禁品不再强制走销赃——洗白 / 销赃 / 寄卖 三条路并存，由玩家拖拽时选的模式决定
+                //    违禁品寄卖按「来路不干净」口径折价（见下方第 6 行），避免变成高价洗钱通道
+                // 3) 10-18 用户拍板：寄卖不限定物品——特殊 tag / 食物 / 饮料 / 白名单模式一律不再拒收
+                //    仅保留两条硬拦：① unitValue<=0（无价可估）② 免售名单（玩家意图）；店货守卫见上（已删）
+                // 4) unitValue <= 0
+                long uv = 0; try { uv = (int)item.unitValue; } catch { }
+                if (uv <= 0)
+                {
+                    ReportLine(LangHelper.T("不值钱", "Worthless"));
+                    return true;
+                }
+                // 5) 只保留「免售名单」；Resolve 的 NotAllowed（白名单模式）在手动寄卖下不生效
+                {
+                    var dec = WageGirlSellRules.Resolve(item, out string why);
+                    if (dec == SellDecision.Protected)
+                    {
+                        ReportLine(LangHelper.T("你把它标记为免售了", "Marked as no-sell"));
+                        return true;
+                    }
+                }
+                // 6) 赃物 / 违禁品：门路白手套（§8.1-1）可用 → 按原价收（flags=C，不折价、不退货风险）；
+                //    否则维持 60% + S（10-18 用户拍板：违禁品与赃物同口径折价，防高价洗钱）
+                string flags = "";
+                long baseVal = uv;
+                bool contraband = false;
+                try { contraband = Il2Cpp.ContrabandHelper.GetContrabandLevel(item) > 0; } catch { }
+                if (ItemAuthenticity.IsStolen(item) || contraband)
+                {
+                    int connFee = 0; string connWhy = "";
+                    bool connOk = false;
+                    try { connOk = WageGirlConn.TryUse(item, true, out connFee, out connWhy); } catch { }
+                    if (connOk)
+                    {
+                        flags += "C"; // 门路白手套：原价收
+                        ReportLine(LangHelper.T("门路白手套：按原价收（门路费 " + connFee + "%）", "Connections: full price (fee " + connFee + "%)"));
+                    }
+                    else
+                    {
+                        baseVal = (long)Math.Round(uv * 0.6);
+                        if (baseVal < 1) baseVal = 1;
+                        flags += "S";
+                        ReportLine(contraband
+                            ? LangHelper.T("违禁品按赃物口径折价收", "Contraband accepted at stolen-item rate")
+                            : LangHelper.T("来路不干净，卖不上价", "Sketchy provenance, lower price"));
+                    }
+                }
+                // 7) 假货：以假乱真（§8.1-2）可用 → 不折价（flags=F0，不触发投诉风险）；
+                //    否则维持 (100+mod)% + F；已走 C 的违禁品假货只补标志不再重复判定/扣额度
+                //    P1-7 审阅：S+F 叠加 = 赃物 60% 后再乘假货 modifier（不再覆盖；日报标注见 WageGirlConsign.cs）
+                string pct = "";
+                if (ItemAuthenticity.IsFake(item))
+                {
+                    if (flags.Contains("C"))
+                    {
+                        flags += "+F0"; // 违禁品门路已原价，假货不重复判定
+                    }
+                    else
+                    {
+                        int connFee2 = 0; string connWhy2 = "";
+                        bool connOk2 = false;
+                        try { connOk2 = WageGirlConn.TryUse(item, false, out connFee2, out connWhy2); } catch { }
+                        if (connOk2)
+                        {
+                            flags += "F0"; // 门路假货：不折价
+                            pct = "100";
+                            ReportLine(LangHelper.T("以假乱真：按原价收（门路费 " + connFee2 + "%）", "Connections: fake at full price (fee " + connFee2 + "%)"));
+                        }
+                        else
+                        {
+                            int mod = ItemAuthenticity.FakeModifier(item);
+                            baseVal = (long)Math.Round(baseVal * (100 + mod) / 100.0);
+                            if (baseVal < 1) baseVal = 1;
+                            if (!flags.Contains("S")) flags += "F"; else flags += "+F";
+                            pct = (100 + mod).ToString();
+                            ReportLine(LangHelper.T("买家看不出来算你运气", "Hope the buyer doesn't notice"));
+                        }
+                    }
+                }
+                // 9) 其余：baseValue = unitValue，flags 为空（已在上方默认）
+                // 写入记录（吞噬瞬间快照；P0-3 审阅：写入失败不销毁，物品退回）+ 销毁
+                string itemName = ModCannibalism.GetName(item);
+                string itemId = ""; try { itemId = item.identifier ?? ""; } catch { }
+                int seq = WageGirlConsign.Add(itemId, itemName, baseVal, flags, todayFeed, pct);
+                if (seq < 0)
+                {
+                    ReportLine(LangHelper.T("寄卖记录失败，物品已退回", "Failed to record consignment, item returned"));
+                    return true; // 不 QueueDestroy——防资产凭空消失（P0-3）
+                }
+                QueueDestroy(item);
+                ReportLine(LangHelper.T("蛙娘收下了「" + itemName + "」（寄卖估值 " + baseVal + (string.IsNullOrEmpty(flags) ? "" : "，带" + flags + "标志") + "）", "Wage Girl took \"" + itemName + "\" for consignment (est. " + baseVal + (string.IsNullOrEmpty(flags) ? "" : ", flagged " + flags) + ")"));
+                ShowPanel(); // 保持 ConsignMode=true（P0-2：可连续拖多件，面板刷新计数）
                 return true;
             }
             // 09-23 修复「蛙娘只有在不营业时才可被照顾」：旧代码在交易 UI 打开时一律 return false，

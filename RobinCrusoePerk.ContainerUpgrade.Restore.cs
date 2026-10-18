@@ -38,6 +38,9 @@ internal static partial class RobinCrusoePerk
                     SetClean(WageSaveStore.GetInt(PERK_ID, "saved_clean", CLEAN_START));
                     SetSleep(WageSaveStore.GetInt(PERK_ID, "saved_sleep", SLEEP_START));
                     SetSocial(WageSaveStore.GetInt(PERK_ID, "saved_social", SOCIAL_START));
+                    // 10-18 审阅 R2 §4 改动6(选A)：血量回滚与 6 维一致——卖血后不存档退出重进血量应回保存点
+                    //   （原只回滚 6 维，血量保留卖出后的值=不对称）。用 AddBlood 而非 SetBlood：复用归零死亡判定。
+                    AddBlood(WageSaveStore.GetInt(PERK_ID, "saved_blood", BLOOD_MAX) - GetBlood());
                 }
             }
             catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }

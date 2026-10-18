@@ -38,8 +38,7 @@ internal static partial class RobinCrusoePerk
         {
             var em = Il2Cpp.EmporiumEntry.Instance;
             if (em == null) return 0;
-            var all = em.GetAllItems();
-            if (all == null) return 0;
+            var all = WageBrother.CollectAllItems(); // 10-18 审阅 P2：爆发损失应含容器内食物/水（原 GetAllItems 只扫顶层）
             int lost = 0;
             foreach (var it in all)
             {
@@ -67,8 +66,7 @@ internal static partial class RobinCrusoePerk
         {
             var em = Il2Cpp.EmporiumEntry.Instance;
             if (em == null) return;
-            var all = em.GetAllItems();
-            if (all == null) return;
+            var all = WageBrother.CollectAllItems(); // 10-18 审阅 P2：同 LostSmallItem，容器内水也损失（原 GetAllItems 只扫顶层）
             foreach (var it in all)
             {
                 if (it == null) continue;

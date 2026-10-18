@@ -53,12 +53,20 @@ internal static class B2WildPanel
     internal const string SVC_CHARGER1 = "b2_svc_charger1";
     internal const string SVC_CHARGER2 = "b2_svc_charger2";
     internal const string SVC_CHARGER3 = "b2_svc_charger3";
+    // 10-18 蛙娘门路（设计稿《假货原价与违禁品免罪》§8.1-7）：独立升级线，等级存 B2ServiceStore.owned_蛙娘门路
+    internal const string SVC_CONN1 = "b2_svc_conn1";
+    internal const string SVC_CONN2 = "b2_svc_conn2";
+    internal const string SVC_CONN3 = "b2_svc_conn3";
     private const int SVC_PRICE_PERMIT1 = 10000;   // 与柜台一级价一致
     private const int SVC_PRICE_PERMIT2 = 30000;
     private const int SVC_PRICE_PERMIT3 = 50000;
     private const int SVC_PRICE_CHARGER1 = 5000;   // 与柜台一级价一致
     private const int SVC_PRICE_CHARGER2 = 25000;
     private const int SVC_PRICE_CHARGER3 = 50000;
+    // 10-18 蛙娘门路升级价（§5.1：1500/6000/20000；定价锚=本作最高服务价8000，Lv3=2.5倍=终局投资）
+    private const int SVC_PRICE_CONN1 = 1500;
+    private const int SVC_PRICE_CONN2 = 6000;
+    private const int SVC_PRICE_CONN3 = 20000;
     private const int SVC_AFFECTION_GATE = 40; // 好感门槛
 
     private sealed class WildEntry
@@ -91,6 +99,10 @@ internal static class B2WildPanel
         list.Add(new WildEntry { Id = SVC_CHARGER1, ServiceId = "charger1" });
         list.Add(new WildEntry { Id = SVC_CHARGER2, ServiceId = "charger2" });
         list.Add(new WildEntry { Id = SVC_CHARGER3, ServiceId = "charger3" });
+        // 10-18 蛙娘门路（等级制：同一升级线三档，独立于蛙娘卡）
+        list.Add(new WildEntry { Id = SVC_CONN1, ServiceId = "conn1" });
+        list.Add(new WildEntry { Id = SVC_CONN2, ServiceId = "conn2" });
+        list.Add(new WildEntry { Id = SVC_CONN3, ServiceId = "conn3" });
         return list.ToArray();
     }
 
@@ -122,7 +134,7 @@ internal static class B2WildPanel
                 var u = new NetworkUpgrade(e.Id);
                 u.subtitle = "";
                 u.cost = 0;                      // 定价走 Patch GetCost
-                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector" || e.ServiceId == "protector_chance";   // 吞噬季/保护器/概率提升：可重复购买
+                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine";   // 吞噬季/保护器/概率提升/养蛊机：可重复购买
                 u.cooldownCurrent = 0;
                 u.cooldownDuration = 0;
                 u.prerequisite = null;
@@ -144,7 +156,7 @@ internal static class B2WildPanel
         catch (Exception ex) { Core.LogMsg("[B2R] 注入异常: " + ex.Message); }
     }
 
-    // 读档兜底：ES3 反序列化 0x150 可能重建字典，缺 b2_ 条目时补（幂等）
+    // 读档兜底：PlayerStore..ctor 每档重建 0x150 字典（PatchRegistryTable.cs:268），缺 b2_ 条目时补（幂等）
     internal static void EnsureInjected()
     {
         try
@@ -160,7 +172,7 @@ internal static class B2WildPanel
                 var u = new NetworkUpgrade(e.Id);
                 u.subtitle = "";
                 u.cost = 0;
-                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector";
+                u.isRepeatable = e.IsCannibal || e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine"; // 对齐 :137（审阅 §3.4：漏 protector_chance 防未来踩坑；10-18 加养蛊机）
                 u.cooldownCurrent = 0;
                 u.cooldownDuration = 0;
                 u.prerequisite = null;
@@ -245,6 +257,8 @@ internal static class B2WildPanel
     {
         if (e.ServiceId == "protector") return SVC_PRICE_PROTECTOR; // 可重复购买
         if (e.ServiceId == "protector_chance") return SVC_PRICE_PROTECTOR_CHANCE; // 可重复购买（概率提升）
+        if (B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id)) return 0; // 补发态免费（已扣费未到货）
+        if (e.ServiceId == "gu_machine") return SVC_PRICE_GU; // 10-18 玩家拍板：养蛊机可重复购买——恒收费（不享"已购 0 元"）
         if (B2ServiceStore.GetLevel(e.Id) >= 1) return 0; // 一次性已购
         switch (e.ServiceId)
         {
@@ -256,32 +270,47 @@ internal static class B2WildPanel
             case "charger1": return SVC_PRICE_CHARGER1;
             case "charger2": return SVC_PRICE_CHARGER2;
             case "charger3": return SVC_PRICE_CHARGER3;
+            // 10-18 门路：等级在 B2ServiceStore.owned_蛙娘门路（e.Id 无键），已购判定用 WageGirlConn.Level()
+            case "conn1": return WageGirlConn.Level() >= 1 ? 0 : SVC_PRICE_CONN1;
+            case "conn2": return WageGirlConn.Level() >= 2 ? 0 : SVC_PRICE_CONN2;
+            case "conn3": return WageGirlConn.Level() >= 3 ? 0 : SVC_PRICE_CONN3;
         }
         return 0;
     }
 
     private static string ServiceTitle(WildEntry e)
     {
+        // 10-18 §5 D：存量补发态按钮文本（已解锁未到货 → 「📦 补发到柜台」）
+        // P2-12（审阅 20261018）：补发态保留原服务名（switch 不中断），玩家可分辨许可/充电器等级
+        string baseTitle;
         switch (e.ServiceId)
         {
-            case "gu_machine": return LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge");
-            case "ai_generator": return LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator");
-            case "protector": return LangHelper.T("蛙哥保护器核心", "Wage's Protector Core");
-            case "protector_chance": return LangHelper.T("蛙哥保护器·随机出现率", "Protector Spawn Chance");
-            case "permit1": return LangHelper.T("蛙哥的许可（一级）", "Wage's Permit (Tier 1)");
-            case "permit2": return LangHelper.T("蛙哥的许可（二级）", "Wage's Permit (Tier 2)");
-            case "permit3": return LangHelper.T("蛙哥的许可（三级）", "Wage's Permit (Tier 3)");
-            case "charger1": return LangHelper.T("蛙哥充电器（一级）", "Wage's Charger (Tier 1)");
-            case "charger2": return LangHelper.T("蛙哥充电器（二级）", "Wage's Charger (Tier 2)");
-            case "charger3": return LangHelper.T("蛙哥充电器（三级）", "Wage's Charger (Tier 3)");
+            case "gu_machine": baseTitle = LangHelper.T("蛙哥养蛊机", "Wage's Swarm Forge"); break;
+            case "ai_generator": baseTitle = LangHelper.T("蛙哥不稳定AI生成器", "Wage's Unstable AI Generator"); break;
+            case "protector": baseTitle = LangHelper.T("蛙哥保护器核心", "Wage's Protector Core"); break;
+            case "protector_chance": baseTitle = LangHelper.T("蛙哥保护器·随机出现率", "Protector Spawn Chance"); break;
+            case "permit1": baseTitle = LangHelper.T("蛙哥的许可（一级）", "Wage's Permit (Tier 1)"); break;
+            case "permit2": baseTitle = LangHelper.T("蛙哥的许可（二级）", "Wage's Permit (Tier 2)"); break;
+            case "permit3": baseTitle = LangHelper.T("蛙哥的许可（三级）", "Wage's Permit (Tier 3)"); break;
+            case "charger1": baseTitle = LangHelper.T("蛙哥充电器（一级）", "Wage's Charger (Tier 1)"); break;
+            case "charger2": baseTitle = LangHelper.T("蛙哥充电器（二级）", "Wage's Charger (Tier 2)"); break;
+            case "charger3": baseTitle = LangHelper.T("蛙哥充电器（三级）", "Wage's Charger (Tier 3)"); break;
+            // 10-18 门路：标题带当前等级（升级语义）
+            case "conn1": baseTitle = LangHelper.T("蛙娘 · 门路 Lv1（以假乱真）", "Wage Girl · Connections Lv1 (Fake at full price)"); break;
+            case "conn2": baseTitle = LangHelper.T("蛙娘 · 门路 Lv2（白手套）", "Wage Girl · Connections Lv2 (Gloves)"); break;
+            case "conn3": baseTitle = LangHelper.T("蛙娘 · 门路 Lv3（锅她背）", "Wage Girl · Connections Lv3 (She takes the fall)"); break;
+            default: baseTitle = e.Id; break;
         }
-        return e.Id;
+        if (e.ServiceId != "protector" && e.ServiceId != "protector_chance"
+            && B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id))
+            return LangHelper.T("📦 补发到柜台 · " + baseTitle, "📦 Redeliver · " + baseTitle);
+        return baseTitle;
     }
 
     private static string ServiceSubtitle(WildEntry e)
     {
         string s = LangHelper.T("服务", "Service");
-        if (e.ServiceId == "protector" || e.ServiceId == "protector_chance") s += LangHelper.T(" · 可重复", " · repeatable");
+        if (e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine") s += LangHelper.T(" · 可重复", " · repeatable"); // 10-18 加养蛊机
         return s;
     }
 
@@ -291,7 +320,7 @@ internal static class B2WildPanel
         switch (e.ServiceId)
         {
             case "gu_machine":
-                return LangHelper.T("传奇当铺主蛙哥留下的炼蛊机器：打烊充能（3天）后自动炼蛊（三属性之和×0.6，上限150%）；舱内老鼠自动互食。", "A forging machine left by Wage: 3-day charge then forge (sum x0.6, cap 150%); rats in bay devour each other.") + req;
+                return LangHelper.T("传奇当铺主蛙哥留下的炼蛊机器：打烊充能（3天）后自动炼蛊（三属性之和×0.6，上限150%）；舱内老鼠自动互食。可重复购买，每台独立炼蛊。", "A forging machine left by Wage: 3-day charge then forge (sum x0.6, cap 150%); rats in bay devour each other. Repeatable, each forge works independently.") + req;
             case "ai_generator":
                 return LangHelper.T("不稳定 AI 生成器：打烊自动抽卡；装保护器=稳定×1.2，不装=倍率随机 0.05~0.8（多数亏）。", "Unstable AI generator: auto-draw at close; with Protector=stable x1.2, without=random 0.05~0.8 (usually a loss).") + req;
             case "protector":
@@ -301,15 +330,22 @@ internal static class B2WildPanel
             case "permit1":
                 return LangHelper.T("蛙哥的许可（一级）：每晚外出次数 +1（可叠加），拾荒仍可能受伤。购买后直接上柜台。", "Wage's Permit (Tier 1): +1 night outing (stacks), scavenging may still injure. Placed on counter after purchase.") + req;
             case "permit2":
-                return LangHelper.T("蛙哥的许可（二级）：每晚外出次数 +1（可叠加），拾荒受伤概率减半。", "Wage's Permit (Tier 2): +1 night outing (stacks), injury chance halved.") + req;
+                return LangHelper.T("蛙哥的许可（二级）：每晚外出次数 +1（可叠加），拾荒受伤概率减半。购买后直接上柜台。", "Wage's Permit (Tier 2): +1 night outing (stacks), injury chance halved. Placed on counter after purchase.") + req;
             case "permit3":
-                return LangHelper.T("蛙哥的许可（三级）：每晚外出次数 +1（可叠加），拾荒时完全不会受伤。", "Wage's Permit (Tier 3): +1 night outing (stacks), complete immunity to scavenging injuries.") + req;
+                return LangHelper.T("蛙哥的许可（三级）：每晚外出次数 +1（可叠加），拾荒时完全不会受伤。购买后直接上柜台。", "Wage's Permit (Tier 3): +1 night outing (stacks), complete immunity to scavenging injuries. Placed on counter after purchase.") + req;
             case "charger1":
                 return LangHelper.T("蛙哥充电器（一级）：每晚自动给背包所有电池充 3 点电量（拥有即生效，不消耗）。", "Wage's Charger (Tier 1): +3 charge to all backpack batteries nightly (persistent).") + req;
             case "charger2":
                 return LangHelper.T("蛙哥充电器（二级）：每晚自动给背包所有电池充 6 点电量（拥有即生效，不消耗）。", "Wage's Charger (Tier 2): +6 charge to all backpack batteries nightly (persistent).") + req;
             case "charger3":
                 return LangHelper.T("蛙哥充电器（三级）：每晚自动给背包所有电池充满电（拥有即生效，不消耗）。", "Wage's Charger (Tier 3): fully charges all backpack batteries nightly (persistent).") + req;
+            // 10-18 门路卡描述（§2.2：A 以假乱真 / B 白手套 / C 锅她背）
+            case "conn1":
+                return LangHelper.T("蛙娘门路 Lv1：假货按原价收（每日1件、每局20件、单件≤600、抽成20%、冷却2天、走漏6%）。", "Wage Girl Connections Lv1: fake items sell at full price (1/day, 20/run, ≤600 each, 20% fee, 2d cooldown, 6% leak).") + req;
+            case "conn2":
+                return LangHelper.T("蛙娘门路 Lv2：违禁品也按原价收（每日2件、每局50件、单件≤1200、抽成15%、冷却1天、走漏3%）。", "Wage Girl Connections Lv2: contraband also at full price (2/day, 50/run, ≤1200 each, 15% fee, 1d cooldown, 3% leak).") + req;
+            case "conn3":
+                return LangHelper.T("蛙娘门路 Lv3：直售免罪——你直接把违禁品/假货卖给客户不留证据（每日3件、每局100件、单件≤2500、抽成10%、无冷却无走漏、整档免罪上限3万）。", "Wage Girl Connections Lv3: direct sales leave no evidence (3/day, 100/run, ≤2500 each, 10% fee, no cooldown/leak, 30k crime exemption cap).") + req;
         }
         return e.Id + req;
     }
@@ -339,26 +375,93 @@ internal static class B2WildPanel
         return LangHelper.T("解锁条件不足：需蛙哥牛逼 Lv2", "Need WageBrother Lv2");
     }
 
-    private static void GrantServiceItem(string itemId)
+    // 10-18 §5 A/C/F：返回 bool（成功=AddItemToCounter 非null 且柜台可查实例）；失败按原因分流：
+    //   柜台未就绪（EmporiumEntry.Instance 或 frontInvinvElement 为 null，WageBrother.cs:222 同款判据）→ 直接入队（重试可达）；
+    //   AddItemToCounter 返回 null → 永久失败（NoDirectory/CreateFailed/AddThrew）或瞬时（NoInstance）——统一入队，队列消费者按原因分档丢弃/重试。
+    //   P1-8（审阅 20261018）：队列携带 (entryId, itemId) 二元组——delivered 键必须写条目 id（面板读 e.Id），否则补发态永不恢复
+    // 10-18 用户拍板：许可/充电器「买了直接进后库」，不再先摆到柜台让玩家自己拿。
+    //   toBackInv=true 的服务（permit1-3 / charger1-3）走 GrantToPlayerBackInv；其余（养蛊机/AI生成器/保护器）仍上柜台。
+    private static bool GrantServiceItem(string entryId, string itemId, bool toBackInv = false)
     {
         try
         {
-            GameItem it = DirectoryMaster.Item(itemId, true);
-            if (it == null) { Notify(LangHelper.T("物品生成失败", "Item create failed")); return; }
-            // FIX16（10-16 玩家"蛙哥服务买东西没有立即上桌"+补充"购买后直接出现在桌面参考原生王尔德酒商服务"）：
-            //   交付方式=AddDirectSellingItemToTable 上桌（酒商卖酒同款，MerchantHelper.AddItemToCounter 内部）；
-            //   isOwend=true=玩家已拥有（服务=花钱解锁物品，直接拿走，参考蛙哥服务卡 WageBrother.cs:327 同款 isOwend=true）——
-            //   原实现 isOwend=false=客户待售品 → 玩家买了服务还要再买物品=体验错误。
-            //   购买瞬间柜台可能未就绪 → 静默失败（WageBrother.cs:191 同坑实锤）→ 入延迟重试队列（帧轮询补上桌）
-            try { MerchantHelper.AddItemToCounter(itemId, 0, true); Core.LogMsg("[B2R] 服务发放 → 柜台(isOwend=true): " + itemId); return; } catch { }
-            _pendingServiceItems.Enqueue(itemId);
-            Core.LogMsg("[B2R] 服务发放柜台未就绪 → 入延迟重试队列: " + itemId);
+            // F：不再白造实例判空——直接用 WageItemFactory.Create 结果走 AddItemToCounter(GameItem) 重载
+            GameItem it = WageAPI.WageItemFactory.Create(itemId);
+            if (it == null) { Notify(LangHelper.T("物品生成失败", "Item create failed")); return false; }
+            if (toBackInv)
+            {
+                // 直接进后库：先清「未购买」标记、盖「已拥有」，再塞进玩家后库
+                try
+                {
+                    it.DisableTag("not_purchased", true);
+                    it.DisableTag("TAG_NOT_PURCHASED", true);
+                    it.EnableTag("IS_OWNED_TAG", true);
+                }
+                catch { }
+                if (WageAPI.WageItemGrant.GrantToPlayerBackInv(it, includeOwnedTransfer: true))
+                {
+                    Core.LogMsg("[B2R] 服务发放 → 后库: " + itemId + " entry=" + entryId);
+                    return true;
+                }
+                _pendingServiceItems.Enqueue(new PendingService(entryId, itemId, true));
+                Core.LogMsg("[B2R] 服务发放后库失败 → 入延迟重试队列: " + itemId);
+                return false;
+            }
+            // C：柜台未就绪 → 直接入队（不再 try/catch 吞掉——旧逻辑 AddItemToCounter 内部 catch return null，外层 catch 永不进入）
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null)
+            {
+                _pendingServiceItems.Enqueue(new PendingService(entryId, itemId));
+                Core.LogMsg("[B2R] 服务发放柜台未就绪 → 入延迟重试队列: " + itemId);
+                return false;
+            }
+            // A：AddItemToCounter 返回非 null 且柜台内可查到该实例才算成功
+            var placed = MerchantHelper.AddItemToCounter(it, 0, true);
+            if (placed == null || !IsOnCounter(placed))
+            {
+                _pendingServiceItems.Enqueue(new PendingService(entryId, itemId));
+                Core.LogMsg("[B2R] 服务发放上桌失败 → 入延迟重试队列: " + itemId);
+                return false;
+            }
+            Core.LogMsg("[B2R] 服务发放 → 柜台(isOwend=true): " + itemId);
+            return true;
         }
-        catch (Exception ex) { Core.LogMsg("[B2R] GrantServiceItem 异常: " + ex.Message); }
+        catch (Exception ex)
+        {
+            Core.LogMsg("[B2R] GrantServiceItem 异常: " + ex.Message);
+            _pendingServiceItems.Enqueue(new PendingService(entryId, itemId));
+            return false;
+        }
+    }
+
+    // P1-8：队列条目（条目 id + 物品 id）——补发成功后写 delivered_<entryId>（面板读键）
+    private sealed class PendingService
+    {
+        internal string EntryId; // e.Id（如 "b2_svc_permit1"）——delivered/SetLevel 写此键
+        internal string ItemId;  // 物品 id（如 "wage_permit_1"）——AddItemToCounterEx 用此 id
+        internal bool ToBackInv; // 10-18：true=补发时直接进后库（许可/充电器），false=上柜台
+        internal PendingService(string entryId, string itemId, bool toBackInv = false) { EntryId = entryId; ItemId = itemId; ToBackInv = toBackInv; }
+    }
+
+    // 10-18 §5 A：柜台内是否可查到该实例（frontInvinvElement.childItems 引用比对）
+    private static bool IsOnCounter(GameItem item)
+    {
+        try
+        {
+            var em = Il2Cpp.EmporiumEntry.Instance;
+            if (em == null || em.frontInvinvElement == null) return false;
+            var inv = (GameInventory)em.frontInvinvElement;
+            if (inv == null || inv.childItems == null) return false;
+            for (int i = 0; i < inv.childItems.Count; i++)
+                if (inv.childItems[i] != null && inv.childItems[i].Pointer == item.Pointer) return true; // P2-13（审阅）：Pointer 比较，与全库 5 处一致
+            return false;
+        }
+        catch { return false; }
     }
 
     // FIX16：服务发放延迟重试队列（柜台未就绪时先入队，帧轮询柜台就绪后补上桌——防"买了没上桌"）
-    private static readonly System.Collections.Generic.Queue<string> _pendingServiceItems = new System.Collections.Generic.Queue<string>();
+    // 10-18 §5 C/E：消费者按失败原因分档——永久失败（NoDirectory/CreateFailed/AddThrew）丢弃并日志，瞬时失败（NoInstance）重新入队
+    private static readonly System.Collections.Generic.Queue<PendingService> _pendingServiceItems = new System.Collections.Generic.Queue<PendingService>();
     internal static void OnUpdateServiceItemRefill()
     {
         try
@@ -366,15 +469,93 @@ internal static class B2WildPanel
             if (_pendingServiceItems.Count == 0) return;
             var em = Il2Cpp.EmporiumEntry.Instance;
             if (em == null || em.frontInvinvElement == null) return; // 柜台未就绪 → 下帧重试
-            while (_pendingServiceItems.Count > 0)
+            int batch = _pendingServiceItems.Count; // 只消费本次入队的数量，防无限循环
+            for (int i = 0; i < batch && _pendingServiceItems.Count > 0; i++)
             {
-                string id = _pendingServiceItems.Dequeue();
+                var p = _pendingServiceItems.Dequeue();
                 try
                 {
-                    MerchantHelper.AddItemToCounter(id, 0, true); // 同款 isOwend=true（玩家拥有直接拿走）
-                    Core.LogMsg("[B2R] 服务发放（延迟重试成功）→ 柜台: " + id);
+                    // 10-18：许可/充电器补发直接进后库（不依赖柜台就绪，柜台没摆也能到货）
+                    if (p.ToBackInv)
+                    {
+                        var bk = WageAPI.WageItemFactory.Create(p.ItemId);
+                        if (bk != null)
+                        {
+                            try
+                            {
+                                bk.DisableTag("not_purchased", true);
+                                bk.DisableTag("TAG_NOT_PURCHASED", true);
+                                bk.EnableTag("IS_OWNED_TAG", true);
+                            }
+                            catch { }
+                            if (WageAPI.WageItemGrant.GrantToPlayerBackInv(bk, includeOwnedTransfer: true))
+                            {
+                                if (!string.IsNullOrEmpty(p.EntryId))
+                                {
+                                    if (B2ServiceStore.GetLevel(p.EntryId) < 1) B2ServiceStore.SetLevel(p.EntryId, 1);
+                                    B2ServiceStore.SetDelivered(p.EntryId);
+                                }
+                                Core.LogMsg("[B2R] 服务补发（延迟重试成功）→ 后库: " + p.ItemId + " entry=" + p.EntryId);
+                                continue;
+                            }
+                        }
+                        _pendingServiceItems.Enqueue(p); // 后库也进不去 → 下轮再试，绝不丢
+                        Core.LogMsg("[B2R] 服务补发后库失败，保留重试: " + p.ItemId);
+                        continue;
+                    }
+                    var reason = MerchantHelper.AddFailReason.None;
+                    var placed = MerchantHelper.AddItemToCounterEx(p.ItemId, out reason, 0, true); // 同款 isOwend=true（玩家拥有直接拿走）
+                    if (placed != null && IsOnCounter(placed))
+                    {
+                        // P1-8：delivered/SetLevel 写条目 id（面板读 e.Id）；补发态已锁则 SetLevel 无副作用
+                        if (!string.IsNullOrEmpty(p.EntryId))
+                        {
+                            if (B2ServiceStore.GetLevel(p.EntryId) < 1) B2ServiceStore.SetLevel(p.EntryId, 1);
+                            B2ServiceStore.SetDelivered(p.EntryId);
+                        }
+                        Core.LogMsg("[B2R] 服务发放（延迟重试成功）→ 柜台: " + p.ItemId + " entry=" + p.EntryId);
+                        continue;
+                    }
+                    if (reason == MerchantHelper.AddFailReason.NoInstance)
+                    {
+                        _pendingServiceItems.Enqueue(p); // 柜台又未就绪 → 下帧再试
+                        Core.LogMsg("[B2R] 服务发放延迟重试（柜台未就绪，再排）: " + p.ItemId);
+                    }
+                    else
+                    {
+                        // §5.3（第五轮 20261018）：永久失败不再丢弃——物品退回玩家后库（钱已扣，货必须到手），并置 delivered 防重复扣费。
+                        //   不采用退款方案：PendingService 未携带价格，补发态 GetCost 返回 0 退不出正确金额；退物品等价且无金额歧义。
+                        try
+                        {
+                            var back = WageAPI.WageItemFactory.Create(p.ItemId);
+                            if (back != null && WageAPI.WageItemGrant.GrantToPlayerBackInv(back, includeOwnedTransfer: true))
+                            {
+                                if (!string.IsNullOrEmpty(p.EntryId))
+                                {
+                                    if (B2ServiceStore.GetLevel(p.EntryId) < 1) B2ServiceStore.SetLevel(p.EntryId, 1);
+                                    B2ServiceStore.SetDelivered(p.EntryId);
+                                }
+                                Core.LogMsg("[B2R] 服务发放永久失败（" + reason + "）→ 已退回后库: " + p.ItemId + " entry=" + p.EntryId);
+                            }
+                            else
+                            {
+                                // 后库也进不去 → 保留在队列末尾，下轮继续尝试（宁可滞留不可蒸发）
+                                _pendingServiceItems.Enqueue(p);
+                                Core.LogMsg("[B2R] 服务发放永久失败且后库退回失败，保留重试: " + p.ItemId + " reason=" + reason);
+                            }
+                        }
+                        catch (Exception ex2)
+                        {
+                            _pendingServiceItems.Enqueue(p);
+                            Core.LogMsg("[B2R] 服务发放兜底异常，保留重试: " + p.ItemId + " " + ex2.Message);
+                        }
+                    }
                 }
-                catch (Exception ex) { Core.LogMsg("[B2R] 服务发放延迟重试失败 " + id + ": " + ex.Message); }
+                catch (Exception ex)
+                {
+                    Core.LogMsg("[B2R] 服务发放延迟重试失败 " + p.ItemId + ": " + ex.Message);
+                    _pendingServiceItems.Enqueue(p);
+                }
             }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] OnUpdateServiceItemRefill 异常: " + ex.Message); }
@@ -387,7 +568,11 @@ internal static class B2WildPanel
             if (e.ServiceId == "protector")
             {
                 if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
-                GrantServiceItem(GuMachineSystem.PROTECTOR_ID);
+                if (!GrantServiceItem(e.Id, GuMachineSystem.PROTECTOR_ID))
+                {
+                    Notify(LangHelper.T("上柜台失败，稍后自动补发（无需再付款）", "Counter placement failed; will auto-redeliver (no extra charge)"));
+                    return;
+                }
                 Notify(LangHelper.T("已获得 蛙哥保护器核心（放入AI生成器舱即稳定版）", "Got Wage's Protector Core (place in AI generator bay for stable mode)"));
                 return;
             }
@@ -403,22 +588,55 @@ internal static class B2WildPanel
                 Core.LogMsg("[B2R] 保护器概率提升: Lv" + lv + " → " + (30 + lv * 10) + "%");
                 return;
             }
-            if (B2ServiceStore.GetLevel(e.Id) >= 1) { Notify(LangHelper.T("该服务已解锁", "Service already unlocked")); return; }
-            if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
-            B2ServiceStore.SetLevel(e.Id, 1);
-            if (e.ServiceId == "gu_machine") GrantServiceItem(GuMachineSystem.GU_MACHINE_ID);
-            else if (e.ServiceId == "ai_generator") GrantServiceItem(GuMachineSystem.AI_GENERATOR_ID);
-            else if (e.ServiceId == "permit1") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_1_ID); Notify(LangHelper.T("已获得 蛙哥的许可（一级），已上柜台", "Got Wage's Permit (Tier 1), placed on counter")); }
-            else if (e.ServiceId == "permit2") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_2_ID); Notify(LangHelper.T("已获得 蛙哥的许可（二级），已上柜台", "Got Wage's Permit (Tier 2), placed on counter")); }
-            else if (e.ServiceId == "permit3") { GrantServiceItem(WageBrokerPermitHelper.PERMIT_3_ID); Notify(LangHelper.T("已获得 蛙哥的许可（三级），已上柜台", "Got Wage's Permit (Tier 3), placed on counter")); }
-            else if (e.ServiceId == "charger1") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_1_ID); Notify(LangHelper.T("已获得 蛙哥充电器（一级），已上柜台", "Got Wage's Charger (Tier 1), placed on counter")); }
-            else if (e.ServiceId == "charger2") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_2_ID); Notify(LangHelper.T("已获得 蛙哥充电器（二级），已上柜台", "Got Wage's Charger (Tier 2), placed on counter")); }
-            else if (e.ServiceId == "charger3") { GrantServiceItem(WageBrokerChargerHelper.CHARGER_3_ID); Notify(LangHelper.T("已获得 蛙哥充电器（三级），已上柜台", "Got Wage's Charger (Tier 3), placed on counter")); }
-            else Notify(LangHelper.T("服务已解锁", "Service unlocked"));
-            Core.LogMsg("[B2R] 服务解锁: " + e.Id);
+            // 10-18 玩家拍板：养蛊机可重复购买（每台 30000，多台独立炼蛊）——照 protector 模式：每次购买发一台，
+            //   不写锁（B2ServiceStore.GetLevel 恒 0 → ServiceCost 恒收费、redeliver 判定恒 false），FindGuMachines
+            //   按实例逐台 tick（DayLoop.cs:28-59 seen 去重），多台天然支持。
+            if (e.ServiceId == "gu_machine")
+            {
+                if (!ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
+                if (!GrantServiceItem(e.Id, GuMachineSystem.GU_MACHINE_ID))
+                {
+                    Notify(LangHelper.T("上柜台失败，稍后自动补发（无需再付款）", "Counter placement failed; will auto-redeliver (no extra charge)"));
+                    return;
+                }
+                Notify(LangHelper.T("已获得 蛙哥养蛊机（可重复购买，多台独立炼蛊）", "Got Wage's Swarm Forge (repeatable, each forge works independently)"));
+                Core.LogMsg("[B2R] 养蛊机发放: " + e.Id);
+                return;
+            }
+            // 10-18 §5 B/D：先发后锁 + 存量补发。
+            //   补发态 = 已解锁（GetLevel>=1）但未到货（delivered_<id>==0）→ 走发放分支且不扣费（GetCost 对该 id 返回 0）；
+            //   正常购买态 = 未解锁 → 先发放成功（GrantServiceItem 返回 true）再写锁 SetLevel；失败不写锁（可重试/补发）。
+            bool redeliver = B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id);
+            if (!redeliver && B2ServiceStore.GetLevel(e.Id) >= 1) { Notify(LangHelper.T("该服务已解锁", "Service already unlocked")); return; }
+            // P2-11（审阅 20261018）：补发态跳过解锁门槛——已扣费未到货的老档，好感/等级回落后补发入口仍可用（唯一恢复入口）
+            if (!redeliver && !ServiceUnlockable()) { Notify(ServiceRequirementText()); return; }
+            if (e.ServiceId == "ai_generator") { if (GrantServiceItem(e.Id, GuMachineSystem.AI_GENERATOR_ID)) MarkServiceDelivered(e); else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "permit1") { if (GrantServiceItem(e.Id, WageBrokerPermitHelper.PERMIT_1_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥的许可（一级），已放入后库", "Got Wage's Permit (Tier 1), placed in back storage")); } else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "permit2") { if (GrantServiceItem(e.Id, WageBrokerPermitHelper.PERMIT_2_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥的许可（二级），已放入后库", "Got Wage's Permit (Tier 2), placed in back storage")); } else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "permit3") { if (GrantServiceItem(e.Id, WageBrokerPermitHelper.PERMIT_3_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥的许可（三级），已放入后库", "Got Wage's Permit (Tier 3), placed in back storage")); } else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "charger1") { if (GrantServiceItem(e.Id, WageBrokerChargerHelper.CHARGER_1_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥充电器（一级），已放入后库", "Got Wage's Charger (Tier 1), placed in back storage")); } else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "charger2") { if (GrantServiceItem(e.Id, WageBrokerChargerHelper.CHARGER_2_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥充电器（二级），已放入后库", "Got Wage's Charger (Tier 2), placed in back storage")); } else NotifyServiceFail(); return; }
+            else if (e.ServiceId == "charger3") { if (GrantServiceItem(e.Id, WageBrokerChargerHelper.CHARGER_3_ID, true)) { MarkServiceDelivered(e); Notify(LangHelper.T("已获得 蛙哥充电器（三级），已放入后库", "Got Wage's Charger (Tier 3), placed in back storage")); } else NotifyServiceFail(); return; }
+            // 10-18 门路：无实体物品，直接写等级（B2ServiceStore.owned_蛙娘门路）；已购判定用 WageGirlConn.Level()
+            else if (e.ServiceId == "conn1") { if (WageGirlConn.Level() >= 1) { Notify(LangHelper.T("门路已开通", "Connections already unlocked")); return; } B2ServiceStore.SetLevel(WageGirlConn.PerkId, 1); B2ServiceStore.SetDelivered(e.Id); Notify(LangHelper.T("蛙娘门路 Lv1 已开通：假货按原价收", "Wage Girl Connections Lv1 unlocked: fakes at full price")); Core.LogMsg("[B2R] 门路 Lv1 开通"); return; }
+            else if (e.ServiceId == "conn2") { if (WageGirlConn.Level() >= 2) { Notify(LangHelper.T("门路已开通", "Connections already unlocked")); return; } B2ServiceStore.SetLevel(WageGirlConn.PerkId, 2); B2ServiceStore.SetDelivered(e.Id); Notify(LangHelper.T("蛙娘门路 Lv2 已开通：违禁品也按原价收", "Wage Girl Connections Lv2 unlocked: contraband at full price")); Core.LogMsg("[B2R] 门路 Lv2 开通"); return; }
+            else if (e.ServiceId == "conn3") { if (WageGirlConn.Level() >= 3) { Notify(LangHelper.T("门路已开通", "Connections already unlocked")); return; } B2ServiceStore.SetLevel(WageGirlConn.PerkId, 3); B2ServiceStore.SetDelivered(e.Id); Notify(LangHelper.T("蛙娘门路 Lv3 已开通：直售免罪", "Wage Girl Connections Lv3 unlocked: direct sales leave no evidence")); Core.LogMsg("[B2R] 门路 Lv3 开通"); return; }
+            else { Notify(LangHelper.T("服务已解锁", "Service unlocked")); return; }
         }
         catch (Exception ex) { Core.LogMsg("[B2R] OnUnlockService 异常: " + ex.Message); }
     }
+
+    // 10-18 §5 B/D：发放成功后写锁（补发态已锁则不再写）+ delivered 标记
+    private static void MarkServiceDelivered(WildEntry e)
+    {
+        if (B2ServiceStore.GetLevel(e.Id) < 1) B2ServiceStore.SetLevel(e.Id, 1); // 先发后锁：仅正常购买态写锁
+        B2ServiceStore.SetDelivered(e.Id); // 到货标记（老档补发后置 1，按钮恢复已解锁态）
+        Core.LogMsg("[B2R] 服务解锁: " + e.Id);
+    }
+
+    // 10-18 §5 B：发放失败提示（先发后锁：不写锁 → 按钮保留可点，物品已入重试队列自动补发）
+    private static void NotifyServiceFail()
+        => Notify(LangHelper.T("上柜台失败，稍后自动补发（无需再付款）", "Counter placement failed; will auto-redeliver (no extra charge)"));
 
     // 10-17 重回第一天（wanderer_day1）：买完立刻生效、一次性（拆包AI Q4 全清落地清单，Memos nChyYHKex6U2sejaf2ScLs）
     //   字段全 public 直接可写：dayCounter=0 拨回第1天；gridInv.ExpelAll 清柜台（第三方货自动隔离）；
@@ -578,6 +796,18 @@ internal static class B2WildPanel
             var e = FindEntry(__instance.id);
             if (e == null) return;
             if (e.IsCannibal) return; // 吞噬季已购态由 Description 表达（按钮保持可点 = 切换模式）
+            if (e.IsService)
+            {
+                // 10-18 童瑶反馈根修（审阅 §4 改动3）：服务条目 PerkId==null 原先裸退 → 原版拼 "network_"+id+"_already_bought_in"
+                //   无本地化条目 → 卡片底部裸键名（NETWORK_B2_SVC_..._ALREADY_BOUGHT_IN 截图）。补服务分支文案：
+                //   补发态/可重复/已解锁，一次性未购 return（原版无已购文案=空）。
+                bool redeliver = B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id);
+                if (redeliver) { __result = LangHelper.T("补发中 · 点击领取", "Redelivering · click to claim"); return; }
+                if (e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine")
+                { __result = LangHelper.T("可重复购买", "Repeatable"); return; }
+                if (B2ServiceStore.GetLevel(e.Id) >= 1) { __result = LangHelper.T("已解锁", "Unlocked"); return; }
+                return;
+            }
             var perk = FindPerk(e.PerkId);
             if (perk == null) return;
             if (perk.Cost < 0)
@@ -608,6 +838,18 @@ internal static class B2WildPanel
             var e = FindEntry(__instance.id);
             if (e == null) return;
             if (e.IsCannibal) { __result = false; return; } // 吞噬季永远可点（购买/切换模式）
+            if (e.IsService)
+            {
+                // 10-18 童瑶反馈根修（审阅《审阅_童瑶反馈_服务重复购买锁定》§4 改动1）：原版 Unlock() 无条件 state=2
+                //   （NetworkUpgrade.txt:3617）、IsUnlocked()=state==2（:3592）、UI 门控 interactable=IsReady()&&!IsUnlocked()
+                //   （WildUIManager.txt:203-249）——本方法原先无 IsService 分支 → 服务买一次后 state 恒 2 → 按钮永久锁死
+                //   （玩家"保护器·随机出现率"买一次后买不了）。补发态必须可点（已扣费未到货的恢复入口）。
+                bool redeliver = B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id);
+                if (redeliver) { __result = false; return; }
+                bool repeatable = e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine"; // 10-18 玩家拍板：养蛊机可重复
+                if (repeatable) { __result = false; return; } // 可重复：覆盖原版 state==2，恒可点
+                return;                                       // 一次性：保持原版语义（未购不锁、已购锁=想要）
+            }
             var perk = FindPerk(e.PerkId);
             if (perk == null) return;
             if (perk.Cost < 0) { __result = B2ServiceStore.IsEliminated(e.PerkId) || B2ServiceStore.IsPurified(e.PerkId); return; }
@@ -632,9 +874,13 @@ internal static class B2WildPanel
             //   条件不足时钱已扣。PrefixIsReady=购买按钮可点判定（购买前），此处直接按 ServiceUnlockable 给结果。
             if (e.IsService)
             {
+                // 10-18 §5 D：存量补发——已解锁但未到货（delivered_<id>==0）→ 可点补发（GetCost 对该 id 返回 0，不扣费）
+                // P2-11（审阅 20261018）：补发态跳过解锁门槛判定（在 ServiceUnlockable 之前）——已扣费未到货的老档入口不失效
+                bool redeliver = B2ServiceStore.GetLevel(e.Id) >= 1 && !B2ServiceStore.IsDelivered(e.Id);
+                if (redeliver) { __result = true; return false; }
                 if (!ServiceUnlockable()) { __result = false; return false; } // 条件不足→按钮灰（提示看描述）
-                // 一次性服务：已解锁（SetLevel>=1）→ 不可再买（IsUnlocked 锁）；可重复（保护器/概率）→ 可点
-                __result = e.ServiceId == "protector" || e.ServiceId == "protector_chance" || B2ServiceStore.GetLevel(e.Id) < 1;
+                // 一次性服务：已解锁+已到货（IsUnlocked 锁）；可重复（保护器/概率/养蛊机）→ 可点
+                __result = e.ServiceId == "protector" || e.ServiceId == "protector_chance" || e.ServiceId == "gu_machine" || B2ServiceStore.GetLevel(e.Id) < 1;
                 return false;
             }
             var perk = FindPerk(e.PerkId);
@@ -896,7 +1142,7 @@ internal static class B2WildPanel
     // ================= ④ 动态克隆元素（网络面板静态 31 槽，注入不自动渲染） =================
     // FIX3（2026-10-14）：networkElements List 实测为空（拆包 C5 .ctor new 空 List 实锤，prefab 拖拽仅是推断）
     //   → 原版 31 条 = panel 子树下的 prefab 静态元素，不在 List 里；分流/克隆必须 GetComponentsInChildren 扫子树
-    //   → OpenUI 调用时元素可能尚未就绪，延迟 0.5s 再执行（等 prefab 反序列化/填充完成）
+    //   → OpenUI 返回时元素子树未填充，延迟 0.5s 再执行（等 prefab 反序列化/填充完成）
     public static void PostfixOpenUI(WildUIManager __instance)
     {
         try { MelonCoroutines.Start(ApplyWageModeDelayed(__instance)); }
@@ -905,7 +1151,7 @@ internal static class B2WildPanel
 
     private static System.Collections.IEnumerator ApplyWageModeDelayed(WildUIManager ui)
     {
-        yield return new WaitForSeconds(0.5f); // 等 panel 子树元素就绪（OpenUI 调用时 List/子树可能仍空）
+        yield return new WaitForSeconds(0.5f); // 等 panel 子树元素就绪（OpenUI 返回时 List/子树为空）
         try
         {
             EnsureElements(ui);
@@ -1091,7 +1337,7 @@ internal static class B2WildPanel
             if (ui == null || ui.panel == null) return;
             var all = ui.panel.gameObject.GetComponentsInChildren<NetworkElement>(true);
             if (all == null || all.Length == 0) return;
-            // FIX38（2026-10-17 FIX37 实测残留）：all[0] 可能是原版卡（GetComponentsInChildren 层级顺序）→ 误扩展原版容器
+            // FIX38（2026-10-17 FIX37 实测残留）：all[0] 为原版卡时（GetComponentsInChildren 层级顺序）→ 误扩展原版容器
             //   （日志实锤 Panel1 (1)/(2) anchored=192 残留=被 FIX8 误动）。只扩展明确的 b2 卡父容器（id 以 PREFIX 开头）。
             Transform parent = null;
             NetworkElement b2el = null;
@@ -1137,7 +1383,7 @@ internal static class B2WildPanel
                     _containerGeoAnchor = pRect2.anchoredPosition;
                 }
                 // FIX37（2026-10-17 Q5 拆包实锤终局）：原版零几何写（WildUIManager 全文件 anchoredPosition/sizeDelta 0 命中）——
-                //   漂移链=FIX20 读当前值当基准（可能已漂移）→FIX11 还原到漂移位置。根治：扩展 anchored 永远写固定常量
+                //   漂移链=FIX20 读当前值当基准（读到的是已漂移值）→FIX11 还原到漂移位置。根治：扩展 anchored 永远写固定常量
                 //   (1000, 367-Δ/2)（王尔德实测 x=1000/y=367 系=原版 prefab 静态值），绝不读回当前值当基准。
                 pRect2.sizeDelta = new Vector2(sd.x, needH);
                 // FIX10：pivot=(0.5,0.5) 时 sizeDelta 扩高会让容器中心不动→顶部上顶 Δ/2，超出面板上框架
@@ -1432,7 +1678,7 @@ internal static class B2WildPanel
             }
             catch (Exception ex) { Core.LogMsg("[B2R] FIX25 定位异常: " + ex.Message); }
             // FIX26 诊断（2026-10-17 实测第二轮追查）：FIX25 显示首卡 worldPos=(712,864) local=(-560,165)（网格设 -10，+175 疑点）
-            //   → 补 Canvas 类型/缩放 + 卡片锚点 + 原版卡片对照，并登记 0.5s 延迟复核（每帧 UpdateElement 可能移动卡片）
+            //   → 补 Canvas 类型/缩放 + 卡片锚点 + 原版卡片对照，并登记 0.5s 延迟复核（UpdateElement 每帧重写卡片位置）
             try
             {
                 var firstB2 = (NetworkElement)null;
@@ -1542,7 +1788,7 @@ internal static class B2WildPanel
         {
             // FIX22（2026-10-17 P0 实测）：王尔德打开强制回正容器几何（锚点拉回固定常量）。
             //   FIX37（Q5 实锤终局）：原版零几何写（WildUIManager 全文件 0 命中）——容器 prefab 静态，王尔德各分类 y 不同
-            //   （367/-231/-388=各分类布局），**不可**把 all0[0].parent 一律拉 367（all0[0] 每次可能是不同分类容器=误伤）。
+            //   （367/-231/-388=各分类布局），**不可**把 all0[0].parent 一律拉 367（all0[0] 随分类切换指向不同容器=误伤）。
             //   只清 FIX8 扩展态残留（y≈192=367-Δ/2 特征值）→ 367；其余容器保持 prefab 静态。
             _wageGeoGuardStart = -1f; _wageGeoGuardRect = null; // FIX32：蛙哥→王尔德切换立即终止守护（防与还原打架）
             RestoreContainerGeometry(); // FIX11 幂等还原（固定常量 (1000,367)/180）
@@ -1735,7 +1981,7 @@ internal static class B2WildPanel
     //   蛙哥模式：隐藏不含 b2 卡片的容器（空横条）；王尔德模式：恢复原 active（防污染）。
     private static readonly System.Collections.Generic.HashSet<UnityEngine.Transform> _b2Containers = new System.Collections.Generic.HashSet<UnityEngine.Transform>();
     private static readonly System.Collections.Generic.Dictionary<UnityEngine.Transform, bool> _emptyContainerOrig = new System.Collections.Generic.Dictionary<UnityEngine.Transform, bool>();
-    // FIX11：容器级隐藏默认关闭（FIX9 隐藏 6 容器→布局剧变疑似触发"进蛙哥服务自动关闭"+王尔德面板被污染）。
+    // FIX11：容器级隐藏默认关闭（FIX9 隐藏 6 容器后出现"进蛙哥服务自动关闭"+王尔德面板被污染）。
     //   玩家要的"只保留一个放置位置"下一轮改用安全方式（定位分类标签横条 Image，不碰容器）。置 true 需先实测稳定。
     private const bool _b2HideContainers = false;
     // FIX31：恢复蛙哥模式隐藏的挡路兄弟容器（王尔德打开/面板关闭时调用——王尔德需要各分类容器显示原版卡）
@@ -1942,7 +2188,7 @@ internal static class B2WildPanel
             if (_geoContainer != null && _geoContainer.gameObject != null && _containerGeoRecorded)
             {
                 // FIX37（Q5 实锤终局）：还原永远写固定常量（王尔德 prefab 静态 1250×180、anchored=(1000,367)），
-                //   绝不读 _containerGeoOrig/_geoAnchorPersist（可能已漂移的记录值——漂移链根因）。
+                //   绝不读 _containerGeoOrig/_geoAnchorPersist（漂移后写回的是漂移值——漂移链根因）。
                 _geoContainer.sizeDelta = new UnityEngine.Vector2(1250f, 180f);
                 _geoContainer.anchoredPosition = new UnityEngine.Vector2(1000f, 367f);
                 Core.LogMsg("[B2R] FIX11 容器几何还原: sizeDelta=(1250,180) anchored=(1000,367)（FIX37 固定常量，不读漂移记录值）");
@@ -1990,7 +2236,7 @@ internal static class B2WildPanel
                 if (rr != null && rr.gameObject != null)
                 {
                     Vector2 curAnchor = rr.anchoredPosition;
-                    // FIX37（Q5 实锤终局）：复核基准=固定常量 (1000,367)/180（原版 prefab 静态值），不读 _geoAnchorPersist（可能漂移）
+                    // FIX37（Q5 实锤终局）：复核基准=固定常量 (1000,367)/180（原版 prefab 静态值），不读 _geoAnchorPersist（漂移后写回的是漂移值）
                     if (Math.Abs(curAnchor.y - 367f) > 0.5f || Math.Abs(curAnchor.x - 1000f) > 0.5f || Math.Abs(rr.sizeDelta.y - 180f) > 0.5f)
                     {
                         rr.anchoredPosition = new Vector2(1000f, 367f);

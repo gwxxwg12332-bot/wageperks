@@ -228,49 +228,24 @@ namespace WagePerks
         // ===== 吸收物品（吃掉） =====
 
                 // ===== 假货/贴标水价值（拆包 09-10 [L1]：水也有独立 feature 系统 WaterFeatureHelper；CheckSoldDirtyWater = 贴标判定）=====
+        // 2026-10-18 §3：判定与修正口径收敛至 ItemAuthenticity（消除双份口径），本方法转发
         private static bool IsFakeOrTampered(GameItem item)
         {
-            try
-            {
-                if (item == null) return false;
-                if (item.IsAlreadyContainFeatureWithId("realCounterfeit")) return true;  // 香烟假货
-                if (item.IsAlreadyContainFeatureWithId("fakeGenuine")) return true;      // 邮票假/高仿烟
-                var inj = item.FindItemFeatureByCategory("CATEGORY_GENUINE_INJECTOR");
-                if (inj != null
-                    && inj.GetBaseFakeDisplay() != inj.GetBaseRealDisplay()) return true; // 注射器非真品
-                if (item.IsTag("ISSUE_LABEL")) return true;                              // 通用问题标记
-                if (IsMislabeledWater(item)) return true;                                // 贴标水
-                return false;
-            }
-            catch { return false; }
-        }
-
-        // 贴标水判定：水 feature 假显示 ≠ 真显示（照抄原生 CheckSoldDirtyWater 对比）
-        private static bool IsMislabeledWater(GameItem item)
-        {
-            try
-            {
-                if (!item.IsTag("LIQUID_CONTAINER_TAG")) return false;
-                var wf = Il2Cpp.WaterFeatureHelper.GetWaterFeature(item);
-                if (wf == null) return false;
-                return wf.GetBaseFakeDisplay() != wf.GetBaseRealDisplay();
-            }
-            catch { return false; }
+            try { return ItemAuthenticity.IsFake(item); } catch { return false; }
         }
 
         // 假货价值：正品价 × 假货修正；无修正可读按一折（贴标水走这里 = 一折）
+        // 2026-10-18 §3：修正口径收敛至 ItemAuthenticity.FakeModifier（消除双份口径）
         private static int GetFakeItemValue(GameItem item)
         {
             try
             {
                 int real = (int)item.GetCurrentValue();
                 if (real <= 0) real = 1;
-                var f = item.FindItemFeatureByID("realCounterfeit")
-                     ?? item.FindItemFeatureByID("fakeGenuine")
-                     ?? item.FindItemFeatureByCategory("CATEGORY_GENUINE_INJECTOR");
-                if (f != null)
+                int mod = ItemAuthenticity.FakeModifier(item);
+                if (mod > -90)
                 {
-                    int v = real * (100 + f.GetFakeValueModifier()) / 100;
+                    int v = real * (100 + mod) / 100;
                     if (v > 0) return v;
                 }
                 return real / 10;   // 兜底一折（贴标水/无修正假货）
@@ -507,7 +482,7 @@ namespace WagePerks
     // 10-05 修复（玩家反馈"一直涨"实锤）：
     // ① 挂点从 OnDayStart 挪到 EndDay（打烊即回落，不再等新一天开始；见 PatchRegistryTable EndDay 条目）
     // ② 幅度从 -400/天 改为直接归 400——旧实现每天只回一档，玩家当天掷 2 次(+800)只回-400 → 净涨400/天
-    // ③ 遍历用原版 EmporiumEntry.GetAllItems()（全店递归含容器内部），骰子放哪都能回落
+    // ③ 遍历用 CollectAllItems（10-18 审阅 P1 修正：原注释称 GetAllItems"全店递归含容器内部"为假——只扫当铺顶层，骰子进容器阈值不回落；改用全店递归）
     public static void RecedeDiceThreshold()
     {
         try
@@ -515,7 +490,7 @@ namespace WagePerks
             var emporium = EmporiumEntry.Instance;
             if (emporium == null) { Core.LogMsg("[命运骰子] 回落: emporium null"); return; }
             int found = 0, reset = 0;
-            foreach (var it in emporium.GetAllItems())
+            foreach (var it in WageBrother.CollectAllItems())
             {
                 if (it == null || !IsDice(it)) continue;
                 found++;

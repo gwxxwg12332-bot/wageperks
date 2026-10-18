@@ -70,7 +70,7 @@ internal sealed class DarkGridInspectorPerk : CustomStartingPerk
 
             // 2. 容器/带舱机器内部违禁品（09-22 用户拍板"都翻"：暗格 smugger_bay + 蛙哥箱 CUSTOM_STORAGE_TAG +
             //    通用容器 CONTAINER_TAG + 带舱机器（养蛊机/AI生成器）——凡有内部库存一律翻，不限 smugger_bay）
-            foreach (GameItem shopItem in EmporiumEntry.Instance.GetAllItems())
+            foreach (GameItem shopItem in WageBrother.CollectAllItems()) // 10-18 审阅 P2：原 GetAllItems 只扫顶层——嵌套容器内暗格漏翻；改用全店递归
             {
                 if (shopItem == null) continue;
                 GameInventory inner = AddictOfficerEvent.GetInnerInventory(shopItem);

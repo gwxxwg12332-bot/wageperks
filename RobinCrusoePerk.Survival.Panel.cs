@@ -29,7 +29,14 @@ internal static partial class RobinCrusoePerk
     {
         try
         {
-            if (!_autoPopup && !force) return;  // 09-22 用户拍板：自动弹关闭时不打开（Z键强制打开除外）
+            // 10-18 主菜单 guard（对齐 Core.cs:135 模式）：PlayerStore 未就绪（主菜单/加载中）不弹窗——
+            //   玩家截图实锤：回主菜单后刷新挂点仍触发 → 面板叠在主菜单 + 数值读静态 _mem = 跨档残留外观
+            try { if (Il2Cpp.PlayerStore.Instance == null) return; } catch { return; }
+            // 10-18 审阅 §3.4 改动9：门控加 open 条件——面板已开时即使自动弹关闭也必须刷新
+            //   （原 `!force` 直接 return：WS 转发 force=false + 玩家关了自动弹 → 面板开着也吞刷新，血值不动）
+            var mgr0 = Il2Cpp.CustomUIManager.Instance;
+            bool open = mgr0 != null && mgr0.IsOpen("rc_status");
+            if (!open && !_autoPopup && !force) return;  // 09-22 用户拍板：自动弹关闭时不打开（Z键强制打开除外）
             var mgr = Il2Cpp.CustomUIManager.Instance;
             if (mgr == null) return;
             if (mgr.IsOpen("rc_status")) mgr.CloseWindow("rc_status");
