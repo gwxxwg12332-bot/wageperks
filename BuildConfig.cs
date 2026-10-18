@@ -6,6 +6,9 @@ namespace WagePerks;
 
 public static class BuildConfig
 {
+	// 10-19 WP 配置菜单：MelonPreferences 分类静态字段（原为 InitPrefs 局部变量；菜单改值后 SaveToFile 需引用）
+	internal static MelonPreferences_Category Cat;
+
 	private static bool? _hardMode = null;
 
 	// 09-23 改属性：每次访问从 CFG 读，改 CFG 不用重启
@@ -421,8 +424,10 @@ public static class BuildConfig
 	{
 		try
 		{
-			MelonPreferences_Category melonPreferences_Category = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
+			Cat = MelonPreferences.CreateCategory("WagesPerks", "Wage's Perks");
+			MelonPreferences_Category melonPreferences_Category = Cat; // 沿用局部别名（最小 diff）
 					melonPreferences_Category.CreateEntry("HardMode", default_value: false, "硬爽模式：稀有率上限50% / 拾荒+10 / 神经模组进均匀池 / 博士夜卖受限模组 / 开局精选好货");
+// 10-19 WP配置菜单：S5 死配置——开局宽减半逻辑已整段移除，改它无效
 		melonPreferences_Category.CreateEntry("ContainerHalfEnabled", default_value: true, "容器/机器开局减半（关=不减半）");
 melonPreferences_Category.CreateEntry("CrusoeEffHalfEnabled", default_value: true, "鲁滨逊机器效率减半开关（关=效率不减半）");
 melonPreferences_Category.CreateEntry("CrusoeEffHalfRatio", default_value: 0.5f, "鲁滨逊机器效率减半比例（0.5=减半；1=不减；0.8=八成）");
@@ -430,15 +435,20 @@ melonPreferences_Category.CreateEntry("WageGirlAutoMove", default_value: false, 
 melonPreferences_Category.CreateEntry("CompatTradeClamp", default_value: true, "兼容：交易价格兜底（负价→0）");
 melonPreferences_Category.CreateEntry("CompatBudgetRestore", default_value: true, "兼容：客户预算兜底恢复");
 melonPreferences_Category.CreateEntry("CompatWineNameProtect", default_value: true, "兼容：酒瓶自定义名保留");
+// 10-19 WP配置菜单：S5 死配置——电话簿本地化补丁从未实现（同类兼容开关均有 if(!CompatXxx) 守卫，唯独此项没有）
 melonPreferences_Category.CreateEntry("CompatPhoneLocalization", default_value: true, "兼容：电话簿本地化");
+// 10-19 WP配置菜单：S5→已接线（MadnessPerk.cs:19 MaxSlot => 3 + MadnessExtraSlots，PerkGrowthHelper +1/+1 叠加口径已核对）
 		melonPreferences_Category.CreateEntry("MadnessExtraSlots", default_value: 3, "精神错乱额外槽位数");
 	melonPreferences_Category.CreateEntry("MadnessExcludedPerks", default_value: "", "精神错乱排除特性ID(逗号分隔)。mod特性写中文id(如:声名狼藉)；原版特性写英文id(如:degenerative_osteoarthritis)");
 	melonPreferences_Category.CreateEntry("StartMaxBottlePrinter", default_value: false, "开局自带满级水瓶打印机(水商之友/鲁滨逊,6000ml+纯水)");
 melonPreferences_Category.CreateEntry("PerkGrowthTotalDays", default_value: 0, "特性成长：全局累计天数（自动）");
 melonPreferences_Category.CreateEntry("PerkGrowthApplied", default_value: 0, "特性成长：已应用到第几个50天（自动）");
+// 10-19 WP配置菜单：S5 死配置——纯遗留（PerkGrowthHelper 只用 TotalDays/Applied，LastDay 从未参与）
 melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "特性成长：上次记录天数（自动）");
 		melonPreferences_Category.CreateEntry("ContainerUpgradeEnabled", default_value: true, "容器/机器升级（关=不升级）");
+// 10-19 WP配置菜单：S3 已移交 WS（消费在未注册 RobinCrusoePerk.PostfixOnNewDay，注册表 :40 是 Patches.PostfixOnNewDay）
 			melonPreferences_Category.CreateEntry("CleanDailyLoss", 2, "清洁每日衰减量");
+// 10-19 WP配置菜单：S3 已移交 WS（Scavenge.cs PostfixScavengeDumpingGrounds 未注册；WS SurvivalScavenge.cs:15 固定常量 2，未接配置）
 			melonPreferences_Category.CreateEntry("CleanScavCost", 2, "拾荒清洁消耗");
 			melonPreferences_Category.CreateEntry("CleanToothpaste", 15, "牙膏恢复清洁");
 			melonPreferences_Category.CreateEntry("CleanToiletPaper", 30, "厕纸恢复清洁");
@@ -447,26 +457,42 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageBathSleepBonus", 10, "口渴满优质水洗澡额外睡眠");
 			melonPreferences_Category.CreateEntry("WageGirlFenceCardAffThreshold", 50, "蛙娘销赃带钥匙卡的好感门槛（低于不送卡）");
 			melonPreferences_Category.CreateEntry("CleanPaperTowel", 45, "纸巾恢复清洁");
+// 10-19 WP配置菜单：S5 死配置——已移交 WS（生存结算整段在 WS 侧固定值）
 			melonPreferences_Category.CreateEntry("BeverageSatiety", 10, "饮品饱食恢复");
+// 10-19 WP配置菜单：S5 死配置——已移交 WS（生存结算整段在 WS 侧固定值）
 			melonPreferences_Category.CreateEntry("BeverageThirst", 15, "饮品口渴恢复");
+// 10-19 WP配置菜单：S5 死配置——已移交 WS（生存结算整段在 WS 侧固定值）
 			melonPreferences_Category.CreateEntry("SnackMood", 10, "零食心情恢复");
+// 10-19 WP配置菜单：S5 死配置——已移交 WS（生存结算整段在 WS 侧固定值）
 			melonPreferences_Category.CreateEntry("AlcoholMood", 15, "酒类心情恢复");
+// 10-19 WP配置菜单：S5 死配置——已移交 WS（生存结算整段在 WS 侧固定值）
 			melonPreferences_Category.CreateEntry("NarcoticMood", 20, "麻醉品心情恢复");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("DailySatLoss", 20, "饱食每日衰减");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("DailyThirstLoss", 25, "口渴每日衰减");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("DailyHealthGain", 10, "健康每日恢复");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("DailySleepGain", 30, "打烊睡眠恢复");
+// 10-19 WP配置菜单：S3 已移交 WS（Scavenge.cs PostfixScavengeDumpingGrounds 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("SleepScavLoss", 7, "拾荒睡眠消耗");
+// 10-19 WP配置菜单：S4 常量空转——DAILY_SOCIAL_GAIN 零引用（连僵尸代码都没有，只是声明）
 			melonPreferences_Category.CreateEntry("DailySocialGain", 5, "社交每日+（接待）");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("DailySocialLoss", 5, "社交每日-（独处）");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("MoodUp", 5, "三项全好每日心情+");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("MoodDown", 10, "任一项低每日心情-");
 			melonPreferences_Category.CreateEntry("MoodStart", 60, "心情初始值");
+// 10-19 WP配置菜单：S3 已移交 WS（PrefixAutoSipFromContainer 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("SipMl", 200, "一口喝水量(ml)");
 			melonPreferences_Category.CreateEntry("CleanStart", 100, "清洁初始值");
 			melonPreferences_Category.CreateEntry("SleepStart", 100, "睡眠初始值");
 			melonPreferences_Category.CreateEntry("SocialStart", 50, "社交初始值");
 			melonPreferences_Category.CreateEntry("GranaryDays", 7, "粮仓连续天数门槛");
+// 10-19 WP配置菜单：S3 已移交 WS（PostfixOnNewDay 未注册，WP 侧无挂点）
 			melonPreferences_Category.CreateEntry("ElevEvery", 2, "昂扬结算间隔(天)");
 			melonPreferences_Category.CreateEntry("ElevMax", 5, "昂扬累计封顶");
 			melonPreferences_Category.CreateEntry("ButcherVisitDay", 13, "胡安首次到店天(0-based)");
@@ -488,6 +514,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageBrotherOrderPrice", 800, "点货签售价");
 			melonPreferences_Category.CreateEntry("WageGirlSellRulesText", "", "蛙娘代售规则文本（高级：分号分隔；P:=免售 A:=可售，如 P:tag:MODULE_TAG;A:val:0-50）");
 			melonPreferences_Category.CreateEntry("WageGirlSellMode", 0, "蛙娘代售模式（0=黑名单·默认 1=白名单）");
+// 10-19 WP配置菜单：S5 死配置——已废弃：寄卖改为手动挑选，本项不再生效
 			melonPreferences_Category.CreateEntry("WageGirlSellPickOrder", 0, "已废弃：寄卖改为手动挑选，本项不再生效");
 			melonPreferences_Category.CreateEntry("WageGirlSellDailyQuota", 10, "蛙娘每日寄卖件数上限（10-18：手动寄卖连拖，默认10）");
 			melonPreferences_Category.CreateEntry("WageGirlConnEnabled", true, "蛙娘门路总开关（10-18：假货原价/违禁品免罪，关=降级纯寄卖）");
@@ -524,6 +551,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WaterVisitInterval", 7, "水商来访间隔(天)");
 			melonPreferences_Category.CreateEntry("ContainerMaxStage", 5, "蛙哥箱段位上限");
 			// ===== 蛙娘系统（09-23 全部数值可配置） =====
+// 10-19 WP配置菜单：S5 决策型死配置——已废弃：P0 低好感档固定 ×1.0（WageGirlSystem.Budget.cs:92 字面量 1f），禁止接线（接线=回归让低好感重新奖励 ×1.5）
 			melonPreferences_Category.CreateEntry("WageGirlBudgetMultLow", 1.5f, "蛙娘预算倍率·低好感(<30)");
 			melonPreferences_Category.CreateEntry("WageGirlBudgetMultMid", 2.5f, "蛙娘预算倍率·中好感(30-60)");
 			melonPreferences_Category.CreateEntry("WageGirlBudgetMultHigh", 4f, "蛙娘预算倍率·高好感(≥60)");
@@ -572,6 +600,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginBasePct", 10, "蛙娘销赃基准加成(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginLow", -10, "蛙娘销赃随机浮动下限(%)");
 			melonPreferences_Category.CreateEntry("WageGirlFenceMarginHigh", 30, "蛙娘销赃随机浮动上限(%)");
+// 10-19 WP配置菜单：S5 死配置——D+ 改公式 nBox=round(target/BoxValue)，本键兼容保留（WageGirlFenceBoxValue 是活替代品）
 			melonPreferences_Category.CreateEntry("WageGirlFenceBoxCount", "1,3", "销赃物资箱数量范围(min,max)（D+ 已改固定 nBox=round(target/300)，本键兼容保留）");
 			melonPreferences_Category.CreateEntry("WageGirlFenceBoxValue", 300, "销赃锁箱外在价值标价/箱（D+：nBox=round(target/该值) 最小1）");
 			melonPreferences_Category.CreateEntry("WageGirlFenceCardCount", "1,3", "销赃指挥卡张数范围(min,max)");
@@ -585,18 +614,23 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("CannibalInterval", 10, "吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("CannibalAbsorbPct", 10, "吞噬吸收(%)");
 			melonPreferences_Category.CreateEntry("CannibalCap", 150, "吞噬三维属性上限");
+// 10-19 WP配置菜单：S5 死配置——已被 B2 服务购买取代（B2ServiceStore.cannibal_owned）
 			melonPreferences_Category.CreateEntry("CannibalismSeasonEnabled", false, "吞噬季总开关(默认关)");
+// 10-19 WP配置菜单：S5 死配置——已被 B2ServiceStore.CannibalInterval（随档存储）替代，玩家应通过电话面板改
 			melonPreferences_Category.CreateEntry("BatteryInterval", 8, "电池吞噬季间隔(天)");
 			melonPreferences_Category.CreateEntry("InspectInterval", 15, "治安部眼线检查间隔(天)");
 			melonPreferences_Category.CreateEntry("GuMachinePrice", 3000, "养蛊机售价");
 			melonPreferences_Category.CreateEntry("AiGenPrice", 4000, "AI生成器售价");
+// 10-19 WP配置菜单：S5 死配置——GuMachineSystem 从未读取（AI 属性固定 ×1.2，上限参数无落地点）
 			melonPreferences_Category.CreateEntry("AiStableCap", 75, "阉割版属性上限");
+// 10-19 WP配置菜单：S5 死配置——GuMachineSystem 从未读取（AI 属性固定 ×1.2，上限参数无落地点）
 			melonPreferences_Category.CreateEntry("AiUnstableCap", 150, "不稳定版属性上限");
 			melonPreferences_Category.CreateEntry("ProtectorPrice", 1500, "保护器核心售价");
 			melonPreferences_Category.CreateEntry("DoctorBuybackPct", 80, "博士回收模组价(%)");
 			melonPreferences_Category.CreateEntry("DoctorSupplyPricePct", 60, "博士廉价模组售价(%)");
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMin", 3, "博士廉价模组数量下限");
 			melonPreferences_Category.CreateEntry("DoctorSupplyCountMax", 5, "博士廉价模组数量上限");
+// 10-19 WP配置菜单：S5 死配置——博士保护器补货走固定逻辑（Food.Supply.cs 只用 DoctorSupplyCountMin/Max/PricePct）
 			melonPreferences_Category.CreateEntry("ProtectorSupplyCount", 3, "博士保护器补货数量");
 			melonPreferences_Category.CreateEntry("StoryDayN1", 15, "剧情mod：节点N1触发天数");
 			melonPreferences_Category.CreateEntry("StoryDayN2", 22, "剧情mod：节点N2触发天数");
@@ -611,6 +645,7 @@ melonPreferences_Category.CreateEntry("PerkGrowthLastDay", default_value: 0, "�
 			melonPreferences_Category.CreateEntry("StoryRepCollapse", 40, "剧情mod：治安部垮台阈值（低于此值）");
 			// 09-23 容器表改属性，InitPrefs 不再一次性赋值
 			_hardMode = null;
+			WageConfigMeta.SelfCheck(); // 10-19 WP 配置菜单：启动自检 186 键元数据覆盖
 		}
 		catch (System.Exception ex2)
 		{

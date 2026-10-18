@@ -101,11 +101,12 @@ internal static partial class RobinCrusoePerk
                 // 10-11 所有权表 Step 3：储存区段位段已拆到 PostfixCreateItemTooltip_WPOnly（WP 专属，永不让路）
             }
             // 09-13 清洁系统 v1：日用品面板显示"双击恢复清洁"
+            // 10-19 WP配置菜单：S4b 处置——原显示 DAILY_NEED_CLEAN 配置值（+45 等），但真实结算在未注册的
+            //   PrefixAutoSipFromContainer（WS 承接）→ 数值不生效却显示=误导玩家。改写死「日用品」文案。
             else if (IsDailyNeed(item))
             {
-                if (DAILY_NEED_CLEAN.TryGetValue(itemId, out int _gain))
-                    builder.AddLine(LangHelper.T("双击使用：清洁 +" + _gain, "Double-click: Cleanliness +" + _gain),
-                        true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
+                builder.AddLine(LangHelper.T("双击使用：日用品（清洁恢复由 WageSurvival 结算）", "Double-click: daily goods (cleanliness by WageSurvival)"),
+                    true, (RenderHandler.ColorPalette)(-1), false, false, false, false, (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1), (RenderHandler.ColorPalette)(-1));
             }
             // 09-13 双击使用类效果面板显示：饮品/零食/酒/麻醉品
             else if (IsBeverage(item))

@@ -16,7 +16,7 @@ internal sealed class MadnessPerk : CustomStartingPerk
         "Give up thinking, let fate decide your perks. Auto-randomize all perks on game start. If not enough points, negative perks are guaranteed. Perks that add points/slots are prioritized.\n\nPerk Growth: requires Robinson Crusoe save; +1 point & +1 slot every 50 cumulative survived days (cash > 0 that day, global); Hard Mode +1/+1; negative > positive perks +1/+1.");
     internal override int Cost => -5;
     internal override int Type => 1;  // 负面红色
-    internal override int MaxSlot => 3;  // 09-30 自带+3特性槽
+    internal override int MaxSlot => 3 + BuildConfig.MadnessExtraSlots; // 09-30 自带+3特性槽；10-19 WP配置菜单：S5→接线（原写死 3，MadnessExtraSlots 死配置复活；PerkGrowthHelper +1/+1 叠加口径已核对）
 
     internal static bool IsActive()
     {
