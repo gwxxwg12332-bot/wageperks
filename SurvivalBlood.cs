@@ -95,7 +95,7 @@ internal static partial class SurvivalFood
         }
         catch { }
     }
-    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 读档清缓存
+    internal static void ClearMemBlood() { _memBlood = -1; } // 读档清缓存
     internal static int AddBlood(int delta)
     {
         try
