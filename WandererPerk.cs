@@ -135,29 +135,7 @@ internal sealed class WandererPerk : CustomStartingPerk
         return null;
     }
 
-    private static System.Collections.Generic.List<string> GetAllItemIds()
-    {
-        var ids = new System.Collections.Generic.List<string>();
-        try
-        {
-            var list = DirectoryMaster.GetIdentifierList<GameItem>(null);
-            if (list != null)
-            {
-                for (int i = 0; i < list.Count; i++)
-                {
-                    string id = list[i];
-                    if (string.IsNullOrEmpty(id)) continue;
-                    if (System.Array.IndexOf(TOOL_IDS, id) >= 0) continue;
-                    if (System.Array.IndexOf(HOUSEHOLD_IDS, id) >= 0) continue;
-                    if (IsDocumentId(id)) continue; // 09-20 M1：随机池排除文档/书/笔记/指南类
-                    if (System.Array.IndexOf(Core.ExcludedItemIds, id) >= 0) continue; // 09-22：全局黑名单（rare_electronic 等）不进任何我们的池子
-                    ids.Add(id);
-                }
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[NewTraits] 异常: " + ex.Message); }
-        return ids;
-    }
+        // 10-19 P3 C组清理：GetAllItemIds() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     private static string SafeId(GameItem it)
     {

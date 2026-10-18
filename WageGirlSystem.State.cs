@@ -111,6 +111,7 @@ private static bool WasFedToday() { try { return GetStat("lastFedDay", 0) == Cur
     return false;
 }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void SetExists(bool v) { try { SetStat(K_EXIST, v ? 1 : 0); } catch { } }
 
     // 10-16 M1 节点5 看店判定：实体在场 + 非外出 + 好感节点5（信赖 [100,200]）

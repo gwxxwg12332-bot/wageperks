@@ -158,16 +158,7 @@ public class Core : MelonMod
 		}
 	}
 
-	public static void DebugLog(string msg)
-	{
-		try
-		{
-			Core.DebugOutput?.Invoke(msg);
-		}
-		catch
-		{
-		}
-	}
+        // 10-19 P3 C组清理：DebugLog() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
 	public static void LogMsg(string msg)
 	{

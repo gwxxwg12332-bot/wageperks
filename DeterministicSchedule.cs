@@ -40,16 +40,7 @@ internal static class DeterministicSchedule
         return "no-run";
     }
 
-    /// <summary>获取runID的哈希值（用于确定性随机数种子）</summary>
-    internal static int GetRunHash()
-    {
-        string runKey = GetRunKey();
-        using (MD5 md5 = MD5.Create())
-        {
-            byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(runKey));
-            return BitConverter.ToInt32(hash, 0);
-        }
-    }
+        // 10-19 P3 C组清理：GetRunHash() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     /// <summary>获取每日状态key（runID + "|" + currentDay）</summary>
     internal static string GetDailyKey()
@@ -82,22 +73,12 @@ internal static class DeterministicSchedule
 
     /// <summary>
     /// 生成确定性随机整数（min ~ max-1）
-    /// </summary>
-    internal static int DeterministicRange(int min, int max, string salt)
-    {
-        if (max <= min) return min;
-        double r = DeterministicRandom(salt);
-        return min + (int)(r * (max - min));
-    }
+        // 10-19 P3 C组清理：DeterministicRange() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     /// <summary>
     /// 确定性概率判定
     /// </summary>
     /// <param name="probability">概率（0.0 ~ 1.0）</param>
     /// <param name="salt">随机数种子盐值</param>
-    /// <returns>是否命中</returns>
-    internal static bool DeterministicChance(double probability, string salt)
-    {
-        return DeterministicRandom(salt) < probability;
-    }
+        // 10-19 P3 C组清理：DeterministicChance() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 }

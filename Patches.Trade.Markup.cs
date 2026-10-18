@@ -88,6 +88,7 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#8 注释作废：交易域让位残留（WS 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static bool PrefixGameItemGetCurrentValue(GameItem __instance)
 	{
 		if (__instance == null || string.IsNullOrEmpty(__instance.identifier)) return false; // 09-26 空 identifier 不参与估价（防空字典键）
@@ -98,6 +99,7 @@ internal static partial class Patches
 		return true;
 	}
 
+// 10-19 P3 A组#9 注释作废：交易域让位残留（WS 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PostfixGameItemGetCurrentValue(GameItem __instance, ref long __result)
 	{
 		TryApplyTradeMarkup(__instance, ref __result);

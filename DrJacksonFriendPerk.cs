@@ -180,6 +180,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     }
 
     // 扩充博士的售卖库存
+// 10-19 P3 B组 休眠/封存（派活单§五：博士/神经链；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void ExpandJacksonInventory(StoreClient client)
     {
         try
@@ -219,6 +220,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     // ============================================================
     // 判断是否是博士客户（inventorStorage 或 displayName 匹配）
     // ============================================================
+// 10-19 P3 B组 休眠/封存（派活单§五：博士/神经链；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static bool IsJacksonClient(StoreClient client)
     {
         if (client == null) return false;
@@ -366,6 +368,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     // 通用方法：添加神经模组到博士库存（afterhourInventory）
     // 【博士库存目标不走 WageItemGrant 统一入口】（2026-10-06 第二批标注，防后人误换）——目标=博士夜晚售卖库存（afterhourInventory），非玩家后库；
     // 且本处用反射 UncheckedAccept（有 bool 返回，调用方已可确认），如需收敛需另建"发放到指定库存"入口，勿套用 GrantToPlayerBackInv
+    // 10-19 P3 B组 休眠/封存（派活单§五：博士/神经链；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void AddNeuralCoreToDoctorInv(EmporiumEntry instance)
     {
         try
@@ -414,6 +417,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     }
 
     // 直接操作afterhourInventory添加物品
+// 10-19 P3 B组 休眠/封存（派活单§五：博士/神经链；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void AddToAfterhourInventoryDirectly(EmporiumEntry instance, GameItem item)
     {
         try

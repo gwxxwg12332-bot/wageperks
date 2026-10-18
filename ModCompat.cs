@@ -31,12 +31,7 @@ public static class ModCompat
             YieldOnLoad = yieldOnLoad;
         }
 
-        public bool Matches(string typeFullName, string methodName)
-        {
-            if (string.IsNullOrEmpty(typeFullName) || string.IsNullOrEmpty(methodName)) return false;
-            if (!typeFullName.Contains(TypeName)) return false;
-            return string.Equals(methodName, MethodName, StringComparison.OrdinalIgnoreCase);
-        }
+        // 10-19 P3 C组清理：Matches() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
     }
 
     private static readonly Dictionary<string, bool?> _loadedCache = new Dictionary<string, bool?>();
@@ -52,14 +47,7 @@ public static class ModCompat
         "PS_DebugTool", // 我方调试工具：LoadGame Postfix = LeftPanel.ClearLockedState()（源码实锤）
     };
 
-    /// <summary>冲突 owner 是否在白名单（安全共存）</summary>
-    public static bool IsSafeCoexistOwner(string owner)
-    {
-        if (string.IsNullOrEmpty(owner)) return false;
-        foreach (var s in SAFE_COEXIST_OWNERS)
-            if (owner.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-        return false;
-    }
+        // 10-19 P3 C组清理：IsSafeCoexistOwner() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // ===== 已知冲突表（已拆包实锤；新重叠点拆包确认后追加）=====
     // 10-02 单源派生：主动让路（YieldOnLoad=true）已全部收编进 PatchRegistryTable.REGISTRY.YieldMod——

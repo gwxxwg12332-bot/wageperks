@@ -34,6 +34,7 @@ internal static class WageBrokerChargerHelper
     }
 
     // 是否持有 ≥ 某等级
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static bool HasCharger(int level)
     {
         return GetMaxChargerLevel() >= level;

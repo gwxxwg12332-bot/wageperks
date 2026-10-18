@@ -20,6 +20,7 @@ internal static partial class RobinCrusoePerk
     }
 
     // ===== 机器初始耗电 +2（拆包 09-10：GetMachinePowerUsage 是统一耗电读口；Postfix 兜底全机器，鲁滨逊职业内生效）=====
+// 10-19 P3 盲区族 注释作废：tbl:217 已删挂（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static void PostfixGetMachinePowerUsage(ref int __result)
     {
         try

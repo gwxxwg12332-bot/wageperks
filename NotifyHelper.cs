@@ -10,10 +10,7 @@ internal static class NotifyHelper
         try { StoreUIManager.Instance.Notify(LangHelper.T(zh, en), color); } catch { }
     }
 
-    public static void NightLog(string zh, string en, string color = "#7FC97F")
-    {
-        try { NightLogRaw(LangHelper.T(zh, en), color); } catch { }
-    }
+        // 10-19 P3 C组清理：NightLog() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // 已翻译文本直接夜报（门面模式用）
     public static void NightLogRaw(string line, string color = "#7FC97F")

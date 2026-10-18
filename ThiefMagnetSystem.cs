@@ -508,6 +508,7 @@ internal static class ThiefMagnetSystem
     // ============ 蛙哥服务卡赎回被偷物（10-06 用户拍板） ============
     // 被偷物都会找到，只是暂时换主人：小偷半价卖（买不起）→ 蛙哥服务卡花信用点赎回（半价）
     // 未赎回完（KEY_STOLEN 非空）之前，招贼体质特性无法消除（WageBrother 消perk界面锁定）
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static string StolenListSummary()
     {
         try
@@ -663,6 +664,7 @@ internal static class ThiefMagnetSystem
         return list;
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void DeductCash(EmporiumEntry em, long amount)
     {
         try

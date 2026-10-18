@@ -31,6 +31,7 @@ internal static class SpecialNpcManager
     // 每天调度（推荐）：在OnNewDay补丁调用，用QueueFuturClient方式
     // 游戏自动管理生成时机，客户会正确进店
     // ============================================================
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void ScheduleDailyNpcs()
     {
         try
@@ -201,6 +202,7 @@ internal static class SpecialNpcManager
     // ============================================================
     // 重置会话记录（新游戏时调用）
     // ============================================================
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void ResetSession()
     {
         _addedThisSession.Clear();
@@ -313,11 +315,13 @@ internal static class SpecialNpcManager
         }
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static bool HasPendingNpc()
     {
         return false; // 新方案无pending机制
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static string GetPendingNpcType()
     {
         return "";
@@ -328,16 +332,19 @@ internal static class SpecialNpcManager
         // 每天重置特殊NPC处理记录（博士天天来需要每天重新放货，酒商/枪匠周周期也依赖）
         _specialNpcProcessed.Clear();
     }
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void ModifyClientAsSpecialNpc(StoreClient client)
     {
         // 新方案不用改名字方式
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static List<string> GetPendingNpcItems()
     {
         return null;
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：特殊NPC子系统；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void ClearPendingNpc()
     {
     }

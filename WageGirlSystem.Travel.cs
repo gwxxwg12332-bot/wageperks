@@ -131,6 +131,7 @@ public static partial class WageGirlSystem
     }
 
     // 玩家点"给予口粮"按钮：从仓库扣1份食物存入口粮库存
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void GiveProvision()
     {
         try

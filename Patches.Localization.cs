@@ -240,6 +240,7 @@ internal static partial class Patches
 		};
 	}
 
+// 10-19 P3 A组#1 待确认用途（派活单§四：本地化5·用途未定；未注册=现状未生效，拍板后接线或作废）
 	public static void PostfixGetDisplayNameFromID(string itemID, ref string __result)
 	{
 		try
@@ -266,6 +267,7 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#2 待确认用途（派活单§四：本地化5·用途未定；未注册=现状未生效，拍板后接线或作废）
 	public static void PostfixGetLocalizedItem(string key, ref string __result)
 	{
 		try
@@ -318,11 +320,13 @@ internal static partial class Patches
 		return null;
 	}
 
+// 10-19 P3 A组#3 待确认用途（派活单§四：本地化5·用途未定；未注册=现状未生效，拍板后接线或作废）
 	public static void PostfixGetLocalizedName(string key, ref string __result)
 	{
 		TryCoverLocalizationKey(key, ref __result);
 	}
 
+// 10-19 P3 A组#4 待确认用途（派活单§四：本地化5·用途未定；未注册=现状未生效，拍板后接线或作废）
 	public static void PostfixGetLocalizedUI(string key, ref string __result)
 	{
 		TryCoverLocalizationKey(key, ref __result);
@@ -415,6 +419,7 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#5 待确认用途（派活单§四：本地化5·用途未定；未注册=现状未生效，拍板后接线或作废）
 	public static void PostfixGenerateLocalizedString(object tableEntryReference, ref string __result)
 	{
 		try

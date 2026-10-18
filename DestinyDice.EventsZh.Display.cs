@@ -11,6 +11,7 @@ namespace WagePerks
 
     public static partial class DestinyDice
 {
+// 10-19 P3 A组#19 待确认用途（派活单§四：DestinyDice 事件中文·用途待拍板；未注册=现状未生效，拍板后接线或作废）
         public static void PostfixGetDisplayName(StoreEvent __instance, ref string __result)
 
         {
@@ -30,6 +31,7 @@ namespace WagePerks
             catch (System.Exception ex) { Core.LogMsg("[DestinyDice.EventsZh.Display] 异常: " + ex.Message); }
 
         }
+// 10-19 P3 A组#20 待确认用途（派活单§四：DestinyDice 事件中文·用途待拍板；未注册=现状未生效，拍板后接线或作废）
         public static void PostfixQueueFuturEvent(StoreEvent storeEvent)
 
         {

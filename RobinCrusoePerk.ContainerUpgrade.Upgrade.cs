@@ -73,28 +73,7 @@ internal static partial class RobinCrusoePerk
     // 动态探测 MoreUpdate 已加载时，我方金属锭升级对它的 4 台配方机器让路（放行给 MoreUpdate 独占），
     // 消除"同一拖放双响应、metal_ingot 双消耗"。未装 MoreUpdate 时我方行为完全不变。
     private static bool? _moreUpdateLoaded;
-    private static bool IsMoreUpdateLoaded()
-    {
-        try
-        {
-            if (_moreUpdateLoaded == null)
-            {
-                bool found = false;
-                var asms = System.AppDomain.CurrentDomain.GetAssemblies();
-                if (asms != null)
-                    foreach (var a in asms)
-                    {
-                        if (a == null) continue;
-                        string n = "";
-                        try { n = a.GetName().Name ?? ""; } catch { }
-                        if (n == "MoreDeviceUpgrades") { found = true; break; }
-                    }
-                _moreUpdateLoaded = found;
-            }
-            return _moreUpdateLoaded.Value;
-        }
-        catch { return false; }
-    }
+        // 10-19 P3 C组清理：IsMoreUpdateLoaded() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // ===== MoreUpdate（MoreDeviceUpgrades v0.2.0）兼容让路（09-14 建立，10-07 用户拍板删除）=====
     // 09-14：动态探测 MoreUpdate 已加载时，我方金属锭升级对它的 4 台配方机器让路（防"同一拖放双响应、metal_ingot 双消耗"）。

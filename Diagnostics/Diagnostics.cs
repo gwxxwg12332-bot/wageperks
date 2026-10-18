@@ -40,6 +40,7 @@ public static class Diagnostics
     }
 
     /// <summary>诊断类 Harmony Patch（发布版不注册，避免刷日志/影响其他 mod）</summary>
+// 10-19 P3 A组#16 注释作废：诊断残件（仅 Register 在用）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static void ApplyPatches()
     {
         if (!Core.DebugMode) return;
@@ -47,6 +48,7 @@ public static class Diagnostics
     }
 
     /// <summary>特性选择诊断：CanSelect 返回值 + 已选特性数（DebugMode only）</summary>
+// 10-19 P3 A组#17 注释作废：诊断残件（仅 Register 在用）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static void PostfixCanSelect(StartingPerkElement __instance, ref bool __result)
     {
         if (!Core.DebugMode) return;
@@ -62,6 +64,7 @@ public static class Diagnostics
     }
 
     /// <summary>特性选择诊断：SelectPerk 是否被调用（DebugMode only）</summary>
+// 10-19 P3 A组#18 注释作废：诊断残件（仅 Register 在用）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static void PostfixSelectPerk(StartingPerkElement perk)
     {
         if (!Core.DebugMode) return;

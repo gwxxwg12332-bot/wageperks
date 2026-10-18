@@ -117,7 +117,9 @@ public static partial class WageGirlSystem
         }
         catch (System.Exception ex) { Core.LogMsg("[蛙娘] GiveRewardItem异常: " + ex.Message); }
     }
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static int GetAllowance() => GetStat(K_ALLOWANCE, 0);
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void SetAllowance(int v) => SetStat(K_ALLOWANCE, v);
     // 10-07 #10：好感等级文字（5 节点映射）
     private static string GetAffLevelText() {

@@ -98,8 +98,7 @@ internal static class B2ServiceStore
     internal static int CannibalLast
         => WageSaveStore.GetInt(NS, "cannibal_last", -1);
 
-    internal static void SetCannibalLast(int day)
-        => WageSaveStore.SetInt(NS, "cannibal_last", day);
+        // 10-19 P3 C组清理：SetCannibalLast() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // ---- 吞噬季 · 电话手动窗口（10-17） ----
     internal static int CannibalManualStartDay

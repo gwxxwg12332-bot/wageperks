@@ -20,6 +20,7 @@ internal static partial class RobinCrusoePerk
     // ===== 客流减量（精神档位：低迷-1 / 低落-2 / 崩溃-4；v5.9 病恹恹爆发当日客流-50% 隔一skip一）=====
     private static int _pickSkipToday = 0;
     private static bool _burstSkipFlip = false;
+// 10-19 P3 A组#22 注释作废：tbl:154 已删挂（WS 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static bool PrefixPickClient()
     {
         try
@@ -65,6 +66,7 @@ internal static partial class RobinCrusoePerk
     }
 
     // ===== 吃过的食物放不上柜台 =====
+// 10-19 P3 A组#23 注释作废：未挂·无注记（本批补）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static bool PrefixAddedItemToWeightedArea(GameItem gameItem)
     {
         try
@@ -79,6 +81,7 @@ internal static partial class RobinCrusoePerk
     }
 
     // ===== 每日结算（OnNewDay Postfix）=====
+// 10-19 P3 盲区族 注释作废：tbl:163 已删挂；仅此方法作废，同文件 :140-157 勿动（§一 参考源）（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static void PostfixOnNewDay()
     {
         try

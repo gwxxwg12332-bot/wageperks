@@ -127,15 +127,9 @@ internal static partial class RobinCrusoePerk
         catch { return false; }
     }
 
-    private static bool IsGroceries(GameItem item)
-    {
-        try { return item.IsTag("GROCERY"); } catch { return false; }
-    }
+        // 10-19 P3 C组清理：IsGroceries() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
-    private static bool IsRaw(GameItem item)
-    {
-        try { return item.IsTag("RAW"); } catch { return false; }
-    }
+        // 10-19 P3 C组清理：IsRaw() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // 当日营业额累计（PostfixStoreClientOnDealAccepted BUY 分支调用；打烊收入惩罚后清零）
     internal static void RecordRevenue(int amount)

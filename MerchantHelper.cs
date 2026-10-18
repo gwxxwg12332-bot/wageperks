@@ -116,20 +116,7 @@ internal static class MerchantHelper
 
     /// <summary>
     /// 验证物品是否干净（不带赃物/未拥有标签）
-    /// </summary>
-    internal static bool IsItemClean(GameItem item)
-    {
-        if (item == null) return false;
-        try
-        {
-            bool hasStolen = item.IsTag("stolen") || item.IsTag("TAG_STOLEN");
-            var heatTag = item.GetTagReadonly("STOLEN_VALUE_INT");
-            bool hasHeat = heatTag != null && heatTag.GetInt() > 0;
-            bool hasNotPurchased = item.IsTag("not_purchased") || item.IsTag("TAG_NOT_PURCHASED");
-            return !hasStolen && !hasHeat && !hasNotPurchased;
-        }
-        catch { return false; }
-    }
+        // 10-19 P3 C组清理：IsItemClean() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // 生成解锁卡+对应箱子（配对出售）+ 枪支许可证 + 空白卡
     // 三个商人（水商/酒商/枪匠）共用此逻辑

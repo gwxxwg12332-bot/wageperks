@@ -98,6 +98,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
     }
 
     // 获取玩家所有背包（后背包+计数器+展示柜+主存储）
+// 10-19 P3 B组 休眠/封存（派活单§五：工资力量/对话；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static System.Collections.Generic.List<GameInventory> GetAllPlayerInventories()
     {
         var list = new System.Collections.Generic.List<GameInventory>();

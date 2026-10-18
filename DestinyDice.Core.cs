@@ -539,7 +539,7 @@ namespace WagePerks
     // ===== 触发随机事件（暂时用日志占位，后续接入游戏原生事件） =====
     // 09-13 修复"吸收面板介绍"bug：原 shortDescription 首次备份，事件信息改为追加显示、事件清空后恢复原介绍（不再覆盖）
     private static readonly System.Collections.Generic.Dictionary<string, string> _diceOrigDesc = new System.Collections.Generic.Dictionary<string, string>();
-    private static string DiceKey(GameItem dice) { try { return dice.identifier + "_" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(dice).ToString(); } catch { return ""; } }
+        // 10-19 P3 C组清理：DiceKey() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
         private static void UpdateDicePanelTitle(GameItem dice, int value)
 

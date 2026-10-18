@@ -172,6 +172,7 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#6 注释作废：交易域让位残留（WS 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PostfixGameItemGetValue(GameItem __instance, ref long __result)
 	{
 		try
@@ -227,6 +228,7 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#7 注释作废：交易域让位残留（WS 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PostfixDealMakerBonus(ref int __result)
 	{
 		// 09-19 童叟无欺重做：移除议价 +25 效果（蛙娘在场 +50 在 WageGirlSystem）

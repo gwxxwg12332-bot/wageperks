@@ -215,6 +215,7 @@ internal static class MadnessRoller
         return list;
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static StartingPerk PickSlotBonusPerk(Il2CppDict.List<StartingPerk> pool, Il2CppDict.List<StartingPerk> chosen, SysDict.HashSet<string> chosenIds)
     {
         StartingPerk best = null;
@@ -378,6 +379,7 @@ internal static class MadnessRoller
         return false;
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static StartingPerk FindInPool(Il2CppDict.List<StartingPerk> pool, string id)
     {
         try

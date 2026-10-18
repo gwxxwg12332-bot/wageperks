@@ -31,12 +31,7 @@ internal static class CompatibilityPatches
     // StoreClient.ApplyBudgetModifier Prefix（存原预算）
     private static readonly System.Collections.Generic.Dictionary<StoreClient, int> _origBudget = new();
 
-    // FIX17：预算显示取原版基础值（ApplyBudgetModifier 前 clientBudget）
-    internal static bool TryGetOrigBudget(StoreClient c, out int orig)
-    {
-        orig = 0;
-        try { if (c == null) return false; return _origBudget.TryGetValue(c, out orig); } catch { return false; }
-    }
+    // 10-19 P2：TryGetOrigBudget 已删（派活单§三随批拍板：全仓零调用；预算显示走 PrefixApplyBudgetModifier 存 + Postfix 兜底恢复，FIX17 无消费点）
 
     // FIX14：蛙哥预算常量（与 WageBrother.cs:219 / PatchRegistry.cs:54 的 SetBudget(1109707341, 10000000) 第一参数同值收口）
     //   游戏程序集签名：SetBudget(int budget, int budgetConversion)——第一参数=预算，第二=conversion（10-15 玩家拍板=10000000）

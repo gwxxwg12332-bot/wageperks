@@ -26,6 +26,7 @@ namespace WagePerks;
 internal static partial class RobinCrusoePerk
 {
     // ===== 房东批发商库存随机化（拆包 [L1] 2.5.20.2：4件硬编码在闭包 b__31_0，Prefix 替换跳原生）=====
+// 10-19 P3 盲区族 注释作废：tbl:217 已删挂（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static bool PrefixLandlordWholesaleStock()
     {
         try
@@ -75,6 +76,7 @@ internal static partial class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[空间站鲁滨逊] PostfixHandleSupplierClient 异常: " + ex.Message); }
     }
     // ===== 房租改造：前99天免租，每100天收一次递增房租（第100天15000、第200天20000、第300天25000…）拆包 2.5.20 =====
+// 10-19 P3 盲区族 注释作废：tbl:217 已删挂（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static bool PrefixCheckRentDay()
     {
         try

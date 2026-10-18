@@ -24,6 +24,7 @@ internal static class WageBrokerStation
     private static Sprite _originalSceneSprite;
 
     // ===== 1. 地图按钮（学Brewing EnsureMapButton）=====
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void PostfixMapOpenUI(MapUIManager __instance)
     {
         try
@@ -117,6 +118,7 @@ internal static class WageBrokerStation
 
     // ===== 2. 场景铺货门控（学Brewing PlaceInventorInventory）=====
     // 进场景前还原（学Brewing:3190 BeforeVisit）
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void PrefixVisitUpgradeMerchant()
     {
         try
@@ -132,6 +134,7 @@ internal static class WageBrokerStation
     }
 
     // 离开复位（学Brewing:3235 Leave）
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void PostfixHandleLeaveUpgradeMerchant()
     {
         try
@@ -259,6 +262,7 @@ internal static class WageBrokerStation
     }
 
     // ===== 5. 离开还原 =====
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void OnLeaveStation()
     {
         try

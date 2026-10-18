@@ -583,6 +583,7 @@ internal static class WageBrother
     private static Sprite _cardSprite = null;
     internal const string CARD_SPRITE_KEY = "wage_brother_card_sprite";
     // 主动刷新客户 SpriteRenderer（照 PlayerStore:10511-10523 原生链）
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void RefreshClientSprite(StoreClient client)
     {
         try
@@ -689,6 +690,7 @@ internal static class WageBrother
         } catch (System.Exception ex) { Core.LogMsg("[蛙哥] 立绘加载失败: " + ex.Message); }
     }
     // 上许可物品到柜台
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void AddPermitToCounter(string permitId, int price)
     {
         try
@@ -761,6 +763,7 @@ internal static class WageBrother
     }
 
     // 上充电器物品到柜台
+// 10-19 P3 B组 休眠/封存（派活单§五：蛙哥交易站（tbl:157-162 已暂时封存）；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void AddChargerToCounter(string chargerId, int price)
     {
         try

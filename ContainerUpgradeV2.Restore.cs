@@ -291,12 +291,7 @@ partial class ContainerUpgradeV2
         }
         return s;
     }
-    // 记录 hiddenElement 索引段位
-    public static void SetHiddenStageByIndex(int idx, int stage)
-    {
-        if (idx < 0) return;
-        WageSaveStore.SetInt("SurvivalGlobal", "wage_stage_idx_" + idx, stage);
-    }
+        // 10-19 P3 C组清理：SetHiddenStageByIndex() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
     // 按指定段位强恢复（不依赖 tag——场景物品 tag 全丢）
     public static void RestoreWageBoxToStage(GameItem box, int stage)
     {

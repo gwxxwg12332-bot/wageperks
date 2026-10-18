@@ -11,6 +11,7 @@ namespace WagePerks
 
     public static partial class DestinyDice
 {
+// 10-19 P3 A组#21 待确认用途（派活单§四：DestinyDice 新闻·用途待拍板；未注册=现状未生效，拍板后接线或作废）
         public static void NewsOnGUI()
 
         {

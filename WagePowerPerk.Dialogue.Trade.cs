@@ -47,6 +47,7 @@ internal sealed partial class WagePowerPerk : CustomStartingPerk
             return null;
         }
     }
+// 10-19 P3 B组 休眠/封存（派活单§五：工资力量/对话；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static void ModifyFirstDialogue(StoreClient client, string name)
     {
         try

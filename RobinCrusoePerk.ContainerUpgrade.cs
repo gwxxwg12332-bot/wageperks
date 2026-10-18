@@ -34,6 +34,7 @@ internal static partial class RobinCrusoePerk
 
     // ===== 供货商卖水药食物（拆包 09-10：PlaceSupplierInventory 是 supplier 上货入口；仿水商 MerchantHelper.AddItemToCounter 追加，同日不重复）=====
     private static int _supplierGoodsDay = -1;
+// 10-19 P3 盲区族 注释作废：tbl:215 已删挂（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static void PostfixPlaceSupplierInventory()
     {
         try

@@ -105,6 +105,7 @@ internal static partial class RobinCrusoePerk
     // 工厂创建即设显示名（Core 注册 Postfix StoreClientList.CreateWanted2/CreateWanted6）：
     // 拆包 09-13 [L1]：ResolveClientNames 在 CreateClientInstance 实例化时读 displayName，实例化后设则头顶名/横幅已锁定——
     // 提前到工厂 Postfix，让 displayName 在实例化前即为"胡安"，所有显示点（对话/电话簿/头顶/横幅）一致
+// 10-19 P3 A组#24 注释作废：10-16 闪退删挂 tbl:225（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static void PostfixCreateWanted6(Il2Cpp.StoreClient __result)
     {
         try { if (__result != null) __result.displayName = LangHelper.T("李北文", "Li Beiwen"); } catch { }
@@ -253,23 +254,7 @@ internal static partial class RobinCrusoePerk
         return false;
     }
 
-    // 柜台同 id 数量（博士夜晚商店保护器补足用）
-    private static int CountGoodOnFront(string itemId)
-    {
-        try
-        {
-            EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null || em.frontInvinvElement == null || em.frontInvinvElement.items == null) return 0;
-            int n = 0;
-            foreach (var it in em.frontInvinvElement.items)
-            {
-                if (it != null && it.identifier == itemId) n++;
-            }
-            return n;
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.PhoneVendor] 异常: " + ex.Message); }
-        return 0;
-    }
+        // 10-19 P3 C组清理：CountGoodOnFront() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     // 电话端注册（Core 注册 Postfix StorePhoneClient.InitPhoneClientDict）
     public static void PostfixInitPhoneClientDict(Il2CppSystem.Collections.Generic.Dictionary<long, Il2Cpp.StorePhoneClient> __result)
@@ -366,6 +351,7 @@ internal static partial class RobinCrusoePerk
     {
         _lastArrivedClientId = id;
     }
+// 10-19 P3 A组#25 注释作废：10-16 闪退删挂 tbl:230（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static void PostfixAugHelperCleanupKill()
     {
         try

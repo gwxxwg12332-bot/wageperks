@@ -134,6 +134,7 @@ internal static partial class Patches
 	{
 		_lastScheduledDay = -1;
 	}
+// 10-19 P3 A组#15 注释作废：wrapper残留（Lifecycle ScheduleJacksonToday 承接）（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static bool PrefixOnHandleJacksonStorage(StoreClientManager __instance)
 	{
 		try

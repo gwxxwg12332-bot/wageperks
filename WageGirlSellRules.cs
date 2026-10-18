@@ -268,6 +268,7 @@ internal static class WageGirlSellRules
     }
 
     /// <summary>列出规则（protect=true 免售 / false 可售）。</summary>
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static List<string> ListRules(bool protect)
     {
         var result = new List<string>();

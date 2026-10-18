@@ -478,10 +478,7 @@ namespace WagePerks
             catch { return false; }
         }
 
-        private static string GetItemIdSafe(GameItem item)
-        {
-            try { return (item.identifier ?? "").ToLowerInvariant(); } catch { return "?"; }
-        }
+        // 10-19 P3 C组清理：GetItemIdSafe() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
         internal static bool IsDice(GameItem item)
 

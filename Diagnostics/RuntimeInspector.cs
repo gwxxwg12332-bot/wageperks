@@ -35,75 +35,11 @@ namespace WagePerks
 
         /// <summary>
         /// 检测鼠标下的UI元素
-        /// </summary>
-        private static GameObject GetHoveredUIElement()
-        {
-            try
-            {
-                if (EventSystem.current == null) return null;
-
-                Vector2 mousePos = Input.mousePosition;
-                PointerEventData pointerData = new PointerEventData(EventSystem.current);
-                pointerData.position = new Vector2(mousePos.x, mousePos.y);
-
-                Il2CppSystem.Collections.Generic.List<RaycastResult> results = new Il2CppSystem.Collections.Generic.List<RaycastResult>();
-                EventSystem.current.RaycastAll(pointerData, results);
-
-                if (results.Count > 0)
-                {
-                    return results[0].gameObject;
-                }
-            }
-            catch { }
-            return null;
-        }
+        // 10-19 P3 C组清理：GetHoveredUIElement() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
         /// <summary>
         /// 构建悬停信息
-        /// </summary>
-        private static string BuildHoverInfo(GameObject obj)
-        {
-            try
-            {
-                string info = "";
-                info += $"名称:{obj.name} | ";
-                info += $"场景:{obj.scene.name} | ";
-
-                // 层级路径
-                string path = GetHierarchyPath(obj.transform);
-                info += $"路径:{path} | ";
-
-                // 挂载的组件
-                Component[] components = obj.GetComponents<Component>();
-                if (components != null && components.Length > 0)
-                {
-                    info += $"组件({components.Length}):";
-                    for (int i = 0; i < Math.Min(components.Length, 5); i++)
-                    {
-                        if (components[i] != null)
-                        {
-                            info += components[i].GetType().Name;
-                            if (i < Math.Min(components.Length, 5) - 1) info += ",";
-                        }
-                    }
-                    if (components.Length > 5) info += "...";
-                    info += " | ";
-                }
-
-                // 尝试获取key/id字段
-                string keyInfo = GetKeyFields(obj);
-                if (!string.IsNullOrEmpty(keyInfo))
-                {
-                    info += $"Key:{keyInfo}";
-                }
-
-                return info;
-            }
-            catch (Exception ex)
-            {
-                return $"构建信息失败:{ex.Message}";
-            }
-        }
+        // 10-19 P3 C组清理：BuildHoverInfo() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
         /// <summary>
         /// 获取层级路径
@@ -192,74 +128,6 @@ namespace WagePerks
 
         /// <summary>
         /// Dump完整字段到文件
-        /// </summary>
-        private static void DumpObjectToFile(GameObject obj)
-        {
-            try
-            {
-                string dumpPath = Path.Combine(Application.dataPath, "..", "Mods", "inspector_dump.txt");
-                using (StreamWriter writer = new StreamWriter(dumpPath, false, System.Text.Encoding.UTF8))
-                {
-                    writer.WriteLine($"===== Runtime Inspector Dump =====");
-                    writer.WriteLine($"时间: {DateTime.Now}");
-                    writer.WriteLine($"对象名: {obj.name}");
-                    writer.WriteLine($"类型: {obj.GetType().FullName}");
-                    writer.WriteLine($"场景: {obj.scene.name}");
-                    writer.WriteLine($"路径: {GetHierarchyPath(obj.transform)}");
-                    writer.WriteLine("");
-
-                    Component[] components = obj.GetComponents<Component>();
-                    writer.WriteLine($"===== 组件列表 ({components.Length}) =====");
-                    foreach (Component comp in components)
-                    {
-                        if (comp == null) continue;
-                        writer.WriteLine($"\n--- {comp.GetType().FullName} ---");
-
-                        // 字段
-                        FieldInfo[] fields = comp.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        writer.WriteLine($"  字段 ({fields.Length}):");
-                        foreach (FieldInfo field in fields)
-                        {
-                            try
-                            {
-                                object value = field.GetValue(comp);
-                                string valueStr = value != null ? value.ToString() : "null";
-                                if (valueStr.Length > 200) valueStr = valueStr.Substring(0, 200) + "...";
-                                writer.WriteLine($"    {field.FieldType.Name} {field.Name} = {valueStr}");
-                            }
-                            catch (Exception ex)
-                            {
-                                writer.WriteLine($"    {field.Name} = [读取失败: {ex.Message}]");
-                            }
-                        }
-
-                        // 属性
-                        PropertyInfo[] props = comp.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        writer.WriteLine($"  属性 ({props.Length}):");
-                        foreach (PropertyInfo prop in props)
-                        {
-                            try
-                            {
-                                if (prop.CanRead && prop.GetIndexParameters().Length == 0)
-                                {
-                                    object value = prop.GetValue(comp, null);
-                                    string valueStr = value != null ? value.ToString() : "null";
-                                    if (valueStr.Length > 200) valueStr = valueStr.Substring(0, 200) + "...";
-                                    writer.WriteLine($"    {prop.PropertyType.Name} {prop.Name} = {valueStr}");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                writer.WriteLine($"    {prop.Name} = [读取失败: {ex.Message}]");
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Core.LogMsg($"[RuntimeInspector] Dump失败: {ex.Message}");
-            }
-        }
+        // 10-19 P3 C组清理：DumpObjectToFile() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
     }
 }

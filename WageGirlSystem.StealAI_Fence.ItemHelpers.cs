@@ -193,6 +193,7 @@ public static partial class WageGirlSystem
     // 10-07 A4（525BFCC1 拍板"所有的东西都需要购买得到，而不是直接送，普通档防止泄露就行"）：
     // 销赃回报改为上桌卖（客户卖品 isOwend=false）——玩家付钱购买，不直接送后库/背包
     // 与小偷黑市货上桌同方式（AddDirectSellingItemToTable isOwend=false=客户卖品）
+// 10-19 P3 B组 休眠/封存（派活单§五：工资少女；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void AddToCounterForSale(GameItem it)
     {
         try

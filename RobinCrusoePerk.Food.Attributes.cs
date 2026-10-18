@@ -101,6 +101,7 @@ internal static partial class RobinCrusoePerk
         catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.Food.Attributes] 异常: " + ex.Message); }
     }
 
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     internal static int GetEffectiveCal(GameItem item)
     {
         int q = GetFoodQuality(item);

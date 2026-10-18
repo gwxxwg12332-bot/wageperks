@@ -59,6 +59,7 @@ internal static partial class RobinCrusoePerk
         catch (Exception ex) { Core.LogMsg("[养蛊机] TryDoctorSupply 异常: " + ex.Message); }
     }
 
+// 10-19 P3 盲区族 注释作废：tbl:214 已删挂（派活单§七；tbl 已删挂注记对应源码残留，仅本方法作废）
     public static bool PrefixAutoSipFromContainer(GameItem item, GameCharacterItem GCI)
     {
         try

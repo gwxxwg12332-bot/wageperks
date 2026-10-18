@@ -9,6 +9,7 @@ namespace WagePerks;
 
 internal sealed partial class LuckScoutPerk : CustomStartingPerk
 {
+// 10-19 P3 B组 休眠/封存（派活单§五：幸运侦察兵；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     private static void SetScannerChance(GameItem scanner, int chance)
 
     {

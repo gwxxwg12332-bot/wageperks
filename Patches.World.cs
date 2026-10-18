@@ -74,16 +74,19 @@ internal static partial class Patches
 		}
 	}
 
+// 10-19 P3 A组#10 注释作废：贸易表·未挂（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PostfixTradeSheetFoundryShop(object __result)
 	{
 		DrJacksonFriendPerk.FoundryShopPatch.Postfix(__result);
 	}
 
+// 10-19 P3 A组#11 注释作废：贸易表·未挂（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PostfixTradeSheetEnergyFarmShop(object __result)
 	{
 		DrJacksonFriendPerk.EnergyFarmShopPatch.Postfix(__result);
 	}
 
+// 10-19 P3 A组#12 注释作废：贸易表·未挂（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
 	public static void PrefixEmporiumShowAfterhourInv(EmporiumEntry __instance)
 	{
 		DrJacksonFriendPerk.EmporiumEntryShowAfterhourPatch.Prefix(__instance);
@@ -477,6 +480,7 @@ internal static partial class Patches
 		}
 		catch (System.Exception ex) { Core.LogMsg("[夜间报告] 置顶异常: " + ex.Message); }
 	}
+// 10-19 P3 A组#13 待确认用途（派活单§四：声望修正·倾向补注册；未注册=现状未生效，拍板后接线或作废）
 	public static void PrefixModReputation(ref double modValue)
 	{
 		try
@@ -516,6 +520,7 @@ internal static partial class Patches
 		return true;
 	}
 	// 诊断（用完删）：static ModReputation(String,int,bool) 日志——验证曝光扣声望走 static 版（value=-4）
+// 10-19 P3 A组#14 待确认用途（派活单§四：声望修正·倾向补注册；未注册=现状未生效，拍板后接线或作废）
 	public static void PrefixModReputationStatic(string factionId, int value)
 	{
 		try { Core.LogMsg("[声望诊断] ModReputationStatic faction=" + factionId + " value=" + value); } catch { }

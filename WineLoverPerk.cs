@@ -43,6 +43,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
     }
 
     // 获取酒类价格加成
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     public static float GetAlcoholPriceBonus()
     {
         return IsActive() ? 1.25f : 1.0f;
@@ -55,6 +56,7 @@ internal sealed class WineLoverPerk : CustomStartingPerk
     }
 
     // 打烊后roll宿醉
+// 10-19 P3 B组 休眠/封存（派活单§五：混合休眠；特性未激活，不删防回滚需要；先看反馈再决定启封或清理）
     public static void RollHangover()
     {
         if (!IsActive()) return;

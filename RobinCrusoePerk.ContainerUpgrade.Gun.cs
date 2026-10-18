@@ -13,28 +13,7 @@ internal static partial class RobinCrusoePerk
     // ===== 物品归属判定 =====
     private static bool _ownedInited = false;
     private static System.Reflection.MethodInfo _isItemOwned = null;
-    // 物品是否在玩家背包或柜台（指针比较，柜台陈列/待售物品也判定为玩家可控）
-    private static bool IsInBackpackOrCounter(GameItem item)
-    {
-        try
-        {
-            EmporiumEntry em = EmporiumEntry.Instance;
-            if (em == null || item == null) return false;
-            IntPtr targetPtr = item.Pointer;
-            if (targetPtr == IntPtr.Zero) return false;
-            foreach (GameInventory inv in new[] { (GameInventory)em.backInvinvElement, (GameInventory)em.frontInvinvElement })
-            {
-                if (inv == null || inv.childItems == null) continue;
-                for (int i = 0; i < inv.childItems.Count; i++)
-                {
-                    var ci = inv.childItems[i];
-                    if (ci != null && ci.Pointer == targetPtr) return true;
-                }
-            }
-        }
-        catch (System.Exception ex) { Core.LogMsg("[RobinCrusoePerk.ContainerUpgrade] 异常: " + ex.Message); }
-        return false;
-    }
+        // 10-19 P3 C组清理：IsInBackpackOrCounter() 已删（死方法零调用，派活单§六；如需恢复见 git 历史）
 
     private static bool IsItemOwned(GameItem item)
     {
@@ -89,6 +68,7 @@ internal static partial class RobinCrusoePerk
 
     // C. Prefix StoreClientListGun 订单生成：拦截定制单（特性意图：鲁滨逊档禁用枪械定制）。
     // ⚠️ 无条件短路 return false——第三方同挂此方法会被跳过。若未来有mod依赖枪械订单需在此加判定。
+// 10-19 P3 A组#27 注释作废：拦截型未挂：无条件 return false 会误伤普通档枪械订单，WS 未承接禁枪，保持未挂（派活单§四；未注册=现状未生效，保持；恢复功能需补注册）
     public static bool PrefixBlockGunOrder() { return false; }
 
     // B. Prefix DirectoryMaster.Item：枪械模组 id 重定向无害物品（拆包 09-13 [L1]：全游戏物品创建统一入口，商店/奖励/全量随机都走它；
