@@ -132,8 +132,12 @@ public static class BlackGoldBox
             catch (Exception ex) { Core.LogMsg("[黑金典藏箱] 标签设置: " + ex.Message); }
 
             // 占地派生：:107 SetSpriteAndShape 已正确派生 3×3（素材 13 张全部 48×48，48/16=3——拆包 10-10 读 PNG 头实证）
-            // 【10-10 删除】原强制 3×3 写入（SetShape+modifiedShape）违反铁律 ContainerUpgradeV2.Shape.cs:49-51（shape=场景占地绝不能写；
-            //   modifiedShape=拖拽三元组零消费者脏状态——写它=污染下次布局读到的摆位状态）——WBG 是项目唯一违反处，已移除
+            // 【10-10 删除】原强制 3×3 写入（SetShape+modifiedShape）；10-18 拆包 U1-U5 逐句核验（U4 修正：原注释引用铁律原文正确，"混淆"判断撤回）：
+            //   "shape=物品场景占地绝不能写"=正确（铁律原文 ContainerUpgradeV2.Shape.cs:49-53：写 w×h 全开矩形→箱子占地变内部尺寸、挤压桌面）；
+            //   "modifiedShape=零消费者"=错（U3：GameItemElement.get_widthPixels/get_heightPixels 读 modifiedShape × UISettings 每格像素=UI 显示直接消费）；
+            //   "写它=污染下次布局摆位"=对（U1：重算 :14531-14539 读当前 modifiedShape 作变换基准，直写值参与重算、部分持久，≠派生值即污染）
+            //   U5 窗口期：SetShape/SetSpriteAndShape/ModifyTag/入格/移出/Check*ParentShapeStateModifier 均触发重算覆盖直写（直写窗口=到下一个触发点）
+            //   正确姿势：普通物品=SetShape+不直写；容器类=不写（本处已符合）；读档恢复=SetShape+直写保留（恢复基准语义正确）。
 
             // 名称/描述/价值（2000）——10-08 实锤：MachineBlender.CreateTooltip 读 item.identifier（[0x1C0]）判 "blender"，
             // identifier null → 柜台/库存 hover 每帧 NRE + IsBlackGold 判定失败（切换失效）+ tooltip 空（"没有面板"）。

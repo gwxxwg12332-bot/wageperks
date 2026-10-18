@@ -62,11 +62,14 @@ public static class WageSaveStore
     // 落盘由宿主的 priority=0 挂点统一管；本程序集不再注册挂点（见 WageApiEmbedded\Core.Init）。
     // 宿主不在场（黑金独立运行）→ 走本地 _mem + 本地挂点，原逻辑不变。
     private static System.Type _hostType;
+    private static bool _hostTypeChecked; // 10-18 审阅 P2 缓存：探测过即记（MelonLoader 所有 mod 在启动期加载完，Assembly 集合进程内不变→探测结果稳定），防每次调用重扫 AppDomain
     private static System.Type HostType
     {
         get
         {
             if (_hostType != null) return _hostType;
+            if (_hostTypeChecked) return null; // 负缓存：已探测且失败=宿主缺席，不再重扫
+            _hostTypeChecked = true;
             try
             {
                 foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies())
@@ -85,19 +88,42 @@ public static class WageSaveStore
             return _hostType;
         }
     }
+    private static readonly System.Collections.Generic.Dictionary<string, System.Reflection.MethodInfo> _hostMethods = new System.Collections.Generic.Dictionary<string, System.Reflection.MethodInfo>();
+    // 10-18 审阅 P2 缓存：GetMethod 反射查找缓存（成功/失败都缓存——同进程签名不变，重查无意义），HostCall 不再每次 GetMethod
+    private static System.Reflection.MethodInfo HostMethod(string method)
+    {
+        try
+        {
+            if (_hostMethods.TryGetValue(method, out var cached)) return cached;
+            var t = HostType;
+            if (t == null) return null;
+            var m = t.GetMethod(method, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            _hostMethods[method] = m;
+            return m;
+        }
+        catch { return null; }
+    }
     private static bool HostAvailable => HostType != null;
+    // 10-18 四仓审计 P0 修复：宿主转发失败一律静默（catch{return false/null}）→ 写操作静默丢弃、读回默认值、零日志。
+    //   补 LogOnce 节流日志：t==null=宿主缺席（正常路径不刷）；m/ev==null=签名漂移（canonical 漂移的直接症状，必报）；
+    //   Invoke/元数据异常=真故障（必报）。同 tag 只记一次防逐帧刷爆。
+    private static readonly System.Collections.Generic.HashSet<string> _hostErrLogged = new System.Collections.Generic.HashSet<string>();
+    private static void HostErrLog(string tag, string detail)
+    {
+        try { if (_hostErrLogged.Add(tag)) Core.LogMsg("[WageSaveStore] 宿主转发失败 " + tag + ": " + detail + "（同错仅记一次）"); } catch { }
+    }
     private static bool HostCall(string method, object[] args)
     {
         try
         {
             var t = HostType;
             if (t == null) return false;
-            var m = t.GetMethod(method, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            if (m == null) return false;
-            m.Invoke(null, args);
-            return true;
+            var m = HostMethod(method);
+            if (m == null) { HostErrLog("noMethod:" + method, "宿主无此方法（签名漂移/版本不匹配）"); return false; }
+            try { m.Invoke(null, args); return true; }
+            catch (System.Exception iex) { HostErrLog("invoke:" + method, iex.Message); return false; }
         }
-        catch { return false; }
+        catch (System.Exception ex) { HostErrLog("meta:" + method, ex.Message); return false; }
     }
     private static object HostCallResult(string method, object[] args)
     {
@@ -105,11 +131,12 @@ public static class WageSaveStore
         {
             var t = HostType;
             if (t == null) return null;
-            var m = t.GetMethod(method, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            if (m == null) return null;
-            return m.Invoke(null, args);
+            var m = HostMethod(method);
+            if (m == null) { HostErrLog("noMethod:" + method, "宿主无此方法（签名漂移/版本不匹配）"); return null; }
+            try { return m.Invoke(null, args); }
+            catch (System.Exception iex) { HostErrLog("invoke:" + method, iex.Message); return null; }
         }
-        catch { return null; }
+        catch (System.Exception ex) { HostErrLog("meta:" + method, ex.Message); return null; }
     }
     private static bool HostEventAdd(Action handler)
     {
@@ -118,11 +145,11 @@ public static class WageSaveStore
             var t = HostType;
             if (t == null) return false;
             var ev = t.GetEvent("GameLoaded", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            if (ev == null) return false;
-            ev.AddEventHandler(null, handler);
-            return true;
+            if (ev == null) { HostErrLog("noEvent:GameLoaded", "宿主无 GameLoaded 事件（签名漂移）"); return false; }
+            try { ev.AddEventHandler(null, handler); return true; }
+            catch (System.Exception iex) { HostErrLog("evAdd:GameLoaded", iex.Message); return false; }
         }
-        catch { return false; }
+        catch (System.Exception ex) { HostErrLog("evMeta:GameLoaded", ex.Message); return false; }
     }
     private static bool HostEventRemove(Action handler)
     {
@@ -131,11 +158,11 @@ public static class WageSaveStore
             var t = HostType;
             if (t == null) return false;
             var ev = t.GetEvent("GameLoaded", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            if (ev == null) return false;
-            ev.RemoveEventHandler(null, handler);
-            return true;
+            if (ev == null) { HostErrLog("noEvent:GameLoaded", "宿主无 GameLoaded 事件（签名漂移）"); return false; }
+            try { ev.RemoveEventHandler(null, handler); return true; }
+            catch (System.Exception iex) { HostErrLog("evRemove:GameLoaded", iex.Message); return false; }
         }
-        catch { return false; }
+        catch (System.Exception ex) { HostErrLog("evMeta:GameLoaded", ex.Message); return false; }
     }
 
     // ===================== 路径 =====================
