@@ -94,7 +94,7 @@ internal static partial class RobinCrusoePerk
         } catch { return BLOOD_MAX; }
     }
     internal static void SetBlood(int v) { try { WageSaveStore.SetInt(PERK_ID, "blood", Math.Max(0, Math.Min(BLOOD_MAX, v))); } catch { } }
-    internal static void ClearMemBlood() { try { _memBlood = -1; } catch { } } // 兼容保留（读档清缓存已无用，无害）
+    internal static void ClearMemBlood() { _memBlood = -1; } // 兼容保留（读档清缓存已无用，无害）
     internal static int AddBlood(int delta)
     {
         // 09-26 修：读档空窗期不要物化默认值（否则会把默认值6000写进字典，覆盖真实值）

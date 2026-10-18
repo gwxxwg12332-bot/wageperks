@@ -66,13 +66,7 @@ internal static partial class Patches
 
 	public static void PostfixHandleInspectionClient()
 	{
-		try
-		{
-			_secVipOverride = false;
-		}
-		catch
-		{
-		}
+		_secVipOverride = false;
 	}
 
 	public static void ForceInspectionToday()

@@ -368,7 +368,7 @@ namespace WagePerks
     // _unloadConfirm 同属卸载按钮原子单元（确认框模态跨档残留=新档卡确认框），一并复位
     internal static void ClearActiveDice()
     {
-        try { _activeDice = null; _unloadConfirm = false; } catch { }
+        _activeDice = null; _unloadConfirm = false;
     }
 
     // 双击掷骰：value >= threshold 才可摇；摇后 value-=threshold、threshold+=门槛、triggers+1、LastCost=本次门槛

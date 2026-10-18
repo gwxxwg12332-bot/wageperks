@@ -394,14 +394,14 @@ namespace WagePerks
 
         {
 
-            try { _newsOpen = !_newsOpen; } catch { }
+            _newsOpen = !_newsOpen;
 
         }
         public static void PostfixNewsCloseUI()
 
         {
 
-            try { _newsOpen = false; } catch { }
+            _newsOpen = false;
 
             try { SetNewsButtonsActive(false); } catch { }
 

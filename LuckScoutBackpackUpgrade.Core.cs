@@ -160,7 +160,7 @@ partial class LuckScoutBackpackUpgrade
             {
                 try { _pendingShapes.Add(System.Tuple.Create(item, 1)); } catch { }
                 // 并启动 600 帧恢复轮询（每帧 RestoreAllBeads 强制 ApplyLockedShape，覆盖创建后任意时点的初始化覆盖）
-                try { _restoreFramesLeft = 600; } catch { }
+                _restoreFramesLeft = 600;
             }
 
 

@@ -21,7 +21,7 @@ internal static partial class RobinCrusoePerk
     // 双清理由：命中逻辑=ReferenceEquals(对象)+Day 双条件（:24/:38）——只清对象不清 Day，新档新对象复用同地址+同日会误命中旧缓存
     internal static void ClearTooltipCaches()
     {
-        try { _cachedBoostItem = null; _cachedBoostDay = -1; _cachedProtItem = null; _cachedProtDay = -1; } catch { }
+        _cachedBoostItem = null; _cachedBoostDay = -1; _cachedProtItem = null; _cachedProtDay = -1;
     }
     private static bool GetCachedHasProt(GameItem gu)
     {

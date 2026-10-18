@@ -756,7 +756,7 @@ SetStat(K_LEAVE, day + 1); // 回归日 = 明天
     // LoadGame Postfix（PatchRegistryTable 注册）：启动补发窗口
     public static void PostfixLoadGameGift()
     {
-        try { _giftRestoreFramesLeft = 180; } catch { }
+        _giftRestoreFramesLeft = 180;
     }
 
     // Core 帧循环调用（Patches.Lifecycle）：延迟补发（读档数据轮询就绪后再判）

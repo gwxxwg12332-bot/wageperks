@@ -55,7 +55,7 @@ internal sealed class DrJacksonFriendPerk : CustomStartingPerk
     // 权威"开新档"信号是 PlayerStore.StartNewGame，改挂此处。
     public static void PostfixStartNewGame()
     {
-        try { _lastJacksonVisitDay = -1; } catch { }
+        _lastJacksonVisitDay = -1;
         try { Patches.ResetJacksonSchedule(); } catch { }
     }
 

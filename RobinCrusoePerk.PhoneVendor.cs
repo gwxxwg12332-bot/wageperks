@@ -364,7 +364,7 @@ internal static partial class RobinCrusoePerk
     private static string _lastArrivedClientId = null;
     public static void PrefixStoreUIManagerOnGenericArrived(string id)
     {
-        try { _lastArrivedClientId = id; } catch { }
+        _lastArrivedClientId = id;
     }
     public static void PostfixAugHelperCleanupKill()
     {
