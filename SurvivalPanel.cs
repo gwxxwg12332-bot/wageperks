@@ -73,8 +73,23 @@ internal static partial class SurvivalFood
         if (_logged.Add(k)) Core.LogMsg("[WageSurvival] 面板直写: " + k + " | " + msg);
     }
 
+    private static int _lastRefreshFrame = -1; // 10-18 总控方案②：帧内去重（CloseWindow+CreateWindow 重建高成本）
     internal static void RefreshStatusPanel(bool force = false)
     {
+        try
+        {
+            // 10-18 总控方案②：非 force 时同帧多次调用只重建 1 次——**同帧保留首调**（重建读当时值，残余延迟≤1 帧：
+            //   同帧后来携带新值的调用被丢弃，下次任意调用即刷新到最新——对状态面板可接受）。
+            //   按钮回调自毁点（卖血/自动弹 onClick → TrySellBlood → 本方法）：面板重建=按钮销毁在 Unity 事件派发完成后发生（安全），
+            //   帧去重同时防快速连点多次重建。
+            if (!force)
+            {
+                int f = UnityEngine.Time.frameCount;
+                if (f == _lastRefreshFrame) return;
+                _lastRefreshFrame = f;
+            }
+        }
+        catch { /* 帧数获取失败不阻塞刷新 */ }
         try
         {
             if (Core._yieldMode && SurvivalTrade.IsRobinsonRun())
