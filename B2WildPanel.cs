@@ -1512,10 +1512,14 @@ internal static class B2WildPanel
     // 拨号拦截：1005 走原版对话链（dialogFuncId="WageBrother" → DialogFuncs）；仅当对话工厂注册失败时回退直开面板
     public static bool PrefixStartPhoneDialog(long currentNumber)
     {
+        // 10-19 探针：无论放行/回退都打（原实现仅回退/异常才打——放行路径对 1005 静默，来电"无响应"无法从日志定位）
+        Core.LogMsg("[B2R] Probe StartPhoneDialog: " + currentNumber);
         try
         {
             if (currentNumber != WAGE_PHONE_NUMBER) return true; // 放行其他号码（含王尔德 8376）
             var dict = Il2Cpp.PhoneClientList.DialogFuncs;
+            Core.LogMsg("[B2R] Probe 1005 dict=" + (dict == null ? "NULL" : "count=" + dict.Count)
+                + " hasWageBrother=" + (dict != null && dict.ContainsKey(WAGE_DIALOG_ID)));
             if (dict != null && dict.ContainsKey(WAGE_DIALOG_ID)) return true; // 对话就绪 → 放行原版 GetCallDialog
             // 兜底：对话未注册（异常/为空）→ 直开面板（B2-R 老行为）
             Core.LogMsg("[B2R] 蛙哥对话未注册，回退直开面板（1005）");
@@ -1544,11 +1548,16 @@ internal static class B2WildPanel
         try
         {
             var dict = Il2Cpp.PhoneClientList.DialogFuncs;
+            // 10-19 探针：注册路径可见性（此前"已注册/已存在/为空"日志全缺，无法判断链路走到哪）
+            Core.LogMsg("[B2R] Probe RegisterWageBrotherDialog: dict=" + (dict == null ? "NULL" : "count=" + dict.Count)
+                + " hasWageBrother=" + (dict != null && dict.ContainsKey(WAGE_DIALOG_ID)));
             if (dict == null) { Core.LogMsg("[B2R] DialogFuncs 为空，对话注册跳过"); return; }
             if (dict.ContainsKey(WAGE_DIALOG_ID)) return; // 幂等
             var sysFunc = new System.Func<Il2Cpp.StorePhoneClient, Il2Cpp.Dialogue>(BuildWageBrotherDialogue);
             dict.Add(WAGE_DIALOG_ID, DelegateSupport.ConvertDelegate<Il2CppSystem.Func<Il2Cpp.StorePhoneClient, Il2Cpp.Dialogue>>((System.Delegate)sysFunc));
             Core.LogMsg("[B2R] DialogFuncs[\"WageBrother\"] 已注册（蛙哥电话对话链）");
+            // 10-19 探针：注册后复核（Add 后原版消费侧是否可见）
+            Core.LogMsg("[B2R] Probe 注册后复核: hasWageBrother=" + dict.ContainsKey(WAGE_DIALOG_ID));
         }
         catch (Exception ex) { Core.LogMsg("[B2R] 对话注册异常: " + ex.Message); }
     }

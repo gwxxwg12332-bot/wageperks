@@ -399,6 +399,8 @@ internal static partial class RobinCrusoePerk
     // 接听拦截（Core 注册 Prefix PhoneUIManager.WillAnswerCall）：未解锁 → 空号提示
     public static bool PrefixWillAnswerCall(long number)
     {
+        // 10-19 探针：来电是否到达接听判断（1005 此前无日志，无法区分"没来电"与"被静默放行"）
+        Core.LogMsg("[B2R] Probe WillAnswerCall: " + number);
         try
         {
             if (!IsActive()) return true;
@@ -457,8 +459,20 @@ internal static partial class RobinCrusoePerk
     // v1.3.1 奥丁电话；C1b：无条件强通（任意声望可叫，原版 phoneState=1 恒死路）
     public static bool PrefixAutoCall(long number)
     {
+        // 10-19 探针：手动拨号链 ContactElement→AutoCall 是否到达（1005 此前无日志）
+        Core.LogMsg("[B2R] Probe AutoCall: " + number);
         try
         {
+            // 10-19 方案A（用户拍板）：1005 狗嫌人厌豁免——原版"狗嫌人厌"置 LLAVOIDED 拒接所有供货商电话，
+            //   1005（Supplier）被原版 AutoCall 前置拦截 → 拨号无反应（无日志无提示）。
+            //   强通直拨（无视回避标记），与奥丁 51189 同模式：StartPhoneDialog(1005) →
+            //   B2WildPanel.PrefixStartPhoneDialog 放行 → 原版 GetCallDialog → DialogFuncs["WageBrother"] 对话链。
+            if (number == 1005)
+            {
+                Core.LogMsg("[B2R] 1005 强通拨号（狗嫌人厌豁免）");
+                try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[B2R] 1005 StartPhoneDialog异常: " + ex.Message); }
+                return false;
+            }
             if (number != 51189) return true;
             Core.LogMsg("[奥丁] AutoCall拦截 number=51189 无条件强通（C1b）");
             try { Il2Cpp.PhoneUIManager.Instance.StartPhoneDialog(number); } catch (System.Exception ex) { Core.LogMsg("[奥丁] StartPhoneDialog异常: " + ex.Message); }
